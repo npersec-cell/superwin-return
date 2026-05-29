@@ -62,8 +62,8 @@ export async function GET() {
         const optTotalCoins = optEntries.reduce((sum, e: any) => sum + (e.amount || 0), 0);
         const optPlayerCount = new Set(optEntries.map((e: any) => e.users?.email).filter(Boolean)).size;
 
-        // คำนวณอัตราผลตอบแทนต่อเหรียญ (Pool Multiplier Odds)
-        const potentialMultiplier = optTotalCoins > 0 ? Number((netPool / optTotalCoins).toFixed(2)) : 0;
+        // คำนวณอัตราผลตอบแทนต่อเหรียญ ปัดเป็นจำนวนเต็มไม่มีทศนิยม (เช่น คูณ 1x, 2x แทน 1.1x)
+        const potentialMultiplier = optTotalCoins > 0 ? Math.round(netPool / optTotalCoins) : 0;
 
         return {
           id: opt.id,
