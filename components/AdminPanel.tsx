@@ -230,6 +230,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [localOrder, setLocalOrder] = useState<string[]>([]);
 
   useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage("");
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
+  useEffect(() => {
     const list = predictions.filter(isRunningNow);
     const order = settings.predictionOrder || [];
     const sorted = [...list].sort((a, b) => {
