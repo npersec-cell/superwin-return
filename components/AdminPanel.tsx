@@ -218,6 +218,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [claims, setClaims] = useState<WinnerClaim[]>([]);
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
   const [editClosesAt, setEditClosesAt] = useState<Record<string, string>>({});
+  const [editQuestions, setEditQuestions] = useState<Record<string, string>>({});
+  const [editOptionsInputs, setEditOptionsInputs] = useState<Record<string, Record<string, string>>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   
   // แท็บเมนูหลังบ้าน
@@ -711,22 +713,33 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }
   }
 
-  async function saveNewCloseTime(id: string) {
+  async function savePredictionEdits(id: string) {
     const newTime = editClosesAt[id];
-    if (!newTime) return;
+    const newQuestion = editQuestions[id];
+    
+    const updatedOptionsMap = editOptionsInputs[id] || {};
+    const updatedOptionsList = Object.entries(updatedOptionsMap).map(([optId, label]) => ({
+      id: optId,
+      label
+    }));
+
     setLoading(true);
     setMessage("");
     try {
       await requestJson<{ ok: boolean }>(`/api/admin/predictions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ closesAt: newTime })
+        body: JSON.stringify({ 
+          closesAt: newTime,
+          question: newQuestion,
+          options: updatedOptionsList
+        })
       });
-      setMessage("อัปเดตกำหนดเวลาปิดทายผลสำเร็จ");
+      setMessage("อัปเดตรายละเอียดคำถามและคำตอบสำเร็จ");
       setEditingId(null);
       await reloadAll();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "อัปเดตเวลาไม่สำเร็จ");
+      setMessage(error instanceof Error ? error.message : "อัปเดตไม่สำเร็จ");
     } finally {
       setLoading(false);
     }
@@ -1284,10 +1297,17 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   onClick={() => {
                                     setEditingId(item.id);
                                     setEditClosesAt((current) => ({ ...current, [item.id]: toDateTimeLocal(new Date(item.closesAt || "")) }));
+                                    setEditQuestions((current) => ({ ...current, [item.id]: item.question }));
+                                    
+                                    const initialOpts: Record<string, string> = {};
+                                    item.options.forEach(o => {
+                                      initialOpts[o.id] = o.label;
+                                    });
+                                    setEditOptionsInputs((current) => ({ ...current, [item.id]: initialOpts }));
                                   }} 
                                   style={{ height: "18px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--yellow)", color: "var(--yellow)", borderRadius: "4px", cursor: "pointer" }}
                                 >
-                                  ✏️ แก้ไขเวลาจบ
+                                  ✏️ แก้ไขคำถาม & คำตอบ
                                 </button>
                               ) : (
                                 <button 
@@ -1301,24 +1321,66 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                               )}
                             </div>
 
-                            {/* กล่องแก้ไขเวลาสไลด์เปิด */}
+                            {/* กล่องแก้ไขคำถาม & คำตอบ สไลด์เปิดแบบฟอร์มครบชุด */}
                             {editingId === item.id && (
-                              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", marginTop: "6px", marginBottom: "6px", background: "rgba(255,225,0,0.03)", padding: "6px", borderRadius: "6px", border: "1px solid var(--hairline)" }}>
-                                <span className="meta" style={{ fontSize: "10px", color: "var(--yellow)" }}>ตั้งเวลาปิดใหม่ (UTC+7):</span>
-                                <input 
-                                  type="datetime-local" 
-                                  value={editClosesAt[item.id] || ""} 
-                                  onChange={(event) => setEditClosesAt((current) => ({ ...current, [item.id]: event.target.value }))} 
-                                  style={{ height: "26px", fontSize: "11px", padding: "0 6px", width: "160px", background: "var(--card)" }} 
-                                />
+                              <div style={{ display: "grid", gap: "10px", marginTop: "10px", marginBottom: "10px", background: "rgba(255,225,0,0.03)", padding: "12px", borderRadius: "8px", border: "1px solid var(--hairline)", width: "100%", textAlign: "left" }}>
+                                <div style={{ display: "grid", gap: "4px" }}>
+                                  <span className="meta" style={{ fontSize: "10px", color: "var(--yellow)" }}>แก้ไขข้อความคำถาม:</span>
+                                  <input 
+                                    type="text" 
+                                    value={editQuestions[item.id] !== undefined ? editQuestions[item.id] : item.question} 
+                                    onChange={(e) => setEditQuestions((current) => ({ ...current, [item.id]: e.target.value }))} 
+                                    placeholder="กรอกข้อความคำถามใหม่..." 
+                                    style={{ height: "30px", fontSize: "11px", padding: "0 8px", background: "var(--card)", width: "100%" }} 
+                                  />
+                                </div>
+
+                                <div style={{ display: "grid", gap: "4px" }}>
+                                  <span className="meta" style={{ fontSize: "10px", color: "var(--yellow)" }}>แก้ไขเวลาปิดทายผล (UTC+7):</span>
+                                  <input 
+                                    type="datetime-local" 
+                                    value={editClosesAt[item.id] || ""} 
+                                    onChange={(event) => setEditClosesAt((current) => ({ ...current, [item.id]: event.target.value }))} 
+                                    style={{ height: "30px", fontSize: "11px", padding: "0 8px", width: "100%", background: "var(--card)" }} 
+                                  />
+                                </div>
+
+                                <div style={{ display: "grid", gap: "6px" }}>
+                                  <span className="meta" style={{ fontSize: "10px", color: "var(--yellow)" }}>แก้ไขข้อความคำตอบ (ทีมต่าง ๆ):</span>
+                                  <div style={{ display: "grid", gap: "6px", maxHeight: "150px", overflowY: "auto", paddingRight: "4px" }}>
+                                    {item.options.map((option) => {
+                                      const currentVal = editOptionsInputs[item.id]?.[option.id] !== undefined 
+                                        ? editOptionsInputs[item.id][option.id] 
+                                        : option.label;
+                                      return (
+                                        <div key={option.id} style={{ display: "grid", gridTemplateColumns: "30px 1fr", alignItems: "center", gap: "8px" }}>
+                                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>#{option.sortOrder + 1}</span>
+                                          <input 
+                                            type="text" 
+                                            value={currentVal} 
+                                            onChange={(e) => setEditOptionsInputs((current) => ({
+                                              ...current,
+                                              [item.id]: {
+                                                ...(current[item.id] || {}),
+                                                [option.id]: e.target.value
+                                              }
+                                            }))} 
+                                            style={{ height: "26px", fontSize: "11px", padding: "0 8px", background: "var(--card)", width: "100%" }} 
+                                          />
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
                                 <button 
                                   className="button gold" 
                                   type="button" 
-                                  disabled={loading || !editClosesAt[item.id]} 
-                                  onClick={() => saveNewCloseTime(item.id)} 
-                                  style={{ height: "26px", fontSize: "10px", padding: "0 8px", fontWeight: "bold" }}
+                                  disabled={loading} 
+                                  onClick={() => savePredictionEdits(item.id)} 
+                                  style={{ height: "32px", fontSize: "11px", fontWeight: "bold", marginTop: "4px" }}
                                 >
-                                  💾 บันทึกเวลาใหม่
+                                  💾 บันทึกการแก้ไขคำถาม & คำตอบ
                                 </button>
                               </div>
                             )}

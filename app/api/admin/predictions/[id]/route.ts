@@ -13,6 +13,7 @@ type PatchBody = {
   closesAt?: string;
   feeRate?: number;
   status?: "draft" | "open" | "closed" | "resolved" | "canceled";
+  options?: { id: string; label: string }[];
 };
 
 function toStatus(error: unknown) {
@@ -37,6 +38,21 @@ export async function PATCH(request: NextRequest, context: Params) {
     if (body.status !== undefined) update.status = body.status;
 
     const supabase = createSupabaseAdminClient();
+    
+    // อัปเดตรายชื่อตัวเลือกคำตอบหากมีการส่งมา
+    if (body.options !== undefined && Array.isArray(body.options)) {
+      for (const option of body.options) {
+        if (option.id && option.label) {
+          const { error: optErr } = await supabase
+            .from("prediction_options")
+            .update({ label: String(option.label).trim() })
+            .eq("id", option.id)
+            .eq("prediction_id", id);
+          if (optErr) throw new Error("Failed to update option: " + optErr.message);
+        }
+      }
+    }
+
     const { data, error } = await supabase
       .from("predictions")
       .update(update)
