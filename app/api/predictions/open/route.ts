@@ -32,7 +32,6 @@ export async function GET() {
       .from("predictions")
       .select("id, tournament_name, question, closes_at")
       .eq("status", "open")
-      .lte("opens_at", now)
       .gt("closes_at", now)
       .order("closes_at", { ascending: true })
       .returns<PredictionRow[]>();
