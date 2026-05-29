@@ -13,6 +13,7 @@ export type AppUser = {
   lastClaimAt: string | null;
   nextClaimAt: string | null;
   status: "active" | "suspended" | "banned";
+  avatarUrl: string | null;
 };
 
 type UserRow = {
@@ -27,6 +28,7 @@ type UserRow = {
   last_claim_at: string | null;
   next_claim_at: string | null;
   status: "active" | "suspended" | "banned";
+  avatar_url: string | null;
 };
 
 function mapUser(row: UserRow): AppUser {
@@ -41,7 +43,8 @@ function mapUser(row: UserRow): AppUser {
     lifetimeProfit: row.lifetime_profit,
     lastClaimAt: row.last_claim_at,
     nextClaimAt: row.next_claim_at,
-    status: row.status
+    status: row.status,
+    avatarUrl: row.avatar_url || null
   };
 }
 
@@ -68,11 +71,12 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   }
 
   const displayName = getDisplayName(clerkUser);
+  const avatarUrl = clerkUser?.imageUrl || null;
   const supabase = createSupabaseAdminClient();
 
   const { data: existing, error: selectError } = await supabase
     .from("users")
-    .select("id, clerk_user_id, email, display_name, role, coin_balance, monthly_profit, lifetime_profit, last_claim_at, next_claim_at, status")
+    .select("id, clerk_user_id, email, display_name, role, coin_balance, monthly_profit, lifetime_profit, last_claim_at, next_claim_at, status, avatar_url")
     .eq("clerk_user_id", userId)
     .maybeSingle<UserRow>();
 
@@ -81,13 +85,22 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   }
 
   if (existing) {
-    const shouldUpdate = existing.email !== email || existing.display_name !== displayName;
+    const shouldUpdate = 
+      existing.email !== email || 
+      existing.display_name !== displayName || 
+      existing.avatar_url !== avatarUrl;
+      
     if (shouldUpdate) {
       const { data: updated, error: updateError } = await supabase
         .from("users")
-        .update({ email, display_name: displayName, updated_at: new Date().toISOString() })
+        .update({ 
+          email, 
+          display_name: displayName, 
+          avatar_url: avatarUrl, 
+          updated_at: new Date().toISOString() 
+        })
         .eq("id", existing.id)
-        .select("id, clerk_user_id, email, display_name, role, coin_balance, monthly_profit, lifetime_profit, last_claim_at, next_claim_at, status")
+        .select("id, clerk_user_id, email, display_name, role, coin_balance, monthly_profit, lifetime_profit, last_claim_at, next_claim_at, status, avatar_url")
         .single<UserRow>();
 
       if (updateError) {
@@ -109,9 +122,10 @@ export async function getCurrentUser(): Promise<AppUser | null> {
       coin_balance: 0,
       monthly_profit: 0,
       lifetime_profit: 0,
-      status: "active"
+      status: "active",
+      avatar_url: avatarUrl
     })
-    .select("id, clerk_user_id, email, display_name, role, coin_balance, monthly_profit, lifetime_profit, last_claim_at, next_claim_at, status")
+    .select("id, clerk_user_id, email, display_name, role, coin_balance, monthly_profit, lifetime_profit, last_claim_at, next_claim_at, status, avatar_url")
     .single<UserRow>();
 
   if (insertError) {

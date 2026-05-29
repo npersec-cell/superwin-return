@@ -307,6 +307,7 @@ type LeaderboardRow = {
   name: string;
   profit: number;
   isReal?: boolean;
+  avatarUrl?: string | null;
 };
 
 const defaultLeaderboard: LeaderboardRow[] = [];
@@ -343,7 +344,7 @@ function createQuestionDeadlines(sourceQuestions = demoQuestions) {
 }
 
 export default function SuperWinPrototype() {
-  const { isSignedIn } = useUser();
+  const { isSignedIn, user: clerkUser } = useUser();
   const [mounted, setMounted] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [coins, setCoins] = useState(500);
@@ -997,6 +998,7 @@ export default function SuperWinPrototype() {
                 {leaderboard.map((row, index) => {
                   const targetId = row.id || (row.name === "You" ? currentUserId : null);
                   const isClickable = isSignedIn && targetId;
+                  const avatarUrl = row.name === "You" ? (clerkUser?.imageUrl || row.avatarUrl) : row.avatarUrl;
                   return (
                     <div 
                       key={row.name} 
@@ -1006,13 +1008,29 @@ export default function SuperWinPrototype() {
                       title={isClickable ? `Click to view ${row.name}'s stats` : undefined}
                     >
                       <span>{index + 1}</span>
-                      <span style={{ 
-                        color: isClickable ? "var(--yellow)" : "var(--text-strong)", 
-                        fontWeight: row.name === "You" ? "bold" : "600",
-                        textDecoration: isClickable ? "underline" : "none"
-                      }}>
-                        {row.name}
-                      </span>
+                      <div className="rank-name-container" style={{ display: "flex", alignItems: "center", gap: "6px", flexGrow: 1, minWidth: 0 }}>
+                        {avatarUrl ? (
+                          <img 
+                            src={avatarUrl} 
+                            alt={row.name} 
+                            style={{ width: "16px", height: "16px", borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} 
+                          />
+                        ) : (
+                          <div style={{ width: "16px", height: "16px", borderRadius: "50%", backgroundColor: "#20252b", border: "1px solid #30353b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "9px", flexShrink: 0 }}>
+                            👤
+                          </div>
+                        )}
+                        <span style={{ 
+                          color: isClickable ? "var(--yellow)" : "var(--text-strong)", 
+                          fontWeight: row.name === "You" ? "bold" : "600",
+                          textDecoration: isClickable ? "underline" : "none",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap"
+                        }}>
+                          {row.name}
+                        </span>
+                      </div>
                       <b>{money(row.profit)}</b>
                     </div>
                   );
