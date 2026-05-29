@@ -451,28 +451,6 @@ export default function SuperWinPrototype() {
   }, [coins, profit, nextClaimAt, history, running, mounted]);
 
   useEffect(() => {
-    if (!mounted) return;
-    window.googleTranslateElementInit = function () {
-      if (!window.google?.translate) return;
-      new window.google.translate.TranslateElement(
-        {
-          pageLanguage: "en",
-          includedLanguages: "en,th,id,ms,vi,zh-CN,ja,ko",
-          layout: "SIMPLE"
-        },
-        "google_translate_element"
-      );
-    };
-    if (!document.querySelector("script[data-google-translate]")) {
-      const script = document.createElement("script");
-      script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-      script.async = true;
-      script.setAttribute("data-google-translate", "true");
-      document.body.appendChild(script);
-    }
-  }, [mounted]);
-
-  useEffect(() => {
     const tick = () => {
       const claimRemaining = nextClaimAt - Date.now();
       if (claimRemaining <= 0) {

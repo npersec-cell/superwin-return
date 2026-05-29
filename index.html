@@ -600,10 +600,6 @@
             <li>Submitted predictions stay in Running while waiting for the result.</li>
           </ul>
         </div>
-        <div class="info-block">
-          <h4>Language</h4>
-          <div id="google_translate_element"></div>
-        </div>
       </div>
     </div>
   </section>
@@ -1015,13 +1011,6 @@
     closeInfo.addEventListener("click", () => infoModal.classList.remove("open"));
     infoModal.addEventListener("click", event => { if (event.target === infoModal) infoModal.classList.remove("open"); });
 
-    window.googleTranslateElementInit = function () {
-      new google.translate.TranslateElement({
-        pageLanguage: "en",
-        includedLanguages: "en,th,id,ms,vi,zh-CN,ja,ko",
-        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-      }, "google_translate_element");
-    };
 
     renderAccount();
     renderQuestions();
@@ -1037,6 +1026,5 @@
       updateQuestionCountdowns();
     }, 1000);
   </script>
-  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
 </html>
