@@ -219,7 +219,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   
   // แท็บเมนูหลังบ้าน
-  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "claims" | "dashboard">("dashboard");
+  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "claims" | "dashboard" | "reports">("dashboard");
+  const [reports, setReports] = useState<any[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
 
   const [localOrder, setLocalOrder] = useState<string[]>([]);
 
@@ -333,6 +335,39 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       if (!selectedDashboardTournament) {
         setSelectedDashboardTournament(data[0].tournamentName);
       }
+    }
+  }
+
+  async function loadReports() {
+    try {
+      setReportsLoading(true);
+      const response = await fetch("/api/admin/reports");
+      const payload = await response.json();
+      if (response.ok && payload.ok && payload.data) {
+        setReports(payload.data);
+      }
+    } catch {
+      // Ignored
+    } finally {
+      setReportsLoading(false);
+    }
+  }
+
+  async function handleUpdateReport(id: string, status: "pending" | "resolved", isDelete = false) {
+    try {
+      const response = await fetch("/api/admin/reports", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status, delete: isDelete })
+      });
+      const payload = await response.json();
+      if (response.ok && payload.ok) {
+        await loadReports();
+      } else {
+        alert(payload.error || "ทำรายการไม่สำเร็จ");
+      }
+    } catch {
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
     }
   }
 
@@ -942,6 +977,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "claims" ? "active" : ""}`} onClick={() => { setActiveTab("claims"); loadClaims().catch(() => undefined); }} style={{ borderRadius: "999px" }}>จัดส่งรางวัล</button>
           <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => setActiveTab("settings")} style={{ borderRadius: "999px" }}>ตั้งค่าหน้าเว็บ & รางวัล</button>
           <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>แอดมิน ({admins.length})</button>
+          <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>แจ้งปัญหา ({reports.length})</button>
         </div>
 
         <section className="admin-content" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", maxWidth: "100%", justifyItems: "center", margin: "0 auto" }}>
@@ -1608,6 +1644,78 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
                   <span className="meta" style={{ display: "block", marginTop: "12px", lineHeight: "1.4" }}>หมายเหตุ: แอดมินใหม่ต้องเคยลงชื่อสมัครใช้บริการ (Sign Up / Sign In) ในหน้าหลักมาก่อนอย่างน้อย 1 ครั้ง เพื่อให้ข้อมูลสร้างขึ้นในฐานข้อมูล Supabase ถึงจะกดเพิ่มรายชื่อจากตรงนี้ได้สำเร็จ</span>
                 </form>
+              </section>
+            </section>
+          )}
+
+          {activeTab === "reports" && (
+            <section className="panel" style={{ width: "100%", maxWidth: "800px", display: "grid", gap: "16px", margin: "0 auto" }}>
+              <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
+                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <h3>รายการแจ้งปัญหาและข้อเสนอแนะ</h3>
+                  <button className="button gold" onClick={loadReports} disabled={reportsLoading} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
+                    🔄 รีเฟรชข้อมูล
+                  </button>
+                </div>
+                
+                <div className="admin-option-list" style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
+                  {reportsLoading ? (
+                    <div style={{ textAlign: "center", padding: "20px", color: "var(--text-weak)" }}>กำลังโหลดข้อมูลรายงานการแจ้งปัญหา...</div>
+                  ) : reports.length > 0 ? (
+                    reports.map((report) => (
+                      <div key={report.id} style={{ border: "1px solid var(--hairline)", borderRadius: "8px", padding: "12px", background: "var(--bg)", display: "flex", flexDirection: "column", gap: "8px", width: "100%", textAlign: "left" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "11px", color: "var(--text-weak)" }}>
+                            จาก: <b>{report.email}</b>
+                          </span>
+                          <span style={{ 
+                            fontSize: "10px", 
+                            padding: "2px 6px", 
+                            borderRadius: "4px", 
+                            fontWeight: "bold",
+                            background: report.status === "resolved" ? "rgba(76, 175, 80, 0.2)" : "rgba(244, 67, 54, 0.2)",
+                            color: report.status === "resolved" ? "#4caf50" : "#f44336"
+                          }}>
+                            {report.status === "resolved" ? "✓ แก้ไขแล้ว" : "⏳ รอดำเนินการ"}
+                          </span>
+                        </div>
+                        
+                        <p style={{ fontSize: "12px", color: "var(--text-strong)", whiteSpace: "pre-wrap", lineHeight: "1.4", margin: 0 }}>
+                          {report.message}
+                        </p>
+                        
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", borderTop: "1px solid var(--hairline-soft)", paddingTop: "8px", marginTop: "4px" }}>
+                          <span style={{ color: "var(--text-weak)" }}>
+                            วันที่ส่ง: {new Date(report.created_at).toLocaleString("th-TH")}
+                          </span>
+                          
+                          <div style={{ display: "flex", gap: "6px" }}>
+                            {report.status !== "resolved" && (
+                              <button 
+                                className="button gold" 
+                                onClick={() => handleUpdateReport(report.id, "resolved")}
+                                style={{ height: "24px", fontSize: "10px", padding: "0 8px" }}
+                              >
+                                ✔️ ทำเครื่องหมายว่าแก้ไขแล้ว
+                              </button>
+                            )}
+                            <button 
+                              className="button" 
+                              onClick={() => { if(confirm("ต้องการลบรายงานนี้ใช่หรือไม่?")) handleUpdateReport(report.id, report.status, true); }}
+                              style={{ height: "24px", fontSize: "10px", padding: "0 8px", background: "rgba(244, 67, 54, 0.1)", border: "1px solid rgba(244, 67, 54, 0.3)", color: "#f44336" }}
+                            >
+                              🗑️ ลบ
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "30px", color: "var(--text-weak)", border: "1px dashed var(--hairline)", borderRadius: "8px" }}>
+                      <strong>ไม่มีรายงานการแจ้งปัญหาหรือข้อเสนอแนะเข้ามาในขณะนี้</strong>
+                    </div>
+                  )}
+                </div>
               </section>
             </section>
           )}

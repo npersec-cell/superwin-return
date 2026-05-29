@@ -376,6 +376,60 @@ export default function SuperWinPrototype() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [reportMessage, setReportMessage] = useState("");
+  const [captchaNum1, setCaptchaNum1] = useState(0);
+  const [captchaNum2, setCaptchaNum2] = useState(0);
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [reportSuccess, setReportSuccess] = useState(false);
+
+  const generateCaptcha = () => {
+    setCaptchaNum1(Math.floor(Math.random() * 9) + 1);
+    setCaptchaNum2(Math.floor(Math.random() * 9) + 1);
+    setCaptchaAnswer("");
+    setReportError(null);
+  };
+
+  useEffect(() => {
+    if (showReportForm) {
+      generateCaptcha();
+      setReportSuccess(false);
+      setReportMessage("");
+    }
+  }, [showReportForm]);
+
+  const handleSendReport = async () => {
+    try {
+      setReportSubmitting(true);
+      setReportError(null);
+      const response = await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: reportMessage,
+          num1: captchaNum1,
+          num2: captchaNum2,
+          answer: captchaAnswer
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Failed to submit report");
+      }
+      setReportSuccess(true);
+      setReportMessage("");
+      setCaptchaAnswer("");
+      setTimeout(() => setShowReportForm(false), 3000);
+    } catch (err) {
+      setReportError(err instanceof Error ? err.message : "Error submitting report");
+      setCaptchaAnswer("");
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     setMounted(true);
     setCoins(Number(localStorage.getItem("sr_coins")) || 500);
@@ -1036,6 +1090,71 @@ export default function SuperWinPrototype() {
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
       )}
+
+      {/* Floating Feedback / Bug Report Panel (เล็กๆ มุมขวาล่าง) */}
+      <div className="feedback-container" style={{ position: "fixed", bottom: "12px", right: "12px", zIndex: 100, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
+        {showReportForm && (
+          <div className="panel" style={{ width: "240px", padding: "10px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--card)", boxShadow: "0 4px 16px rgba(0,0,0,0.6)", display: "flex", flexDirection: "column", gap: "6px", fontSize: "11px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "4px" }}>
+              <b style={{ color: "var(--yellow)" }}>Report Issue / Feedback</b>
+              <button onClick={() => setShowReportForm(false)} style={{ background: "transparent", border: "none", color: "var(--text-weak)", cursor: "pointer", fontSize: "12px" }}>×</button>
+            </div>
+            
+            {reportSuccess ? (
+              <div style={{ color: "#4caf50", padding: "10px 0", textAlign: "center", fontWeight: "bold" }}>
+                ✓ Thank you! Message sent to admin.
+              </div>
+            ) : (
+              <>
+                <textarea
+                  value={reportMessage}
+                  onChange={(e) => setReportMessage(e.target.value)}
+                  placeholder="Describe your issue or suggestion..."
+                  rows={3}
+                  style={{ width: "100%", padding: "6px", borderRadius: "4px", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-strong)", resize: "none" }}
+                />
+                
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <span style={{ color: "var(--text-weak)" }}>Solve captcha to submit:</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <span style={{ fontWeight: "bold", color: "var(--text-strong)" }}>{captchaNum1} + {captchaNum2} =</span>
+                    <input
+                      type="text"
+                      value={captchaAnswer}
+                      onChange={(e) => setCaptchaAnswer(e.target.value)}
+                      placeholder="?"
+                      style={{ width: "36px", height: "20px", padding: "2px", borderRadius: "4px", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-strong)", textAlign: "center" }}
+                    />
+                  </div>
+                </div>
+
+                {reportError && (
+                  <div style={{ color: "var(--red)", fontSize: "10px", marginTop: "2px" }}>
+                    ⚠ {reportError}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSendReport}
+                  disabled={reportSubmitting || !reportMessage.trim() || !captchaAnswer.trim()}
+                  className="button primary"
+                  style={{ width: "100%", height: "24px", fontSize: "11px", fontWeight: "bold", padding: 0 }}
+                >
+                  {reportSubmitting ? "Sending..." : "Submit Message"}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+        
+        <button
+          onClick={() => setShowReportForm(!showReportForm)}
+          className="button gold"
+          style={{ height: "24px", borderRadius: "12px", padding: "0 10px", fontSize: "10px", display: "flex", alignItems: "center", gap: "3px", boxShadow: "0 2px 8px rgba(0,0,0,0.4)" }}
+        >
+          <span>🐞</span> Report Issue
+        </button>
+      </div>
     </main>
   );
 }
