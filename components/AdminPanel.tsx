@@ -1595,16 +1595,31 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         {item.note && <span style={{ fontSize: "11px", color: "var(--text)" }}>หมายเหตุเพิ่มเติม: <i>{item.note}</i></span>}
                       </div>
 
-                      {item.status !== "completed" && (
-                        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
+                      {item.status !== "completed" ? (
+                        <div style={{ display: "grid", gap: "6px", marginTop: "8px" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            <span style={{ fontSize: "11px", color: "var(--text-weak)", textAlign: "left" }}>ข้อความแจ้งผู้ชนะ (เช่น เลขพัสดุ, วันส่งมอบ หรือช่องทางการติดต่อ):</span>
+                            <input
+                              type="text"
+                              value={trackingInputs[item.id] || ""}
+                              onChange={(e) => setTrackingInputs((current) => ({ ...current, [item.id]: e.target.value }))}
+                              placeholder="กรอกรายละเอียดจัดส่งพัสดุ หรือข้อความที่ต้องการแจ้งผู้ชนะที่นี่..."
+                              style={{ height: "30px", fontSize: "11px", padding: "0 8px", background: "var(--bg)", border: "1px solid var(--hairline)", color: "#fff", borderRadius: "4px", width: "100%", textAlign: "left" }}
+                            />
+                          </div>
                           <button 
                             className="button gold" 
                             disabled={loading} 
-                            onClick={() => updateClaimStatus(item.id, "completed", "")}
-                            style={{ height: "34px", width: "100%", fontWeight: "bold" }}
+                            onClick={() => updateClaimStatus(item.id, "completed", trackingInputs[item.id] || "")}
+                            style={{ height: "30px", width: "100%", fontWeight: "bold", marginTop: "4px" }}
                           >
-                            ✔️ แจ้งว่าจัดส่งสำเร็จ
+                            ✔️ บันทึกข้อความและแจ้งจัดส่งสำเร็จ
                           </button>
+                        </div>
+                      ) : (
+                        <div style={{ background: "rgba(14, 203, 129, 0.08)", border: "1px dashed rgba(14, 203, 129, 0.2)", borderRadius: "6px", padding: "8px", marginTop: "8px", fontSize: "11px", textAlign: "left" }}>
+                          <span style={{ color: "var(--green)", fontWeight: "bold", display: "block", marginBottom: "2px" }}>✓ ข้อความที่ส่งแจ้งผู้ชนะแล้ว:</span>
+                          <span style={{ color: "#fff" }}>{item.trackingNumber || "(ไม่มีข้อความรายละเอียด)"}</span>
                         </div>
                       )}
                     </div>

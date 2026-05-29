@@ -1355,7 +1355,7 @@ function ClaimModal({
                   </strong>
                   {claim.status === "completed" && claim.trackingNumber && (
                     <span style={{ fontSize: "11px", color: "var(--text-strong)" }}>
-                      Tracking ID: <strong style={{ textDecoration: "underline" }}>{claim.trackingNumber}</strong>
+                      Shipping Details: <strong>{claim.trackingNumber}</strong>
                     </span>
                   )}
                 </div>

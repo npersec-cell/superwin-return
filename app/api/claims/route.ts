@@ -20,6 +20,7 @@ type Claim = {
   status: "pending" | "contacting" | "completed";
   trackingNumber: string;
   createdAt: string;
+  completedAt?: string;
 };
 
 async function readClaims(): Promise<Claim[]> {
@@ -69,6 +70,14 @@ export async function GET() {
     );
 
     if (activeClaim) {
+      // หากแอดมินตั้งสถานะเป็นจัดส่งสำเร็จ (completed) แล้วเกิน 7 วัน ให้แถบข้อความนี้หายไปถาวรสำหรับผู้ชนะ
+      if (activeClaim.status === "completed" && activeClaim.completedAt) {
+        const diffTime = Date.now() - new Date(activeClaim.completedAt).getTime();
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+        if (diffDays > 7) {
+          return NextResponse.json({ ok: true, data: null });
+        }
+      }
       return NextResponse.json({ ok: true, data: activeClaim });
     }
 

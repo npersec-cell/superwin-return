@@ -19,6 +19,7 @@ type Claim = {
   status: "pending" | "contacting" | "completed";
   trackingNumber: string;
   createdAt: string;
+  completedAt?: string;
 };
 
 async function readClaims(): Promise<Claim[]> {
@@ -69,10 +70,12 @@ export async function PATCH(request: NextRequest) {
     }
 
     const current = claims[index];
+    const isCompletedNow = status === "completed" && current.status !== "completed";
     const updated: Claim = {
       ...current,
       status: status !== undefined ? status : current.status,
-      trackingNumber: trackingNumber !== undefined ? String(trackingNumber).trim() : current.trackingNumber
+      trackingNumber: trackingNumber !== undefined ? String(trackingNumber).trim() : current.trackingNumber,
+      completedAt: isCompletedNow ? new Date().toISOString() : current.completedAt
     };
 
     claims[index] = updated;
