@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 
-const settingsDir = path.join(process.cwd(), "data");
-const settingsPath = path.join(settingsDir, "site-settings.json");
+export const dynamic = "force-dynamic";
 
 type TournamentItem = {
   name: string;
@@ -63,11 +60,34 @@ const fallback: SiteSettings = {
   announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the Season Top 10!"
 };
 
-async function readSettings(): Promise<SiteSettings> {
+async function readSettingsFromDb(supabase: ReturnType<typeof createSupabaseAdminClient>): Promise<SiteSettings> {
   try {
-    return JSON.parse(await readFile(settingsPath, "utf8")) as SiteSettings;
+    const { data, error } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "site_settings")
+      .maybeSingle();
+
+    if (error || !data || !data.value) {
+      return fallback;
+    }
+    return data.value as SiteSettings;
   } catch {
     return fallback;
+  }
+}
+
+async function writeSettingsToDb(supabase: ReturnType<typeof createSupabaseAdminClient>, settings: SiteSettings): Promise<void> {
+  const { error } = await supabase
+    .from("settings")
+    .upsert({
+      key: "site_settings",
+      value: settings,
+      updated_at: new Date().toISOString()
+    });
+
+  if (error) {
+    throw new Error("Failed to write settings to database: " + error.message);
   }
 }
 
@@ -81,10 +101,10 @@ function toStatus(error: unknown) {
 export async function GET() {
   try {
     await requireAdmin();
-    const settings = await readSettings();
+    const supabase = createSupabaseAdminClient();
+    const settings = await readSettingsFromDb(supabase);
 
     // ดึงรายชื่อซีซั่นที่มีอยู่จริงในตารางคะแนนเกียรติยศ
-    const supabase = createSupabaseAdminClient();
     const { data: dbSeasons } = await supabase
       .from("monthly_leaderboards")
       .select("month");
@@ -116,8 +136,10 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   try {
     await requireAdmin();
-    const current = await readSettings();
+    const supabase = createSupabaseAdminClient();
+    const current = await readSettingsFromDb(supabase);
     const body = (await request.json()) as Partial<SiteSettings>;
+    
     const next: SiteSettings = {
       info: { ...current.info, ...(body.info || {}) },
       reward: { ...current.reward, ...(body.reward || {}) },
@@ -132,8 +154,7 @@ export async function PATCH(request: NextRequest) {
       announcement: body.announcement !== undefined ? body.announcement : current.announcement
     };
 
-    await mkdir(settingsDir, { recursive: true });
-    await writeFile(settingsPath, JSON.stringify(next, null, 2), "utf8");
+    await writeSettingsToDb(supabase, next);
 
     return NextResponse.json({ ok: true, data: next });
   } catch (error) {

@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
-import path from "node:path";
 import { requireAdmin } from "@/lib/auth";
+import { createSupabaseAdminClient } from "@/lib/db";
 
-const claimsDir = path.join(process.cwd(), "data");
-const claimsPath = path.join(claimsDir, "winner-claims.json");
+export const dynamic = "force-dynamic";
 
 type Claim = {
   id: string;
@@ -22,14 +20,6 @@ type Claim = {
   completedAt?: string;
 };
 
-async function readClaims(): Promise<Claim[]> {
-  try {
-    return JSON.parse(await readFile(claimsPath, "utf8")) as Claim[];
-  } catch {
-    return [];
-  }
-}
-
 function toStatus(error: unknown) {
   const message = error instanceof Error ? error.message : "Admin request failed";
   if (message === "Unauthorized") return 401;
@@ -40,12 +30,35 @@ function toStatus(error: unknown) {
 export async function GET() {
   try {
     await requireAdmin();
-    const claims = await readClaims();
-    // เรียงลำดับจากล่าสุดลงไป
-    const sorted = [...claims].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    return NextResponse.json({ ok: true, data: sorted });
+    const supabase = createSupabaseAdminClient();
+    
+    // ดึงใบเคลมรางวัลทั้งหมดจากฐานข้อมูล Supabase แทนระบบไฟล์
+    const { data: dbClaims, error } = await supabase
+      .from("winner_claims")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(error.message || "Failed to load claims from database");
+    }
+
+    const mappedClaims: Claim[] = (dbClaims || []).map((dbClaim) => ({
+      id: dbClaim.id,
+      month: dbClaim.month,
+      rewardName: dbClaim.reward_name,
+      winnerName: dbClaim.winner_name,
+      winnerEmail: dbClaim.winner_email,
+      receiverName: dbClaim.receiver_name || "",
+      phone: dbClaim.phone || "",
+      address: dbClaim.address || "",
+      note: dbClaim.note || "",
+      status: dbClaim.status,
+      trackingNumber: dbClaim.tracking_number || "",
+      createdAt: dbClaim.created_at,
+      completedAt: dbClaim.completed_at
+    }));
+
+    return NextResponse.json({ ok: true, data: mappedClaims });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load claims";
     return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
@@ -62,28 +75,55 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Missing claim ID" }, { status: 400 });
     }
 
-    const claims = await readClaims();
-    const index = claims.findIndex((c) => c.id === id);
+    const supabase = createSupabaseAdminClient();
 
-    if (index === -1) {
-      return NextResponse.json({ ok: false, error: "Claim not found" }, { status: 404 });
+    // ดึงค่าปัจจุบันของ Record
+    const { data: current, error: selectError } = await supabase
+      .from("winner_claims")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (selectError || !current) {
+      return NextResponse.json({ ok: false, error: "Claim not found in database" }, { status: 404 });
     }
 
-    const current = claims[index];
     const isCompletedNow = status === "completed" && current.status !== "completed";
-    const updated: Claim = {
-      ...current,
-      status: status !== undefined ? status : current.status,
-      trackingNumber: trackingNumber !== undefined ? String(trackingNumber).trim() : current.trackingNumber,
-      completedAt: isCompletedNow ? new Date().toISOString() : current.completedAt
+    const completedAtValue = isCompletedNow ? new Date().toISOString() : current.completed_at;
+
+    // อัปเดตข้อมูลตรงไปยัง Supabase
+    const { data: updated, error: updateError } = await supabase
+      .from("winner_claims")
+      .update({
+        status: status !== undefined ? status : current.status,
+        tracking_number: trackingNumber !== undefined ? String(trackingNumber).trim() : current.tracking_number,
+        completed_at: completedAtValue
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (updateError) {
+      throw new Error(updateError.message || "Failed to update claim in database");
+    }
+
+    const mappedUpdated: Claim = {
+      id: updated.id,
+      month: updated.month,
+      rewardName: updated.reward_name,
+      winnerName: updated.winner_name,
+      winnerEmail: updated.winner_email,
+      receiverName: updated.receiver_name || "",
+      phone: updated.phone || "",
+      address: updated.address || "",
+      note: updated.note || "",
+      status: updated.status,
+      trackingNumber: updated.tracking_number || "",
+      createdAt: updated.created_at,
+      completedAt: updated.completed_at
     };
 
-    claims[index] = updated;
-
-    await mkdir(claimsDir, { recursive: true });
-    await writeFile(claimsPath, JSON.stringify(claims, null, 2), "utf8");
-
-    return NextResponse.json({ ok: true, data: updated });
+    return NextResponse.json({ ok: true, data: mappedUpdated });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update claim";
     return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });

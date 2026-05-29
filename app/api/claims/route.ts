@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
-import path from "node:path";
 import { getCurrentUser } from "@/lib/auth";
+import { createSupabaseAdminClient } from "@/lib/db";
 
-const claimsDir = path.join(process.cwd(), "data");
-const claimsPath = path.join(claimsDir, "winner-claims.json");
-const settingsPath = path.join(claimsDir, "site-settings.json");
+export const dynamic = "force-dynamic";
 
 type Claim = {
   id: string;
@@ -23,17 +20,14 @@ type Claim = {
   completedAt?: string;
 };
 
-async function readClaims(): Promise<Claim[]> {
+async function readSettingsFromDb(supabase: any) {
   try {
-    return JSON.parse(await readFile(claimsPath, "utf8")) as Claim[];
-  } catch {
-    return [];
-  }
-}
-
-async function readSettings() {
-  try {
-    return JSON.parse(await readFile(settingsPath, "utf8"));
+    const { data } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "site_settings")
+      .maybeSingle();
+    return data?.value || null;
   } catch {
     return null;
   }
@@ -46,12 +40,13 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const settings = await readSettings();
+    const supabase = createSupabaseAdminClient();
+    const settings = await readSettingsFromDb(supabase);
     if (!settings || !settings.reward || !settings.reward.winnerBy || !settings.reward.approved) {
       return NextResponse.json({ ok: true, data: null });
     }
 
-    // ตรวจสอบว่าผู้ใช้ปัจจุบันคือผู้ชนะประจำเดือนหรือไม่
+    // ตรวจสอบว่าผู้ใช้ปัจจุบันคือผู้ชนะประจำฤดูกาลตัวจริงหรือไม่
     const isWinner =
       (user.displayName && user.displayName.toLowerCase() === settings.reward.winnerBy.toLowerCase()) ||
       (user.email && user.email.toLowerCase() === settings.reward.winnerBy.toLowerCase());
@@ -60,25 +55,46 @@ export async function GET() {
       return NextResponse.json({ ok: true, data: null });
     }
 
-    const claims = await readClaims();
-    // หาใบเคลมพัสดุประจำเดือนปัจจุบันของผู้ชนะรายนี้
-    const activeClaim = claims.find(
-      (c) =>
-        c.month === settings.reward.month &&
-        (c.winnerEmail.toLowerCase() === user.email.toLowerCase() ||
-          c.winnerName.toLowerCase() === (user.displayName || "").toLowerCase())
-    );
+    // คิวรีดึงข้อมูลใบเคลมพัสดุจาก Supabase
+    const { data: dbClaim, error: fetchError } = await supabase
+      .from("winner_claims")
+      .select("*")
+      .eq("month", settings.reward.month)
+      .eq("winner_email", user.email.toLowerCase())
+      .maybeSingle();
 
-    if (activeClaim) {
+    if (fetchError) {
+      throw new Error(fetchError.message);
+    }
+
+    if (dbClaim) {
       // หากแอดมินตั้งสถานะเป็นจัดส่งสำเร็จ (completed) แล้วเกิน 7 วัน ให้แถบข้อความนี้หายไปถาวรสำหรับผู้ชนะ
-      if (activeClaim.status === "completed" && activeClaim.completedAt) {
-        const diffTime = Date.now() - new Date(activeClaim.completedAt).getTime();
+      if (dbClaim.status === "completed" && dbClaim.completed_at) {
+        const diffTime = Date.now() - new Date(dbClaim.completed_at).getTime();
         const diffDays = diffTime / (1000 * 60 * 60 * 24);
         if (diffDays > 7) {
           return NextResponse.json({ ok: true, data: null });
         }
       }
-      return NextResponse.json({ ok: true, data: activeClaim });
+
+      // แมปปิงข้อมูลกลับเป็นฟอร์แมต CamelCase สำหรับหน้ากากส่วนติดต่อแรก (Frontend)
+      const mappedClaim: Claim = {
+        id: dbClaim.id,
+        month: dbClaim.month,
+        rewardName: dbClaim.reward_name,
+        winnerName: dbClaim.winner_name,
+        winnerEmail: dbClaim.winner_email,
+        receiverName: dbClaim.receiver_name || "",
+        phone: dbClaim.phone || "",
+        address: dbClaim.address || "",
+        note: dbClaim.note || "",
+        status: dbClaim.status,
+        trackingNumber: dbClaim.tracking_number || "",
+        createdAt: dbClaim.created_at,
+        completedAt: dbClaim.completed_at
+      };
+
+      return NextResponse.json({ ok: true, data: mappedClaim });
     }
 
     // หากยังไม่เคยเคลม ให้คืนรูปแบบเริ่มต้นเพื่อบอกว่าให้เคลมได้
@@ -104,7 +120,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const settings = await readSettings();
+    const supabase = createSupabaseAdminClient();
+    const settings = await readSettingsFromDb(supabase);
     if (!settings || !settings.reward || !settings.reward.winnerBy || !settings.reward.approved) {
       return NextResponse.json({ ok: false, error: "Winner reward is not approved yet" }, { status: 403 });
     }
@@ -124,16 +141,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "กรุณากรอกข้อมูลให้ครบถ้วน" }, { status: 400 });
     }
 
-    const claims = await readClaims();
-    const existingIndex = claims.findIndex(
-      (c) =>
-        c.month === settings.reward.month &&
-        (c.winnerEmail.toLowerCase() === user.email.toLowerCase() ||
-          c.winnerName.toLowerCase() === (user.displayName || "").toLowerCase())
-    );
+    // คิวรีดูข้อมูลเดิมเพื่อนำ ID มา Upsert ป้องกันแถวซ้ำซ้อน
+    const { data: existing } = await supabase
+      .from("winner_claims")
+      .select("id, tracking_number, created_at")
+      .eq("month", settings.reward.month)
+      .eq("winner_email", user.email.toLowerCase())
+      .maybeSingle();
 
+    const claimId = existing ? existing.id : crypto.randomUUID();
+
+    const { error: upsertError } = await supabase
+      .from("winner_claims")
+      .upsert({
+        id: claimId,
+        month: settings.reward.month,
+        reward_name: settings.reward.name,
+        winner_name: user.displayName || user.email,
+        winner_email: user.email.toLowerCase(),
+        receiver_name: String(receiverName).trim(),
+        phone: String(phone).trim(),
+        address: String(address).trim(),
+        note: String(note || "").trim(),
+        status: "contacting",
+        tracking_number: existing ? existing.tracking_number : "",
+        created_at: existing ? existing.created_at : new Date().toISOString()
+      });
+
+    if (upsertError) {
+      throw new Error(upsertError.message || "Failed to submit claim to database");
+    }
+
+    // แมปกลับคืนให้ฝั่งเว็บแสดงสถานะกำลังดำเนินการ (contacting)
     const claimData: Claim = {
-      id: existingIndex >= 0 ? claims[existingIndex].id : crypto.randomUUID(),
+      id: claimId,
       month: settings.reward.month,
       rewardName: settings.reward.name,
       winnerName: user.displayName || user.email,
@@ -142,19 +183,10 @@ export async function POST(request: NextRequest) {
       phone: String(phone).trim(),
       address: String(address).trim(),
       note: String(note || "").trim(),
-      status: "contacting", // เปลี่ยนสถานะเป็นเริ่มแพ็คของทันทีเมื่อส่งข้อมูล
-      trackingNumber: existingIndex >= 0 ? claims[existingIndex].trackingNumber : "",
-      createdAt: existingIndex >= 0 ? claims[existingIndex].createdAt : new Date().toISOString()
+      status: "contacting",
+      trackingNumber: existing ? existing.tracking_number : "",
+      createdAt: existing ? existing.created_at : new Date().toISOString()
     };
-
-    if (existingIndex >= 0) {
-      claims[existingIndex] = claimData;
-    } else {
-      claims.push(claimData);
-    }
-
-    await mkdir(claimsDir, { recursive: true });
-    await writeFile(claimsPath, JSON.stringify(claims, null, 2), "utf8");
 
     return NextResponse.json({ ok: true, data: claimData });
   } catch (error) {
