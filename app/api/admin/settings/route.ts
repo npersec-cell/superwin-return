@@ -32,6 +32,7 @@ type SiteSettings = {
     status: "active" | "ended";
   };
   predictionOrder?: string[];
+  announcement?: string;
 };
 
 const fallback: SiteSettings = {
@@ -58,7 +59,8 @@ const fallback: SiteSettings = {
     startAt: "2026-05-01T00:00",
     endAt: "2026-05-31T17:00",
     status: "active"
-  }
+  },
+  announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the Season Top 10!"
 };
 
 async function readSettings(): Promise<SiteSettings> {
@@ -126,7 +128,8 @@ export async function PATCH(request: NextRequest) {
         "Who will get the most kills in this match?"
       ]),
       season: body.season !== undefined ? body.season : current.season,
-      predictionOrder: body.predictionOrder !== undefined ? body.predictionOrder : current.predictionOrder
+      predictionOrder: body.predictionOrder !== undefined ? body.predictionOrder : current.predictionOrder,
+      announcement: body.announcement !== undefined ? body.announcement : current.announcement
     };
 
     await mkdir(settingsDir, { recursive: true });

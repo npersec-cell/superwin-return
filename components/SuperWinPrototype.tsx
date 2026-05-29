@@ -120,6 +120,7 @@ type SiteSettings = {
     status: string;
   };
   predictionOrder?: string[];
+  announcement?: string;
 };
 
 type UserProfileStats = {
@@ -291,7 +292,8 @@ const defaultSettings: SiteSettings = {
     startAt: "2026-05-01T00:00",
     endAt: "2026-05-31T17:00",
     status: "active"
-  }
+  },
+  announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the Season Top 10!"
 };
 
 const defaultHistory: HistoryItem[] = [
@@ -909,6 +911,28 @@ export default function SuperWinPrototype() {
             )}
           </div>
         </header>
+
+        {settings.announcement && (
+          <div className="announcement-bar" style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: "8px", 
+            background: "var(--card)", 
+            border: "1px solid var(--border)", 
+            borderRadius: "6px", 
+            padding: "6px 12px", 
+            margin: "0 0 10px 0", 
+            fontSize: "11px", 
+            color: "var(--text-strong)",
+            overflow: "hidden",
+            whiteSpace: "nowrap"
+          }}>
+            <span style={{ fontSize: "12px", flexShrink: 0 }}>📢</span>
+            <div style={{ flexGrow: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "left" }}>
+              <span style={{ fontWeight: "600" }}>{settings.announcement}</span>
+            </div>
+          </div>
+        )}
 
         {winnerClaim && (
           <div className="winner-banner" onClick={() => setOpenModal("claim")} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", background: "var(--yellow-soft)", border: "1px solid var(--yellow)", borderRadius: "10px", padding: "10px 14px", margin: "4px 0 10px 0", fontSize: "11px", color: "var(--yellow)", fontWeight: "bold", textAlign: "center" }}>

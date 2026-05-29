@@ -89,6 +89,7 @@ type SiteSettings = {
   };
   historySeasons?: string[];
   predictionOrder?: string[];
+  announcement?: string;
 };
 
 type ApiResponse<T> = {
@@ -145,7 +146,8 @@ const defaultSettings: SiteSettings = {
     startAt: "2026-05-01T00:00",
     endAt: "2026-05-31T23:59",
     status: "active"
-  }
+  },
+  announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the Season Top 10!"
 };
 
 function isRunningNow(item: AdminPrediction) {
@@ -1397,6 +1399,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   <div style={{ display: "grid", gap: "4px" }}>
                     <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ของรางวัลสำหรับผู้ชนะฤดูกาลนี้</span>
                     <input value={settings.reward.name} onChange={(event) => setSettings((current) => ({ ...current, reward: { ...current.reward, name: event.target.value } }))} placeholder='เช่น iPad Air 11" M2 หรือ ของรางวัลสุดเศษ' style={{ height: "34px" }} />
+                  </div>
+
+                  <div style={{ display: "grid", gap: "4px" }}>
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ข้อความประกาศหน้าแรก (ยาวแถวเดียวด้านล่างเมนู)</span>
+                    <input value={settings.announcement || ""} onChange={(event) => setSettings((current) => ({ ...current, announcement: event.target.value }))} placeholder='เช่น ยินดีต้อนรับเข้าสู่ SUPERWIN HUB! ปล่อยตัวทายผลซีซั่น 2 แล้ววันนี้...' style={{ height: "34px" }} />
                   </div>
 
                   <div style={{ display: "grid", gap: "4px" }}>
