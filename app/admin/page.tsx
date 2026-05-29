@@ -12,7 +12,7 @@ export default async function AdminPage() {
         <div className="app">
           <header className="topbar">
             <div className="brand-text">
-              <h1>SUPERWIN RETURN</h1>
+              <h1>SUPERWIN HUB</h1>
               <span>Admin</span>
             </div>
             <Link className="button gold" href="/">Back</Link>

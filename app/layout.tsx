@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SUPERWIN RETURN",
+  title: "SUPERWIN HUB",
   description: "PUBG MOBILE prediction room using free coins."
 };
 

@@ -848,7 +848,7 @@ export default function SuperWinPrototype() {
           <div className="brand">
             <img className="logo" src="/SuperWin_b.png" alt="SuperWin logo" />
             <div className="brand-text">
-              <h1>SUPERWIN RETURN</h1>
+              <h1>SUPERWIN HUB</h1>
               <span>Prediction Room</span>
             </div>
           </div>
