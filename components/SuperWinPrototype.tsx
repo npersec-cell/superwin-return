@@ -273,9 +273,9 @@ const demoQuestions: Question[] = [
 
 const defaultSettings: SiteSettings = {
   info: {
-    howToPlay: "Login, claim free coins, choose a question, select an answer, choose coins, then confirm prediction.",
-    reward: "Season Top 10 is based on season profit. The season winner receives a reward after admin confirmation.",
-    questionTime: "Each question has its own close time. When it closes, predictions stop and admin resolves the result."
+    howToPlay: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล",
+    reward: "ลุ้นติดอันดับ Season Top 10 วัดจากกำไรสุทธิประจำซีซั่น (Season Profit) ผู้ชนะอันดับ 1 จะได้รับของรางวัลพิเศษหลังแอดมินยืนยัน",
+    questionTime: "แต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
   },
   reward: {
     name: "Season Prize",
