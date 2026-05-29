@@ -1,0 +1,59 @@
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
+import { createSupabaseAdminClient } from "@/lib/db";
+
+type Body = {
+  email?: string;
+};
+
+function toStatus(error: unknown) {
+  const message = error instanceof Error ? error.message : "Admin update failed";
+  if (message === "Unauthorized") return 401;
+  if (message === "Forbidden") return 403;
+  return 500;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const currentAdmin = await requireAdmin();
+    const body = (await request.json()) as Body;
+    const email = String(body.email || "").trim().toLowerCase();
+
+    if (!email || !email.includes("@")) {
+      return NextResponse.json({ ok: false, error: "Valid email is required" }, { status: 400 });
+    }
+
+    if (email === currentAdmin.email.toLowerCase()) {
+      return NextResponse.json({ ok: false, error: "Cannot remove your own admin role" }, { status: 400 });
+    }
+
+    const supabase = createSupabaseAdminClient();
+    const { data: admins, error: countError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("role", "admin");
+
+    if (countError) throw new Error(countError.message);
+
+    if ((admins || []).length <= 1) {
+      return NextResponse.json({ ok: false, error: "At least one admin is required" }, { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from("users")
+      .update({ role: "user", updated_at: new Date().toISOString() })
+      .eq("email", email)
+      .eq("role", "admin")
+      .select("id, email, role")
+      .single();
+
+    if (error || !data) {
+      return NextResponse.json({ ok: false, error: "Admin email not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ ok: true, data });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Admin update failed";
+    return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
+  }
+}

@@ -1,0 +1,109 @@
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
+import { createSupabaseAdminClient } from "@/lib/db";
+
+function toStatus(error: unknown) {
+  const message = error instanceof Error ? error.message : "Admin request failed";
+  if (message === "Unauthorized") return 401;
+  if (message === "Forbidden") return 403;
+  return 500;
+}
+
+export async function GET() {
+  try {
+    await requireAdmin();
+    const supabase = createSupabaseAdminClient();
+
+    // 1. ดึงข้อมูลคำถามหลักทั้งหมดเพื่อป้องกัน Error PostgREST Embed
+    const { data: predictions, error: pError } = await supabase
+      .from("predictions")
+      .select("id, tournament_name, question, status, closes_at, created_at, fee_rate")
+      .order("created_at", { ascending: false });
+
+    if (pError) throw new Error(pError.message);
+
+    // 2. ดึงข้อมูลตัวเลือกทั้งหมด
+    const { data: options, error: oError } = await supabase
+      .from("prediction_options")
+      .select("id, prediction_id, label");
+
+    if (oError) throw new Error(oError.message);
+
+    // 3. ดึงรายการทายผลทั้่งหมดพร้อมโปรไฟล์ผู้ใช้
+    const { data: entries, error: eError } = await supabase
+      .from("prediction_entries")
+      .select(`
+        id,
+        prediction_id,
+        option_id,
+        amount,
+        created_at,
+        users(email, display_name)
+      `);
+
+    if (eError) throw new Error(eError.message);
+
+    // 4. ผูกข้อมูลรวมกันฝั่ง Javascript เพื่อความปลอดภัยและไร้ Error
+    const formatted = (predictions || []).map((p) => {
+      const pOptions = (options || []).filter((o) => o.prediction_id === p.id);
+      const pEntries = (entries || []).filter((e) => e.prediction_id === p.id);
+
+      // ยอดรวมเหรียญทั้งหมดในพูล
+      const totalPoolCoins = pEntries.reduce((sum, e: any) => sum + (e.amount || 0), 0);
+      const uniquePlayers = new Set(pEntries.map((e: any) => e.users?.email).filter(Boolean)).size;
+
+      // คืนพูลหลังหักค่าธรรมเนียม
+      const feeRate = Number(p.fee_rate || 0.03);
+      const netPool = totalPoolCoins * (1 - feeRate);
+
+      // คำนวณยอดทายและอัตราต่อรองของแต่ละตัวเลือก
+      const optionStats = pOptions.map((opt) => {
+        const optEntries = pEntries.filter((e) => e.option_id === opt.id);
+        const optTotalCoins = optEntries.reduce((sum, e: any) => sum + (e.amount || 0), 0);
+        const optPlayerCount = new Set(optEntries.map((e: any) => e.users?.email).filter(Boolean)).size;
+
+        // คำนวณอัตราผลตอบแทนต่อเหรียญ (Pool Multiplier Odds)
+        const potentialMultiplier = optTotalCoins > 0 ? Number((netPool / optTotalCoins).toFixed(2)) : 0;
+
+        return {
+          id: opt.id,
+          label: opt.label,
+          totalCoins: optTotalCoins,
+          playerCount: optPlayerCount,
+          multiplier: potentialMultiplier
+        };
+      });
+
+      // รายชื่อผู้เล่นที่ทายผลคู่แข่งคู่นี้
+      const playerBets = pEntries.map((e: any) => {
+        const optionLabel = pOptions.find((o) => o.id === e.option_id)?.label || "--";
+        return {
+          id: e.id,
+          email: e.users?.email || "--",
+          displayName: e.users?.display_name || "--",
+          optionLabel,
+          amount: e.amount,
+          createdAt: e.created_at
+        };
+      });
+
+      return {
+        id: p.id,
+        tournamentName: p.tournament_name,
+        question: p.question,
+        status: p.status,
+        closesAt: p.closes_at,
+        createdAt: p.created_at,
+        totalPoolCoins,
+        uniquePlayers,
+        optionStats,
+        playerBets
+      };
+    });
+
+    return NextResponse.json({ ok: true, data: formatted });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to load dashboard metrics";
+    return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
+  }
+}

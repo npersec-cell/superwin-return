@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SUPERWIN RETURN</title>
+  <style>
+    :root {
+      --bg: #0b090a;
+      --card: #151112;
+      --red: #f51f2f;
+      --gold: #f6b51d;
+      --text: #f4efe5;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Helvetica Neue", Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, ui-sans-serif, system-ui, sans-serif;
+      font-size: 12px;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+    }
+
+    button, input { font: inherit; }
+    button {
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease, border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0) scale(0.98);
+      opacity: 0.86;
+    }
+
+    .page {
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 12px;
+    }
+
+    .app {
+      width: min(900px, 100%);
+      height: min(720px, calc(100vh - 24px));
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 9px;
+    }
+
+    .topbar, .stats, .panel, .modal-card {
+      background: var(--card);
+      border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
+      border-radius: 22px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 11px;
+    }
+
+    .brand, .actions, .amounts, .reward-line, .history-row, .modal-summary, .running-row, .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .brand { gap: 9px; min-width: 0; }
+    .logo { width: 34px; height: 34px; object-fit: contain; flex: 0 0 auto; }
+    .brand-text { display: grid; gap: 1px; min-width: 0; }
+
+    .brand h1 {
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      white-space: nowrap;
+    }
+
+    .brand span, .label, .micro, .meta, .month-title {
+      color: color-mix(in srgb, var(--text) 62%, transparent);
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .button, .pill, input, .dropdown-trigger {
+      border: 1px solid color-mix(in srgb, var(--text) 20%, transparent);
+      border-radius: 999px;
+      background: var(--bg);
+      color: var(--text);
+      padding: 7px 10px;
+      outline: none;
+    }
+
+    .button.primary, .pill.primary {
+      border-color: var(--red);
+      background: var(--red);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .button.gold, .pill.gold { border-color: var(--gold); color: var(--gold); }
+    .button.active { border-color: var(--red); color: var(--red); }
+    .button:disabled { opacity: 0.48; cursor: not-allowed; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      overflow: hidden;
+    }
+
+    .stat { padding: 8px 11px; }
+    .stat + .stat { border-left: 1px solid color-mix(in srgb, var(--text) 14%, transparent); }
+
+    .value {
+      display: block;
+      margin-top: 2px;
+      color: var(--gold);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+
+    .content {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr 250px;
+      gap: 9px;
+    }
+
+    .panel { min-height: 0; overflow: hidden; }
+
+    .panel-head, .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 9px 11px;
+      border-bottom: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+    }
+
+    .panel-head h2, .panel-head h3, .modal-head h3 {
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .questions { display: grid; gap: 7px; padding: 8px; }
+
+    .question {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+      padding: 8px;
+      border-radius: 16px;
+      background: var(--bg);
+      border: 1px solid transparent;
+    }
+
+    .question {
+      transition: border-color 140ms ease, background-color 140ms ease, opacity 140ms ease;
+    }
+
+    .question.active { border-color: color-mix(in srgb, var(--gold) 50%, transparent); }
+    .question.running { border-color: color-mix(in srgb, var(--red) 42%, transparent); }
+
+    .question-top {
+      display: grid;
+      grid-template-columns: 1fr 210px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .question-main { min-width: 0; display: grid; gap: 3px; }
+
+    .question-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12.5px;
+      font-weight: 600;
+    }
+
+    .dropdown { position: relative; min-width: 0; }
+
+    .dropdown-trigger {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      text-align: left;
+    }
+
+    .dropdown-trigger::after {
+      content: "";
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid var(--gold);
+    }
+
+    .dropdown-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      z-index: 5;
+      display: none;
+      max-height: 210px;
+      overflow: auto;
+      padding: 5px;
+      border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+      border-radius: 14px;
+      background: var(--card);
+    }
+
+    .dropdown.open .dropdown-menu { display: grid; gap: 4px; }
+
+    .dropdown-menu {
+      animation: softIn 120ms ease;
+    }
+
+    .option-button {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      border: 0;
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      padding: 7px 8px;
+      text-align: left;
+    }
+
+    .option-button.active { color: var(--gold); }
+    .return { color: var(--gold); font-weight: 700; white-space: nowrap; }
+    .running-label { color: var(--red); font-weight: 700; }
+
+    .question-action {
+      display: none;
+      grid-template-columns: auto 1fr auto;
+      gap: 7px;
+      align-items: center;
+      padding-top: 8px;
+    }
+
+    .question.active .question-action { display: grid; }
+    .amounts .button { min-width: 38px; padding: 6px 8px; }
+    input { width: 100%; min-width: 0; }
+    .confirm { min-width: 74px; text-align: center; }
+
+    .toast {
+      display: none;
+      min-height: 14px;
+      color: var(--gold);
+      font-size: 10.5px;
+      text-align: center;
+      padding-top: 5px;
+    }
+
+    .question.active .toast { display: block; }
+
+    .side { min-height: 0; display: grid; grid-template-rows: 1fr auto; gap: 9px; }
+    .leaderboard-body { display: grid; padding: 6px 8px 8px; gap: 4px; }
+
+    .rank {
+      display: grid;
+      grid-template-columns: 22px 1fr auto;
+      gap: 6px;
+      align-items: center;
+      padding: 6px 7px;
+      border-radius: 12px;
+      background: var(--bg);
+      font-size: 11.3px;
+    }
+
+    .rank:first-child { color: var(--gold); }
+
+    .reward { padding: 9px 11px; display: grid; gap: 7px; }
+    .reward-line { justify-content: space-between; font-size: 11.3px; }
+    .accent-red { color: var(--red); font-weight: 700; }
+    .accent-gold { color: var(--gold); font-weight: 700; }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 16px;
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      z-index: 10;
+    }
+
+    .modal.open { display: grid; }
+
+    .modal.open .modal-card {
+      animation: softIn 140ms ease;
+    }
+
+    .modal-card {
+      width: min(680px, 100%);
+      max-height: min(640px, calc(100vh - 32px));
+      overflow: hidden;
+    }
+
+    .modal-body {
+      display: grid;
+      gap: 10px;
+      padding: 10px 12px 12px;
+      max-height: calc(100vh - 110px);
+      overflow: auto;
+    }
+
+    .modal-summary { justify-content: space-between; gap: 8px; }
+
+    .summary-box {
+      flex: 1;
+      background: var(--bg);
+      border-radius: 14px;
+      padding: 8px;
+      text-align: center;
+    }
+
+    .month-group { display: grid; gap: 5px; }
+
+    .info-block {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border-radius: 16px;
+      background: var(--bg);
+    }
+
+    .info-block h4 {
+      color: var(--gold);
+      font-size: 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .info-block ol,
+    .info-block ul {
+      display: grid;
+      gap: 5px;
+      padding-left: 18px;
+      color: color-mix(in srgb, var(--text) 82%, transparent);
+    }
+
+    #google_translate_element select {
+      max-width: 100%;
+      border-radius: 999px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
+      padding: 7px 10px;
+    }
+
+    .goog-logo-link,
+    .goog-te-gadget span {
+      display: none !important;
+    }
+
+    .goog-te-gadget {
+      color: transparent !important;
+      font-family: "Helvetica Neue", Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, ui-sans-serif, system-ui, sans-serif !important;
+    }
+
+    .filter-row {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .history-row {
+      display: grid;
+      grid-template-columns: 82px 76px 90px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 7px 8px;
+      border-radius: 12px;
+      background: var(--bg);
+      font-size: 10.8px;
+    }
+
+    .history-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding-top: 4px;
+    }
+
+    .running-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .running-row {
+      justify-content: space-between;
+      padding: 8px;
+      border-radius: 14px;
+      background: var(--bg);
+      font-size: 11px;
+    }
+
+    .running-detail {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .running-detail strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 11.5px;
+    }
+
+    @keyframes softIn {
+      from { opacity: 0; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        transition: none !important;
+        animation: none !important;
+      }
+
+      button:hover:not(:disabled),
+      button:active:not(:disabled) {
+        transform: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      html, body { height: auto; min-height: 100%; overflow: auto; }
+      .page { min-height: 100vh; height: auto; padding: 8px; place-items: start center; }
+      .app { height: auto; min-height: calc(100vh - 16px); }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .actions { flex-wrap: wrap; }
+      .content { grid-template-columns: 1fr; }
+      .panel { overflow: visible; }
+      .side { display: grid; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .stat + .stat { border-left: 0; }
+      .stat:nth-child(2n) { border-left: 1px solid color-mix(in srgb, var(--text) 14%, transparent); }
+      .stat:nth-child(n + 3) { border-top: 1px solid color-mix(in srgb, var(--text) 14%, transparent); }
+      .question-top, .question-action { grid-template-columns: 1fr; }
+      .amounts { flex-wrap: wrap; }
+      .history-row { grid-template-columns: 1fr auto; }
+      .history-row span:nth-child(2), .history-row span:nth-child(3), .history-row span:nth-child(4) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <img class="logo" src="SuperWin_b.png" alt="SuperWin logo" />
+          <div class="brand-text">
+            <h1>SUPERWIN RETURN</h1>
+            <span>Prediction Room</span>
+          </div>
+        </div>
+        <div class="actions">
+          <span class="pill gold"><span id="coinBalance">500</span> Coins</span>
+          <button class="button primary" id="claimButton">Claim 100</button>
+          <button class="button gold" id="runningButton">Running 0</button>
+          <button class="button gold" id="historyButton">History</button>
+          <button class="button gold" id="infoButton">Info</button>
+          <button class="button gold" id="resetButton">Reset Demo</button>
+          <button class="button" id="loginButton">Login</button>
+        </div>
+      </header>
+
+      <section class="stats" aria-label="Account stats">
+        <div class="stat"><span class="label">Monthly Profit</span><b class="value" id="profitStat">0</b></div>
+        <div class="stat"><span class="label">Monthly Rank</span><b class="value" id="rankStat">#10</b></div>
+        <div class="stat"><span class="label">Next Claim</span><b class="value" id="claimTimer">Ready</b></div>
+        <div class="stat"><span class="label">Month Ends</span><b class="value" id="monthCountdown">--</b></div>
+      </section>
+
+      <section class="content">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Super League</h2>
+            <span class="micro">Select a question</span>
+          </div>
+          <div class="questions" id="questions"></div>
+        </section>
+
+        <aside class="side">
+          <section class="panel">
+            <div class="panel-head"><h3>Monthly Top 10</h3><span class="micro">Profit this month</span></div>
+            <div class="leaderboard-body" id="leaderboard"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h3>Prize</h3><span class="micro">Rank 1</span></div>
+            <div class="reward">
+              <div class="reward-line"><span>Reward</span><b class="accent-gold">Razer Card</b></div>
+              <div class="reward-line"><span>Value</span><b class="accent-red">10,000 UC</b></div>
+              <div class="reward-line"><span>Winner by</span><b class="accent-gold">Monthly Profit</b></div>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </div>
+  </main>
+
+  <section class="modal" id="historyModal" aria-label="Coin history">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Coin History</h3>
+        <button class="button" id="closeHistory">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="filter-row" id="historyFilters">
+          <button class="button active" data-filter="All">All</button>
+          <button class="button" data-filter="Predict">Predict</button>
+          <button class="button" data-filter="Claim">Claim</button>
+          <button class="button" data-filter="Payout">Payout</button>
+        </div>
+        <div id="historyGroups"></div>
+        <div class="history-footer">
+          <button class="button" id="prevHistory">Prev</button>
+          <span class="micro" id="historyPage">Page 1 / 1</span>
+          <button class="button" id="nextHistory">Next</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="modal" id="runningModal" aria-label="Running predictions">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Running Predictions</h3>
+        <button class="button" id="closeRunning">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="running-list" id="runningList"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="modal" id="infoModal" aria-label="Game information">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Info</h3>
+        <button class="button" id="closeInfo">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="info-block">
+          <h4>How to Play</h4>
+          <ol>
+            <li>Login to your account.</li>
+            <li>Claim free coins when the claim timer is ready.</li>
+            <li>Select one question before it closes.</li>
+            <li>Choose an answer and the number of coins to use.</li>
+            <li>Click Predict. Your prediction will stay in Running until the result is announced.</li>
+          </ol>
+        </div>
+        <div class="info-block">
+          <h4>Reward</h4>
+          <ul>
+            <li>Monthly Top 10 is based on monthly performance.</li>
+            <li>Coin balance is separate from ranking.</li>
+            <li>The monthly winner receives a reward.</li>
+            <li>Reward proof will be shown after it is completed.</li>
+          </ul>
+        </div>
+        <div class="info-block">
+          <h4>Question Time</h4>
+          <ul>
+            <li>Each question has its own closing countdown.</li>
+            <li>When a question closes, it disappears from the open list.</li>
+            <li>Submitted predictions stay in Running while waiting for the result.</li>
+          </ul>
+        </div>
+        <div class="info-block">
+          <h4>Language</h4>
+          <div id="google_translate_element"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const questions = [
+      {
+        id: 1,
+        tournament: "Super League",
+        title: "Which team will win the championship?",
+        closeOffsetMinutes: 4300,
+        options: [
+          { name: "Alpha Esports", returns: 185 }, { name: "Bravo Gaming", returns: 230 }, { name: "Charlie Squad", returns: 310 },
+          { name: "Delta Force", returns: 420 }, { name: "Echo Team", returns: 560 }, { name: "Falcon", returns: 690 },
+          { name: "Ghost", returns: 760 }, { name: "Hydra", returns: 840 }, { name: "Inferno", returns: 920 }, { name: "Joker", returns: 980 }
+        ]
+      },
+      {
+        id: 2,
+        tournament: "Global Open",
+        title: "Which region will finish first?",
+        closeOffsetMinutes: 1480,
+        options: [
+          { name: "SEA", returns: 210 }, { name: "South Asia", returns: 280 }, { name: "Europe", returns: 340 },
+          { name: "Americas", returns: 410 }, { name: "Middle East", returns: 530 }, { name: "Wildcard", returns: 720 }
+        ]
+      },
+      {
+        id: 3,
+        tournament: "Scrim Night",
+        title: "Most kills team in final map?",
+        closeOffsetMinutes: 360,
+        options: [
+          { name: "Rex", returns: 260 }, { name: "Nova", returns: 275 }, { name: "Viper", returns: 330 }, { name: "Ghost", returns: 380 },
+          { name: "Blaze", returns: 430 }, { name: "Frost", returns: 510 }, { name: "Omega", returns: 620 }, { name: "Ruin", returns: 700 }
+        ]
+      },
+      {
+        id: 4,
+        tournament: "Weekly Final",
+        title: "Which team gets the first chicken dinner?",
+        closeOffsetMinutes: 90,
+        options: [
+          { name: "Alpha", returns: 220 }, { name: "Bravo", returns: 260 }, { name: "Charlie", returns: 335 },
+          { name: "Delta", returns: 430 }, { name: "Echo", returns: 520 }, { name: "Falcon", returns: 640 }
+        ]
+      }
+    ];
+
+    const storedDeadlines = JSON.parse(localStorage.getItem("sr_question_deadlines") || "null");
+    const questionDeadlines = storedDeadlines || Object.fromEntries(
+      questions.map(question => [question.id, Date.now() + question.closeOffsetMinutes * 60000])
+    );
+    localStorage.setItem("sr_question_deadlines", JSON.stringify(questionDeadlines));
+
+    const defaultHistory = [
+      { month: "May 2026", date: "26 May", time: "16:02", action: "Claim", detail: "Hourly reward", amount: 100 },
+      { month: "May 2026", date: "26 May", time: "16:10", action: "Predict", detail: "Super League · Alpha Esports", amount: -500 },
+      { month: "May 2026", date: "26 May", time: "16:38", action: "Payout", detail: "Super League resolved", amount: 890 },
+      { month: "April 2026", date: "22 Apr", time: "20:14", action: "Claim", detail: "Hourly reward", amount: 100 },
+      { month: "April 2026", date: "22 Apr", time: "20:21", action: "Predict", detail: "Global Open · SEA", amount: -600 }
+    ];
+
+    function normalizeHistory(rows) {
+      return rows.map(row => Array.isArray(row)
+        ? { month: "May 2026", date: "26 May", time: "--:--", action: row[0], detail: row[0], amount: Number(row[1]) || 0 }
+        : row
+      );
+    }
+
+    const state = {
+      loggedIn: false,
+      activeQuestion: null,
+      openDropdown: null,
+      selected: Object.fromEntries(questions.map(q => [q.id, q.options[0].name])),
+      coins: Number(localStorage.getItem("sr_coins")) || 500,
+      profit: Number(localStorage.getItem("sr_profit")) || 0,
+      nextClaimAt: Number(localStorage.getItem("sr_next_claim")) || 0,
+      history: normalizeHistory(JSON.parse(localStorage.getItem("sr_history") || JSON.stringify(defaultHistory))).slice(0, 500),
+      historyPage: 1,
+      historyFilter: "All",
+      running: JSON.parse(localStorage.getItem("sr_running") || "[]"),
+      leaderboard: [
+        ["Maverick", 18500], ["Nova", 16320], ["Raptor", 14110], ["Echo", 11940], ["Vector", 9800],
+        ["Ruin", 8120], ["Ghost", 7400], ["Blaze", 6200], ["Frost", 5900], ["You", Number(localStorage.getItem("sr_profit")) || 0]
+      ]
+    };
+
+    const questionsEl = document.getElementById("questions");
+    const coinBalance = document.getElementById("coinBalance");
+    const profitStat = document.getElementById("profitStat");
+    const rankStat = document.getElementById("rankStat");
+    const loginButton = document.getElementById("loginButton");
+    const claimButton = document.getElementById("claimButton");
+    const claimTimer = document.getElementById("claimTimer");
+    const monthCountdown = document.getElementById("monthCountdown");
+    const leaderboardEl = document.getElementById("leaderboard");
+    const historyButton = document.getElementById("historyButton");
+    const historyModal = document.getElementById("historyModal");
+    const closeHistory = document.getElementById("closeHistory");
+    const historyGroups = document.getElementById("historyGroups");
+    const historyPage = document.getElementById("historyPage");
+    const prevHistory = document.getElementById("prevHistory");
+    const nextHistory = document.getElementById("nextHistory");
+    const historyFilters = document.getElementById("historyFilters");
+    const runningButton = document.getElementById("runningButton");
+    const runningModal = document.getElementById("runningModal");
+    const closeRunning = document.getElementById("closeRunning");
+    const runningList = document.getElementById("runningList");
+    const infoButton = document.getElementById("infoButton");
+    const infoModal = document.getElementById("infoModal");
+    const closeInfo = document.getElementById("closeInfo");
+    const resetButton = document.getElementById("resetButton");
+
+    function currentMonth() { return "May 2026"; }
+    function currentDateLabel() { return "26 May"; }
+    function currentTimeLabel() {
+      const now = new Date();
+      return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    }
+    function money(amount) { return `${amount >= 0 ? "+" : ""}${amount}`; }
+
+    function saveState() {
+      localStorage.setItem("sr_coins", String(state.coins));
+      localStorage.setItem("sr_profit", String(state.profit));
+      localStorage.setItem("sr_next_claim", String(state.nextClaimAt));
+      state.history = state.history.slice(0, 500);
+      localStorage.setItem("sr_history", JSON.stringify(state.history));
+      localStorage.setItem("sr_running", JSON.stringify(state.running.slice(0, 30)));
+    }
+
+    function getSelectedOption(question) {
+      return question.options.find(option => option.name === state.selected[question.id]) || question.options[0];
+    }
+
+    function isQuestionOpen(question) {
+      return Date.now() < Number(questionDeadlines[question.id]);
+    }
+
+    function formatQuestionCountdown(question) {
+      const remaining = Math.max(0, Number(questionDeadlines[question.id]) - Date.now());
+      const days = Math.floor(remaining / 86400000);
+      const hours = Math.floor((remaining % 86400000) / 3600000);
+      const minutes = Math.floor((remaining % 3600000) / 60000);
+      if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+      if (hours > 0) return `${hours}h ${minutes}m`;
+      return `${minutes}m`;
+    }
+
+    function renderAccount() {
+      coinBalance.textContent = state.coins;
+      profitStat.textContent = state.profit;
+      loginButton.textContent = state.loggedIn ? "Account" : "Login";
+      runningButton.textContent = `Running ${state.running.length}`;
+    }
+
+    function renderQuestions() {
+      const openQuestions = questions.filter(isQuestionOpen);
+      questionsEl.innerHTML = openQuestions.length ? openQuestions.map(question => {
+        const selected = getSelectedOption(question);
+        const runningCount = state.running.filter(item => item.questionId === question.id).length;
+        const closeText = formatQuestionCountdown(question);
+        return `
+          <div class="question ${state.activeQuestion === question.id ? "active" : ""} ${runningCount ? "running" : ""}" data-open="${question.id}">
+            <div class="question-top">
+              <div class="question-main">
+                <span class="question-title">${question.title}</span>
+                <span class="meta question-countdown" data-question="${question.id}" data-running="${runningCount}">Closes in ${closeText}${runningCount ? ` · ${runningCount} running` : ""}</span>
+              </div>
+              <div class="dropdown ${state.openDropdown === question.id ? "open" : ""}">
+                <button class="dropdown-trigger" data-dropdown="${question.id}">
+                  <span class="dropdown-label">${selected.name} · ~${selected.returns}%</span>
+                </button>
+                <div class="dropdown-menu">
+                  ${question.options.map(option => `
+                    <button class="option-button ${option.name === selected.name ? "active" : ""}" data-select="${question.id}" data-option="${option.name}">
+                      <span>${option.name}</span>
+                      <span class="return">~${option.returns}%</span>
+                    </button>
+                  `).join("")}
+                </div>
+              </div>
+            </div>
+            <div class="question-action">
+              <div class="amounts">
+                <button class="button gold" data-q="${question.id}" data-amount="10">10</button>
+                <button class="button gold" data-q="${question.id}" data-amount="20">20</button>
+                <button class="button gold" data-q="${question.id}" data-amount="50">50</button>
+                <button class="button gold" data-q="${question.id}" data-amount="100">100</button>
+              </div>
+              <input id="coins-${question.id}" type="number" min="1" placeholder="Coins for this question" />
+              <button class="button primary confirm" data-confirm="${question.id}">Predict</button>
+            </div>
+            <div class="toast" id="toast-${question.id}"></div>
+          </div>
+        `;
+      }).join("") : `<div class="question"><span class="question-title">No open questions</span><span class="meta">Submitted predictions are waiting in Running</span></div>`;
+
+      document.querySelectorAll("[data-open]").forEach(row => {
+        row.addEventListener("click", event => {
+          if (event.target.closest("button")) return;
+          state.activeQuestion = Number(row.dataset.open);
+          state.openDropdown = null;
+          renderQuestions();
+        });
+      });
+
+      document.querySelectorAll("[data-dropdown]").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+          const id = Number(button.dataset.dropdown);
+          state.activeQuestion = id;
+          state.openDropdown = state.openDropdown === id ? null : id;
+          renderQuestions();
+        });
+      });
+
+      document.querySelectorAll("[data-select]").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+          state.selected[button.dataset.select] = button.dataset.option;
+          state.openDropdown = null;
+          renderQuestions();
+        });
+      });
+
+      document.querySelectorAll("[data-amount]").forEach(button => {
+        button.addEventListener("click", () => {
+          const input = document.getElementById(`coins-${button.dataset.q}`);
+          input.value = String((Number(input.value) || 0) + Number(button.dataset.amount));
+        });
+      });
+
+      document.querySelectorAll("[data-confirm]").forEach(button => {
+        button.addEventListener("click", () => confirmPrediction(Number(button.dataset.confirm)));
+      });
+    }
+
+    function renderLeaderboard() {
+      const user = state.leaderboard.find(row => row[0] === "You");
+      user[1] = state.profit;
+      const rows = [...state.leaderboard].sort((a, b) => b[1] - a[1]).slice(0, 10);
+      const userRank = rows.findIndex(row => row[0] === "You") + 1;
+      rankStat.textContent = userRank ? `#${userRank}` : "--";
+      leaderboardEl.innerHTML = rows.map((row, index) => `
+        <div class="rank"><span>${index + 1}</span><span>${row[0]}</span><b>${money(row[1])}</b></div>
+      `).join("");
+    }
+
+    function renderHistory() {
+      const pageSize = 10;
+      const filteredRows = state.historyFilter === "All"
+        ? state.history
+        : state.history.filter(row => row.action === state.historyFilter);
+      const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+      state.historyPage = Math.min(Math.max(state.historyPage, 1), totalPages);
+      const start = (state.historyPage - 1) * pageSize;
+      const rows = filteredRows.slice(start, start + pageSize);
+
+      historyGroups.innerHTML = rows.length ? rows.map(row => `
+        <div class="history-row">
+          <span>${row.date}</span>
+          <span>${row.time}</span>
+          <span>${row.action}</span>
+          <span>${row.detail}</span>
+          <b class="${row.amount >= 0 ? "accent-gold" : "accent-red"}">${money(row.amount)}</b>
+        </div>
+      `).join("") : `<div class="history-row"><span>No ${state.historyFilter} history</span><b class="accent-gold">0</b></div>`;
+
+      historyFilters.querySelectorAll("button").forEach(button => {
+        button.classList.toggle("active", button.dataset.filter === state.historyFilter);
+      });
+      historyPage.textContent = `Page ${state.historyPage} / ${totalPages}`;
+      prevHistory.disabled = state.historyPage <= 1;
+      nextHistory.disabled = state.historyPage >= totalPages;
+    }
+
+    function renderRunning() {
+      runningList.innerHTML = state.running.length ? state.running.map(item => `
+        <div class="running-row">
+          <div class="running-detail">
+            <strong>${item.question}</strong>
+            <span class="meta">${item.answer} · ${item.coins} coins · approx. ${item.returns}%</span>
+          </div>
+          <b class="running-label">Running</b>
+        </div>
+      `).join("") : `<div class="running-row"><span>No running predictions</span><b class="accent-gold">0</b></div>`;
+    }
+
+    function showToast(questionId, message) {
+      const toast = document.getElementById(`toast-${questionId}`);
+      if (toast) toast.textContent = message;
+    }
+
+    function login() { state.loggedIn = true; renderAccount(); }
+
+    function claim() {
+      if (!state.loggedIn) return;
+      if (Date.now() < state.nextClaimAt) return;
+      state.coins += 100;
+      state.nextClaimAt = Date.now() + 60 * 60 * 1000;
+      state.history.unshift({ month: currentMonth(), date: currentDateLabel(), time: currentTimeLabel(), action: "Claim", detail: "Hourly reward", amount: 100 });
+      saveState();
+      renderAccount();
+      renderHistory();
+      updateTimer();
+    }
+
+    function confirmPrediction(questionId) {
+      const input = document.getElementById(`coins-${questionId}`);
+      const amount = Number(input.value);
+      const question = questions.find(item => item.id === questionId);
+      const answer = getSelectedOption(question);
+
+      if (!state.loggedIn) { showToast(questionId, "Login first"); return; }
+      if (!isQuestionOpen(question)) { renderQuestions(); return; }
+      if (!amount || amount < 1) { showToast(questionId, "Choose coins for this question"); return; }
+      if (amount > state.coins) { showToast(questionId, "Not enough coins"); return; }
+
+      state.coins -= amount;
+      state.profit -= amount;
+      state.history.unshift({
+        month: currentMonth(),
+        date: currentDateLabel(),
+        time: currentTimeLabel(),
+        action: "Predict",
+        detail: `${question.title} · ${answer.name} · approx. ${answer.returns}%`,
+        amount: -amount
+      });
+      state.running.unshift({
+        id: Date.now(),
+        questionId,
+        question: question.title,
+        answer: answer.name,
+        coins: amount,
+        returns: answer.returns,
+        status: "Running"
+      });
+      input.value = "";
+      saveState();
+      renderAccount();
+      renderQuestions();
+      renderLeaderboard();
+      renderHistory();
+      renderRunning();
+      showToast(questionId, `${amount} coins used on ${answer.name} · now running`);
+    }
+
+    function updateTimer() {
+      const remaining = state.nextClaimAt - Date.now();
+      if (remaining <= 0) {
+        claimTimer.textContent = "Ready";
+        claimButton.disabled = false;
+        return;
+      }
+      const minutes = Math.floor(remaining / 60000);
+      const seconds = Math.floor((remaining % 60000) / 1000);
+      claimTimer.textContent = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+      claimButton.disabled = true;
+    }
+
+    function updateMonthCountdown() {
+      const now = new Date();
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
+      const remaining = Math.max(0, end - now);
+      const days = Math.floor(remaining / 86400000);
+      const hours = Math.floor((remaining % 86400000) / 3600000);
+      const minutes = Math.floor((remaining % 3600000) / 60000);
+      monthCountdown.textContent = `${days}d ${hours}h ${minutes}m`;
+    }
+
+    function updateQuestionCountdowns() {
+      let shouldRender = false;
+      document.querySelectorAll(".question-countdown").forEach(el => {
+        const question = questions.find(item => item.id === Number(el.dataset.question));
+        if (!question) return;
+        if (!isQuestionOpen(question)) {
+          shouldRender = true;
+          return;
+        }
+        const runningCount = Number(el.dataset.running) || 0;
+        el.textContent = `Closes in ${formatQuestionCountdown(question)}${runningCount ? ` · ${runningCount} running` : ""}`;
+      });
+      if (shouldRender) renderQuestions();
+    }
+
+    loginButton.addEventListener("click", login);
+    claimButton.addEventListener("click", claim);
+    historyButton.addEventListener("click", () => { state.historyPage = 1; renderHistory(); historyModal.classList.add("open"); });
+    historyFilters.querySelectorAll("button").forEach(button => {
+      button.addEventListener("click", () => {
+        state.historyFilter = button.dataset.filter;
+        state.historyPage = 1;
+        renderHistory();
+      });
+    });
+    prevHistory.addEventListener("click", () => { state.historyPage -= 1; renderHistory(); });
+    nextHistory.addEventListener("click", () => { state.historyPage += 1; renderHistory(); });
+    closeHistory.addEventListener("click", () => historyModal.classList.remove("open"));
+    historyModal.addEventListener("click", event => { if (event.target === historyModal) historyModal.classList.remove("open"); });
+    runningButton.addEventListener("click", () => { renderRunning(); runningModal.classList.add("open"); });
+    closeRunning.addEventListener("click", () => runningModal.classList.remove("open"));
+    runningModal.addEventListener("click", event => { if (event.target === runningModal) runningModal.classList.remove("open"); });
+    infoButton.addEventListener("click", () => infoModal.classList.add("open"));
+    resetButton.addEventListener("click", () => {
+      ["sr_coins", "sr_profit", "sr_next_claim", "sr_history", "sr_running", "sr_question_deadlines"].forEach(key => localStorage.removeItem(key));
+      location.reload();
+    });
+    closeInfo.addEventListener("click", () => infoModal.classList.remove("open"));
+    infoModal.addEventListener("click", event => { if (event.target === infoModal) infoModal.classList.remove("open"); });
+
+    window.googleTranslateElementInit = function () {
+      new google.translate.TranslateElement({
+        pageLanguage: "en",
+        includedLanguages: "en,th,id,ms,vi,zh-CN,ja,ko",
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+      }, "google_translate_element");
+    };
+
+    renderAccount();
+    renderQuestions();
+    renderLeaderboard();
+    renderHistory();
+    renderRunning();
+    updateTimer();
+    updateMonthCountdown();
+    updateQuestionCountdowns();
+    setInterval(() => {
+      updateTimer();
+      updateMonthCountdown();
+      updateQuestionCountdowns();
+    }, 1000);
+  </script>
+  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+</body>
+</html>
