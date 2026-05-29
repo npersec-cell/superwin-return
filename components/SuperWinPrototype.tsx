@@ -1078,21 +1078,23 @@ export default function SuperWinPrototype() {
               </div>
             </section>
 
-            {/* Sidebar-integrated Bug Report / Feedback Card (อยู่ใต้แถบ Prize เสมอ) */}
-            <section className="panel" style={{ width: "100%" }}>
-              <div className="panel-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3>Report Bug / Feedback</h3>
-                <button 
-                  onClick={() => setShowReportForm(!showReportForm)}
-                  className="button"
-                  style={{ height: "18px", fontSize: "9px", padding: "0 8px", borderRadius: "999px", background: showReportForm ? "var(--yellow)" : "var(--border)", color: showReportForm ? "#000" : "var(--text-strong)" }}
+            {/* Sidebar-integrated Bug Report / Feedback Card (ปุ่มเต่าทองสีทองสวยงาม เปิดพับเก็บได้ในตัว) */}
+            <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", marginTop: "12px" }}>
+              {!showReportForm ? (
+                <button
+                  onClick={() => setShowReportForm(true)}
+                  className="button gold"
+                  style={{ height: "24px", borderRadius: "12px", padding: "0 12px", fontSize: "10px", display: "flex", alignItems: "center", gap: "4px", boxShadow: "0 2px 6px rgba(0,0,0,0.3)", cursor: "pointer" }}
                 >
-                  {showReportForm ? "Hide" : "Open"}
+                  <span>🐞</span> Report Issue
                 </button>
-              </div>
-
-              {showReportForm ? (
-                <div style={{ padding: "10px 0 0 0", display: "flex", flexDirection: "column", gap: "6px", fontSize: "11px" }}>
+              ) : (
+                <div className="panel" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--card)", display: "flex", flexDirection: "column", gap: "6px", fontSize: "11px", textAlign: "left" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "4px" }}>
+                    <b style={{ color: "var(--yellow)" }}>🐞 Report Issue / Feedback</b>
+                    <button onClick={() => setShowReportForm(false)} style={{ background: "transparent", border: "none", color: "var(--text-weak)", cursor: "pointer", fontSize: "12px" }}>×</button>
+                  </div>
+                  
                   {reportSuccess ? (
                     <div style={{ color: "#4caf50", padding: "10px 0", textAlign: "center", fontWeight: "bold" }}>
                       ✓ Thank you! Message sent to admin.
@@ -1138,12 +1140,8 @@ export default function SuperWinPrototype() {
                     </>
                   )}
                 </div>
-              ) : (
-                <div style={{ padding: "10px 0 0 0", textAlign: "center", color: "var(--text-weak)", fontSize: "10px" }}>
-                  Found a bug? Click Open to report to admin.
-                </div>
               )}
-            </section>
+            </div>
           </aside>
         </section>
       </div>
