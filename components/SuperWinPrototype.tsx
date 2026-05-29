@@ -538,11 +538,11 @@ export default function SuperWinPrototype() {
       const minutes = Math.floor((monthRemaining % 3600000) / 60000);
       setMonthLabel(`${days}d ${hours}h ${minutes}m`);
 
-      const utcDay = String(seasonEnd.getUTCDate()).padStart(2, "0");
-      const utcMonth = seasonEnd.toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
-      const utcYear = seasonEnd.getUTCFullYear();
-      const utcTime = seasonEnd.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
-      setMonthEndUtcLabel(`${utcDay} ${utcMonth} ${utcYear} ${utcTime} UTC+0`);
+      const bkkDay = String(seasonEnd.getDate()).padStart(2, "0");
+      const bkkMonth = seasonEnd.toLocaleString("en-GB", { month: "short", timeZone: "Asia/Bangkok" });
+      const bkkYear = seasonEnd.getFullYear();
+      const bkkTime = seasonEnd.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Bangkok" });
+      setMonthEndUtcLabel(`${bkkDay} ${bkkMonth} ${bkkYear} ${bkkTime} (GMT+7)`);
     };
     tick();
     const timer = window.setInterval(tick, 1000);
@@ -893,7 +893,9 @@ export default function SuperWinPrototype() {
               </SignInButton>
             ) : (
               <>
-                <span className="pill gold"><span>{coins}</span> Coins</span>
+                <span className="pill gold" style={{ fontSize: "16px", padding: "4px 16px", height: "36px", fontWeight: "bold", border: "1.5px solid var(--yellow)", boxShadow: "0 0 12px rgba(255, 225, 0, 0.3)" }}>
+                  <span>{coins}</span> Coins
+                </span>
                 <span className="pill">{accountStatus === "synced" ? "Synced" : accountStatus === "loading" ? "Syncing" : accountStatus === "error" ? "Sync Error" : "Demo"}</span>
                 {winnerClaim && (
                   <button className="button gold" onClick={() => setOpenModal("claim")} style={{ animation: "pulse 1.8s infinite" }}>
@@ -928,8 +930,9 @@ export default function SuperWinPrototype() {
             whiteSpace: "nowrap"
           }}>
             <span style={{ fontSize: "12px", flexShrink: 0 }}>📢</span>
-            <div style={{ flexGrow: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "left" }}>
-              <span style={{ fontWeight: "600" }}>{settings.announcement}</span>
+            <div style={{ flexGrow: 1, overflow: "hidden", whiteSpace: "nowrap", textAlign: "left" }}>
+              {/* @ts-expect-error - marquee is a legacy non-standard element */}
+              <marquee scrollamount="2.5" style={{ fontWeight: "600", verticalAlign: "middle" }}>{settings.announcement}</marquee>
             </div>
           </div>
         )}

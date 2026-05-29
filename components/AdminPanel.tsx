@@ -210,7 +210,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [dashboardData, setDashboardData] = useState<DashboardPrediction[]>([]);
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
   const [selectedDashboardTournament, setSelectedDashboardTournament] = useState("");
-  const [draftOptions, setDraftOptions] = useState<string[]>(["Alpha", "Bravo", "Charlie", "Delta"]);
+  const [draftOptions, setDraftOptions] = useState<string[]>([]);
   const [winningOptions, setWinningOptions] = useState<Record<string, string>>({});
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
   const [historySeasons, setHistorySeasons] = useState<string[]>([]);
@@ -405,7 +405,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       });
       setMessage("สร้างคำถามแล้ว");
       setQuestion("");
-      setDraftOptions(["Alpha", "Bravo", "Charlie", "Delta"]);
+      setDraftOptions([]);
       await loadPredictions();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "สร้างคำถามไม่สำเร็จ");
@@ -763,6 +763,27 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }
   }
 
+  async function saveAnnouncementSettings(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoading(true);
+    setMessage("");
+    try {
+      const data = await requestJson<SiteSettings>("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          announcement: settings.announcement
+        })
+      });
+      setSettings(data);
+      setMessage("บันทึกข้อความประกาศวิ่งหน้าแรกสำเร็จ");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "บันทึกข้อความประกาศไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function savePreviousWinnerSettings(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
@@ -1053,22 +1074,24 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                 <span>ผู้เล่นร่วมทาย: <strong style={{ color: "#fff" }}>{q.uniquePlayers} คน</strong></span>
                               </div>
 
-                              <div style={{ display: "grid", gap: "8px", marginTop: "4px" }}>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
                                 <span className="meta" style={{ color: "var(--yellow)", fontSize: "10px" }}>สัดส่วนและอัตราคูณ (Odds)</span>
-                                {q.optionStats.map((stat) => {
-                                  const pct = q.totalPoolCoins > 0 ? ((stat.totalCoins / q.totalPoolCoins) * 100).toFixed(1) : "0";
-                                  return (
-                                    <div key={stat.id} style={{ display: "grid", gap: "2px", padding: "6px 8px", background: "var(--card)", borderRadius: "6px" }}>
-                                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
-                                        <span style={{ color: "#fff" }}>{stat.label}</span>
-                                        <strong style={{ color: "var(--yellow)" }}>คูณ {stat.multiplier > 0 ? `~${stat.multiplier}x` : "--"}</strong>
+                                <div style={{ display: "grid", gap: "6px", maxHeight: "180px", overflowY: "auto", paddingRight: "4px" }}>
+                                  {q.optionStats.map((stat) => {
+                                    const pct = q.totalPoolCoins > 0 ? ((stat.totalCoins / q.totalPoolCoins) * 100).toFixed(1) : "0";
+                                    return (
+                                      <div key={stat.id} style={{ display: "grid", gap: "2px", padding: "4px 8px", background: "var(--card)", borderRadius: "6px" }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
+                                          <span style={{ color: "#fff" }}>{stat.label}</span>
+                                          <strong style={{ color: "var(--yellow)" }}>คูณ {stat.multiplier > 0 ? `~${stat.multiplier}x` : "--"}</strong>
+                                        </div>
+                                        <div style={{ width: "100%", height: "2px", background: "var(--bg)", borderRadius: "1px", overflow: "hidden" }}>
+                                          <div style={{ width: `${pct}%`, height: "100%", background: "var(--yellow)" }} />
+                                        </div>
                                       </div>
-                                      <div style={{ width: "100%", height: "3px", background: "var(--bg)", borderRadius: "1px", overflow: "hidden" }}>
-                                        <div style={{ width: `${pct}%`, height: "100%", background: "var(--yellow)" }} />
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                                    );
+                                  })}
+                                </div>
                               </div>
 
                               <div style={{ marginTop: "6px" }}>
@@ -1402,11 +1425,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
 
                   <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ข้อความประกาศหน้าแรก (ยาวแถวเดียวด้านล่างเมนู)</span>
-                    <input value={settings.announcement || ""} onChange={(event) => setSettings((current) => ({ ...current, announcement: event.target.value }))} placeholder='เช่น ยินดีต้อนรับเข้าสู่ SUPERWIN HUB! ปล่อยตัวทายผลซีซั่น 2 แล้ววันนี้...' style={{ height: "34px" }} />
-                  </div>
-
-                  <div style={{ display: "grid", gap: "4px" }}>
                     <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>สถานะซีซั่นนี้</span>
                     <select className="button" value={settings.season?.status || "active"} onChange={(event) => setSettings((current) => ({ ...current, season: { startAt: current.season?.startAt || "", endAt: current.season?.endAt || "", status: event.target.value as any } }))} style={{ width: "100%", height: "34px" }}>
                       <option value="active">Active (กำลังเปิดรับการแข่งขัน)</option>
@@ -1415,6 +1433,30 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
 
                   <button className="button primary" disabled={loading} type="submit" style={{ marginTop: "4px", width: "100%", height: "34px", fontWeight: "bold" }}>💾 บันทึกเวลา & รางวัลฤดูกาลนี้</button>
+                </form>
+              </div>
+
+              {/* ส่วนพิเศษ: ตั้งค่าข้อความประกาศวิ่งหน้าแรก (Standalone Announcement Ticker Card) */}
+              <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
+                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
+                  <h2>📢 ตั้งค่าข้อความประกาศวิ่งหน้าแรก (Announcement Ticker)</h2>
+                </div>
+                <form className="modal-body" onSubmit={saveAnnouncementSettings} style={{ padding: "12px 0 0 0", display: "grid", gap: "10px" }}>
+                  <span className="meta" style={{ textTransform: "none", color: "var(--muted)", lineHeight: "1.4" }}>
+                    *ตั้งค่าข้อความประกาศข่าวสารวิ่งเคลื่อนไหวช้า ๆ จากขวาไปซ้ายด้านล่างเมนูหลักหน้าแรก (แยกบันทึกและมีปุ่มเซฟเป็นอิสระ)
+                  </span>
+                  
+                  <div style={{ display: "grid", gap: "4px" }}>
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ข้อความประกาศหน้าแรก (ยาวแถวเดียวไหลช้า ๆ)</span>
+                    <input 
+                      value={settings.announcement || ""} 
+                      onChange={(event) => setSettings((current) => ({ ...current, announcement: event.target.value }))} 
+                      placeholder='เช่น ยินดีต้อนรับเข้าสู่ SUPERWIN HUB! ปล่อยตัวทายผลซีซั่น 2 แล้ววันนี้...' 
+                      style={{ height: "34px" }} 
+                    />
+                  </div>
+
+                  <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "34px", fontWeight: "bold" }}>📢 💾 บันทึกข้อความประกาศหน้าแรก</button>
                 </form>
               </div>
 
