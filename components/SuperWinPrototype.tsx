@@ -1276,9 +1276,9 @@ function InfoModal({ settings, onClose }: { settings: SiteSettings; onClose: () 
       <div className="modal-card">
         <div className="modal-head"><h3>Info</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body">
-          <div className="info-block"><h4>How to Play</h4><p>{settings.info.howToPlay}</p></div>
-          <div className="info-block"><h4>Reward</h4><p>{settings.info.reward}</p></div>
-          <div className="info-block"><h4>Question Time</h4><p>{settings.info.questionTime}</p></div>
+          <div className="info-block"><h4>How to Play</h4><p style={{ whiteSpace: "pre-line" }}>{settings.info.howToPlay}</p></div>
+          <div className="info-block"><h4>Reward</h4><p style={{ whiteSpace: "pre-line" }}>{settings.info.reward}</p></div>
+          <div className="info-block"><h4>Question Time</h4><p style={{ whiteSpace: "pre-line" }}>{settings.info.questionTime}</p></div>
         </div>
       </div>
     </section>
