@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 
+function parseBkkDateTime(localStr: string) {
+  if (!localStr) return null;
+  if (localStr.includes("Z") || localStr.includes("+")) {
+    return new Date(localStr).toISOString();
+  }
+  return new Date(localStr + "+07:00").toISOString();
+}
+
 type AdminPredictionInput = {
   tournamentName?: string;
   question?: string;
@@ -116,8 +124,8 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseAdminClient();
     const now = new Date().toISOString();
-    const opensAt = body.opensAt ? new Date(body.opensAt).toISOString() : now;
-    const closesAt = new Date(body.closesAt).toISOString();
+    const opensAt = body.opensAt ? (parseBkkDateTime(body.opensAt) || now) : now;
+    const closesAt = parseBkkDateTime(body.closesAt) || now;
 
     if (Number.isNaN(new Date(closesAt).getTime()) || new Date(closesAt).getTime() <= Date.now()) {
       return NextResponse.json({ ok: false, error: "Close time must be in the future" }, { status: 400 });

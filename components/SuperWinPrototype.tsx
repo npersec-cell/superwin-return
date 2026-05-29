@@ -914,7 +914,7 @@ export default function SuperWinPrototype() {
           </div>
         </header>
 
-        {settings.announcement && (
+        {(settings.announcement || "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the Season Top 10!") && (
           <div className="announcement-bar" style={{ 
             display: "flex", 
             alignItems: "center", 
@@ -930,9 +930,10 @@ export default function SuperWinPrototype() {
             whiteSpace: "nowrap"
           }}>
             <span style={{ fontSize: "12px", flexShrink: 0 }}>📢</span>
-            <div style={{ flexGrow: 1, overflow: "hidden", whiteSpace: "nowrap", textAlign: "left" }}>
-              {/* @ts-expect-error - marquee is a legacy non-standard element */}
-              <marquee scrollamount="2.5" style={{ fontWeight: "600", verticalAlign: "middle" }}>{settings.announcement}</marquee>
+            <div className="announcement-container">
+              <div className="announcement-marquee">
+                {settings.announcement || "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the Season Top 10!"}
+              </div>
             </div>
           </div>
         )}

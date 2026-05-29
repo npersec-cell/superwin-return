@@ -23,6 +23,14 @@ function toStatus(error: unknown) {
   return 500;
 }
 
+function parseBkkDateTime(localStr: string) {
+  if (!localStr) return null;
+  if (localStr.includes("Z") || localStr.includes("+")) {
+    return new Date(localStr).toISOString();
+  }
+  return new Date(localStr + "+07:00").toISOString();
+}
+
 export async function PATCH(request: NextRequest, context: Params) {
   try {
     await requireAdmin();
@@ -32,8 +40,8 @@ export async function PATCH(request: NextRequest, context: Params) {
 
     if (body.tournamentName !== undefined) update.tournament_name = String(body.tournamentName).trim();
     if (body.question !== undefined) update.question = String(body.question).trim();
-    if (body.opensAt !== undefined && body.opensAt) update.opens_at = new Date(body.opensAt).toISOString();
-    if (body.closesAt !== undefined && body.closesAt) update.closes_at = new Date(body.closesAt).toISOString();
+    if (body.opensAt !== undefined && body.opensAt) update.opens_at = parseBkkDateTime(body.opensAt);
+    if (body.closesAt !== undefined && body.closesAt) update.closes_at = parseBkkDateTime(body.closesAt);
     if (body.feeRate !== undefined) update.fee_rate = Number(body.feeRate);
     if (body.status !== undefined) update.status = body.status;
 
