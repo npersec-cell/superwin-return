@@ -497,7 +497,7 @@ export default function SuperWinPrototype() {
     let rows = [...leaderboardRows];
     if (isSignedIn && currentUserId) {
       rows = rows.map((row) => {
-        if (row.id === currentUserId || row.name === "You" || row.name === "npersec") {
+        if (row.id === currentUserId) {
           return { ...row, id: currentUserId, name: "You", profit } as LeaderboardRow;
         }
         return row;
