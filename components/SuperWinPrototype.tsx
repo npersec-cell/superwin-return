@@ -300,7 +300,7 @@ const defaultSettings: SiteSettings = {
     endAt: "2026-05-31T17:00",
     status: "active"
   },
-  announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the Season Top 10!"
+  announcement: ""
 };
 
 const defaultHistory: HistoryItem[] = [
@@ -380,6 +380,7 @@ export default function SuperWinPrototype() {
   const [accountStatus, setAccountStatus] = useState<"demo" | "loading" | "synced" | "error">("demo");
   const [accountRole, setAccountRole] = useState<"user" | "admin">("user");
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[]>(defaultLeaderboard);
   const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -617,6 +618,7 @@ export default function SuperWinPrototype() {
     if (response.ok && payload.ok && payload.data) {
       setSettings(payload.data);
     }
+    setSettingsLoaded(true);
   }
 
   async function loadLeaderboard() {
@@ -928,7 +930,7 @@ export default function SuperWinPrototype() {
           </div>
         </header>
 
-        {(settings.announcement || "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the Season Top 10!") && (
+        {settingsLoaded && settings.announcement && (
           <div className="announcement-bar" suppressHydrationWarning={true} style={{ 
             display: "flex", 
             alignItems: "center", 
@@ -946,7 +948,7 @@ export default function SuperWinPrototype() {
             <span style={{ fontSize: "12px", flexShrink: 0 }}>📢</span>
             <div className="announcement-container">
               <div className="announcement-marquee">
-                {settings.announcement || "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the Season Top 10!"}
+                {settings.announcement}
               </div>
             </div>
           </div>
