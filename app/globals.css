@@ -233,28 +233,19 @@ input { width: 100%; min-width: 0; }
   .history-detail { font-size: 10px; }
 }
 
-/* Scrolling Announcement Marquee (CSS Ticker) */
+/* Scrolling Announcement Marquee (JS-driven) */
 .announcement-container {
   flex: 1 1 0%;
   min-width: 0;
   overflow: hidden;
   height: 18px;
-  display: flex;
-  align-items: center;
   position: relative;
 }
 .announcement-marquee {
   display: inline-block;
   white-space: nowrap;
-  will-change: transform;
-  animation: marquee-scroll 22s linear infinite;
   font-weight: 600;
   color: var(--text-strong);
-}
-@keyframes marquee-scroll {
-  0%   { transform: translateX(100vw); }
-  100% { transform: translateX(-100%); }
-}
-.announcement-container:hover .announcement-marquee {
-  animation-play-state: paused;
+  position: absolute;
+  will-change: transform;
 }

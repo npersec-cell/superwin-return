@@ -2,7 +2,7 @@
 
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type PredictionOption = {
   id: string;
@@ -386,6 +386,9 @@ export default function SuperWinPrototype() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
+  const marqueeRef = useRef<HTMLDivElement | null>(null);
+  const marqueeContainerRef = useRef<HTMLDivElement | null>(null);
+
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportMessage, setReportMessage] = useState("");
   const [captchaNum1, setCaptchaNum1] = useState(0);
@@ -451,6 +454,30 @@ export default function SuperWinPrototype() {
     loadSettings().catch(() => undefined);
     loadLeaderboard().catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    const marquee = marqueeRef.current;
+    const container = marqueeContainerRef.current;
+    if (!marquee || !container) return;
+
+    let pos = container.offsetWidth;
+    let rafId = 0;
+    const speed = 0.6;
+
+    function tick() {
+      if (!marquee || !container) return;
+      const textWidth = marquee.offsetWidth;
+      pos -= speed;
+      if (pos < -textWidth) {
+        pos = container.offsetWidth;
+      }
+      marquee.style.transform = `translateX(${pos}px)`;
+      rafId = requestAnimationFrame(tick);
+    }
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [settings.announcement]);
 
   useEffect(() => {
     setLoggedIn(Boolean(isSignedIn));
@@ -946,8 +973,8 @@ export default function SuperWinPrototype() {
             whiteSpace: "nowrap"
           }}>
             <span style={{ fontSize: "12px", flexShrink: 0 }}>📢</span>
-            <div className="announcement-container">
-              <div className="announcement-marquee">
+            <div className="announcement-container" ref={marqueeContainerRef}>
+              <div className="announcement-marquee" ref={marqueeRef}>
                 {settings.announcement}
               </div>
             </div>
