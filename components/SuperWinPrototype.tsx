@@ -929,7 +929,7 @@ export default function SuperWinPrototype() {
         </header>
 
         {(settings.announcement || "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the Season Top 10!") && (
-          <div className="announcement-bar" style={{ 
+          <div className="announcement-bar" suppressHydrationWarning={true} style={{ 
             display: "flex", 
             alignItems: "center", 
             gap: "8px", 
