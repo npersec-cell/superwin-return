@@ -202,6 +202,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [optionInput, setOptionInput] = useState("");
   const [adminEmailInput, setAdminEmailInput] = useState("");
   const [newTournamentInput, setNewTournamentInput] = useState("");
+  const [tournamentOrder, setTournamentOrder] = useState<string[]>([]);
   const [newTournamentLogoUrl, setNewTournamentLogoUrl] = useState("");
   const [showQuickTournament, setShowQuickTournament] = useState(false);
   const [quickTournamentInput, setQuickTournamentInput] = useState("");
@@ -410,10 +411,24 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     setMessage("");
     try {
       const options = draftOptions.map((item) => item.trim()).filter(Boolean);
-      await requestJson<AdminPrediction>("/api/admin/predictions", {
+      const data = await requestJson<AdminPrediction>("/api/admin/predictions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tournamentName, question, opensAt, closesAt, feeRate: Number(feeRate), status: "open", options })
+      });
+      // Auto-sort: insert new prediction ID into predictionOrder by closesAt
+      const currentOrder = settings.predictionOrder || [];
+      const allPredictions = [...predictions, data];
+      const sorted = [...allPredictions].sort((a, b) => {
+        const timeA = a.closesAt ? new Date(a.closesAt).getTime() : Infinity;
+        const timeB = b.closesAt ? new Date(b.closesAt).getTime() : Infinity;
+        return timeA - timeB;
+      });
+      const newOrder = sorted.map(p => p.id);
+      await requestJson<SiteSettings>("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ predictionOrder: newOrder })
       });
       setMessage("สร้างคำถามแล้ว");
       setQuestion("");
@@ -712,7 +727,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ predictionOrder: localOrder })
+        body: JSON.stringify({ predictionOrder: localOrder, announcement: settings.announcement })
       });
       setSettings(data);
       setMessage("บันทึกลำดับคำถามเข้าสู่ระบบสำเร็จ");
@@ -1674,11 +1689,43 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     {!(settings.tournaments && settings.tournaments.length > 0) ? (
                       <div className="reward-line"><span>ไม่มีรายชื่อทัวร์นาเมนต์ในขณะนี้</span></div>
                     ) : (
-                      (settings.tournaments || []).map((t, idx) => {
+                      (settings.tournaments || []).sort((a, b) => {
+                        const nameA = typeof a === "string" ? a : a.name;
+                        const nameB = typeof b === "string" ? b : b.name;
+                        const idxA = tournamentOrder.indexOf(nameA);
+                        const idxB = tournamentOrder.indexOf(nameB);
+                        if (idxA === -1 && idxB === -1) return 0;
+                        if (idxA === -1) return 1;
+                        if (idxB === -1) return -1;
+                        return idxA - idxB;
+                      }).map((t) => {
                         const tName = typeof t === "string" ? t : t.name;
+                        const tIdx = tournamentOrder.indexOf(tName);
                         const tLogo = typeof t === "string" ? "" : t.logoUrl;
                         return (
-                          <div key={`${tName}-${idx}`} className="reward-line" style={{ padding: "8px 0", borderBottom: "1px solid var(--hairline-soft)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div key={tName} className="reward-line" style={{ padding: "8px 0", borderBottom: "1px solid var(--hairline-soft)", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "8px", alignItems: "center" }}>
+                            {/* Drag Handles */}
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+                              <span style={{ fontSize: "10px", color: "var(--muted)", cursor: "grab" }}>☰</span>
+                              <div style={{ display: "flex", gap: "1px" }}>
+                                <button className="button" type="button" disabled={tIdx <= 0} onClick={() => {
+                                  const newOrder = [...tournamentOrder];
+                                  const currentIdx = newOrder.indexOf(tName);
+                                  if (currentIdx > 0) {
+                                    [newOrder[currentIdx - 1], newOrder[currentIdx]] = [newOrder[currentIdx], newOrder[currentIdx - 1]];
+                                    setTournamentOrder(newOrder);
+                                  }
+                                }} style={{ width: "16px", height: "16px", padding: 0, fontSize: "6px", background: "transparent" }}>▲</button>
+                                <button className="button" type="button" disabled={tIdx === -1 || tIdx >= tournamentOrder.length - 1} onClick={() => {
+                                  const newOrder = [...tournamentOrder];
+                                  const currentIdx = newOrder.indexOf(tName);
+                                  if (currentIdx >= 0 && currentIdx < newOrder.length - 1) {
+                                    [newOrder[currentIdx], newOrder[currentIdx + 1]] = [newOrder[currentIdx + 1], newOrder[currentIdx]];
+                                    setTournamentOrder(newOrder);
+                                  }
+                                }} style={{ width: "16px", height: "16px", padding: 0, fontSize: "6px", background: "transparent" }}>▼</button>
+                              </div>
+                            </div>
                             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                               {tLogo ? (
                                 <img src={tLogo} alt="" style={{ width: "20px", height: "20px", borderRadius: "4px", objectFit: "contain", background: "transparent" }} />
@@ -1704,6 +1751,35 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           </div>
                         );
                       })
+                    )}
+                    {tournamentOrder.length > 1 && (
+                      <button className="button gold" type="button" disabled={loading} onClick={async () => {
+                        try {
+                          setLoading(true);
+                          const res = await fetch("/api/admin/settings", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ 
+                              tournaments: settings.tournaments?.map(t => {
+                                const name = typeof t === "string" ? t : t.name;
+                                const idx = tournamentOrder.indexOf(name);
+                                return typeof t === "string" ? t : { ...t, sortOrder: idx };
+                              })
+                            })
+                          });
+                          const payload = await res.json();
+                          if (payload.ok) {
+                            setSettings(current => ({ ...current, tournaments: payload.data?.tournaments || current.tournaments }));
+                            alert("บันทึกลำดับทัวร์นาเมนต์สำเร็จ");
+                          }
+                        } catch (e) {
+                          alert("เกิดข้อผิดพลาด");
+                        } finally {
+                          setLoading(false);
+                        }
+                      }} style={{ height: "30px", fontSize: "10px", padding: "0 12px", marginTop: "8px" }}>
+                        💾 บันทึกลำดับทัวร์นาเมนต์
+                      </button>
                     )}
                   </div>
                 </div>
