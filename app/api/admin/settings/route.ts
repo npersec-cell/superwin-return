@@ -140,18 +140,15 @@ export async function PATCH(request: NextRequest) {
     const current = await readSettingsFromDb(supabase);
     const body = (await request.json()) as Partial<SiteSettings>;
     
+    // 使用fallback作为基础，确保缺失的字段有默认值
     const next: SiteSettings = {
-      info: { ...current.info, ...(body.info || {}) },
-      reward: { ...current.reward, ...(body.reward || {}) },
-      tournaments: body.tournaments !== undefined ? body.tournaments : (current.tournaments || [{ name: "Super League", logoUrl: "" }]),
-      savedQuestions: body.savedQuestions !== undefined ? body.savedQuestions : (current.savedQuestions || [
-        "Which team will win the championship?",
-        "Which team will get the Chicken Dinner?",
-        "Who will get the most kills in this match?"
-      ]),
-      season: body.season !== undefined ? body.season : current.season,
-      predictionOrder: body.predictionOrder !== undefined ? body.predictionOrder : current.predictionOrder,
-      announcement: body.announcement !== undefined ? body.announcement : current.announcement
+      info: { ...fallback.info, ...current.info, ...(body.info || {}) },
+      reward: { ...fallback.reward, ...current.reward, ...(body.reward || {}) },
+      tournaments: body.tournaments !== undefined ? body.tournaments : (current.tournaments || fallback.tournaments),
+      savedQuestions: body.savedQuestions !== undefined ? body.savedQuestions : (current.savedQuestions || fallback.savedQuestions),
+      season: body.season !== undefined ? body.season : (current.season || fallback.season),
+      predictionOrder: body.predictionOrder !== undefined ? body.predictionOrder : (current.predictionOrder || fallback.predictionOrder),
+      announcement: body.announcement !== undefined ? body.announcement : (current.announcement || fallback.announcement)
     };
 
     await writeSettingsToDb(supabase, next);

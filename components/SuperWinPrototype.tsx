@@ -122,6 +122,13 @@ type SiteSettings = {
   predictionOrder?: string[];
   announcement?: string;
 };
+function maskName(name: string): string {
+  if (!name) return "";
+  if (name === "You") return name;
+  // Censor last 2 chars with "xx"
+  if (name.length <= 2) return name + "xx";
+  return name.slice(0, -2) + "xx";
+}
 
 type UserProfileStats = {
   name: string;
@@ -876,8 +883,8 @@ export default function SuperWinPrototype() {
   }
 
   return (
-    <main className="page">
-      <div className="app">
+    <main className="page" suppressHydrationWarning>
+      <div className="app" suppressHydrationWarning>
         <header className="topbar">
           <div className="brand">
             <img className="logo" src="/SuperWin_b.png" alt="SuperWin logo" />
@@ -905,12 +912,11 @@ export default function SuperWinPrototype() {
                 <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Claim 100</button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                 <button className="button gold" onClick={() => { setHistoryPage(1); setOpenModal("history"); }}>History</button>
-                <button className="button gold" onClick={() => setOpenModal("info")}>Info</button>
                 {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
-                <button className="button gold" onClick={resetDemo}>Reset Demo</button>
                 <UserButton />
               </>
             )}
+            <button className="button gold" onClick={() => setOpenModal("info")}>Info</button>
           </div>
         </header>
 
@@ -1088,7 +1094,7 @@ export default function SuperWinPrototype() {
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap"
                         }}>
-                          {row.name}
+                          {maskName(row.name)}
                         </span>
                       </div>
                       <b>{money(row.profit)}</b>

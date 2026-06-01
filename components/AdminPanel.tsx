@@ -203,6 +203,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [adminEmailInput, setAdminEmailInput] = useState("");
   const [newTournamentInput, setNewTournamentInput] = useState("");
   const [newTournamentLogoUrl, setNewTournamentLogoUrl] = useState("");
+  const [localTournaments, setLocalTournaments] = useState<(string | TournamentItem)[]>([]);
+  const [draggedTourIdx, setDraggedTourIdx] = useState<number | null>(null);
+  const [hasTourOrderChanges, setHasTourOrderChanges] = useState(false);
   const [showQuickTournament, setShowQuickTournament] = useState(false);
   const [quickTournamentInput, setQuickTournamentInput] = useState("");
   const [optionsBulkInput, setOptionsBulkInput] = useState("");
@@ -221,8 +224,77 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [editQuestions, setEditQuestions] = useState<Record<string, string>>({});
   const [editOptionsInputs, setEditOptionsInputs] = useState<Record<string, Record<string, string>>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
-  
-  // แท็บเมนูหลังบ้าน
+  const [runningTournamentFilter, setRunningTournamentFilter] = useState("");
+
+  useEffect(() => {
+    if (settings.tournaments) {
+      setLocalTournaments([...settings.tournaments]);
+      setHasTourOrderChanges(false);
+    }
+  }, [settings.tournaments]);
+
+  function handleTourDragStart(idx: number) {
+    setDraggedTourIdx(idx);
+  }
+
+  function handleTourDragOver(event: React.DragEvent, idx: number) {
+    event.preventDefault();
+    if (draggedTourIdx === null || draggedTourIdx === idx) return;
+    const updated = [...localTournaments];
+    const [moved] = updated.splice(draggedTourIdx, 1);
+    updated.splice(idx, 0, moved);
+    setLocalTournaments(updated);
+    setDraggedTourIdx(idx);
+    setHasTourOrderChanges(true);
+  }
+
+  function handleTourDrop() {
+    setDraggedTourIdx(null);
+  }
+
+  async function saveTournamentOrder() {
+    setLoading(true);
+    setMessage("");
+    try {
+      const data = await requestJson<SiteSettings>("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tournaments: localTournaments })
+      });
+      setSettings(data);
+      setHasTourOrderChanges(false);
+      setMessage("บันทึกลำดับทัวร์นาเมนต์สำเร็จ");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "บันทึกลำดับไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function permanentDeleteTournament(name: string) {
+    const confirmed = window.confirm(`ลบทัวร์นาเมนต์ "${name}" อย่างถาวร?\nคำถามที่ใช้ทัวร์นี้จะยังคงอยู่ แต่จะไม่สามารถสร้างคำถามในทัวร์นี้ใหม่ได้`);
+    if (!confirmed) return;
+    setLoading(true);
+    setMessage("");
+    try {
+      const nextTournaments = (settings.tournaments || []).filter((t) => {
+        const tName = typeof t === "string" ? t : t.name;
+        return tName !== name;
+      });
+      const data = await requestJson<SiteSettings>("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tournaments: nextTournaments })
+      });
+      setSettings(data);
+      setMessage(`ลบทัวร์นาเมนต์ ${name} อย่างถาวรสำเร็จ`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "ลบทัวร์นาเมนต์ไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+    }
+  }
+    // แท็บเมนูหลังบ้าน
   const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "claims" | "dashboard" | "reports">("dashboard");
   const [reports, setReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
@@ -711,7 +783,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ predictionOrder: localOrder })
+        body: JSON.stringify({ 
+          predictionOrder: localOrder,
+          announcement: settings.announcement
+        })
       });
       setSettings(data);
       setMessage("บันทึกลำดับคำถามเข้าสู่ระบบสำเร็จ");
@@ -1000,8 +1075,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   }
 
   return (
-    <main className="page admin-page" style={{ padding: "10px 16px" }}>
-      <div className="app admin-app" style={{ maxWidth: "1000px" }}>
+    <main className="page admin-page" style={{ padding: "10px 16px" }} suppressHydrationWarning>
+      <div className="app admin-app" style={{ maxWidth: "1000px" }} suppressHydrationWarning>
         <header className="topbar" style={{ marginBottom: "8px" }}>
           <div className="brand-text">
             <h1>หลังบ้าน SUPERWIN</h1>
@@ -1267,12 +1342,17 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <h3>คำถามที่กำลังรัน</h3>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    {runningPredictions.length > 1 && (
+                    {runningTournamentFilter && currentRunning.filter(p => p.tournamentName === runningTournamentFilter).length > 1 && (
                       <button className="button gold" type="button" disabled={loading} onClick={savePredictionOrder} style={{ height: "24px", fontSize: "10px", padding: "0 10px" }}>
                         💾 บันทึกลำดับคำถาม
                       </button>
                     )}
-                    <span className="micro">{runningPredictions.length} รายการ</span>
+                    <span className="micro">
+                      {runningTournamentFilter 
+                        ? `${currentRunning.filter(p => p.tournamentName === runningTournamentFilter).length} คำถาม`
+                        : `${runningPredictions.length} รายการ`
+                      }
+                    </span>
                   </div>
                 </div>
                 <div className="admin-help" style={{ padding: "8px 0", margin: "4px 0" }}>
@@ -1280,25 +1360,51 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   <span>สรุปผล = เลือกคำตอบที่ชนะและจ่ายผลเหรียญ</span>
                   <span>ยกเลิก + คืนเหรียญ = ยกเลิกคำถามและคืนเหรียญเต็มจำนวน</span>
                 </div>
+                
+                {/* Tournament Selector for Running Tab */}
+                <div style={{ display: "grid", gap: "4px", marginBottom: "12px" }}>
+                  <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>เลือกทัวร์นาเมนต์เพื่อจัดการคำถาม</span>
+                  <select 
+                    className="button" 
+                    value={runningTournamentFilter} 
+                    onChange={(e) => setRunningTournamentFilter(e.target.value)} 
+                    style={{ width: "100%", height: "38px" }}
+                  >
+                    <option value="">-- เลือกทัวร์นาเมนต์ --</option>
+                    {settings.tournaments?.map((t) => {
+                      const name = typeof t === "string" ? t : t.name;
+                      return <option key={name} value={name}>{name}</option>;
+                    })}
+                  </select>
+                </div>
+                
                 <div className="leaderboard-body" style={{ gap: "10px", padding: "12px 0 0 0" }}>
-                  {currentRunning.length ? currentRunning.map((item) => {
-                    const globalIdx = localOrder.indexOf(item.id);
-                    return (
-                      <div key={item.id} className="question running" style={{ padding: "12px", display: "grid", gridTemplateColumns: "auto 1fr", gap: "12px", alignItems: "center" }}>
-                        {/* แฮมเบอร์เกอร์ & เลื่อนลำดับคำถาม */}
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", paddingRight: "8px", borderRight: "1px solid var(--hairline)", alignSelf: "stretch", justifyContent: "center" }}>
-                          <span style={{ fontSize: "14px", color: "var(--muted)", cursor: "grab", lineHeight: "1" }} title="ลากหรือเลื่อนคำถาม">☰</span>
-                          <div style={{ display: "flex", gap: "2px" }}>
-                            <button className="button" type="button" disabled={globalIdx <= 0} onClick={() => moveLocalOrder(item.id, "up")} style={{ width: "18px", height: "18px", padding: 0, fontSize: "8px", background: "transparent" }}>▲</button>
-                            <button className="button" type="button" disabled={globalIdx === -1 || globalIdx >= localOrder.length - 1} onClick={() => moveLocalOrder(item.id, "down")} style={{ width: "18px", height: "18px", padding: 0, fontSize: "8px", background: "transparent" }}>▼</button>
-                          </div>
-                        </div>
+                  {!runningTournamentFilter ? (
+                    <div className="question"><strong>กรุณาเลือกทัวร์นาเมนต์</strong><span className="meta">เลือกทัวร์นาเมนต์จาก dropdown ด้านบนเพื่อดูและจัดการคำถาม</span></div>
+                  ) : (
+                    (() => {
+                      const filteredQuestions = currentRunning.filter(p => p.tournamentName === runningTournamentFilter);
+                      if (filteredQuestions.length === 0) {
+                        return <div className="question"><strong>ไม่มีคำถามที่กำลังรันในทัวร์นาเมนต์นี้</strong></div>;
+                      }
+                      return filteredQuestions.map((item) => {
+                        const globalIdx = localOrder.indexOf(item.id);
+                        return (
+                          <div key={item.id} className="question running" style={{ padding: "12px", display: "grid", gridTemplateColumns: "auto 1fr", gap: "12px", alignItems: "center" }}>
+                            {/* แฮมเบอร์เกอร์ & เลื่อนลำดับคำถาม */}
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", paddingRight: "8px", borderRight: "1px solid var(--hairline)", alignSelf: "stretch", justifyContent: "center" }}>
+                              <span style={{ fontSize: "14px", color: "var(--muted)", cursor: "grab", lineHeight: "1" }} title="ลากหรือเลื่อนคำถาม">☰</span>
+                              <div style={{ display: "flex", gap: "2px" }}>
+                                <button className="button" type="button" disabled={globalIdx <= 0} onClick={() => moveLocalOrder(item.id, "up")} style={{ width: "18px", height: "18px", padding: 0, fontSize: "8px", background: "transparent" }}>▲</button>
+                                <button className="button" type="button" disabled={globalIdx === -1 || globalIdx >= localOrder.length - 1} onClick={() => moveLocalOrder(item.id, "down")} style={{ width: "18px", height: "18px", padding: 0, fontSize: "8px", background: "transparent" }}>▼</button>
+                              </div>
+                            </div>
 
-                        <div style={{ display: "grid", gap: "6px", width: "100%" }}>
-                          <div className="question-main">
-                            <strong>{item.question}</strong>
-                            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", marginTop: "2px", marginBottom: "4px" }}>
-                              <span className="meta">{item.tournamentName} · ปิด {displayDate(item.closesAt)} UTC+7 · {item.options.length} คำตอบ</span>
+                            <div style={{ display: "grid", gap: "6px", width: "100%" }}>
+                              <div className="question-main">
+                                <strong>{item.question}</strong>
+                                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", marginTop: "2px", marginBottom: "4px" }}>
+                                  <span className="meta">{item.tournamentName} · ปิด {displayDate(item.closesAt)} UTC+7 · {item.options.length} คำตอบ</span>
                               {editingId !== item.id ? (
                                 <button 
                                   className="button" 
@@ -1586,21 +1692,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 </form>
               </div>
 
-              {/* ส่วนที่ 3: สรุปคะแนนล้างกระดานอันดับ (Reset Standings for New Month) */}
-              <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
-                  <h2>🏁 3. ปุ่มเคลียร์คะแนนกระดานเพื่อเริ่มซีซั่นใหม่ (Reset Standings)</h2>
-                </div>
-                <div className="modal-body" style={{ padding: "12px 0 0 0", display: "grid", gap: "10px" }}>
-                  <span className="meta" style={{ textTransform: "none", color: "var(--muted)", lineHeight: "1.4" }}>
-                    *กดเพื่อปิดบันทึกตารางอันดับ Top 20 ของฤดูกาล "{settings.reward.month}" นี้ลงฐานข้อมูลถาวร และรีเซ็ตแต้มสะสมกำไร (Season Profit) ของทุกคนกลับเหลือ 0 แต้มเพื่อเริ่มสะสมแต้มเก็บรอบใหม่ (ปุ่มแยกอิสระ กดเมื่อสิ้นสุดการแข่ง)
-                  </span>
-                  <button className="button gold" type="button" disabled={loading} onClick={finalizeLeaderboard} style={{ width: "100%", height: "38px", fontWeight: "bold" }}>
-                    🏁 สรุปปิดประวัติคะแนน "{settings.reward.month}" & เคลียร์กระดานเป็น 0
-                  </button>
-                </div>
-              </div>
-
               <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h2>ข้อความ Info หน้าเว็บ (วิธีเล่น/รางวัล)</h2></div>
                 <form className="modal-body" onSubmit={saveInfoSettings} style={{ padding: "12px 0 0 0" }}>
@@ -1647,39 +1738,69 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
                   
                   <div className="admin-option-list">
-                    {!(settings.tournaments && settings.tournaments.length > 0) ? (
+                    {!(localTournaments && localTournaments.length > 0) ? (
                       <div className="reward-line"><span>ไม่มีรายชื่อทัวร์นาเมนต์ในขณะนี้</span></div>
                     ) : (
-                      (settings.tournaments || []).map((t, idx) => {
-                        const tName = typeof t === "string" ? t : t.name;
-                        const tLogo = typeof t === "string" ? "" : t.logoUrl;
-                        return (
-                          <div key={`${tName}-${idx}`} className="reward-line" style={{ padding: "8px 0", borderBottom: "1px solid var(--hairline-soft)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                              {tLogo ? (
-                                <img src={tLogo} alt="" style={{ width: "20px", height: "20px", borderRadius: "4px", objectFit: "contain", background: "transparent" }} />
-                              ) : (
-                                <span style={{ fontSize: "12px" }}>🏆</span>
-                              )}
-                              <span>{tName}</span>
+                      <>
+                        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+                          <button 
+                            className="button gold" 
+                            type="button" 
+                            disabled={loading || !hasTourOrderChanges} 
+                            onClick={saveTournamentOrder} 
+                            style={{ height: "30px", fontSize: "11px", padding: "0 12px" }}
+                          >
+                            💾 บันทึกลำดับทัวร์
+                          </button>
+                        </div>
+                        {localTournaments.map((t, idx) => {
+                          const tName = typeof t === "string" ? t : t.name;
+                          const tLogo = typeof t === "string" ? "" : t.logoUrl;
+                          return (
+                            <div 
+                              key={`${tName}-${idx}`} 
+                              className="reward-line" 
+                              style={{ 
+                                padding: "8px 0", 
+                                borderBottom: "1px solid var(--hairline-soft)", 
+                                display: "flex", 
+                                justifyContent: "space-between", 
+                                alignItems: "center",
+                                opacity: draggedTourIdx === idx ? 0.5 : 1,
+                                cursor: "grab"
+                              }}
+                              draggable
+                              onDragStart={() => handleTourDragStart(idx)}
+                              onDragOver={(e) => handleTourDragOver(e, idx)}
+                              onDrop={handleTourDrop}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span style={{ cursor: "grab", color: "var(--muted)", fontSize: "14px" }}>☰</span>
+                                {tLogo ? (
+                                  <img src={tLogo} alt="" style={{ width: "20px", height: "20px", borderRadius: "4px", objectFit: "contain", background: "transparent" }} />
+                                ) : (
+                                  <span style={{ fontSize: "12px" }}>🏆</span>
+                                )}
+                                <span>{tName}</span>
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <label style={{ cursor: "pointer" }}>
+                                  <span className="button gold" style={{ height: "24px", fontSize: "10px", padding: "0 8px", display: "inline-flex", alignItems: "center" }}>
+                                    🖼️ {tLogo ? "เปลี่ยนโลโก้" : "อัปภาพโลโก้"}
+                                  </span>
+                                  <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    onChange={(event) => updateTournamentLogo(tName, event.target.files?.[0])} 
+                                    style={{ display: "none" }} 
+                                  />
+                                </label>
+                                <button className="button" type="button" disabled={loading} onClick={() => permanentDeleteTournament(tName)} style={{ height: "24px", fontSize: "10px", padding: "0 8px", color: "var(--red)" }}>ลบถาวร</button>
+                              </div>
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                              <label style={{ cursor: "pointer" }}>
-                                <span className="button gold" style={{ height: "24px", fontSize: "10px", padding: "0 8px", display: "inline-flex", alignItems: "center" }}>
-                                  🖼️ {tLogo ? "เปลี่ยนโลโก้" : "อัปภาพโลโก้"}
-                                </span>
-                                <input 
-                                  type="file" 
-                                  accept="image/*" 
-                                  onChange={(event) => updateTournamentLogo(tName, event.target.files?.[0])} 
-                                  style={{ display: "none" }} 
-                                />
-                              </label>
-                              <button className="button" type="button" disabled={loading} onClick={() => removeTournament(tName)} style={{ height: "24px", fontSize: "10px", padding: "0 8px" }}>ลบ</button>
-                            </div>
-                          </div>
-                        );
-                      })
+                          );
+                        })}
+                      </>
                     )}
                   </div>
                 </div>

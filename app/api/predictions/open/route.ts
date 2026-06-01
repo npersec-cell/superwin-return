@@ -34,6 +34,7 @@ export async function GET() {
       .eq("status", "open")
       .gt("closes_at", now)
       .order("closes_at", { ascending: true })
+      .order("question", { ascending: true })
       .returns<PredictionRow[]>();
 
     if (predictionError) {
