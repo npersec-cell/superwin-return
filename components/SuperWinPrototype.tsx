@@ -1256,9 +1256,11 @@ export default function SuperWinPrototype() {
 }
 
 function renderHistoryDetail(detail: string) {
-  return detail.split(" · ").map((part) => (
-    <span key={part}>{part}</span>
-  ));
+  return detail.split(" · ")
+    .filter((part) => !part.toLowerCase().includes("approx return"))
+    .map((part) => (
+      <span key={part}>{part}</span>
+    ));
 }
 
 function HistoryModal({
