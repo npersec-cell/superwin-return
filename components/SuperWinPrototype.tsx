@@ -453,6 +453,12 @@ export default function SuperWinPrototype() {
     loadOpenPredictions().catch(() => undefined);
     loadSettings().catch(() => undefined);
     loadLeaderboard().catch(() => undefined);
+
+    const interval = setInterval(() => {
+      loadOpenPredictions().catch(() => undefined);
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {

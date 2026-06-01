@@ -16,6 +16,14 @@ type PredictionRow = {
   tournament_name: string;
   question: string;
   closes_at: string;
+  fee_rate: number;
+};
+
+type EntryRow = {
+  option_id: string;
+  prediction_id: string;
+  amount: number;
+  status: string;
 };
 
 function estimateReturn(sortOrder: number) {
@@ -30,7 +38,7 @@ export async function GET() {
 
     const { data: predictionRows, error: predictionError } = await supabase
       .from("predictions")
-      .select("id, tournament_name, question, closes_at")
+      .select("id, tournament_name, question, closes_at, fee_rate")
       .eq("status", "open")
       .gt("closes_at", now)
       .order("closes_at", { ascending: true })
@@ -62,6 +70,35 @@ export async function GET() {
       return acc;
     }, {});
 
+    const { data: entryRows } = ids.length
+      ? await supabase
+          .from("prediction_entries")
+          .select("option_id, prediction_id, amount, status")
+          .in("prediction_id", ids)
+          .in("status", ["running", "won", "lost"])
+          .returns<EntryRow[]>()
+      : { data: [] as EntryRow[] };
+
+    const poolByOption = (entryRows || []).reduce<Record<string, number>>((acc, entry) => {
+      acc[entry.option_id] = (acc[entry.option_id] || 0) + entry.amount;
+      return acc;
+    }, {});
+
+    const poolByPrediction = (entryRows || []).reduce<Record<string, number>>((acc, entry) => {
+      acc[entry.prediction_id] = (acc[entry.prediction_id] || 0) + entry.amount;
+      return acc;
+    }, {});
+
+    function computeReturn(predictionId: string, optionId: string, feeRate: number, sortOrder: number): number {
+      const optionPool = poolByOption[optionId] || 0;
+      const totalPool = poolByPrediction[predictionId] || 0;
+      if (optionPool <= 0 || totalPool <= 0) {
+        return estimateReturn(sortOrder);
+      }
+      const raw = (totalPool / optionPool) * (1 - feeRate) * 100;
+      return Math.round(raw);
+    }
+
     const predictions: PredictionWithOptionsDto[] = (predictionRows || []).map((prediction) => ({
       id: prediction.id,
       tournamentName: prediction.tournament_name,
@@ -71,7 +108,7 @@ export async function GET() {
         id: option.id,
         label: option.label,
         sortOrder: option.sort_order,
-        estimatedReturnPercent: estimateReturn(option.sort_order)
+        estimatedReturnPercent: computeReturn(prediction.id, option.id, prediction.fee_rate || 0, option.sort_order)
       }))
     }));
 
