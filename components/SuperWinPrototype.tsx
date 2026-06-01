@@ -1278,8 +1278,12 @@ function HistoryModal({
   setHistoryPage: (value: number) => void;
   onClose: () => void;
 }) {
+  const modalRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    requestAnimationFrame(() => modalRef.current?.classList.add("open"));
+  }, []);
   return (
-    <section className="modal open" aria-label="Coin history" onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <section ref={modalRef} className="modal" aria-label="Coin history" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card">
         <div className="modal-head"><h3>Coin History</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body">
@@ -1307,8 +1311,12 @@ function HistoryModal({
 }
 
 function RunningModal({ running, onClose }: { running: RunningPrediction[]; onClose: () => void }) {
+  const modalRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    requestAnimationFrame(() => modalRef.current?.classList.add("open"));
+  }, []);
   return (
-    <section className="modal open" aria-label="Running predictions" onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <section ref={modalRef} className="modal" aria-label="Running predictions" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card">
         <div className="modal-head"><h3>Running Predictions</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body">
@@ -1339,8 +1347,12 @@ function RunningModal({ running, onClose }: { running: RunningPrediction[]; onCl
 }
 
 function InfoModal({ settings, onClose }: { settings: SiteSettings; onClose: () => void }) {
+  const modalRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    requestAnimationFrame(() => modalRef.current?.classList.add("open"));
+  }, []);
   return (
-    <section className="modal open" aria-label="Game information" onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <section ref={modalRef} className="modal" aria-label="Game information" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card">
         <div className="modal-head"><h3>Info</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body">
@@ -1362,6 +1374,10 @@ function ClaimModal({
   onClaimSubmitted: (updatedClaim: WinnerClaim) => void;
   onClose: () => void;
 }) {
+  const modalRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    requestAnimationFrame(() => modalRef.current?.classList.add("open"));
+  }, []);
   const [receiverName, setReceiverName] = useState(claim.receiverName || "");
   const [phone, setPhone] = useState(claim.phone || "");
   const [address, setAddress] = useState(claim.address || "");
@@ -1401,7 +1417,7 @@ function ClaimModal({
   }
 
   return (
-    <section className="modal open" aria-label="Claim Reward" onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <section ref={modalRef} className="modal" aria-label="Claim Reward" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card" style={{ maxWidth: "520px" }}>
         <div className="modal-head">
           <h3>Claim Reward · {claim.month}</h3>
@@ -1477,8 +1493,12 @@ function ProfileModal({
   profile: UserProfileStats;
   onClose: () => void;
 }) {
+  const modalRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    requestAnimationFrame(() => modalRef.current?.classList.add("open"));
+  }, []);
   return (
-    <section className="modal open" aria-label="User Profile" onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <section ref={modalRef} className="modal" aria-label="User Profile" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card" style={{ maxWidth: "480px" }}>
         <div className="modal-head">
           <h3>🎮 {profile.name}'s Profile</h3>
