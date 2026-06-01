@@ -271,11 +271,21 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [runningPage, setRunningPage] = useState(1);
   const [runningTournamentFilter, setRunningTournamentFilter] = useState("");
   const runningPageSize = 5;
-  const runningTotalPages = Math.max(1, Math.ceil(runningPredictions.length / runningPageSize));
+
+  const filteredRunningPredictions = useMemo(() => {
+    if (!runningTournamentFilter) return [];
+    return sortedRunningPredictions.filter(p => p.tournamentName === runningTournamentFilter);
+  }, [sortedRunningPredictions, runningTournamentFilter]);
+
+  const runningTotalPages = Math.max(1, Math.ceil(filteredRunningPredictions.length / runningPageSize));
   const currentRunning = useMemo(() => {
     const start = (runningPage - 1) * runningPageSize;
-    return sortedRunningPredictions.slice(start, start + runningPageSize);
-  }, [sortedRunningPredictions, runningPage]);
+    return filteredRunningPredictions.slice(start, start + runningPageSize);
+  }, [filteredRunningPredictions, runningPage]);
+
+  useEffect(() => {
+    setRunningPage(1);
+  }, [runningTournamentFilter]);
 
   // การแบ่งหน้าสำหรับคำถามที่หมดเวลา รอคำตอบ
   const [pendingPage, setPendingPage] = useState(1);
@@ -1282,12 +1292,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <h3>คำถามที่กำลังรัน</h3>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    {runningTournamentFilter && currentRunning.filter(p => p.tournamentName === runningTournamentFilter).length > 1 && (
+                    {runningTournamentFilter && filteredRunningPredictions.length > 1 && (
                       <button className="button gold" type="button" disabled={loading} onClick={savePredictionOrder} style={{ height: "24px", fontSize: "10px", padding: "0 10px" }}>
                         💾 บันทึกลำดับคำถาม
                       </button>
                     )}
-                    <span className="micro">{runningTournamentFilter ? `${currentRunning.filter(p => p.tournamentName === runningTournamentFilter).length} คำถาม` : `${runningPredictions.length} รายการ`}</span>
+                    <span className="micro">{runningTournamentFilter ? `${filteredRunningPredictions.length} คำถาม` : `${runningPredictions.length} รายการ`}</span>
                   </div>
                 </div>
                 <div className="admin-help" style={{ padding: "8px 0", margin: "4px 0" }}>
@@ -1317,7 +1327,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   {!runningTournamentFilter ? (
                     <div className="question"><strong>กรุณาเลือกทัวร์นาเมนต์</strong><span className="meta">เลือกทัวร์นาเมนต์จาก dropdown ด้านบนเพื่อดูและจัดการคำถาม</span></div>
                   ) : (
-                    currentRunning.filter(p => p.tournamentName === runningTournamentFilter).length > 0 ? currentRunning.filter(p => p.tournamentName === runningTournamentFilter).map((item) => {
+                    currentRunning.length > 0 ? currentRunning.map((item) => {
                     const globalIdx = localOrder.indexOf(item.id);
                     return (
                       <div key={item.id} className="question running" style={{ padding: "12px", display: "grid", gridTemplateColumns: "auto 1fr", gap: "12px", alignItems: "center" }}>
@@ -1438,7 +1448,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   ) : <div className="question"><strong>ไม่มีคำถามในทัวร์นาเมนต์นี้</strong></div>
                 )}
                 </div>
-                {runningTotalPages > 1 && (
+                {runningTournamentFilter && runningTotalPages > 1 && (
                   <div className="history-footer" style={{ marginTop: "16px" }}>
                     <button className="button" disabled={runningPage <= 1} onClick={() => setRunningPage(runningPage - 1)}>ก่อนหน้า</button>
                     <span className="micro">หน้า {runningPage} / {runningTotalPages}</span>
