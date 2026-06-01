@@ -269,6 +269,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   // การแบ่งหน้าสำหรับคำถามที่กำลังรัน
   const [runningPage, setRunningPage] = useState(1);
+  const [runningTournamentFilter, setRunningTournamentFilter] = useState("");
   const runningPageSize = 5;
   const runningTotalPages = Math.max(1, Math.ceil(runningPredictions.length / runningPageSize));
   const currentRunning = useMemo(() => {
@@ -1267,12 +1268,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <h3>คำถามที่กำลังรัน</h3>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    {runningPredictions.length > 1 && (
+                    {runningTournamentFilter && currentRunning.filter(p => p.tournamentName === runningTournamentFilter).length > 1 && (
                       <button className="button gold" type="button" disabled={loading} onClick={savePredictionOrder} style={{ height: "24px", fontSize: "10px", padding: "0 10px" }}>
                         💾 บันทึกลำดับคำถาม
                       </button>
                     )}
-                    <span className="micro">{runningPredictions.length} รายการ</span>
+                    <span className="micro">{runningTournamentFilter ? `${currentRunning.filter(p => p.tournamentName === runningTournamentFilter).length} คำถาม` : `${runningPredictions.length} รายการ`}</span>
                   </div>
                 </div>
                 <div className="admin-help" style={{ padding: "8px 0", margin: "4px 0" }}>
@@ -1280,8 +1281,29 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   <span>สรุปผล = เลือกคำตอบที่ชนะและจ่ายผลเหรียญ</span>
                   <span>ยกเลิก + คืนเหรียญ = ยกเลิกคำถามและคืนเหรียญเต็มจำนวน</span>
                 </div>
+
+                {/* Tournament Selector */}
+                <div style={{ display: "grid", gap: "4px", marginBottom: "12px" }}>
+                  <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>เลือกทัวร์นาเมนต์เพื่อจัดการคำถาม</span>
+                  <select 
+                    className="button" 
+                    value={runningTournamentFilter} 
+                    onChange={(e) => setRunningTournamentFilter(e.target.value)} 
+                    style={{ width: "100%", height: "38px" }}
+                  >
+                    <option value="">-- เลือกทัวร์นาเมนต์ --</option>
+                    {settings.tournaments?.map((t) => {
+                      const name = typeof t === "string" ? t : t.name;
+                      return <option key={name} value={name}>{name}</option>;
+                    })}
+                  </select>
+                </div>
+                
                 <div className="leaderboard-body" style={{ gap: "10px", padding: "12px 0 0 0" }}>
-                  {currentRunning.length ? currentRunning.map((item) => {
+                  {!runningTournamentFilter ? (
+                    <div className="question"><strong>กรุณาเลือกทัวร์นาเมนต์</strong><span className="meta">เลือกทัวร์นาเมนต์จาก dropdown ด้านบนเพื่อดูและจัดการคำถาม</span></div>
+                  ) : (
+                    currentRunning.filter(p => p.tournamentName === runningTournamentFilter).length > 0 ? currentRunning.filter(p => p.tournamentName === runningTournamentFilter).map((item) => {
                     const globalIdx = localOrder.indexOf(item.id);
                     return (
                       <div key={item.id} className="question running" style={{ padding: "12px", display: "grid", gridTemplateColumns: "auto 1fr", gap: "12px", alignItems: "center" }}>
@@ -1398,7 +1420,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         </div>
                       </div>
                     );
-                  }) : <div className="question"><strong>ไม่มีคำถามที่กำลังรันในขณะนี้</strong><span className="meta">ไปที่แท็บ "สร้างคำถามใหม่" เพื่อเปิดตลาดใหม่</span></div>}
+                    }
+                  ) : <div className="question"><strong>ไม่มีคำถามในทัวร์นาเมนต์นี้</strong></div>
+                )}
                 </div>
                 {runningTotalPages > 1 && (
                   <div className="history-footer" style={{ marginTop: "16px" }}>
