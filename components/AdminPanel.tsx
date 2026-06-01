@@ -202,7 +202,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [optionInput, setOptionInput] = useState("");
   const [adminEmailInput, setAdminEmailInput] = useState("");
   const [newTournamentInput, setNewTournamentInput] = useState("");
-  const [tournamentOrder, setTournamentOrder] = useState<string[]>([]);
   const [newTournamentLogoUrl, setNewTournamentLogoUrl] = useState("");
   const [showQuickTournament, setShowQuickTournament] = useState(false);
   const [quickTournamentInput, setQuickTournamentInput] = useState("");
@@ -1689,42 +1688,27 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     {!(settings.tournaments && settings.tournaments.length > 0) ? (
                       <div className="reward-line"><span>ไม่มีรายชื่อทัวร์นาเมนต์ในขณะนี้</span></div>
                     ) : (
-                      (settings.tournaments || []).sort((a, b) => {
-                        const nameA = typeof a === "string" ? a : a.name;
-                        const nameB = typeof b === "string" ? b : b.name;
-                        const idxA = tournamentOrder.indexOf(nameA);
-                        const idxB = tournamentOrder.indexOf(nameB);
-                        if (idxA === -1 && idxB === -1) return 0;
-                        if (idxA === -1) return 1;
-                        if (idxB === -1) return -1;
-                        return idxA - idxB;
-                      }).map((t) => {
+                      (settings.tournaments || []).map((t, idx) => {
                         const tName = typeof t === "string" ? t : t.name;
-                        const tIdx = tournamentOrder.indexOf(tName);
                         const tLogo = typeof t === "string" ? "" : t.logoUrl;
                         return (
                           <div key={tName} className="reward-line" style={{ padding: "8px 0", borderBottom: "1px solid var(--hairline-soft)", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "8px", alignItems: "center" }}>
-                            {/* Drag Handles */}
+                            {/* Move up/down buttons */}
                             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-                              <span style={{ fontSize: "10px", color: "var(--muted)", cursor: "grab" }}>☰</span>
-                              <div style={{ display: "flex", gap: "1px" }}>
-                                <button className="button" type="button" disabled={tIdx <= 0} onClick={() => {
-                                  const newOrder = [...tournamentOrder];
-                                  const currentIdx = newOrder.indexOf(tName);
-                                  if (currentIdx > 0) {
-                                    [newOrder[currentIdx - 1], newOrder[currentIdx]] = [newOrder[currentIdx], newOrder[currentIdx - 1]];
-                                    setTournamentOrder(newOrder);
-                                  }
-                                }} style={{ width: "16px", height: "16px", padding: 0, fontSize: "6px", background: "transparent" }}>▲</button>
-                                <button className="button" type="button" disabled={tIdx === -1 || tIdx >= tournamentOrder.length - 1} onClick={() => {
-                                  const newOrder = [...tournamentOrder];
-                                  const currentIdx = newOrder.indexOf(tName);
-                                  if (currentIdx >= 0 && currentIdx < newOrder.length - 1) {
-                                    [newOrder[currentIdx], newOrder[currentIdx + 1]] = [newOrder[currentIdx + 1], newOrder[currentIdx]];
-                                    setTournamentOrder(newOrder);
-                                  }
-                                }} style={{ width: "16px", height: "16px", padding: 0, fontSize: "6px", background: "transparent" }}>▼</button>
-                              </div>
+                              <button className="button" type="button" disabled={idx <= 0} onClick={() => {
+                                const arr = [...(settings.tournaments || [])];
+                                if (idx > 0) {
+                                  [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+                                  setSettings(current => ({ ...current, tournaments: arr }));
+                                }
+                              }} style={{ width: "20px", height: "18px", padding: 0, fontSize: "8px", background: "transparent" }}>▲</button>
+                              <button className="button" type="button" disabled={idx >= (settings.tournaments || []).length - 1} onClick={() => {
+                                const arr = [...(settings.tournaments || [])];
+                                if (idx >= 0 && idx < arr.length - 1) {
+                                  [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+                                  setSettings(current => ({ ...current, tournaments: arr }));
+                                }
+                              }} style={{ width: "20px", height: "18px", padding: 0, fontSize: "8px", background: "transparent" }}>▼</button>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                               {tLogo ? (
@@ -1752,20 +1736,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         );
                       })
                     )}
-                    {tournamentOrder.length > 1 && (
+                    {(settings.tournaments || []).length > 1 && (
                       <button className="button gold" type="button" disabled={loading} onClick={async () => {
                         try {
                           setLoading(true);
                           const res = await fetch("/api/admin/settings", {
                             method: "PATCH",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ 
-                              tournaments: settings.tournaments?.map(t => {
-                                const name = typeof t === "string" ? t : t.name;
-                                const idx = tournamentOrder.indexOf(name);
-                                return typeof t === "string" ? t : { ...t, sortOrder: idx };
-                              })
-                            })
+                            body: JSON.stringify({ tournaments: settings.tournaments })
                           });
                           const payload = await res.json();
                           if (payload.ok) {
@@ -1777,7 +1755,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         } finally {
                           setLoading(false);
                         }
-                      }} style={{ height: "30px", fontSize: "10px", padding: "0 12px", marginTop: "8px" }}>
+                      }} style={{ height: "34px", fontSize: "12px", padding: "0 16px", marginTop: "12px", width: "100%" }}>
                         💾 บันทึกลำดับทัวร์นาเมนต์
                       </button>
                     )}

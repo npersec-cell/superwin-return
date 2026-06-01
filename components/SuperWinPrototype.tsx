@@ -596,7 +596,15 @@ export default function SuperWinPrototype() {
       groups[question.tournament].push(question);
       return groups;
     }, {})
-  );
+  ).sort(([aName], [bName]) => {
+    const tournamentNames = (settings.tournaments || []).map(t => typeof t === "string" ? t : t.name);
+    const idxA = tournamentNames.indexOf(aName);
+    const idxB = tournamentNames.indexOf(bName);
+    if (idxA === -1 && idxB === -1) return 0;
+    if (idxA === -1) return 1;
+    if (idxB === -1) return -1;
+    return idxA - idxB;
+  });
 
   const filteredHistory = historyFilter === "All" ? history : history.filter((item) => item.action === historyFilter);
   const demoHistoryTotalPages = Math.max(1, Math.ceil(filteredHistory.length / 10));
