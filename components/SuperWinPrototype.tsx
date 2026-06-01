@@ -141,6 +141,7 @@ type UserProfileStats = {
   totalCoinsWon: number;
   badge: string;
   badgeDesc: string;
+  loading?: boolean;
   history: Array<{
     id: string;
     tournament: string;
@@ -666,16 +667,34 @@ export default function SuperWinPrototype() {
     }
   }
 
-  async function handleOpenProfile(userId: string) {
+  async function handleOpenProfile(userId: string, userName: string) {
+    // show modal immediately with loading state
+    setSelectedProfile({
+      name: userName,
+      seasonProfit: 0,
+      winRate: 0,
+      wonCount: 0,
+      lostCount: 0,
+      totalSettled: 0,
+      totalCoinsBet: 0,
+      totalCoinsWon: 0,
+      badge: "",
+      badgeDesc: "",
+      loading: true,
+      history: [],
+    });
     setProfileLoading(true);
     try {
       const response = await fetch(`/api/leaderboard/profile?userId=${userId}`);
       const payload = await response.json();
       if (response.ok && payload.ok && payload.data) {
-        setSelectedProfile(payload.data);
+        setSelectedProfile({ ...payload.data, loading: false });
+      } else {
+        // if fetch fails, remove loading flag
+        setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
       }
     } catch {
-      // ignore
+      setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
     } finally {
       setProfileLoading(false);
     }
@@ -1112,7 +1131,7 @@ export default function SuperWinPrototype() {
                     <div 
                       key={row.name} 
                       className="rank" 
-                      onClick={() => isClickable && handleOpenProfile(targetId)}
+                      onClick={() => isClickable && handleOpenProfile(targetId, row.name)}
                       style={{ cursor: isClickable ? "pointer" : "default" }}
                       title={isClickable ? `Click to view ${row.name}'s stats` : undefined}
                     >
@@ -1465,85 +1484,93 @@ function ProfileModal({
           <h3>🎮 {profile.name}'s Profile</h3>
           <button className="button" onClick={onClose}>Close</button>
         </div>
-        <div className="modal-body" style={{ gap: "12px" }}>
-          {/* Quick Stats Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-            <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-              <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>WIN RATE</span>
-              <strong style={{ display: "block", fontSize: "18px", color: "var(--yellow)", marginTop: "4px" }}>
-                {profile.winRate}%
-              </strong>
-              <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                {profile.wonCount} won · {profile.lostCount} lost
-              </span>
+        <div className="modal-body" style={{ gap: "12px", minHeight: "180px" }}>
+          {profile.loading ? (
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "160px" }}>
+              <div className="spinner" />
             </div>
-            <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-              <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>SEASON PROFIT</span>
-              <strong style={{ display: "block", fontSize: "18px", color: profile.seasonProfit >= 0 ? "var(--green)" : "var(--red)", marginTop: "4px" }}>
-                {profile.seasonProfit >= 0 ? "+" : ""}{profile.seasonProfit}
-              </strong>
-              <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                Total settled: {profile.totalSettled}
-              </span>
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-            <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-              <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>TOTAL COINS BET</span>
-              <strong style={{ display: "block", fontSize: "14px", color: "var(--text-strong)", marginTop: "4px" }}>
-                {profile.totalCoinsBet}
-              </strong>
-            </div>
-            <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-              <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>TOTAL COINS WON</span>
-              <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "4px" }}>
-                {profile.totalCoinsWon}
-              </strong>
-            </div>
-          </div>
-
-          {/* Last 5 Settled Predictions */}
-          <div style={{ display: "grid", gap: "6px" }}>
-            <h4 className="meta" style={{ color: "var(--yellow)", fontSize: "11px", margin: "4px 0" }}>⚡ Last 5 Settled Predictions</h4>
-            {!profile.history || profile.history.length === 0 ? (
-              <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)", fontSize: "11px" }}>
-                No settled predictions found for this season.
+          ) : (
+            <>
+              {/* Quick Stats Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>WIN RATE</span>
+                  <strong style={{ display: "block", fontSize: "18px", color: "var(--yellow)", marginTop: "4px" }}>
+                    {profile.winRate}%
+                  </strong>
+                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                    {profile.wonCount} won · {profile.lostCount} lost
+                  </span>
+                </div>
+                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>SEASON PROFIT</span>
+                  <strong style={{ display: "block", fontSize: "18px", color: profile.seasonProfit >= 0 ? "var(--green)" : "var(--red)", marginTop: "4px" }}>
+                    {profile.seasonProfit >= 0 ? "+" : ""}{profile.seasonProfit}
+                  </strong>
+                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                    Total settled: {profile.totalSettled}
+                  </span>
+                </div>
               </div>
-            ) : (
-              <div style={{ display: "grid", gap: "6px", maxHeight: "180px", overflowY: "auto" }}>
-                {profile.history.map((h) => (
-                  <div key={h.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)", gap: "8px" }}>
-                    <div style={{ display: "grid", gap: "2px", minWidth: 0 }}>
-                      <strong style={{ fontSize: "11px", color: "var(--text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {h.question}
-                      </strong>
-                      <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {h.tournament} · Picked: <strong style={{ color: "var(--text-strong)" }}>{h.pick}</strong>
-                      </span>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <span className="pill" style={{ 
-                        fontSize: "9px", 
-                        height: "18px", 
-                        padding: "0 6px", 
-                        background: h.status === "won" ? "rgba(14, 203, 129, 0.12)" : "rgba(240, 84, 84, 0.12)", 
-                        color: h.status === "won" ? "var(--green)" : "var(--red)",
-                        borderColor: h.status === "won" ? "rgba(14, 203, 129, 0.4)" : "rgba(240, 84, 84, 0.4)",
-                        borderRadius: "4px",
-                        fontWeight: "bold"
-                      }}>
-                        {h.status === "won" ? `+${h.payout}` : `-${h.amount}`}
-                      </span>
-                      <span className="meta" style={{ display: "block", fontSize: "8px", marginTop: "2px" }}>
-                        {h.date}
-                      </span>
-                    </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>TOTAL COINS BET</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--text-strong)", marginTop: "4px" }}>
+                    {profile.totalCoinsBet}
+                  </strong>
+                </div>
+                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>TOTAL COINS WON</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "4px" }}>
+                    {profile.totalCoinsWon}
+                  </strong>
+                </div>
+              </div>
+
+              {/* Last 5 Settled Predictions */}
+              <div style={{ display: "grid", gap: "6px" }}>
+                <h4 className="meta" style={{ color: "var(--yellow)", fontSize: "11px", margin: "4px 0" }}>⚡ Last 5 Settled Predictions</h4>
+                {!profile.history || profile.history.length === 0 ? (
+                  <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)", fontSize: "11px" }}>
+                    No settled predictions found for this season.
                   </div>
-                ))}
+                ) : (
+                  <div style={{ display: "grid", gap: "6px", maxHeight: "180px", overflowY: "auto" }}>
+                    {profile.history.map((h) => (
+                      <div key={h.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)", gap: "8px" }}>
+                        <div style={{ display: "grid", gap: "2px", minWidth: 0 }}>
+                          <strong style={{ fontSize: "11px", color: "var(--text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {h.question}
+                          </strong>
+                          <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {h.tournament} · Picked: <strong style={{ color: "var(--text-strong)" }}>{h.pick}</strong>
+                          </span>
+                        </div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <span className="pill" style={{ 
+                            fontSize: "9px", 
+                            height: "18px", 
+                            padding: "0 6px", 
+                            background: h.status === "won" ? "rgba(14, 203, 129, 0.12)" : "rgba(240, 84, 84, 0.12)", 
+                            color: h.status === "won" ? "var(--green)" : "var(--red)",
+                            borderColor: h.status === "won" ? "rgba(14, 203, 129, 0.4)" : "rgba(240, 84, 84, 0.4)",
+                            borderRadius: "4px",
+                            fontWeight: "bold"
+                          }}>
+                            {h.status === "won" ? `+${h.payout}` : `-${h.amount}`}
+                          </span>
+                          <span className="meta" style={{ display: "block", fontSize: "8px", marginTop: "2px" }}>
+                            {h.date}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
     </section>
