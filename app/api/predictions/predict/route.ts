@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
       throw new Error(entryError.message || "Failed to create prediction entry");
     }
 
-    const detail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Pick: ${option.label} · Approx return: ${estimatedReturnPercent}% · Status: Running`;
+    const detail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Pick: ${option.label} · Status: Running`;
 
     const { error: ledgerError } = await supabase
       .from("coin_ledger")

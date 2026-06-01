@@ -306,10 +306,10 @@ const defaultSettings: SiteSettings = {
 
 const defaultHistory: HistoryItem[] = [
   { month: "May 2026", date: "26 May", time: "16:02", action: "Claim", detail: "Hourly reward", amount: 100 },
-  { month: "May 2026", date: "26 May", time: "16:10", action: "Predict", detail: "Tournament: Super League · Question: Which team will win the championship? · Pick: Alpha Esports · Approx return: 185% · Status: Running", amount: -500 },
-  { month: "May 2026", date: "26 May", time: "16:38", action: "Payout", detail: "Tournament: Super League · Question: Which team will win the championship? · Pick: Alpha Esports · Result: Won · Approx return: 185%", amount: 890 },
+  { month: "May 2026", date: "26 May", time: "16:10", action: "Predict", detail: "Tournament: Super League · Question: Which team will win the championship? · Pick: Alpha Esports · Status: Running", amount: -500 },
+  { month: "May 2026", date: "26 May", time: "16:38", action: "Payout", detail: "Tournament: Super League · Question: Which team will win the championship? · Pick: Alpha Esports · Result: Won · Return: 1.78x", amount: 890 },
   { month: "April 2026", date: "22 Apr", time: "20:14", action: "Claim", detail: "Hourly reward", amount: 100 },
-  { month: "April 2026", date: "22 Apr", time: "20:21", action: "Predict", detail: "Tournament: Global Open · Question: Which region will finish first? · Pick: SEA · Approx return: 210% · Status: Running", amount: -600 }
+  { month: "April 2026", date: "22 Apr", time: "20:21", action: "Predict", detail: "Tournament: Global Open · Question: Which region will finish first? · Pick: SEA · Status: Running", amount: -600 }
 ];
 
 type LeaderboardRow = {
@@ -918,7 +918,7 @@ export default function SuperWinPrototype() {
         date: currentDateLabel(),
         time: currentTimeLabel(),
         action: "Predict" as const,
-        detail: `Tournament: ${question.tournament} · Question: ${question.title} · Pick: ${answer.name} · Approx return: ${answer.returns}% · Status: Running`,
+        detail: `Tournament: ${question.tournament} · Question: ${question.title} · Pick: ${answer.name} · Status: Running`,
         amount: -amount
       },
       ...current

@@ -138,7 +138,8 @@ export async function POST(request: NextRequest, context: Params) {
 
       if (entryUpdateError) throw new Error(entryUpdateError.message);
 
-      const detail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Winning: ${winningOption.label} · Result: ${isWinner ? "Won" : "Lost"} · Payout: ${payout} · Profit: ${profitDelta}`;
+      const returnMultiplier = isWinner && entry.amount > 0 ? (Math.round((payout / entry.amount) * 100) / 100).toFixed(2) : null;
+      const detail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Winning: ${winningOption.label} · Result: ${isWinner ? "Won" : "Lost"}${isWinner && returnMultiplier ? ` · Return: ${returnMultiplier}x` : ""} · Payout: ${payout} · Profit: ${profitDelta}`;
 
       const { error: ledgerError } = await supabase
         .from("coin_ledger")
