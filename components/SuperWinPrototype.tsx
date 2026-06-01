@@ -1280,7 +1280,7 @@ function HistoryModal({
 }) {
   const modalRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    requestAnimationFrame(() => modalRef.current?.classList.add("open"));
+    requestAnimationFrame(() => requestAnimationFrame(() => modalRef.current?.classList.add("open")));
   }, []);
   return (
     <section ref={modalRef} className="modal" aria-label="Coin history" onClick={(event) => event.target === event.currentTarget && onClose()}>
@@ -1313,7 +1313,7 @@ function HistoryModal({
 function RunningModal({ running, onClose }: { running: RunningPrediction[]; onClose: () => void }) {
   const modalRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    requestAnimationFrame(() => modalRef.current?.classList.add("open"));
+    requestAnimationFrame(() => requestAnimationFrame(() => modalRef.current?.classList.add("open")));
   }, []);
   return (
     <section ref={modalRef} className="modal" aria-label="Running predictions" onClick={(event) => event.target === event.currentTarget && onClose()}>
@@ -1349,7 +1349,7 @@ function RunningModal({ running, onClose }: { running: RunningPrediction[]; onCl
 function InfoModal({ settings, onClose }: { settings: SiteSettings; onClose: () => void }) {
   const modalRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    requestAnimationFrame(() => modalRef.current?.classList.add("open"));
+    requestAnimationFrame(() => requestAnimationFrame(() => modalRef.current?.classList.add("open")));
   }, []);
   return (
     <section ref={modalRef} className="modal" aria-label="Game information" onClick={(event) => event.target === event.currentTarget && onClose()}>
@@ -1376,7 +1376,7 @@ function ClaimModal({
 }) {
   const modalRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    requestAnimationFrame(() => modalRef.current?.classList.add("open"));
+    requestAnimationFrame(() => requestAnimationFrame(() => modalRef.current?.classList.add("open")));
   }, []);
   const [receiverName, setReceiverName] = useState(claim.receiverName || "");
   const [phone, setPhone] = useState(claim.phone || "");
@@ -1495,7 +1495,7 @@ function ProfileModal({
 }) {
   const modalRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    requestAnimationFrame(() => modalRef.current?.classList.add("open"));
+    requestAnimationFrame(() => requestAnimationFrame(() => modalRef.current?.classList.add("open")));
   }, []);
   return (
     <section ref={modalRef} className="modal" aria-label="User Profile" onClick={(event) => event.target === event.currentTarget && onClose()}>
