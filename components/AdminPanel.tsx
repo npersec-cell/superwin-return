@@ -1379,23 +1379,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
           {activeTab === "settings" && (
             <section className="panel" style={{ width: "100%", maxWidth: "600px", display: "grid", gap: "16px", margin: "0 auto" }}>
-              
-              {/* การตั้งค่าทั่วไป (ไม่มีซีซั่น — เล่นตลอดไป) */}
-              <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
-                  <h2>⚙️ ตั้งค่าทั่วไป</h2>
-                </div>
-                <div className="modal-body" style={{ padding: "12px 0 0 0", display: "grid", gap: "10px" }}>
-                  <span className="meta" style={{ textTransform: "none", color: "var(--muted)", lineHeight: "1.4" }}>
-                    *ระบบเล่นตลอดไป (All time) ไม่มีซีซั่น ไม่ต้องตั้งค่าช่วงเวลา ไม่ต้องรีเซ็ตคะแนน
-                  </span>
-                  <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ชื่อระบบรางวัล/Shop</span>
-                    <input value={settings.reward.name} onChange={(event) => setSettings((current) => ({ ...current, reward: { ...current.reward, name: event.target.value } }))} placeholder='เช่น Shop' style={{ height: "34px" }} />
-                  </div>
-                  <button className="button primary" disabled={loading} type="button" onClick={saveSettings} style={{ marginTop: "4px", width: "100%", height: "34px", fontWeight: "bold" }}>💾 บันทึกการตั้งค่า</button>
-                </div>
-              </div>
 
               {/* ส่วนพิเศษ: ตั้งค่าข้อความประกาศวิ่งหน้าแรก (Standalone Announcement Ticker Card) */}
               <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
