@@ -33,23 +33,34 @@ export async function GET(request: NextRequest) {
     const user = await requireUser();
     const searchParams = request.nextUrl.searchParams;
     const filter = searchParams.get("filter") || "All";
+    const pageParam = searchParams.get("page");
+    const page = Math.max(1, pageParam ? parseInt(pageParam, 10) : 1);
+    const pageSizeParam = searchParams.get("pageSize");
+    const pageSize = Math.max(1, pageSizeParam ? parseInt(pageSizeParam, 10) : 7);
 
     const supabase = createSupabaseAdminClient();
-    let query = supabase
+    let baseQuery = supabase
       .from("coin_ledger")
-      .select("id, type, amount, balance_after, detail, created_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .select("id, type, amount, balance_after, detail, created_at", { count: "exact" })
+      .eq("user_id", user.id);
 
     if (filter !== "All") {
-      query = query.eq("type", filter.toLowerCase());
+      baseQuery = baseQuery.eq("type", filter.toLowerCase());
     }
 
-    const { data, error } = await query.returns<LedgerRow[]>();
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data, error, count } = await baseQuery
+      .order("created_at", { ascending: false })
+      .range(from, to);
 
     if (error) {
       throw new Error(error.message || "Failed to load history");
     }
+
+    const totalRows = count || 0;
+    const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
 
     const rows = (data || []).map((row) => {
       const parts = formatDateParts(row.created_at);
@@ -65,7 +76,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      data: { rows }
+      data: { rows, page, totalPages }
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load history";

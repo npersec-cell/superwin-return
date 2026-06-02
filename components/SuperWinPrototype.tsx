@@ -712,16 +712,18 @@ export default function SuperWinPrototype() {
     })));
   }
 
-  async function loadHistory(filter = historyFilter) {
+  async function loadHistory(filter = historyFilter, page = 1) {
     if (!isSignedIn) return;
     setHistoryLoading(true);
     try {
-      const response = await fetch(`/api/history?filter=${encodeURIComponent(filter)}`);
+      const response = await fetch(`/api/history?filter=${encodeURIComponent(filter)}&page=${page}&pageSize=${historyPageSize}`);
       const payload = (await response.json()) as ApiHistoryResponse;
       if (!response.ok || !payload.ok || !payload.data) {
         throw new Error(payload.error || "Failed to load history");
       }
       setHistory(payload.data.rows);
+      setHistoryPage(payload.data.page || 1);
+      setHistoryTotalPages(payload.data.totalPages || 1);
     } catch {
       setAccountStatus("error");
     } finally {
@@ -1119,7 +1121,7 @@ export default function SuperWinPrototype() {
 
       {openModal === "running" && <RunningModal running={running} runningPage={runningPage} runningPageSize={runningPageSize} setRunningPage={(page) => { setRunningPage(page); }} onClose={() => setOpenModal(null)} />}
       {openModal === "info" && <InfoModal settings={settings} onClose={() => setOpenModal(null)} />}
-      {openModal === "history" && <HistoryModal history={history} historyFilter={historyFilter} historyLoading={historyLoading} setHistoryFilter={(value) => { setHistoryFilter(value); loadHistory(value); }} onClose={() => setOpenModal(null)} />}
+      {openModal === "history" && <HistoryModal history={history} historyFilter={historyFilter} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} historyTotalPages={historyTotalPages} setHistoryPage={(page) => { setHistoryPage(page); }} setHistoryFilter={(value) => { setHistoryFilter(value); loadHistory(value, 1); }} onClose={() => setOpenModal(null)} />}
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
       )}
@@ -1300,12 +1302,20 @@ function HistoryModal({
   history,
   historyFilter,
   historyLoading,
+  historyPage,
+  historyPageSize,
+  historyTotalPages,
+  setHistoryPage,
   setHistoryFilter,
   onClose
 }: {
   history: HistoryItem[];
   historyFilter: "All" | HistoryItem["action"];
   historyLoading: boolean;
+  historyPage: number;
+  historyPageSize: number;
+  historyTotalPages: number;
+  setHistoryPage: (page: number) => void;
   setHistoryFilter: (value: "All" | HistoryItem["action"]) => void;
   onClose: () => void;
 }) {
@@ -1313,7 +1323,10 @@ function HistoryModal({
   useEffect(() => {
     requestAnimationFrame(() => requestAnimationFrame(() => modalRef.current?.classList.add("open")));
   }, []);
-  const rows = historyFilter === "All" ? history : history.filter((item) => item.action === historyFilter);
+  const filtered = historyFilter === "All" ? history : history.filter((item) => item.action === historyFilter);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / historyPageSize));
+  const start = (historyPage - 1) * historyPageSize;
+  const rows = filtered.slice(start, start + historyPageSize);
 
   return (
     <section ref={modalRef} className="modal" aria-label="Coin history" onClick={(event) => event.target === event.currentTarget && onClose()}>
@@ -1322,7 +1335,7 @@ function HistoryModal({
         <div className="modal-body">
           <div className="filter-row">
             {(["All", "Predict", "Claim", "Payout"] as const).map((filter) => (
-              <button key={filter} className={`button ${historyFilter === filter ? "active" : ""}`} onClick={() => setHistoryFilter(filter)}>{filter}</button>
+              <button key={filter} className={`button ${historyFilter === filter ? "active" : ""}`} onClick={() => { setHistoryFilter(filter); setHistoryPage(1); }}>{filter}</button>
             ))}
           </div>
           <div>
@@ -1340,6 +1353,13 @@ function HistoryModal({
               </div>
             )}
           </div>
+          {totalPages > 1 && (
+            <div className="history-footer">
+              <button className="button" disabled={historyPage <= 1} onClick={() => setHistoryPage(historyPage - 1)}>Prev</button>
+              <span className="micro">{historyPage} / {totalPages}</span>
+              <button className="button" disabled={historyPage >= totalPages} onClick={() => setHistoryPage(historyPage + 1)}>Next</button>
+            </div>
+          )}
         </div>
       </div>
     </section>
