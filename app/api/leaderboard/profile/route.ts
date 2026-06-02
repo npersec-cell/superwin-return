@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
       ok: true,
       data: {
         name: user.email.split("@")[0],
-        allTimeProfit: user.lifetime_profit || 0,
+        allTimeProfit: settledEntries.reduce((acc, e) => acc + ((e.payout_amount || 0) - e.amount), 0),
         winRate,
         wonCount,
         lostCount: totalSettled - wonCount,
