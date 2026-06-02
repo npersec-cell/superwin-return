@@ -19,15 +19,6 @@ type Question = {
   options: PredictionOption[];
 };
 
-type HistoryItem = {
-  month: string;
-  date: string;
-  time: string;
-  action: "Claim" | "Predict" | "Payout" | "Refund";
-  detail: string;
-  amount: number;
-};
-
 type RunningPrediction = {
   id: string;
   questionId: string;
@@ -166,14 +157,6 @@ type ApiClaimResponse = {
   error?: string;
 };
 
-type ApiHistoryResponse = {
-  ok: boolean;
-  data?: {
-    rows: Array<HistoryItem & { id: string; balanceAfter: number }>;
-  };
-  error?: string;
-};
-
 declare global {
   interface Window {
     google?: {
@@ -273,14 +256,6 @@ const defaultSettings: SiteSettings = {
   announcement: ""
 };
 
-const defaultHistory: HistoryItem[] = [
-  { month: "May 2026", date: "26 May", time: "16:02", action: "Claim", detail: "Hourly reward", amount: 100 },
-  { month: "May 2026", date: "26 May", time: "16:10", action: "Predict", detail: "Tournament: Super League · Question: Which team will win the championship? · Pick: Alpha Esports · Status: Running", amount: -500 },
-  { month: "May 2026", date: "26 May", time: "16:38", action: "Payout", detail: "Tournament: Super League · Question: Which team will win the championship? · Pick: Alpha Esports · Result: Won · Return: 1.78x", amount: 890 },
-  { month: "April 2026", date: "22 Apr", time: "20:14", action: "Claim", detail: "Hourly reward", amount: 100 },
-  { month: "April 2026", date: "22 Apr", time: "20:21", action: "Predict", detail: "Tournament: Global Open · Question: Which region will finish first? · Pick: SEA · Status: Running", amount: -600 }
-];
-
 type LeaderboardRow = {
   id?: string;
   name: string;
@@ -293,19 +268,6 @@ const defaultLeaderboard: LeaderboardRow[] = [];
 
 function money(amount: number) {
   return `${amount >= 0 ? "+" : ""}${amount}`;
-}
-
-function currentMonth() {
-  return "May 2026";
-}
-
-function currentDateLabel() {
-  return "26 May";
-}
-
-function currentTimeLabel() {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 }
 
 function safeJson<T>(key: string, fallback: T): T {
@@ -335,13 +297,10 @@ export default function SuperWinPrototype() {
   const [liveQuestions, setLiveQuestions] = useState<Question[]>([]);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [coinInputs, setCoinInputs] = useState<Record<string, number>>({});
-  const [history, setHistory] = useState<HistoryItem[]>(defaultHistory);
-  const [historyFilter, setHistoryFilter] = useState<"All" | HistoryItem["action"]>("All");
-  const [historyLoading, setHistoryLoading] = useState(false);
   const [running, setRunning] = useState<RunningPrediction[]>([]);
   const [questionDeadlines, setQuestionDeadlines] = useState<Record<string, number>>({});
   const [claimLabel, setClaimLabel] = useState("Ready");
-  const [openModal, setOpenModal] = useState<"history" | "running" | "info" | null>(null);
+  const [openModal, setOpenModal] = useState<"running" | "info" | null>(null);
   const [toast, setToast] = useState<Record<string, string>>({});
   const [accountStatus, setAccountStatus] = useState<"demo" | "loading" | "synced" | "error">("demo");
   const [accountRole, setAccountRole] = useState<"user" | "admin">("user");
@@ -422,7 +381,6 @@ export default function SuperWinPrototype() {
     setCoins(Number(localStorage.getItem("sr_coins")) || 500);
     setProfit(Number(localStorage.getItem("sr_profit")) || 0);
     setNextClaimAt(Number(localStorage.getItem("sr_next_claim")) || 0);
-    setHistory(safeJson("sr_history", defaultHistory).slice(0, 500));
     setRunning(safeJson("sr_running", []));
     loadOpenPredictions().catch(() => undefined);
     loadSettings().catch(() => undefined);
@@ -495,7 +453,6 @@ export default function SuperWinPrototype() {
             }
           })
           .catch(() => undefined);
-        loadHistory("All");
         loadRunningPredictions().catch(() => undefined);
         loadLeaderboard().catch(() => undefined);
       })
@@ -524,9 +481,8 @@ export default function SuperWinPrototype() {
     localStorage.setItem("sr_coins", String(coins));
     localStorage.setItem("sr_profit", String(profit));
     localStorage.setItem("sr_next_claim", String(nextClaimAt));
-    localStorage.setItem("sr_history", JSON.stringify(history.slice(0, 500)));
     localStorage.setItem("sr_running", JSON.stringify(running.slice(0, 30)));
-  }, [coins, profit, nextClaimAt, history, running, mounted]);
+  }, [coins, profit, nextClaimAt, running, mounted]);
 
   useEffect(() => {
     const tick = () => {
@@ -597,9 +553,6 @@ export default function SuperWinPrototype() {
     if (idxB === -1) return -1;
     return idxA - idxB;
   });
-
-  const filteredHistory = historyFilter === "All" ? history : history.filter((item) => item.action === historyFilter);
-  const historyRows = filteredHistory;
 
   async function loadSettings() {
     const response = await fetch("/api/settings");
@@ -730,23 +683,6 @@ export default function SuperWinPrototype() {
     })));
   }
 
-  async function loadHistory(filter = historyFilter) {
-    if (!isSignedIn) return;
-    setHistoryLoading(true);
-    try {
-      const response = await fetch(`/api/history?filter=${encodeURIComponent(filter)}`);
-      const payload = (await response.json()) as ApiHistoryResponse;
-      if (!response.ok || !payload.ok || !payload.data) {
-        throw new Error(payload.error || "Failed to load history");
-      }
-      setHistory(payload.data.rows);
-    } catch {
-      setAccountStatus("error");
-    } finally {
-      setHistoryLoading(false);
-    }
-  }
-
   function selectedOption(question: Question) {
     return question.options.find((option) => option.name === selected[question.id]) || question.options[0];
   }
@@ -790,7 +726,6 @@ export default function SuperWinPrototype() {
         setCoins(payload.data.user.coinBalance);
         setProfit(payload.data.user.lifetimeProfit);
         setNextClaimAt(payload.data.user.nextClaimAt ? new Date(payload.data.user.nextClaimAt).getTime() : 0);
-        await loadHistory(historyFilter);
       } catch {
         setAccountStatus("error");
       }
@@ -799,10 +734,6 @@ export default function SuperWinPrototype() {
 
     setCoins((current) => current + 100);
     setNextClaimAt(Date.now() + 60 * 60 * 1000);
-    setHistory((current) => [
-      { month: currentMonth(), date: currentDateLabel(), time: currentTimeLabel(), action: "Claim" as const, detail: "Hourly reward", amount: 100 },
-      ...current
-    ].slice(0, 500));
   }
 
   async function confirmPrediction(question: Question) {
@@ -838,7 +769,6 @@ export default function SuperWinPrototype() {
         setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
         setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${answer.name} · now running` }));
         await loadRunningPredictions();
-        await loadHistory(historyFilter);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Prediction failed";
         setToast((current) => ({ ...current, [question.id]: message }));
@@ -848,17 +778,6 @@ export default function SuperWinPrototype() {
 
     setCoins((current) => current - amount);
     setProfit((current) => current - amount);
-    setHistory((current) => [
-      {
-        month: currentMonth(),
-        date: currentDateLabel(),
-        time: currentTimeLabel(),
-        action: "Predict" as const,
-        detail: `Tournament: ${question.tournament} · Question: ${question.title} · Pick: ${answer.name} · Status: Running`,
-        amount: -amount
-      },
-      ...current
-    ].slice(0, 500));
     setRunning((current) => [
       {
         id: `demo-running-${Date.now()}`,
@@ -904,7 +823,7 @@ export default function SuperWinPrototype() {
                 <span className="pill">{accountStatus === "synced" ? "Synced" : accountStatus === "loading" ? "Syncing" : accountStatus === "error" ? "Sync Error" : "Demo"}</span>
                 <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Claim 100</button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
-                <button className="button gold" onClick={() => setOpenModal("history")}>History</button>
+                <Link className="button gold" href="/history">History</Link>
                 {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
                 <UserButton />
               </>
@@ -1153,69 +1072,12 @@ export default function SuperWinPrototype() {
         </section>
       </div>
 
-      {openModal === "history" && <HistoryModal historyRows={historyRows} historyFilter={historyFilter} historyLoading={historyLoading} setHistoryFilter={(value) => { setHistoryFilter(value); if (isSignedIn) loadHistory(value).catch(() => setAccountStatus("error")); }} onClose={() => setOpenModal(null)} />}
       {openModal === "running" && <RunningModal running={running} onClose={() => setOpenModal(null)} />}
       {openModal === "info" && <InfoModal settings={settings} onClose={() => setOpenModal(null)} />}
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
       )}
     </main>
-  );
-}
-
-function renderHistoryDetail(detail: string) {
-  return detail.split(" · ")
-    .filter((part) => !part.toLowerCase().includes("approx return"))
-    .map((part) => (
-      <span key={part}>{part}</span>
-    ));
-}
-
-function HistoryModal({
-  historyRows,
-  historyFilter,
-  historyLoading,
-  setHistoryFilter,
-  onClose
-}: {
-  historyRows: HistoryItem[];
-  historyFilter: "All" | HistoryItem["action"];
-  historyLoading: boolean;
-  setHistoryFilter: (value: "All" | HistoryItem["action"]) => void;
-  onClose: () => void;
-}) {
-  const modalRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    requestAnimationFrame(() => requestAnimationFrame(() => modalRef.current?.classList.add("open")));
-  }, []);
-  return (
-    <section ref={modalRef} className="modal" aria-label="Coin history" onClick={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="modal-card">
-        <div className="modal-head"><h3>Coin History</h3><button className="button" onClick={onClose}>Close</button></div>
-        <div className="modal-body">
-          <div className="filter-row">
-            {(["All", "Predict", "Claim", "Payout"] as const).map((filter) => (
-              <button key={filter} className={`button ${historyFilter === filter ? "active" : ""}`} onClick={() => setHistoryFilter(filter)}>{filter}</button>
-            ))}
-          </div>
-          <div>
-            {historyLoading ? (
-              <div className="history-row" style={{ justifyContent: "center", padding: "24px 0" }}>
-                <span className="micro" style={{ color: "var(--muted)" }}>Loading...</span>
-              </div>
-            ) : historyRows.length ? historyRows.map((row, index) => (
-              <div key={`${row.date}-${row.time}-${index}`} className="history-row">
-                <span>{row.date}</span><span>{row.time}</span><span>{row.action}</span><span className="history-detail">{renderHistoryDetail(row.detail)}</span><b className={row.amount >= 0 ? "accent-gold" : "accent-red"}>{money(row.amount)}</b>
-              </div>
-            )) : (
-              <div className="history-row" style={{ justifyContent: "center", padding: "24px 0" }}>
-                <span className="micro" style={{ color: "var(--muted)" }}>No {historyFilter} history</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
   );
 }
 
