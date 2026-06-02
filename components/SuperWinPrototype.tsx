@@ -118,8 +118,6 @@ type UserProfileStats = {
   wonCount: number;
   lostCount: number;
   totalSettled: number;
-  totalCoinsBet: number;
-  totalCoinsWon: number;
   badge: string;
   badgeDesc: string;
   loading?: boolean;
@@ -149,6 +147,7 @@ type ApiMeResponse = {
     role: "user" | "admin";
     coinBalance: number;
     monthlyProfit: number;
+    lifetimeProfit: number;
     nextClaimAt: string | null;
   };
   error?: string;
@@ -483,7 +482,7 @@ export default function SuperWinPrototype() {
       .then((user) => {
         if (cancelled) return;
         setCoins(user.coinBalance);
-        setProfit(user.monthlyProfit);
+        setProfit(user.lifetimeProfit);
         setNextClaimAt(user.nextClaimAt ? new Date(user.nextClaimAt).getTime() : 0);
         setAccountRole(user.role);
         setCurrentUserId(user.id);
@@ -628,8 +627,6 @@ export default function SuperWinPrototype() {
       wonCount: 0,
       lostCount: 0,
       totalSettled: 0,
-      totalCoinsBet: 0,
-      totalCoinsWon: 0,
       badge: "",
       badgeDesc: "",
       loading: true,
@@ -660,7 +657,7 @@ export default function SuperWinPrototype() {
       if (response.ok && payload.ok && payload.data) {
         const user = payload.data;
         setCoins(user.coinBalance);
-        setProfit(user.monthlyProfit);
+        setProfit(user.lifetimeProfit);
         setNextClaimAt(user.nextClaimAt ? new Date(user.nextClaimAt).getTime() : 0);
         setAccountRole(user.role);
         setCurrentUserId(user.id);
@@ -1324,21 +1321,6 @@ function ProfileModal({
                   <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
                     Total settled: {profile.totalSettled}
                   </span>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>TOTAL COINS BET</span>
-                  <strong style={{ display: "block", fontSize: "14px", color: "var(--text-strong)", marginTop: "4px" }}>
-                    {profile.totalCoinsBet}
-                  </strong>
-                </div>
-                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>TOTAL COINS WON</span>
-                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "4px" }}>
-                    {profile.totalCoinsWon}
-                  </strong>
                 </div>
               </div>
 

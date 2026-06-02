@@ -117,8 +117,6 @@ export async function GET(request: NextRequest) {
         wonCount,
         lostCount: totalSettled - wonCount,
         totalSettled,
-        totalCoinsBet,
-        totalCoinsWon,
         badge,
         badgeDesc,
         history
