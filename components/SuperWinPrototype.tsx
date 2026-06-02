@@ -712,18 +712,16 @@ export default function SuperWinPrototype() {
     })));
   }
 
-  async function loadHistory(filter = historyFilter, page = 1) {
+  async function loadHistory(filter = historyFilter) {
     if (!isSignedIn) return;
     setHistoryLoading(true);
     try {
-      const response = await fetch(`/api/history?filter=${encodeURIComponent(filter)}&page=${page}&pageSize=${historyPageSize}`);
+      const response = await fetch(`/api/history?filter=${encodeURIComponent(filter)}`);
       const payload = (await response.json()) as ApiHistoryResponse;
       if (!response.ok || !payload.ok || !payload.data) {
         throw new Error(payload.error || "Failed to load history");
       }
       setHistory(payload.data.rows);
-      setHistoryPage(payload.data.page || 1);
-      setHistoryTotalPages(payload.data.totalPages || 1);
     } catch {
       setAccountStatus("error");
     } finally {
@@ -870,7 +868,7 @@ export default function SuperWinPrototype() {
                 </span>
                 <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Claim 100</button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
-                <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory("All", 1); }}>History</button>
+                <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory("All"); }}>History</button>
                 {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
                 <UserButton />
               </>
@@ -1121,7 +1119,7 @@ export default function SuperWinPrototype() {
 
       {openModal === "running" && <RunningModal running={running} runningPage={runningPage} runningPageSize={runningPageSize} setRunningPage={(page) => { setRunningPage(page); }} onClose={() => setOpenModal(null)} />}
       {openModal === "info" && <InfoModal settings={settings} onClose={() => setOpenModal(null)} />}
-      {openModal === "history" && <HistoryModal history={history} historyFilter={historyFilter} historyLoading={historyLoading} setHistoryFilter={(value) => { setHistoryFilter(value); loadHistory(value, 1); }} onClose={() => setOpenModal(null)} />}
+      {openModal === "history" && <HistoryModal history={history} historyFilter={historyFilter} historyLoading={historyLoading} setHistoryFilter={(value) => { setHistoryFilter(value); loadHistory(value); }} onClose={() => setOpenModal(null)} />}
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
       )}
