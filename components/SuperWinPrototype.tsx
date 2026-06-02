@@ -1267,7 +1267,7 @@ function ProfileModal({
                             borderRadius: "4px",
                             fontWeight: "bold"
                           }}>
-                            {h.status === "won" ? `+${h.payout}` : `-${h.amount}`}
+                            {h.status === "won" ? `+${h.payout - h.amount}` : `-${h.amount}`}
                           </span>
                           <span className="meta" style={{ display: "block", fontSize: "8px", marginTop: "2px" }}>
                             {h.date}
