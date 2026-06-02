@@ -16,13 +16,10 @@ export async function POST() {
     const now = Date.now();
     const nextClaimMs = user.nextClaimAt ? new Date(user.nextClaimAt).getTime() : 0;
 
+    // Cheap first check (not atomic, but good UX for 99% of cases)
     if (nextClaimMs > now) {
       return NextResponse.json(
-        {
-          ok: false,
-          error: "Claim cooldown active",
-          data: { nextClaimAt: user.nextClaimAt }
-        },
+        { ok: false, error: "Claim cooldown active", data: { nextClaimAt: user.nextClaimAt } },
         { status: 429 }
       );
     }
@@ -31,8 +28,11 @@ export async function POST() {
     const claimedAt = new Date();
     const nextClaimAt = new Date(claimedAt.getTime() + CLAIM_COOLDOWN_MS);
     const balanceAfter = user.coinBalance + CLAIM_AMOUNT;
+    const nowISO = new Date(now).toISOString();
 
-    const { data: updatedUser, error: updateError } = await supabase
+    // Atomic update: only succeeds if next_claim_at IS NULL OR next_claim_at <= now
+    // This prevents race condition where two requests pass the JS check simultaneously
+    const { data: updatedUsers, error: updateError } = await supabase
       .from("users")
       .update({
         coin_balance: balanceAfter,
@@ -41,12 +41,27 @@ export async function POST() {
         updated_at: claimedAt.toISOString()
       })
       .eq("id", user.id)
-      .select("id, coin_balance, lifetime_profit, last_claim_at, next_claim_at")
-      .single();
+      .or(`next_claim_at.is.null|next_claim_at.lte.${nowISO}`)
+      .select("id, coin_balance, lifetime_profit, last_claim_at, next_claim_at");
 
     if (updateError) {
       throw new Error(updateError.message || "Failed to update claim");
     }
+
+    // If 0 rows updated → cooldown still active (atomic check failed)
+    if (!updatedUsers || updatedUsers.length === 0) {
+      const { data: freshUser } = await supabase
+        .from("users")
+        .select("next_claim_at")
+        .eq("id", user.id)
+        .single();
+      return NextResponse.json(
+        { ok: false, error: "Claim cooldown active", data: { nextClaimAt: freshUser?.next_claim_at } },
+        { status: 429 }
+      );
+    }
+
+    const updatedUser = updatedUsers[0];
 
     const { data: ledger, error: ledgerError } = await supabase
       .from("coin_ledger")
