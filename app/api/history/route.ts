@@ -31,36 +31,53 @@ function formatDateParts(value: string) {
 export async function GET(request: NextRequest) {
   try {
     const user = await requireUser();
+    const supabase = createSupabaseAdminClient();
     const searchParams = request.nextUrl.searchParams;
     const filter = searchParams.get("filter") || "All";
-    const pageParam = searchParams.get("page");
-    const page = Math.max(1, pageParam ? parseInt(pageParam, 10) : 1);
-    const pageSizeParam = searchParams.get("pageSize");
-    const pageSize = Math.max(1, pageSizeParam ? parseInt(pageSizeParam, 10) : 7);
 
-    const supabase = createSupabaseAdminClient();
-    let baseQuery = supabase
-      .from("coin_ledger")
-      .select("id, type, amount, balance_after, detail, created_at", { count: "exact" })
-      .eq("user_id", user.id);
+    // Cleanup: keep only latest 700 records per user (delete older permanently)
+    try {
+      const { count } = await supabase
+        .from("coin_ledger")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
 
-    if (filter !== "All") {
-      baseQuery = baseQuery.eq("type", filter.toLowerCase());
+      if (count && count > 700) {
+        const { data: threshold } = await supabase
+          .from("coin_ledger")
+          .select("created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .range(699, 699);
+
+        if (threshold && threshold[0]) {
+          await supabase
+            .from("coin_ledger")
+            .delete()
+            .eq("user_id", user.id)
+            .lt("created_at", threshold[0].created_at);
+        }
+      }
+    } catch {
+      // Cleanup failed — continue to serve data
     }
 
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-
-    const { data, error, count } = await baseQuery
+    let query = supabase
+      .from("coin_ledger")
+      .select("id, type, amount, balance_after, detail, created_at")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .range(from, to);
+      .limit(700);
+
+    if (filter !== "All") {
+      query = query.eq("type", filter.toLowerCase());
+    }
+
+    const { data, error } = await query.returns<LedgerRow[]>();
 
     if (error) {
       throw new Error(error.message || "Failed to load history");
     }
-
-    const totalRows = count || 0;
-    const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
 
     const rows = (data || []).map((row) => {
       const parts = formatDateParts(row.created_at);
@@ -76,7 +93,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      data: { rows, page, totalPages }
+      data: { rows }
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load history";

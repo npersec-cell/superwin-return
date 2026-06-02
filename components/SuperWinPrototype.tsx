@@ -31,8 +31,6 @@ type ApiHistoryResponse = {
   ok: boolean;
   data?: {
     rows: Array<HistoryItem & { id: string; balanceAfter: number }>;
-    page: number;
-    totalPages: number;
   };
   error?: string;
 };
@@ -712,18 +710,16 @@ export default function SuperWinPrototype() {
     })));
   }
 
-  async function loadHistory(filter = historyFilter, page = 1) {
+  async function loadHistory(filter = historyFilter) {
     if (!isSignedIn) return;
     setHistoryLoading(true);
     try {
-      const response = await fetch(`/api/history?filter=${encodeURIComponent(filter)}&page=${page}&pageSize=${historyPageSize}`);
+      const response = await fetch(`/api/history?filter=${encodeURIComponent(filter)}`);
       const payload = (await response.json()) as ApiHistoryResponse;
       if (!response.ok || !payload.ok || !payload.data) {
         throw new Error(payload.error || "Failed to load history");
       }
       setHistory(payload.data.rows);
-      setHistoryPage(payload.data.page || 1);
-      setHistoryTotalPages(payload.data.totalPages || 1);
     } catch {
       setAccountStatus("error");
     } finally {
@@ -1121,7 +1117,7 @@ export default function SuperWinPrototype() {
 
       {openModal === "running" && <RunningModal running={running} runningPage={runningPage} runningPageSize={runningPageSize} setRunningPage={(page) => { setRunningPage(page); }} onClose={() => setOpenModal(null)} />}
       {openModal === "info" && <InfoModal settings={settings} onClose={() => setOpenModal(null)} />}
-      {openModal === "history" && <HistoryModal history={history} historyFilter={historyFilter} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} historyTotalPages={historyTotalPages} setHistoryPage={(page) => { setHistoryPage(page); }} setHistoryFilter={(value) => { setHistoryFilter(value); loadHistory(value, 1); }} onClose={() => setOpenModal(null)} />}
+      {openModal === "history" && <HistoryModal history={history} historyFilter={historyFilter} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} setHistoryPage={(page) => { setHistoryPage(page); }} setHistoryFilter={(value) => { setHistoryFilter(value); loadHistory(value); }} onClose={() => setOpenModal(null)} />}
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
       )}
@@ -1304,7 +1300,6 @@ function HistoryModal({
   historyLoading,
   historyPage,
   historyPageSize,
-  historyTotalPages,
   setHistoryPage,
   setHistoryFilter,
   onClose
@@ -1314,7 +1309,6 @@ function HistoryModal({
   historyLoading: boolean;
   historyPage: number;
   historyPageSize: number;
-  historyTotalPages: number;
   setHistoryPage: (page: number) => void;
   setHistoryFilter: (value: "All" | HistoryItem["action"]) => void;
   onClose: () => void;
