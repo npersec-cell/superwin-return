@@ -199,7 +199,7 @@ input { width: 100%; min-width: 0; }
 .goog-te-gadget { color: transparent !important; font-family: inherit !important; }
 .filter-row { flex-wrap: wrap; justify-content: center; }
 .history-row { display: grid; grid-template-columns: 82px 76px 90px 1fr auto; gap: 8px; align-items: start; padding: 8px; border-radius: 6px; background: var(--bg); font-size: 11px; }
-.history-detail { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.35; color: var(--text); }
+.history-detail { display: grid; gap: 2px; line-height: 1.35; color: var(--text); }
 .history-detail span:first-child { color: var(--text-strong); font-weight: 600; }
 .history-footer { display: flex; align-items: center; justify-content: center; gap: 8px; padding-top: 4px; }
 .running-list { display: grid; gap: 6px; }

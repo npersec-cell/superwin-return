@@ -1121,7 +1121,7 @@ export default function SuperWinPrototype() {
 
       {openModal === "running" && <RunningModal running={running} runningPage={runningPage} runningPageSize={runningPageSize} setRunningPage={(page) => { setRunningPage(page); }} onClose={() => setOpenModal(null)} />}
       {openModal === "info" && <InfoModal settings={settings} onClose={() => setOpenModal(null)} />}
-      {openModal === "history" && <HistoryModal history={history} historyFilter={historyFilter} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} historyTotalPages={historyTotalPages} setHistoryPage={setHistoryPage} setHistoryFilter={(value) => { setHistoryFilter(value); loadHistory(value, 1); }} onClose={() => setOpenModal(null)} />}
+      {openModal === "history" && <HistoryModal history={history} historyFilter={historyFilter} historyLoading={historyLoading} setHistoryFilter={(value) => { setHistoryFilter(value); loadHistory(value, 1); }} onClose={() => setOpenModal(null)} />}
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
       )}
@@ -1293,27 +1293,21 @@ function ProfileModal({
 function renderHistoryDetail(detail: string) {
   return detail.split(" · ")
     .filter((part) => !part.toLowerCase().includes("approx return"))
-    .join(" · ");
+    .map((part) => (
+      <span key={part}>{part}</span>
+    ));
 }
 
 function HistoryModal({
   history,
   historyFilter,
   historyLoading,
-  historyPage,
-  historyPageSize,
-  historyTotalPages,
-  setHistoryPage,
   setHistoryFilter,
   onClose
 }: {
   history: HistoryItem[];
   historyFilter: "All" | HistoryItem["action"];
   historyLoading: boolean;
-  historyPage: number;
-  historyPageSize: number;
-  historyTotalPages: number;
-  setHistoryPage: (page: number) => void;
   setHistoryFilter: (value: "All" | HistoryItem["action"]) => void;
   onClose: () => void;
 }) {
@@ -1321,10 +1315,7 @@ function HistoryModal({
   useEffect(() => {
     requestAnimationFrame(() => requestAnimationFrame(() => modalRef.current?.classList.add("open")));
   }, []);
-  const filtered = historyFilter === "All" ? history : history.filter((item) => item.action === historyFilter);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / historyPageSize));
-  const start = (historyPage - 1) * historyPageSize;
-  const rows = filtered.slice(start, start + historyPageSize);
+  const rows = historyFilter === "All" ? history : history.filter((item) => item.action === historyFilter);
 
   return (
     <section ref={modalRef} className="modal" aria-label="Coin history" onClick={(event) => event.target === event.currentTarget && onClose()}>
@@ -1333,7 +1324,7 @@ function HistoryModal({
         <div className="modal-body">
           <div className="filter-row">
             {(["All", "Predict", "Claim", "Payout"] as const).map((filter) => (
-              <button key={filter} className={`button ${historyFilter === filter ? "active" : ""}`} onClick={() => { setHistoryFilter(filter); setHistoryPage(1); }}>{filter}</button>
+              <button key={filter} className={`button ${historyFilter === filter ? "active" : ""}`} onClick={() => setHistoryFilter(filter)}>{filter}</button>
             ))}
           </div>
           <div>
@@ -1351,13 +1342,6 @@ function HistoryModal({
               </div>
             )}
           </div>
-          {totalPages > 1 && (
-            <div className="history-footer">
-              <button className="button" disabled={historyPage <= 1} onClick={() => setHistoryPage(historyPage - 1)}>Prev</button>
-              <span className="micro">{historyPage} / {totalPages}</span>
-              <button className="button" disabled={historyPage >= totalPages} onClick={() => setHistoryPage(historyPage + 1)}>Next</button>
-            </div>
-          )}
         </div>
       </div>
     </section>
