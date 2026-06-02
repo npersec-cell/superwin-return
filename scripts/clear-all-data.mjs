@@ -39,8 +39,7 @@ try {
   const { error: err4 } = await supabase.from("coin_ledger").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   if (err4) console.warn("Coin ledger delete warn:", err4.message);
 
-  const { error: err5 } = await supabase.from("monthly_leaderboards").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  if (err5) console.warn("Monthly leaderboards delete warn:", err5.message);
+  // monthly_leaderboards table removed - skip (line removed)
 
   const { error: err6 } = await supabase.from("rewards").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   if (err6) console.warn("Rewards delete warn:", err6.message);
@@ -54,7 +53,6 @@ try {
     .from("users")
     .update({
       coin_balance: 500,
-      monthly_profit: 0,
       lifetime_profit: 0,
       last_claim_at: null,
       next_claim_at: null
@@ -81,16 +79,12 @@ try {
     const updatedSettings = {
       ...settings,
       reward: {
-        name: "Monthly Prize",
-        winnerBy: "", // เคลียร์ชื่อผู้ชนะออก
-        month: "May 2026",
-        approved: false // ล็อกสิทธิ์เคลม
+        name: "Shop",
+        winnerBy: "All time Profit",
+        month: "",
+        approved: false
       },
-      season: {
-        startAt: "2026-05-01T00:00",
-        endAt: "2026-05-31T17:00",
-        status: "active"
-      }
+      // season block removed - system now uses all-time only
     };
     fs.writeFileSync(settingsPath, JSON.stringify(updatedSettings, null, 2), "utf8");
     console.log("✅ Reset site-settings.json values (cleared May winner, locked claim, reset dates).");

@@ -10,7 +10,6 @@ create table if not exists public.users (
   display_name text,
   role text not null default 'user' check (role in ('user', 'admin')),
   coin_balance integer not null default 0 check (coin_balance >= 0),
-  monthly_profit integer not null default 0,
   lifetime_profit integer not null default 0,
   last_claim_at timestamptz,
   next_claim_at timestamptz,
@@ -83,17 +82,8 @@ create table if not exists public.prediction_entries (
   resolved_at timestamptz
 );
 
-create table if not exists public.monthly_leaderboards (
-  id uuid primary key default gen_random_uuid(),
-  month text not null,
-  user_id uuid not null references public.users(id),
-  monthly_profit integer not null default 0,
-  total_used integer not null default 0,
-  total_payout integer not null default 0,
-  rank integer,
-  updated_at timestamptz not null default now(),
-  unique (month, user_id)
-);
+-- Monthly leaderboards table removed - system now uses all-time profit only
+-- create table if not exists public.monthly_leaderboards (...)
 
 create table if not exists public.rewards (
   id uuid primary key default gen_random_uuid(),
@@ -125,4 +115,4 @@ create index if not exists idx_predictions_status_closes on public.predictions(s
 create index if not exists idx_prediction_options_prediction on public.prediction_options(prediction_id, sort_order);
 create index if not exists idx_prediction_entries_user_status on public.prediction_entries(user_id, status, created_at desc);
 create index if not exists idx_prediction_entries_prediction_option on public.prediction_entries(prediction_id, option_id);
-create index if not exists idx_monthly_leaderboards_month_profit on public.monthly_leaderboards(month, monthly_profit desc);
+-- idx_monthly_leaderboards_month_profit removed (table removed)

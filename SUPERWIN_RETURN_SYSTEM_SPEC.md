@@ -9,8 +9,8 @@
 ```text
 SUPERWIN RETURN คือเว็บ Prediction สำหรับ PUBG MOBILE
 ผู้ใช้รับเหรียญฟรี แล้วใช้เหรียญทายคำถาม
-ระบบจัดอันดับรายเดือนจาก Monthly Profit
-ผู้ชนะรายเดือนได้รับรางวัลจากผู้ดูแลระบบ
+ระบบจัดอันดับ All-time Profit (ตลอดกาล)
+ไม่มีระบบรางวัลรายเดือน — เปลี่ยนเป็น Shop (coming soon)
 ```
 
 สิ่งที่ระบบไม่ใช่:
@@ -251,64 +251,41 @@ user_payout = 485
 - เขียน coin_ledger ทุก movement
 ```
 
----
-
 ## 6. Leaderboard Rules
 
-Leaderboard หลักคือรายเดือน
+Leaderboard หลักคือ All-time (ตลอดกาล)
 
 ```text
-Monthly Top 10
-จัดอันดับจาก Monthly Profit
+All-Time Top 10
+จัดอันดับจาก Lifetime Profit
 ไม่ใช่ coin balance
 ```
 
-Monthly Profit:
+Lifetime Profit:
 
 ```text
-คำนวณจากผลสุทธิของ prediction ในเดือนนั้น
+คำนวณจากผลสุทธิของ prediction ทั้งหมดที่เคยทำ
 ไม่รวม coin balance ที่เหลือ
 ```
 
 กติกา:
 
 ```text
-- เริ่มนับวันที่ 1 ของเดือน
-- จบวันสุดท้ายของเดือน
-- หน้าเว็บมี countdown Month Ends
-- เดือนใหม่เริ่ม ranking ใหม่
-- ควรเก็บ history ของแต่ละเดือน
+- เริ่มนับตั้งแต่สร้างบัญชี
+- ไม่มีการรีเซ็ตย้ายเดือน
+- ไม่มี Month Ends countdown
+- ระบบเป็น All-time ตลอดไป
 ```
 
 ---
 
-## 7. Reward Rules
+## 7. Shop Rules (แทนที่ระบบ Reward เดิม)
 
 ```text
-- แสดง Monthly Top 10
-- ให้รางวัลเฉพาะบางอันดับ
-- MVP เริ่มจาก Rank 1
-- รางวัลไม่ใช่เงินสด
-- ผู้ดูแลระบบเติมรางวัลให้ผู้ชนะนอกระบบ
-- หลังจ่ายรางวัลแล้ว admin อัปโหลด proof
-```
-
-ในหน้าเว็บ user เห็นแค่:
-
-```text
-- มีรางวัลสำหรับผู้ชนะรายเดือน
-- ผู้ชนะวัดจาก Monthly Top 10
-- Reward proof จะแสดงหลังดำเนินการสำเร็จ
-```
-
-ไม่ควรแสดงข้อมูลส่วนตัวใน proof:
-
-```text
-- email
-- เบอร์โทร
-- transaction id เต็ม
-- player id เต็ม
-- ข้อมูลชำระเงิน
+- ไม่มีการให้รางวัลรายเดือนแล้ว
+- เปลี่ยนเป็น Shop (coming soon)
+- ผู้ใช้สะสมเหรียญเพื่อใช้ใน Shop ภายหลัง
+- ไม่มี Prize panel ในหน้าแรก
 ```
 
 ---
@@ -359,14 +336,13 @@ Admin ทำได้:
 5. สถานะเป็น canceled
 ```
 
-### 8.5 Reward Proof
+### 8.5 Shop (แทน Reward Proof)
 
 ```text
-1. Admin เลือกเดือน
-2. เลือก rank/user ที่ได้รับรางวัล
-3. ตั้ง reward status
-4. อัปโหลด proof image
-5. หน้าเว็บแสดง proof หลัง completed
+- ระบบ Shop อยู่ระหว่าจัดทำ (coming soon)
+- Admin จัดการไอเทมใน Shop
+- ผู้ใช้สะสมเหรียญเพื่อเปิด Shop ภายหลัง
+- ไม่มี reward proof แล้าะไม่มีการอัปโหลด proof image
 ```
 
 ---
@@ -383,7 +359,6 @@ users
 - display_name text
 - role text default 'user'
 - coin_balance integer default 0
-- monthly_profit integer default 0
 - lifetime_profit integer default 0
 - last_claim_at timestamptz
 - next_claim_at timestamptz
@@ -510,8 +485,8 @@ GET /api/predictions/open
 POST /api/predictions/:id/predict
 GET /api/predictions/running
 GET /api/history
-GET /api/leaderboard/monthly
-GET /api/reward/current
+GET /api/leaderboard/all-time
+GET /api/shop (coming soon)
 ```
 
 ### Admin APIs
@@ -614,8 +589,7 @@ User-facing:
 - Claim
 - Running
 - History
-- Monthly Top 10
-- Prize
+- All-Time Top 10
 - Info
 ```
 
@@ -675,22 +649,21 @@ Admin-facing:
 - resolve result
 ```
 
-### Phase 5: Payout and Leaderboard
+### Phase 5: Payout and All-Time Leaderboard
 
 ```text
 - payout calculation
 - refund
-- monthly leaderboard
-- month-end countdown
+- all-time leaderboard
+- no month-end countdown
 ```
 
-### Phase 6: Reward Proof
+### Phase 6: Shop (Coming Soon)
 
 ```text
-- reward setup
-- winner assignment
-- proof upload
-- public proof display
+- shop setup (coming soon)
+- no reward proof upload
+- no monthly winner announcement
 ```
 
 ---
@@ -717,10 +690,8 @@ Included:
 - history
 - history filter
 - history pagination
-- monthly leaderboard
-- month-end countdown
+- all-time leaderboard
 - per-question countdown
-- reward panel
 - info modal
 - Google Translate
 - reset demo
@@ -736,7 +707,7 @@ Not included yet:
 - real server validation
 - real admin panel
 - real payout
-- real reward proof upload
+- shop (coming soon)
 ```
 
 ---
