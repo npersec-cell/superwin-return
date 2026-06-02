@@ -335,6 +335,7 @@ export default function SuperWinPrototype() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [coins, setCoins] = useState(500);
   const [profit, setProfit] = useState(0);
+  const [winRate, setWinRate] = useState(0);
   const [nextClaimAt, setNextClaimAt] = useState(0);
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -487,6 +488,14 @@ export default function SuperWinPrototype() {
         setAccountRole(user.role);
         setCurrentUserId(user.id);
         setAccountStatus("synced");
+        fetch(`/api/leaderboard/profile?userId=${user.id}`)
+          .then(async (res) => {
+            const payload = await res.json();
+            if (payload.ok && payload.data) {
+              setWinRate(payload.data.winRate || 0);
+            }
+          })
+          .catch(() => undefined);
         loadHistory("All", 1);
         loadRunningPredictions().catch(() => undefined);
         loadLeaderboard().catch(() => undefined);
@@ -935,6 +944,7 @@ export default function SuperWinPrototype() {
 
         {isSignedIn && (
         <section className="stats" aria-label="Account stats">
+          <div className="stat"><span className="label">Win Rate</span><b className="value">{winRate}%</b></div>
           <div className="stat"><span className="label">All time Profit</span><b className="value">{profit}</b></div>
           <div className="stat"><span className="label">All time Rank</span><b className="value">{userRank ? `#${userRank}` : "--"}</b></div>
           <div className="stat"><span className="label">Next Claim</span><b className="value">{claimLabel}</b></div>
