@@ -22,21 +22,6 @@ type AdminUser = {
   createdAt: string;
 };
 
-type WinnerClaim = {
-  id: string;
-  month: string;
-  rewardName: string;
-  winnerName: string;
-  winnerEmail: string;
-  receiverName: string;
-  phone: string;
-  address: string;
-  note: string;
-  status: "pending" | "contacting" | "completed";
-  trackingNumber: string;
-  createdAt: string;
-};
-
 type DashboardPrediction = {
   id: string;
   tournamentName: string;
@@ -82,12 +67,6 @@ type SiteSettings = {
   };
   tournaments: (string | TournamentItem)[];
   savedQuestions: string[];
-  season?: {
-    startAt: string;
-    endAt: string;
-    status: "active" | "ended";
-  };
-  historySeasons?: string[];
   predictionOrder?: string[];
   announcement?: string;
 };
@@ -127,13 +106,13 @@ function statusLabel(status: string) {
 const defaultSettings: SiteSettings = {
   info: {
     howToPlay: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล",
-    reward: "ลุ้นติดอันดับ Season Top 10 วัดจากกำไรสุทธิประจำซีซั่น (Season Profit) ผู้ชนะอันดับ 1 จะได้รับของรางวัลพิเศษหลังแอดมินยืนยัน",
+    reward: "เล่นได้ตลอดเวลาไม่มีจบ สะสมกำไรสุทธิเพื่อขึ้นอันดับ All time Top 10 และแลกของรางวัลผ่าน Shop (เร็วๆ นี้)",
     questionTime: "แต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
   },
   reward: {
-    name: "Season Prize",
-    winnerBy: "Season Profit",
-    month: "Season 1",
+    name: "Shop",
+    winnerBy: "All time Profit",
+    month: "Continuous",
     approved: false
   },
   tournaments: [{ name: "Super League", logoUrl: "" }],
@@ -142,12 +121,7 @@ const defaultSettings: SiteSettings = {
     "Which team will get the Chicken Dinner?",
     "Who will get the most kills in this match?"
   ],
-  season: {
-    startAt: "2026-05-01T00:00",
-    endAt: "2026-05-31T23:59",
-    status: "active"
-  },
-  announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the Season Top 10!"
+  announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the All time Top 10!"
 };
 
 function isRunningNow(item: AdminPrediction) {
@@ -213,17 +187,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [draftOptions, setDraftOptions] = useState<string[]>([]);
   const [winningOptions, setWinningOptions] = useState<Record<string, string>>({});
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
-  const [historySeasons, setHistorySeasons] = useState<string[]>([]);
   const [topUsers, setTopUsers] = useState<Array<{ id: string; email: string; displayName: string; monthlyProfit?: number }>>([]);
-  const [claims, setClaims] = useState<WinnerClaim[]>([]);
-  const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
   const [editClosesAt, setEditClosesAt] = useState<Record<string, string>>({});
   const [editQuestions, setEditQuestions] = useState<Record<string, string>>({});
   const [editOptionsInputs, setEditOptionsInputs] = useState<Record<string, Record<string, string>>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   
   // แท็บเมนูหลังบ้าน
-  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "claims" | "dashboard" | "reports">("dashboard");
+  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "shop" | "dashboard" | "reports">("dashboard");
   const [reports, setReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
 
@@ -305,14 +276,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     return predictions.slice(start, start + allPageSize);
   }, [predictions, allPage]);
 
-  // การแบ่งหน้าสำหรับรายการเคลมพัสดุรางวัล
-  const [claimsPage, setClaimsPage] = useState(1);
-  const claimsPageSize = 5;
-  const claimsTotalPages = Math.max(1, Math.ceil(claims.length / claimsPageSize));
-  const currentClaims = useMemo(() => {
-    const start = (claimsPage - 1) * claimsPageSize;
-    return claims.slice(start, start + claimsPageSize);
-  }, [claims, claimsPage]);
 
   async function loadPredictions() {
     const data = await requestJson<AdminPrediction[]>("/api/admin/predictions");
@@ -325,11 +288,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   }
 
   async function loadSettings() {
-    const data = await requestJson<SiteSettings & { historySeasons?: string[] }>("/api/admin/settings");
+    const data = await requestJson<SiteSettings>("/api/admin/settings");
     setSettings(data);
-    if (data.historySeasons) {
-      setHistorySeasons(data.historySeasons);
-    }
     if (data.tournaments && data.tournaments.length > 0) {
       const first = data.tournaments[0];
       const firstName = typeof first === "string" ? first : first.name;
@@ -340,16 +300,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   async function loadTopUsers() {
     const data = await requestJson<Array<{ id: string; email: string; displayName: string }>>("/api/admin/leaderboard");
     setTopUsers(data);
-  }
-
-  async function loadClaims() {
-    const data = await requestJson<WinnerClaim[]>("/api/admin/claims");
-    setClaims(data);
-    const initialTracking: Record<string, string> = {};
-    data.forEach((claim) => {
-      initialTracking[claim.id] = claim.trackingNumber || "";
-    });
-    setTrackingInputs(initialTracking);
   }
 
   async function loadDashboardData() {
@@ -396,7 +346,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   }
 
   async function reloadAll() {
-    await Promise.all([loadPredictions(), loadAdmins(), loadSettings(), loadTopUsers(), loadClaims(), loadDashboardData()]);
+    await Promise.all([loadPredictions(), loadAdmins(), loadSettings(), loadTopUsers(), loadDashboardData()]);
   }
 
   useEffect(() => {
@@ -779,37 +729,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }
   }
 
-  async function saveCurrentSeasonSettings(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setLoading(true);
-    setMessage("");
-
-    if (settings.season?.startAt && settings.season?.endAt) {
-      if (new Date(settings.season.startAt).getTime() > new Date(settings.season.endAt).getTime()) {
-        setMessage("⚠️ ข้อผิดพลาด: วันเวลาเริ่มต้น ต้องมาก่อน วันหมดเขตซีซั่น");
-        setLoading(false);
-        return;
-      }
-    }
-
-    try {
-      const data = await requestJson<SiteSettings>("/api/admin/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          season: settings.season,
-          reward: settings.reward
-        })
-      });
-      setSettings(data);
-      setMessage("บันทึกข้อมูลเวลาและรางวัลประจำฤดูกาลสำเร็จ");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "บันทึกข้อมูลไม่สำเร็จ");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function saveAnnouncementSettings(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
@@ -831,42 +750,19 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }
   }
 
-  async function savePreviousWinnerSettings(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function saveSettings() {
     setLoading(true);
     setMessage("");
     try {
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          reward: settings.reward 
-        })
+        body: JSON.stringify({ reward: settings.reward })
       });
       setSettings(data);
-      setMessage("บันทึกข้อมูลผู้ชนะประจำฤดูกาลและอนุมัติเคลมสำเร็จ");
+      setMessage("บันทึกการตั้งค่า Shop สำเร็จ");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "บันทึกข้อมูลไม่สำเร็จ");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function finalizeLeaderboard() {
-    const confirmed = window.confirm(`⚠️ คำเตือนสำคัญ:\n\nคุณกำลังจะสรุปคะแนนและรีเซ็ตแต้มกระดานของฤดูกาล "${settings.reward.month || "Season 1"}"\n\nระบบจะทำการ:\n1. คัดลอกและบันทึกสถิติ Top 20 ของผู้เล่นประจำซีซั่นนี้เก็บเข้าประวัติเกียรติยศถาวร\n2. รีเซ็ตคะแนนกำไรประจำซีซั่น (Season Profit) ของผู้เล่นทุกคนกลับเป็น 0 เพื่อเริ่มซีซั่นใหม่\n\nการกระทำนี้จะล้างกระดานอันดับคะแนนทันที ยืนยันปิดซีซั่นและเคลียร์คะแนน?`);
-    if (!confirmed) return;
-    setLoading(true);
-    setMessage("");
-    try {
-      const data = await requestJson<{ month: string; snapshotCount: number }>("/api/admin/leaderboard/finalize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ month: settings.reward.month })
-      });
-      setMessage(`ล้างกระดานเริ่มฤดูกาลใหม่เรียบร้อย! (บันทึกรายชื่อ Top 20 ของฤดูกาล ${data.month} เข้าระบบจำนวน ${data.snapshotCount} คน)`);
-      await reloadAll();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "สรุปปิดซีซั่นไม่สำเร็จ");
+      setMessage(error instanceof Error ? error.message : "บันทึกการตั้งค่าไม่สำเร็จ");
     } finally {
       setLoading(false);
     }
@@ -922,28 +818,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       await loadPredictions();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "ลบคำถามไม่สำเร็จ");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function updateClaimStatus(id: string, status: string, trackingNumber?: string) {
-    setLoading(true);
-    setMessage("");
-    try {
-      await requestJson<unknown>("/api/admin/claims", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id,
-          status,
-          trackingNumber
-        })
-      });
-      setMessage("อัปเดตสถานะการเคลมและจัดส่งพัสดุเรียบร้อยแล้ว");
-      await loadClaims();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "อัปเดตสถานะเคลมไม่สำเร็จ");
     } finally {
       setLoading(false);
     }
@@ -1044,8 +918,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "tournaments" ? "active" : ""}`} onClick={() => setActiveTab("tournaments")} style={{ borderRadius: "999px" }}>จัดการทัวร์นาเมนต์</button>
           <button className={`button ${activeTab === "questions" ? "active" : ""}`} onClick={() => setActiveTab("questions")} style={{ borderRadius: "999px" }}>สร้างคำถามใหม่</button>
           <button className={`button ${activeTab === "running" ? "active" : ""}`} onClick={() => setActiveTab("running")} style={{ borderRadius: "999px" }}>จัดการคำถาม</button>
-          <button className={`button ${activeTab === "claims" ? "active" : ""}`} onClick={() => { setActiveTab("claims"); loadClaims().catch(() => undefined); }} style={{ borderRadius: "999px" }}>จัดส่งรางวัล</button>
-          <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => setActiveTab("settings")} style={{ borderRadius: "999px" }}>ตั้งค่าหน้าเว็บ & รางวัล</button>
+          <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => setActiveTab("settings")} style={{ borderRadius: "999px" }}>ตั้งค่าหน้าเว็บ</button>
+          <button className={`button ${activeTab === "shop" ? "active" : ""}`} onClick={() => setActiveTab("shop")} style={{ borderRadius: "999px" }}>Shop</button>
           <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>แอดมิน ({admins.length})</button>
           <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>แจ้งปัญหา ({reports.length})</button>
         </div>
@@ -1506,53 +1380,21 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           {activeTab === "settings" && (
             <section className="panel" style={{ width: "100%", maxWidth: "600px", display: "grid", gap: "16px", margin: "0 auto" }}>
               
-              {/* ส่วนที่ 1: กำหนดระยะเวลาและของรางวัลของซีซั่นปัจจุบัน (Current Season & Current Prize) */}
+              {/* การตั้งค่าทั่วไป (ไม่มีซีซั่น — เล่นตลอดไป) */}
               <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
-                  <h2>📅 1. กำหนดช่วงเวลา & ของรางวัลรอบปัจจุบัน (ซีซั่นนี้)</h2>
+                  <h2>⚙️ ตั้งค่าทั่วไป</h2>
                 </div>
-                <form className="modal-body" onSubmit={saveCurrentSeasonSettings} style={{ padding: "12px 0 0 0", display: "grid", gap: "10px" }}>
+                <div className="modal-body" style={{ padding: "12px 0 0 0", display: "grid", gap: "10px" }}>
                   <span className="meta" style={{ textTransform: "none", color: "var(--muted)", lineHeight: "1.4" }}>
-                    *ตั้งค่าปฏิทินช่วงเวลากิจกรรม และชื่อของรางวัลที่ผู้เล่นกำลังแย่งชิงกันขณะนี้ (แสดงนับถอยหลังที่หน้าแรกโดยตรง) สามารถเข้ามาเลื่อน ขยาย หรือเพิ่มลดวันได้อิสระตลอดเวลา
+                    *ระบบเล่นตลอดไป (All time) ไม่มีซีซั่น ไม่ต้องตั้งค่าช่วงเวลา ไม่ต้องรีเซ็ตคะแนน
                   </span>
-                  
-                  <div style={{ display: "grid", gap: "10px", gridTemplateColumns: "1fr 1fr" }}>
-                    <div style={{ display: "grid", gap: "4px" }}>
-                      <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>วันเริ่มต้นซีซั่นนี้</span>
-                      <label className="pill" style={{ display: "grid", gridTemplateColumns: "auto 1fr", height: "34px", padding: "0 10px" }}>
-                        เริ่ม <input type="datetime-local" value={settings.season?.startAt || ""} onChange={(event) => setSettings((current) => ({ ...current, season: { startAt: event.target.value, endAt: current.season?.endAt || "", status: current.season?.status || "active" } }))} style={{ border: 0, padding: 0, height: "100%", background: "transparent", color: "var(--text)" }} />
-                      </label>
-                    </div>
-                    <div style={{ display: "grid", gap: "4px" }}>
-                      <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>วันหมดเขตซีซั่นนี้</span>
-                      <label className="pill" style={{ display: "grid", gridTemplateColumns: "auto 1fr", height: "34px", padding: "0 10px" }}>
-                        จบ <input type="datetime-local" value={settings.season?.endAt || ""} onChange={(event) => setSettings((current) => ({ ...current, season: { startAt: current.season?.startAt || "", endAt: event.target.value, status: current.season?.status || "active" } }))} style={{ border: 0, padding: 0, height: "100%", background: "transparent", color: "var(--text)" }} />
-                      </label>
-                    </div>
-                  </div>
-
                   <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ฤดูกาลปัจจุบันนี้ (ระบบจะขยับซีซั่นใหม่ +1 อัตโนมัติเมื่อกดรีเซ็ตแต้มในส่วนที่ 3)</span>
-                    <div style={{ height: "34px", display: "flex", alignItems: "center", padding: "0 10px", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)", fontWeight: "bold", color: "var(--yellow)" }}>
-                      {settings.reward.month || "Season 1"}
-                    </div>
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ชื่อระบบรางวัล/Shop</span>
+                    <input value={settings.reward.name} onChange={(event) => setSettings((current) => ({ ...current, reward: { ...current.reward, name: event.target.value } }))} placeholder='เช่น Shop' style={{ height: "34px" }} />
                   </div>
-
-                  <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ของรางวัลสำหรับผู้ชนะฤดูกาลนี้</span>
-                    <input value={settings.reward.name} onChange={(event) => setSettings((current) => ({ ...current, reward: { ...current.reward, name: event.target.value } }))} placeholder='เช่น iPad Air 11" M2 หรือ ของรางวัลสุดเศษ' style={{ height: "34px" }} />
-                  </div>
-
-                  <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>สถานะซีซั่นนี้</span>
-                    <select className="button" value={settings.season?.status || "active"} onChange={(event) => setSettings((current) => ({ ...current, season: { startAt: current.season?.startAt || "", endAt: current.season?.endAt || "", status: event.target.value as any } }))} style={{ width: "100%", height: "34px" }}>
-                      <option value="active">Active (กำลังเปิดรับการแข่งขัน)</option>
-                      <option value="ended">Ended (สิ้นสุดกิจกรรม/ปิดทายผลชั่วคราว)</option>
-                    </select>
-                  </div>
-
-                  <button className="button primary" disabled={loading} type="submit" style={{ marginTop: "4px", width: "100%", height: "34px", fontWeight: "bold" }}>💾 บันทึกเวลา & รางวัลฤดูกาลนี้</button>
-                </form>
+                  <button className="button primary" disabled={loading} type="button" onClick={saveSettings} style={{ marginTop: "4px", width: "100%", height: "34px", fontWeight: "bold" }}>💾 บันทึกการตั้งค่า</button>
+                </div>
               </div>
 
               {/* ส่วนพิเศษ: ตั้งค่าข้อความประกาศวิ่งหน้าแรก (Standalone Announcement Ticker Card) */}
@@ -1577,76 +1419,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
                   <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "34px", fontWeight: "bold" }}>📢 💾 บันทึกข้อความประกาศหน้าแรก</button>
                 </form>
-              </div>
-
-              {/* ส่วนที่ 2: ประกาศรางวัล & ให้สิทธิ์เคลมของผู้ชนะซีซั่นที่แล้ว (Previous Season Winner Claim) */}
-              <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
-                  <h2>🏆 2. ประกาศผล & เปิดระบบเคลมรางวัล (รอบซีซั่นที่จบไป)</h2>
-                </div>
-                <form className="modal-body" onSubmit={savePreviousWinnerSettings} style={{ padding: "12px 0 0 0", display: "grid", gap: "10px" }}>
-                  <span className="meta" style={{ textTransform: "none", color: "var(--muted)", lineHeight: "1.4" }}>
-                    *เมื่อจบรอบซีซั่นเก่าไปแล้ว แอดมินระบุชื่อซีซั่นและคนได้ที่ 1 เพื่อเปิดปุ่มกรอกที่อยู่จัดส่งของรางวัล (Claim Reward) บนหน้าแรกของเขาได้แยกเป็นเอกเทศจากรอบปัจจุบัน
-                  </span>
-
-                  <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ฤดูกาลประจำรอบที่จบไป (บังคับเลือกจากตารางประวัติ)</span>
-                    <select className="button" value={settings.reward.month} onChange={(event) => setSettings((current) => ({ ...current, reward: { ...current.reward, month: event.target.value } }))} style={{ width: "100%", height: "34px" }}>
-                      <option value="">-- เลือกซีซั่นจากตารางประวัติ --</option>
-                      {historySeasons.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>รายชื่อผู้โชคดี (ผู้ได้อันดับ 1 ของรอบที่พึ่งจบ)</span>
-                    <select className="button" value={settings.reward.winnerBy} onChange={(event) => setSettings((current) => ({ ...current, reward: { ...current.reward, winnerBy: event.target.value } }))} style={{ width: "100%", height: "34px" }}>
-                      <option value="">-- คลิกเลือกผู้ชนะจากตารางคะแนนสูงสุด --</option>
-                      {topUsers.map((user) => (
-                        <option key={user.id} value={user.displayName}>{user.displayName} ({user.email})</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* สิทธิ์การเคลม */}
-                  <div className="admin-box" style={{ background: "rgba(255, 225, 0, 0.05)", border: "1px solid var(--hairline)", padding: "10px", borderRadius: "8px", display: "grid", gap: "6px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <strong>ให้สิทธิ์ผู้ชนะคนนี้กดเคลมรางวัลหน้าเว็บแรก</strong>
-                      <span className="pill" style={{ 
-                        fontSize: "11px", 
-                        height: "22px", 
-                        background: settings.reward.approved ? "rgba(14, 203, 129, 0.12)" : "rgba(255, 225, 0, 0.12)", 
-                        color: settings.reward.approved ? "var(--green)" : "var(--yellow)", 
-                        border: 0 
-                      }}>
-                        {settings.reward.approved ? "เปิดสิทธิ์เคลมแล้ว" : "ปิดสิทธิ์เคลมอยู่"}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                      <button className="button gold" type="button" disabled={loading} onClick={() => setSettings((current) => ({ ...current, reward: { ...current.reward, approved: !current.reward.approved } }))} style={{ height: "28px", fontSize: "10px" }}>
-                        {settings.reward.approved ? "🔒 ปิดสิทธิ์เคลมหน้าแรก" : "🔓 เปิดสิทธิ์เคลมหน้าแรก"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "34px", fontWeight: "bold" }}>💾 บันทึกผู้ชนะ & เปิดให้เคลมรางวัล</button>
-                </form>
-              </div>
-
-              {/* ส่วนที่ 3: สรุปคะแนนล้างกระดานอันดับ (Reset Standings for New Month) */}
-              <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
-                  <h2>🏁 3. ปุ่มเคลียร์คะแนนกระดานเพื่อเริ่มซีซั่นใหม่ (Reset Standings)</h2>
-                </div>
-                <div className="modal-body" style={{ padding: "12px 0 0 0", display: "grid", gap: "10px" }}>
-                  <span className="meta" style={{ textTransform: "none", color: "var(--muted)", lineHeight: "1.4" }}>
-                    *กดเพื่อปิดบันทึกตารางอันดับ Top 20 ของฤดูกาล "{settings.reward.month}" นี้ลงฐานข้อมูลถาวร และรีเซ็ตแต้มสะสมกำไร (Season Profit) ของทุกคนกลับเหลือ 0 แต้มเพื่อเริ่มสะสมแต้มเก็บรอบใหม่ (ปุ่มแยกอิสระ กดเมื่อสิ้นสุดการแข่ง)
-                  </span>
-                  <button className="button gold" type="button" disabled={loading} onClick={finalizeLeaderboard} style={{ width: "100%", height: "38px", fontWeight: "bold" }}>
-                    🏁 สรุปปิดประวัติคะแนน "{settings.reward.month}" & เคลียร์กระดานเป็น 0
-                  </button>
-                </div>
               </div>
 
               <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
@@ -1775,72 +1547,23 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
             </section>
           )}
 
-          {activeTab === "claims" && (
-            <section className="panel" style={{ width: "100%", maxWidth: "760px", display: "grid", gap: "16px", margin: "0 auto" }}>
-              <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h3>รายการจัดส่งของรางวัลประจำเดือน</h3><span className="micro">{claims.length} รายการ</span></div>
-                <div className="leaderboard-body" style={{ gap: "12px", padding: "12px 0 0 0" }}>
-                  {currentClaims.length ? currentClaims.map((item) => (
-                    <div key={item.id} className="question active" style={{ padding: "14px", display: "grid", gap: "8px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontSize: "14px", fontWeight: "bold", color: "var(--yellow)" }}>{item.month} · {item.rewardName}</span>
-                        <b style={{ 
-                          fontSize: "11px", 
-                          color: item.status === "completed" ? "var(--green)" : "var(--yellow)", 
-                          background: item.status === "completed" ? "rgba(14, 203, 129, 0.12)" : "var(--yellow-soft)", 
-                          padding: "3px 8px", 
-                          borderRadius: "999px" 
-                        }}>
-                          {item.status === "completed" ? "จัดส่งสำเร็จ" : "รอดำเนินการจัดส่ง"}
-                        </b>
-                      </div>
-                      
-                      <div className="info-block" style={{ background: "var(--bg)", gap: "4px" }}>
-                        <span style={{ fontSize: "11px", color: "var(--text)" }}>แอคเคาท์ผู้ชนะ: <strong>{item.winnerName} ({item.winnerEmail})</strong></span>
-                        <span style={{ fontSize: "11px", color: "var(--text)" }}>ชื่อจริงผู้รับพัสดุ: <strong style={{ color: "#fff" }}>{item.receiverName}</strong></span>
-                        <span style={{ fontSize: "11px", color: "var(--text)" }}>เบอร์โทรศัพท์ติดต่อ: <strong style={{ color: "#fff" }}>{item.phone}</strong></span>
-                        <span style={{ fontSize: "11px", color: "var(--text)", lineHeight: "1.4" }}>ที่อยู่จัดส่ง: <strong style={{ color: "#fff" }}>{item.address}</strong></span>
-                        {item.note && <span style={{ fontSize: "11px", color: "var(--text)" }}>หมายเหตุเพิ่มเติม: <i>{item.note}</i></span>}
-                      </div>
-
-                      {item.status !== "completed" ? (
-                        <div style={{ display: "grid", gap: "6px", marginTop: "8px" }}>
-                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                            <span style={{ fontSize: "11px", color: "var(--text-weak)", textAlign: "left" }}>ข้อความแจ้งผู้ชนะ (เช่น เลขพัสดุ, วันส่งมอบ หรือช่องทางการติดต่อ):</span>
-                            <input
-                              type="text"
-                              value={trackingInputs[item.id] || ""}
-                              onChange={(e) => setTrackingInputs((current) => ({ ...current, [item.id]: e.target.value }))}
-                              placeholder="กรอกรายละเอียดจัดส่งพัสดุ หรือข้อความที่ต้องการแจ้งผู้ชนะที่นี่..."
-                              style={{ height: "30px", fontSize: "11px", padding: "0 8px", background: "var(--bg)", border: "1px solid var(--hairline)", color: "#fff", borderRadius: "4px", width: "100%", textAlign: "left" }}
-                            />
-                          </div>
-                          <button 
-                            className="button gold" 
-                            disabled={loading} 
-                            onClick={() => updateClaimStatus(item.id, "completed", trackingInputs[item.id] || "")}
-                            style={{ height: "30px", width: "100%", fontWeight: "bold", marginTop: "4px" }}
-                          >
-                            ✔️ บันทึกข้อความและแจ้งจัดส่งสำเร็จ
-                          </button>
-                        </div>
-                      ) : (
-                        <div style={{ background: "rgba(14, 203, 129, 0.08)", border: "1px dashed rgba(14, 203, 129, 0.2)", borderRadius: "6px", padding: "8px", marginTop: "8px", fontSize: "11px", textAlign: "left" }}>
-                          <span style={{ color: "var(--green)", fontWeight: "bold", display: "block", marginBottom: "2px" }}>✓ ข้อความที่ส่งแจ้งผู้ชนะแล้ว:</span>
-                          <span style={{ color: "#fff" }}>{item.trackingNumber || "(ไม่มีข้อความรายละเอียด)"}</span>
-                        </div>
-                      )}
-                    </div>
-                  )) : <div className="question"><strong>ยังไม่มีผู้ชนะกรอกรายละเอียดจัดส่งรางวัลเข้ามาในขณะนี้</strong></div>}
+          {activeTab === "shop" && (
+            <section className="panel" style={{ width: "100%", maxWidth: "600px", display: "grid", gap: "16px", margin: "0 auto" }}>
+              <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
+                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
+                  <h2>🛒 ตั้งค่าหน้า Shop</h2>
                 </div>
-                {claimsTotalPages > 1 && (
-                  <div className="history-footer" style={{ marginTop: "16px" }}>
-                    <button className="button" disabled={claimsPage <= 1} onClick={() => setClaimsPage(claimsPage - 1)}>ก่อนหน้า</button>
-                    <span className="micro">หน้า {claimsPage} / {claimsTotalPages}</span>
-                    <button className="button" disabled={claimsPage >= claimsTotalPages} onClick={() => setClaimsPage(claimsPage + 1)}>ถัดไป</button>
+                <div className="modal-body" style={{ padding: "12px 0 0 0", display: "grid", gap: "10px" }}>
+                  <span className="meta" style={{ textTransform: "none", color: "var(--muted)", lineHeight: "1.4" }}>
+                    *ระบบ Shop จะเปิดให้บริการเร็วๆ นี้ สามารถแก้ไขข้อความที่แสดงในหน้าเว็บได้ที่นี่
+                  </span>
+                  <div style={{ display: "grid", gap: "4px" }}>
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ข้อความแสดงในหน้า Shop (หน้าบ้าน)</span>
+                    <input value={settings.reward.name} onChange={(event) => setSettings((current) => ({ ...current, reward: { ...current.reward, name: event.target.value } }))} placeholder='เช่น บริการเร็วๆ นี้' style={{ height: "34px" }} />
                   </div>
-                )}
-              </section>
+                  <button className="button primary" disabled={loading} type="button" onClick={saveSettings} style={{ marginTop: "4px", width: "100%", height: "34px", fontWeight: "bold" }}>💾 บันทึกการตั้งค่า Shop</button>
+                </div>
+              </div>
             </section>
           )}
 

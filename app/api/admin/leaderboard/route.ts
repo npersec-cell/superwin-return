@@ -17,8 +17,8 @@ export async function GET() {
     // ดึงผู้ใช้ 10 อันดับแรกที่มี monthly_profit สูงสุดเพื่อทำ dropdown หน้ารางวัล
     const { data, error } = await supabase
       .from("users")
-      .select("id, email, display_name, monthly_profit")
-      .order("monthly_profit", { ascending: false })
+      .select("id, email, display_name, lifetime_profit")
+      .order("lifetime_profit", { ascending: false })
       .limit(10);
 
     if (error) throw new Error(error.message);

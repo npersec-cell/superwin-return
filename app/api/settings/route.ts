@@ -6,13 +6,13 @@ export const dynamic = "force-dynamic";
 const fallbackSettings = {
   info: {
     howToPlay: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล",
-    reward: "ลุ้นติดอันดับ Season Top 10 วัดจากกำไรสุทธิประจำซีซั่น (Season Profit) ผู้ชนะอันดับ 1 จะได้รับของรางวัลพิเศษหลังแอดมินยืนยัน",
+    reward: "เล่นได้ตลอดเวลาไม่มีจบ สะสมกำไรสุทธิเพื่อขึ้นอันดับ All time Top 10 และแลกของรางวัลผ่าน Shop (เร็วๆ นี้)",
     questionTime: "แต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
   },
   reward: {
-    name: "Season Prize",
-    winnerBy: "Season Profit",
-    month: "Season 1",
+    name: "Shop",
+    winnerBy: "All time Profit",
+    month: "Continuous",
     approved: false
   },
   tournaments: [
@@ -23,12 +23,7 @@ const fallbackSettings = {
     "Which team will get the Chicken Dinner?",
     "Who will get the most kills in this match?"
   ],
-  season: {
-    startAt: "2026-05-01T00:00",
-    endAt: "2026-05-31T17:00",
-    status: "active"
-  },
-  announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the Season Top 10!"
+  announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the All time Top 10!"
 };
 
 export async function GET() {

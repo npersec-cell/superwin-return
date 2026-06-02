@@ -19,20 +19,6 @@ type Question = {
   options: PredictionOption[];
 };
 
-type WinnerClaim = {
-  id: string;
-  month: string;
-  rewardName: string;
-  winnerName: string;
-  winnerEmail: string;
-  receiverName: string;
-  phone: string;
-  address: string;
-  note: string;
-  status: "pending" | "contacting" | "completed";
-  trackingNumber: string;
-};
-
 type HistoryItem = {
   month: string;
   date: string;
@@ -114,11 +100,6 @@ type SiteSettings = {
   };
   tournaments: (string | { name: string; logoUrl: string })[];
   savedQuestions: string[];
-  season?: {
-    startAt: string;
-    endAt: string;
-    status: string;
-  };
   predictionOrder?: string[];
   announcement?: string;
 };
@@ -132,7 +113,7 @@ function maskName(name: string): string {
 
 type UserProfileStats = {
   name: string;
-  seasonProfit: number;
+  allTimeProfit: number;
   winRate: number;
   wonCount: number;
   lostCount: number;
@@ -282,13 +263,13 @@ const demoQuestions: Question[] = [
 const defaultSettings: SiteSettings = {
   info: {
     howToPlay: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล",
-    reward: "ลุ้นติดอันดับ Season Top 10 วัดจากกำไรสุทธิประจำซีซั่น (Season Profit) ผู้ชนะอันดับ 1 จะได้รับของรางวัลพิเศษหลังแอดมินยืนยัน",
+    reward: "เล่นได้ตลอดเวลาไม่มีจบ สะสมกำไรสุทธิเพื่อขึ้นอันดับ All time Top 10 และแลกของรางวัลผ่าน Shop (เร็วๆ นี้)",
     questionTime: "แต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
   },
   reward: {
-    name: "Season Prize",
-    winnerBy: "Season Profit",
-    month: "Season 1"
+    name: "Shop",
+    winnerBy: "All time Profit",
+    month: "Continuous"
   },
   tournaments: [{ name: "Super League", logoUrl: "" }],
   savedQuestions: [
@@ -296,11 +277,6 @@ const defaultSettings: SiteSettings = {
     "Which team will get the Chicken Dinner?",
     "Who will get the most kills in this match?"
   ],
-  season: {
-    startAt: "2026-05-01T00:00",
-    endAt: "2026-05-31T17:00",
-    status: "active"
-  },
   announcement: ""
 };
 
@@ -373,10 +349,7 @@ export default function SuperWinPrototype() {
   const [running, setRunning] = useState<RunningPrediction[]>([]);
   const [questionDeadlines, setQuestionDeadlines] = useState<Record<string, number>>({});
   const [claimLabel, setClaimLabel] = useState("Ready");
-  const [monthLabel, setMonthLabel] = useState("--");
-  const [monthEndUtcLabel, setMonthEndUtcLabel] = useState("--");
-  const [winnerClaim, setWinnerClaim] = useState<WinnerClaim | null>(null);
-  const [openModal, setOpenModal] = useState<"history" | "running" | "info" | "claim" | null>(null);
+  const [openModal, setOpenModal] = useState<"history" | "running" | "info" | null>(null);
   const [toast, setToast] = useState<Record<string, string>>({});
   const [accountStatus, setAccountStatus] = useState<"demo" | "loading" | "synced" | "error">("demo");
   const [accountRole, setAccountRole] = useState<"user" | "admin">("user");
@@ -516,7 +489,6 @@ export default function SuperWinPrototype() {
         setAccountStatus("synced");
         loadHistory("All", 1);
         loadRunningPredictions().catch(() => undefined);
-        loadWinnerClaim().catch(() => undefined);
         loadLeaderboard().catch(() => undefined);
       })
       .catch(() => {
@@ -558,33 +530,6 @@ export default function SuperWinPrototype() {
         const seconds = Math.floor((claimRemaining % 60000) / 1000);
         setClaimLabel(`${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`);
       }
-
-      const isSeasonEnded = settings.season?.status === "ended";
-      if (isSeasonEnded) {
-        setMonthLabel("Season Ended");
-        setMonthEndUtcLabel("Next Season Starting Soon");
-        return;
-      }
-
-      const now = new Date();
-      const seasonEnd = settings.season?.endAt ? new Date(settings.season.endAt) : new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
-      const monthRemaining = Math.max(0, seasonEnd.getTime() - now.getTime());
-      if (monthRemaining <= 0) {
-        setMonthLabel("Season Ended");
-        setMonthEndUtcLabel("Finalizing Standings");
-        return;
-      }
-
-      const days = Math.floor(monthRemaining / 86400000);
-      const hours = Math.floor((monthRemaining % 86400000) / 3600000);
-      const minutes = Math.floor((monthRemaining % 3600000) / 60000);
-      setMonthLabel(`${days}d ${hours}h ${minutes}m`);
-
-      const bkkDay = String(seasonEnd.getDate()).padStart(2, "0");
-      const bkkMonth = seasonEnd.toLocaleString("en-GB", { month: "short", timeZone: "Asia/Bangkok" });
-      const bkkYear = seasonEnd.getFullYear();
-      const bkkTime = seasonEnd.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Bangkok" });
-      setMonthEndUtcLabel(`${bkkDay} ${bkkMonth} ${bkkYear} ${bkkTime} (GMT+7)`);
     };
     tick();
     const timer = window.setInterval(tick, 1000);
@@ -611,9 +556,7 @@ export default function SuperWinPrototype() {
 
   const userRank = leaderboard.findIndex((row) => row.name === "You") + 1;
 
-  const isSeasonEnded = settings.season?.status === "ended";
   const openQuestions = useMemo(() => {
-    if (isSeasonEnded) return [];
     const list = liveQuestions.filter((question) => Date.now() < Number(questionDeadlines[question.id] || 0));
     const order = settings.predictionOrder || [];
     return [...list].sort((a, b) => {
@@ -624,7 +567,7 @@ export default function SuperWinPrototype() {
       if (idxB === -1) return -1;
       return idxA - idxB;
     });
-  }, [liveQuestions, questionDeadlines, isSeasonEnded, settings.predictionOrder]);
+  }, [liveQuestions, questionDeadlines, settings.predictionOrder]);
   const groupedOpenQuestions = Object.entries(
     openQuestions.reduce<Record<string, Question[]>>((groups, question) => {
       groups[question.tournament] = groups[question.tournament] || [];
@@ -671,7 +614,7 @@ export default function SuperWinPrototype() {
     // show modal immediately with loading state
     setSelectedProfile({
       name: userName,
-      seasonProfit: 0,
+      allTimeProfit: 0,
       winRate: 0,
       wonCount: 0,
       lostCount: 0,
@@ -715,17 +658,6 @@ export default function SuperWinPrototype() {
       }
     } catch {
       // ignore
-    }
-  }
-
-  async function loadWinnerClaim() {
-    if (!isSignedIn) return;
-    const response = await fetch("/api/claims");
-    const payload = await response.json();
-    if (response.ok && payload.ok && payload.data) {
-      setWinnerClaim(payload.data);
-    } else {
-      setWinnerClaim(null);
     }
   }
 
@@ -966,11 +898,6 @@ export default function SuperWinPrototype() {
                   <span>{coins}</span> Coins
                 </span>
                 <span className="pill">{accountStatus === "synced" ? "Synced" : accountStatus === "loading" ? "Syncing" : accountStatus === "error" ? "Sync Error" : "Demo"}</span>
-                {winnerClaim && (
-                  <button className="button gold" onClick={() => setOpenModal("claim")} style={{ animation: "pulse 1.8s infinite" }}>
-                    🎁 Claim Reward
-                  </button>
-                )}
                 <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Claim 100</button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                 <button className="button gold" onClick={() => { setHistoryPage(1); setOpenModal("history"); }}>History</button>
@@ -1006,30 +933,11 @@ export default function SuperWinPrototype() {
           </div>
         )}
 
-        {winnerClaim && (
-          <div className="winner-banner" onClick={() => setOpenModal("claim")} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", background: "var(--yellow-soft)", border: "1px solid var(--yellow)", borderRadius: "10px", padding: "10px 14px", margin: "4px 0 10px 0", fontSize: "11px", color: "var(--yellow)", fontWeight: "bold", textAlign: "center" }}>
-            {winnerClaim.status === "pending" && (
-              <span>🎉 CONGRATULATIONS! You won the {winnerClaim.month} {winnerClaim.rewardName}! Click here to enter your delivery address & claim your prize!</span>
-            )}
-            {winnerClaim.status === "contacting" && (
-              <span>📦 Address submitted! Admins are packing your {winnerClaim.month} {winnerClaim.rewardName}. Click to review details.</span>
-            )}
-            {winnerClaim.status === "completed" && (
-              <span>🏆 Prize delivered! Your {winnerClaim.month} {winnerClaim.rewardName} has been delivered successfully! (Click for details)</span>
-            )}
-          </div>
-        )}
-
         {isSignedIn && (
         <section className="stats" aria-label="Account stats">
-          <div className="stat"><span className="label">Season Profit</span><b className="value">{profit}</b></div>
-          <div className="stat"><span className="label">Season Rank</span><b className="value">{userRank ? `#${userRank}` : "--"}</b></div>
+          <div className="stat"><span className="label">All time Profit</span><b className="value">{profit}</b></div>
+          <div className="stat"><span className="label">All time Rank</span><b className="value">{userRank ? `#${userRank}` : "--"}</b></div>
           <div className="stat"><span className="label">Next Claim</span><b className="value">{claimLabel}</b></div>
-          <div className="stat">
-            <span className="label">Season Ends</span>
-            <b className="value">{monthLabel}</b>
-            <span className="meta" style={{ display: "block", marginTop: "3px", fontSize: "8.5px", letterSpacing: "0", opacity: 0.8 }}>{monthEndUtcLabel}</span>
-          </div>
         </section>
         )}
 
@@ -1112,8 +1020,8 @@ export default function SuperWinPrototype() {
                 </div>
               )) : (
                 <div className="question">
-                  <span className="question-title">{isSeasonEnded ? "The season has ended!" : "No open questions"}</span>
-                  <span className="meta">{isSeasonEnded ? "We are currently finalizing the leaderboard rankings and preparing the rewards. Please stay tuned for the next season!" : "Submitted predictions are waiting in Running"}</span>
+                  <span className="question-title">No open questions</span>
+                  <span className="meta">Submitted predictions are waiting in Running</span>
                 </div>
               )}
             </div>
@@ -1121,7 +1029,7 @@ export default function SuperWinPrototype() {
 
           <aside className="side">
             <section className="panel">
-              <div className="panel-head"><h3>Season Top 10</h3><span className="micro">Profit this season</span></div>
+              <div className="panel-head"><h3>All time Top 10</h3><span className="micro">All time profit</span></div>
               <div className="leaderboard-body">
                 {leaderboard.map((row, index) => {
                   const targetId = row.id || (row.name === "You" ? currentUserId : null);
@@ -1166,11 +1074,9 @@ export default function SuperWinPrototype() {
               </div>
             </section>
             <section className="panel">
-              <div className="panel-head"><h3>Prize</h3><span className="micro">Rank 1</span></div>
-              <div className="reward">
-                <div className="reward-line"><span>Season</span><b className="accent-gold">{settings.reward.month}</b></div>
-                <div className="reward-line"><span>Reward</span><b className="accent-gold">{settings.reward.name}</b></div>
-                <div className="reward-line"><span>Winner by</span><b className="accent-gold">{settings.reward.winnerBy}</b></div>
+              <div className="panel-head"><h3>Shop</h3><span className="micro">Coming soon</span></div>
+              <div style={{ padding: "18px 16px", textAlign: "center", color: "var(--muted)" }}>
+                บริการเร็วๆ นี้
               </div>
             </section>
 
@@ -1245,9 +1151,6 @@ export default function SuperWinPrototype() {
       {openModal === "history" && <HistoryModal historyRows={historyRows} historyFilter={historyFilter} historyPage={historyPage} historyTotalPages={activeHistoryTotalPages} setHistoryFilter={(value) => { setHistoryFilter(value); setHistoryPage(1); if (isSignedIn) loadHistory(value, 1, true).catch(() => setAccountStatus("error")); }} setHistoryPage={(value) => { setHistoryPage(value); if (isSignedIn) loadHistory(historyFilter, value).catch(() => setAccountStatus("error")); }} onClose={() => setOpenModal(null)} />}
       {openModal === "running" && <RunningModal running={running} onClose={() => setOpenModal(null)} />}
       {openModal === "info" && <InfoModal settings={settings} onClose={() => setOpenModal(null)} />}
-      {openModal === "claim" && winnerClaim && (
-        <ClaimModal claim={winnerClaim} onClaimSubmitted={(updatedClaim) => { setWinnerClaim(updatedClaim); setOpenModal(null); }} onClose={() => setOpenModal(null)} />
-      )}
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
       )}
@@ -1367,127 +1270,6 @@ function InfoModal({ settings, onClose }: { settings: SiteSettings; onClose: () 
   );
 }
 
-function ClaimModal({
-  claim,
-  onClaimSubmitted,
-  onClose
-}: {
-  claim: WinnerClaim;
-  onClaimSubmitted: (updatedClaim: WinnerClaim) => void;
-  onClose: () => void;
-}) {
-  const modalRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    requestAnimationFrame(() => requestAnimationFrame(() => modalRef.current?.classList.add("open")));
-  }, []);
-  const [receiverName, setReceiverName] = useState(claim.receiverName || "");
-  const [phone, setPhone] = useState(claim.phone || "");
-  const [address, setAddress] = useState(claim.address || "");
-  const [note, setNote] = useState(claim.note || "");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!receiverName.trim() || !phone.trim() || !address.trim()) {
-      setError("Please fill out Name, Phone and Address fields.");
-      return;
-    }
-    setLoading(false);
-    setError("");
-    try {
-      const response = await fetch("/api/claims", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          receiverName,
-          phone,
-          address,
-          note
-        })
-      });
-      const payload = await response.json();
-      if (!response.ok || !payload.ok || !payload.data) {
-        throw new Error(payload.error || "Failed to submit shipping details");
-      }
-      onClaimSubmitted(payload.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Submission failed");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <section ref={modalRef} className="modal" aria-label="Claim Reward" onClick={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="modal-card" style={{ maxWidth: "520px" }}>
-        <div className="modal-head">
-          <h3>Claim Reward · {claim.month}</h3>
-          <button className="button" onClick={onClose}>Close</button>
-        </div>
-        <div className="modal-body" style={{ gap: "14px" }}>
-          {error && <div style={{ color: "#ff4d4f", fontSize: "11px", fontWeight: "bold" }}>⚠️ {error}</div>}
-
-          <div className="info-block" style={{ background: "var(--card)" }}>
-            <h4 style={{ color: "var(--yellow)", margin: "0 0 4px 0" }}>Reward Information</h4>
-            <span style={{ fontSize: "12px", color: "var(--text)" }}>Month: <strong>{claim.month}</strong></span>
-            <span style={{ fontSize: "12px", color: "var(--text)" }}>Reward: <strong>{claim.rewardName}</strong></span>
-            <span style={{ fontSize: "12px", color: "var(--text)" }}>Winner Account: <strong>{claim.winnerName}</strong></span>
-          </div>
-
-          {claim.status === "pending" ? (
-            <form onSubmit={handleSubmit} style={{ display: "grid", gap: "10px" }}>
-              <div style={{ display: "grid", gap: "4px" }}>
-                <span className="meta" style={{ color: "var(--yellow)" }}>Receiver Full Name (ชื่อ-นามสกุลจริงผู้รับ)</span>
-                <input value={receiverName} onChange={(event) => setReceiverName(event.target.value)} placeholder="Full Name" required style={{ height: "34px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", padding: "0 10px", color: "#fff" }} />
-              </div>
-              <div style={{ display: "grid", gap: "4px" }}>
-                <span className="meta" style={{ color: "var(--yellow)" }}>Contact Phone Number (เบอร์โทรศัพท์)</span>
-                <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Phone Number" required style={{ height: "34px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", padding: "0 10px", color: "#fff" }} />
-              </div>
-              <div style={{ display: "grid", gap: "4px" }}>
-                <span className="meta" style={{ color: "var(--yellow)" }}>Shipping Address (ที่อยู่จัดส่งโดยละเอียด)</span>
-                <textarea rows={3} value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Enter full shipping address, subdistrict, district, province, postal code" required style={{ background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", padding: "8px 10px", color: "#fff" }} />
-              </div>
-              <div style={{ display: "grid", gap: "4px" }}>
-                <span className="meta" style={{ color: "var(--yellow)" }}>Note to Admin (หมายเหตุถึงแอดมิน - ถ้ามี)</span>
-                <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional note" style={{ height: "34px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", padding: "0 10px", color: "#fff" }} />
-              </div>
-              <button className="button gold" type="submit" disabled={loading} style={{ height: "38px", marginTop: "8px", borderRadius: "999px" }}>
-                {loading ? "Submitting..." : "Submit Shipping Address & Claim Reward"}
-              </button>
-            </form>
-          ) : (
-            <div style={{ display: "grid", gap: "12px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifySelf: "center", gap: "8px", padding: "10px 16px", background: claim.status === "completed" ? "rgba(14, 203, 129, 0.14)" : "var(--yellow-soft)", border: claim.status === "completed" ? "1px solid var(--green)" : "1px solid var(--yellow)", borderRadius: "8px", width: "100%", justifyContent: "center" }}>
-                <span style={{ fontSize: "20px" }}>{claim.status === "completed" ? "🏆" : "📦"}</span>
-                <div style={{ display: "grid" }}>
-                  <strong style={{ color: claim.status === "completed" ? "var(--green)" : "var(--yellow)", fontSize: "13px" }}>
-                    Status: {claim.status === "completed" ? "Delivered Successfully" : "Preparing Shipment"}
-                  </strong>
-                  {claim.status === "completed" && claim.trackingNumber && (
-                    <span style={{ fontSize: "11px", color: "var(--text-strong)" }}>
-                      Shipping Details: <strong>{claim.trackingNumber}</strong>
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="info-block" style={{ background: "var(--card)", gap: "6px" }}>
-                <h4 style={{ color: "var(--yellow)", margin: "0 0 4px 0" }}>Submitted Delivery Details</h4>
-                <span style={{ fontSize: "11px", color: "var(--text)" }}>Receiver: <strong>{claim.receiverName}</strong></span>
-                <span style={{ fontSize: "11px", color: "var(--text)" }}>Phone: <strong>{claim.phone}</strong></span>
-                <span style={{ fontSize: "11px", color: "var(--text)", lineHeight: "1.4" }}>Address: <strong>{claim.address}</strong></span>
-                {claim.note && <span style={{ fontSize: "11px", color: "var(--text)" }}>Note: <i>{claim.note}</i></span>}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function ProfileModal({
   profile,
   onClose
@@ -1525,9 +1307,9 @@ function ProfileModal({
                   </span>
                 </div>
                 <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>SEASON PROFIT</span>
-                  <strong style={{ display: "block", fontSize: "18px", color: profile.seasonProfit >= 0 ? "var(--green)" : "var(--red)", marginTop: "4px" }}>
-                    {profile.seasonProfit >= 0 ? "+" : ""}{profile.seasonProfit}
+                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>ALL TIME PROFIT</span>
+                  <strong style={{ display: "block", fontSize: "18px", color: profile.allTimeProfit >= 0 ? "var(--green)" : "var(--red)", marginTop: "4px" }}>
+                    {profile.allTimeProfit >= 0 ? "+" : ""}{profile.allTimeProfit}
                   </strong>
                   <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
                     Total settled: {profile.totalSettled}
@@ -1555,7 +1337,7 @@ function ProfileModal({
                 <h4 className="meta" style={{ color: "var(--yellow)", fontSize: "11px", margin: "4px 0" }}>⚡ Last 5 Settled Predictions</h4>
                 {!profile.history || profile.history.length === 0 ? (
                   <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)", fontSize: "11px" }}>
-                    No settled predictions found for this season.
+                    No settled predictions found.
                   </div>
                 ) : (
                   <div style={{ display: "grid", gap: "6px", maxHeight: "180px", overflowY: "auto" }}>

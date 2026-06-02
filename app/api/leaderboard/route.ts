@@ -10,17 +10,17 @@ export async function GET() {
     // 1. ดึงผู้เล่นทั่วไปที่มีประวัติคะแนน (คัดแอดมินออก)
     const { data: nonAdmins, error: err1 } = await supabase
       .from("users")
-      .select("id, display_name, email, monthly_profit, avatar_url")
+      .select("id, display_name, email, lifetime_profit, avatar_url")
       .neq("role", "admin")
-      .order("monthly_profit", { ascending: false })
+      .order("lifetime_profit", { ascending: false })
       .limit(10);
 
     if (err1) throw new Error(err1.message);
 
-    const rows = (nonAdmins || []).map((user) => ({
+      const rows = (nonAdmins || []).map((user) => ({
       id: user.id,
       name: user.email.split("@")[0], // ใช้แค่นำหน้าอีเมลก่อน @ เพื่อความเป็นส่วนตัวสูงสุด
-      profit: user.monthly_profit || 0,
+      profit: user.lifetime_profit || 0,
       avatarUrl: user.avatar_url || null,
       isReal: true
     }));
@@ -29,7 +29,7 @@ export async function GET() {
     if (rows.length < 10) {
       const { data: allUsers, error: err2 } = await supabase
         .from("users")
-        .select("id, display_name, email, monthly_profit, avatar_url")
+        .select("id, display_name, email, lifetime_profit, avatar_url")
         .limit(20);
 
       if (!err2 && allUsers) {
@@ -39,7 +39,7 @@ export async function GET() {
             rows.push({
               id: user.id,
               name,
-              profit: user.monthly_profit || 0,
+              profit: user.lifetime_profit || 0,
               avatarUrl: user.avatar_url || null,
               isReal: true
             });
