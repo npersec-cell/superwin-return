@@ -322,6 +322,8 @@ export default function SuperWinPrototype() {
   const [historyPage, setHistoryPage] = useState(1);
   const historyPageSize = 10;
   const [historyTotalPages, setHistoryTotalPages] = useState(1);
+  const [runningPage, setRunningPage] = useState(1);
+  const runningPageSize = 10;
   const [questionDeadlines, setQuestionDeadlines] = useState<Record<string, number>>({});
   const [claimLabel, setClaimLabel] = useState("Ready");
   const [openModal, setOpenModal] = useState<"history" | "running" | "info" | null>(null);
@@ -1115,7 +1117,7 @@ export default function SuperWinPrototype() {
         </section>
       </div>
 
-      {openModal === "running" && <RunningModal running={running} onClose={() => setOpenModal(null)} />}
+      {openModal === "running" && <RunningModal running={running} runningPage={runningPage} runningPageSize={runningPageSize} setRunningPage={(page) => { setRunningPage(page); }} onClose={() => setOpenModal(null)} />}
       {openModal === "info" && <InfoModal settings={settings} onClose={() => setOpenModal(null)} />}
       {openModal === "history" && <HistoryModal history={history} historyFilter={historyFilter} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} historyTotalPages={historyTotalPages} setHistoryPage={setHistoryPage} setHistoryFilter={(value) => { setHistoryFilter(value); loadHistory(value, 1); }} onClose={() => setOpenModal(null)} />}
       {selectedProfile && (
@@ -1125,18 +1127,21 @@ export default function SuperWinPrototype() {
   );
 }
 
-function RunningModal({ running, onClose }: { running: RunningPrediction[]; onClose: () => void }) {
+function RunningModal({ running, runningPage, runningPageSize, setRunningPage, onClose }: { running: RunningPrediction[]; runningPage: number; runningPageSize: number; setRunningPage: (page: number) => void; onClose: () => void }) {
   const modalRef = useRef<HTMLElement>(null);
   useEffect(() => {
     requestAnimationFrame(() => requestAnimationFrame(() => modalRef.current?.classList.add("open")));
   }, []);
+  const totalPages = Math.max(1, Math.ceil(running.length / runningPageSize));
+  const start = (runningPage - 1) * runningPageSize;
+  const rows = running.slice(start, start + runningPageSize);
   return (
     <section ref={modalRef} className="modal" aria-label="Running predictions" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card">
         <div className="modal-head"><h3>Running Predictions</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body">
           <div className="running-list">
-            {running.length ? running.map((item) => {
+            {rows.length ? rows.map((item) => {
               const formattedDate = item.createdAt ? new Date(item.createdAt).toLocaleString("en-GB", {
                 day: "2-digit",
                 month: "short",
@@ -1155,6 +1160,13 @@ function RunningModal({ running, onClose }: { running: RunningPrediction[]; onCl
               );
             }) : <div className="running-row"><span>No running predictions</span><b className="accent-gold">0</b></div>}
           </div>
+          {totalPages > 1 && (
+            <div className="history-footer">
+              <button className="button" disabled={runningPage <= 1} onClick={() => setRunningPage(runningPage - 1)}>Prev</button>
+              <span className="micro">{runningPage} / {totalPages}</span>
+              <button className="button" disabled={runningPage >= totalPages} onClick={() => setRunningPage(runningPage + 1)}>Next</button>
+            </div>
+          )}
         </div>
       </div>
     </section>
