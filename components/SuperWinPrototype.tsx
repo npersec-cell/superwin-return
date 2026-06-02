@@ -363,23 +363,32 @@ export default function SuperWinPrototype() {
 
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportMessage, setReportMessage] = useState("");
-  const [captchaNum1, setCaptchaNum1] = useState(0);
-  const [captchaNum2, setCaptchaNum2] = useState(0);
+  const [captchaQuestion, setCaptchaQuestion] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
   const [reportSuccess, setReportSuccess] = useState(false);
 
-  const generateCaptcha = () => {
-    setCaptchaNum1(Math.floor(Math.random() * 9) + 1);
-    setCaptchaNum2(Math.floor(Math.random() * 9) + 1);
+  const loadCaptcha = async () => {
+    try {
+      const res = await fetch("/api/reports");
+      const data = await res.json();
+      if (data.ok) {
+        setCaptchaQuestion(data.question);
+        setCaptchaToken(data.token);
+      }
+    } catch {
+      setCaptchaQuestion("Refresh page");
+      setCaptchaToken("");
+    }
     setCaptchaAnswer("");
     setReportError(null);
   };
 
   useEffect(() => {
     if (showReportForm) {
-      generateCaptcha();
+      loadCaptcha();
       setReportSuccess(false);
       setReportMessage("");
     }
@@ -394,8 +403,7 @@ export default function SuperWinPrototype() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: reportMessage,
-          num1: captchaNum1,
-          num2: captchaNum2,
+          token: captchaToken,
           answer: captchaAnswer
         })
       });
@@ -1119,7 +1127,7 @@ export default function SuperWinPrototype() {
                       <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                         <span style={{ color: "var(--text-weak)" }}>Solve captcha to submit:</span>
                         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                          <span style={{ fontWeight: "bold", color: "var(--text-strong)" }}>{captchaNum1} + {captchaNum2} =</span>
+                          <span style={{ fontWeight: "bold", color: "var(--text-strong)" }}>{captchaQuestion}</span>
                           <input
                             type="text"
                             value={captchaAnswer}
