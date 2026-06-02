@@ -868,7 +868,6 @@ export default function SuperWinPrototype() {
                 <span className="pill gold" style={{ fontSize: "16px", padding: "4px 16px", height: "36px", fontWeight: "bold", border: "1.5px solid var(--yellow)", boxShadow: "0 0 12px rgba(255, 225, 0, 0.3)" }}>
                   <span>{coins}</span> Coins
                 </span>
-                <span className="pill">{accountStatus === "synced" ? "Synced" : accountStatus === "loading" ? "Syncing" : accountStatus === "error" ? "Sync Error" : "Demo"}</span>
                 <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Claim 100</button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                 <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory("All", 1); }}>History</button>
