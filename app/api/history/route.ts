@@ -22,9 +22,9 @@ function formatAction(type: string) {
 function formatDateParts(value: string) {
   const date = new Date(value);
   return {
-    month: date.toLocaleString("en-US", { month: "long", year: "numeric" }),
-    date: date.toLocaleString("en-GB", { day: "2-digit", month: "short" }),
-    time: date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+    month: date.toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "Asia/Bangkok" }),
+    date: date.toLocaleString("en-GB", { day: "2-digit", month: "short", timeZone: "Asia/Bangkok" }),
+    time: date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" })
   };
 }
 
