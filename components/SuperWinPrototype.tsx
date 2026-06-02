@@ -695,7 +695,18 @@ export default function SuperWinPrototype() {
     }));
 
     setLiveQuestions(apiQuestions);
-    setSelected(Object.fromEntries(apiQuestions.map((question) => [question.id, question.options[0]?.name || ""])));
+
+    // Merge selected: keep current selection if still available, otherwise fallback to first option
+    setSelected((currentSelected) => {
+      const merged: Record<string, string> = {};
+      for (const question of apiQuestions) {
+        const current = currentSelected[question.id];
+        const stillAvailable = question.options.find((o) => o.name === current);
+        merged[question.id] = stillAvailable ? current : (question.options[0]?.name || "");
+      }
+      return merged;
+    });
+
     setQuestionDeadlines(Object.fromEntries(apiQuestions.map((question) => [question.id, new Date(question.closesAt || 0).getTime()])));
   }
 
