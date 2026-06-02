@@ -33,24 +33,19 @@ export async function GET(request: NextRequest) {
     const user = await requireUser();
     const searchParams = request.nextUrl.searchParams;
     const filter = searchParams.get("filter") || "All";
-    const page = Math.max(1, Number(searchParams.get("page") || 1));
-    const pageSize = Math.min(10, Math.max(1, Number(searchParams.get("pageSize") || 10)));
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
     const supabase = createSupabaseAdminClient();
     let query = supabase
       .from("coin_ledger")
-      .select("id, type, amount, balance_after, detail, created_at", { count: "exact" })
+      .select("id, type, amount, balance_after, detail, created_at")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .range(from, to);
+      .order("created_at", { ascending: false });
 
     if (filter !== "All") {
       query = query.eq("type", filter.toLowerCase());
     }
 
-    const { data, error, count } = await query.returns<LedgerRow[]>();
+    const { data, error } = await query.returns<LedgerRow[]>();
 
     if (error) {
       throw new Error(error.message || "Failed to load history");
@@ -70,13 +65,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      data: {
-        rows,
-        page,
-        pageSize,
-        total: count || 0,
-        totalPages: Math.max(1, Math.ceil((count || 0) / pageSize))
-      }
+      data: { rows }
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load history";

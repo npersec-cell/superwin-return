@@ -170,10 +170,6 @@ type ApiHistoryResponse = {
   ok: boolean;
   data?: {
     rows: Array<HistoryItem & { id: string; balanceAfter: number }>;
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
   };
   error?: string;
 };
@@ -340,10 +336,8 @@ export default function SuperWinPrototype() {
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [coinInputs, setCoinInputs] = useState<Record<string, number>>({});
   const [history, setHistory] = useState<HistoryItem[]>(defaultHistory);
-  const [historyCache, setHistoryCache] = useState<Record<string, { rows: HistoryItem[]; totalPages: number }>>({});
   const [historyFilter, setHistoryFilter] = useState<"All" | HistoryItem["action"]>("All");
-  const [historyPage, setHistoryPage] = useState(1);
-  const [historyTotalPages, setHistoryTotalPages] = useState(1);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [running, setRunning] = useState<RunningPrediction[]>([]);
   const [questionDeadlines, setQuestionDeadlines] = useState<Record<string, number>>({});
   const [claimLabel, setClaimLabel] = useState("Ready");
@@ -501,7 +495,7 @@ export default function SuperWinPrototype() {
             }
           })
           .catch(() => undefined);
-        loadHistory("All", 1);
+        loadHistory("All");
         loadRunningPredictions().catch(() => undefined);
         loadLeaderboard().catch(() => undefined);
       })
@@ -605,9 +599,7 @@ export default function SuperWinPrototype() {
   });
 
   const filteredHistory = historyFilter === "All" ? history : history.filter((item) => item.action === historyFilter);
-  const demoHistoryTotalPages = Math.max(1, Math.ceil(filteredHistory.length / 10));
-  const activeHistoryTotalPages = isSignedIn ? historyTotalPages : demoHistoryTotalPages;
-  const historyRows = isSignedIn ? filteredHistory : filteredHistory.slice((historyPage - 1) * 10, historyPage * 10);
+  const historyRows = filteredHistory;
 
   async function loadSettings() {
     const response = await fetch("/api/settings");
@@ -727,38 +719,21 @@ export default function SuperWinPrototype() {
     })));
   }
 
-  async function loadHistory(filter = historyFilter, page = historyPage, forceRefetch = false) {
-    if (!isSignedIn) {
-      const localRows = filter === "All" ? history : history.filter((item) => item.action === filter);
-      setHistoryTotalPages(Math.max(1, Math.ceil(localRows.length / 10)));
-      return;
+  async function loadHistory(filter = historyFilter) {
+    if (!isSignedIn) return;
+    setHistoryLoading(true);
+    try {
+      const response = await fetch(`/api/history?filter=${encodeURIComponent(filter)}`);
+      const payload = (await response.json()) as ApiHistoryResponse;
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error || "Failed to load history");
+      }
+      setHistory(payload.data.rows);
+    } catch {
+      setAccountStatus("error");
+    } finally {
+      setHistoryLoading(false);
     }
-
-    const cacheKey = `${filter}-${page}`;
-    if (!forceRefetch && historyCache[cacheKey]) {
-      setHistory(historyCache[cacheKey].rows);
-      setHistoryPage(page);
-      setHistoryTotalPages(historyCache[cacheKey].totalPages);
-      return;
-    }
-
-    const response = await fetch(`/api/history?filter=${encodeURIComponent(filter)}&page=${page}&pageSize=10`);
-    const payload = (await response.json()) as ApiHistoryResponse;
-    if (!response.ok || !payload.ok || !payload.data) {
-      throw new Error(payload.error || "Failed to load history");
-    }
-
-    const rows = payload.data.rows;
-    const totalPages = payload.data.totalPages;
-    const actualPage = payload.data.page;
-
-    setHistoryCache((current) => ({
-      ...current,
-      [cacheKey]: { rows, totalPages }
-    }));
-    setHistory(rows);
-    setHistoryPage(actualPage);
-    setHistoryTotalPages(totalPages);
   }
 
   function selectedOption(question: Question) {
@@ -804,7 +779,7 @@ export default function SuperWinPrototype() {
         setCoins(payload.data.user.coinBalance);
         setProfit(payload.data.user.lifetimeProfit);
         setNextClaimAt(payload.data.user.nextClaimAt ? new Date(payload.data.user.nextClaimAt).getTime() : 0);
-        await loadHistory(historyFilter, historyPage, true);
+        await loadHistory(historyFilter);
       } catch {
         setAccountStatus("error");
       }
@@ -852,7 +827,7 @@ export default function SuperWinPrototype() {
         setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
         setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${answer.name} · now running` }));
         await loadRunningPredictions();
-        await loadHistory(historyFilter, historyPage, true);
+        await loadHistory(historyFilter);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Prediction failed";
         setToast((current) => ({ ...current, [question.id]: message }));
@@ -918,7 +893,7 @@ export default function SuperWinPrototype() {
                 <span className="pill">{accountStatus === "synced" ? "Synced" : accountStatus === "loading" ? "Syncing" : accountStatus === "error" ? "Sync Error" : "Demo"}</span>
                 <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Claim 100</button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
-                <button className="button gold" onClick={() => { setHistoryPage(1); setOpenModal("history"); }}>History</button>
+                <button className="button gold" onClick={() => setOpenModal("history")}>History</button>
                 {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
                 <UserButton />
               </>
@@ -1167,7 +1142,7 @@ export default function SuperWinPrototype() {
         </section>
       </div>
 
-      {openModal === "history" && <HistoryModal historyRows={historyRows} historyFilter={historyFilter} historyPage={historyPage} historyTotalPages={activeHistoryTotalPages} setHistoryFilter={(value) => { setHistoryFilter(value); setHistoryPage(1); if (isSignedIn) loadHistory(value, 1, true).catch(() => setAccountStatus("error")); }} setHistoryPage={(value) => { setHistoryPage(value); if (isSignedIn) loadHistory(historyFilter, value).catch(() => setAccountStatus("error")); }} onClose={() => setOpenModal(null)} />}
+      {openModal === "history" && <HistoryModal historyRows={historyRows} historyFilter={historyFilter} historyLoading={historyLoading} setHistoryFilter={(value) => { setHistoryFilter(value); if (isSignedIn) loadHistory(value).catch(() => setAccountStatus("error")); }} onClose={() => setOpenModal(null)} />}
       {openModal === "running" && <RunningModal running={running} onClose={() => setOpenModal(null)} />}
       {openModal === "info" && <InfoModal settings={settings} onClose={() => setOpenModal(null)} />}
       {selectedProfile && (
@@ -1188,18 +1163,14 @@ function renderHistoryDetail(detail: string) {
 function HistoryModal({
   historyRows,
   historyFilter,
-  historyPage,
-  historyTotalPages,
+  historyLoading,
   setHistoryFilter,
-  setHistoryPage,
   onClose
 }: {
   historyRows: HistoryItem[];
   historyFilter: "All" | HistoryItem["action"];
-  historyPage: number;
-  historyTotalPages: number;
+  historyLoading: boolean;
   setHistoryFilter: (value: "All" | HistoryItem["action"]) => void;
-  setHistoryPage: (value: number) => void;
   onClose: () => void;
 }) {
   const modalRef = useRef<HTMLElement>(null);
@@ -1213,20 +1184,23 @@ function HistoryModal({
         <div className="modal-body">
           <div className="filter-row">
             {(["All", "Predict", "Claim", "Payout"] as const).map((filter) => (
-              <button key={filter} className={`button ${historyFilter === filter ? "active" : ""}`} onClick={() => { setHistoryFilter(filter); setHistoryPage(1); }}>{filter}</button>
+              <button key={filter} className={`button ${historyFilter === filter ? "active" : ""}`} onClick={() => setHistoryFilter(filter)}>{filter}</button>
             ))}
           </div>
           <div>
-            {historyRows.length ? historyRows.map((row, index) => (
+            {historyLoading ? (
+              <div className="history-row" style={{ justifyContent: "center", padding: "24px 0" }}>
+                <span className="micro" style={{ color: "var(--muted)" }}>Loading...</span>
+              </div>
+            ) : historyRows.length ? historyRows.map((row, index) => (
               <div key={`${row.date}-${row.time}-${index}`} className="history-row">
                 <span>{row.date}</span><span>{row.time}</span><span>{row.action}</span><span className="history-detail">{renderHistoryDetail(row.detail)}</span><b className={row.amount >= 0 ? "accent-gold" : "accent-red"}>{money(row.amount)}</b>
               </div>
-            )) : <div className="history-row"><span>No {historyFilter} history</span><b className="accent-gold">0</b></div>}
-          </div>
-          <div className="history-footer">
-            <button className="button" disabled={historyPage <= 1} onClick={() => setHistoryPage(historyPage - 1)}>Prev</button>
-            <span className="micro">Page {historyPage} / {historyTotalPages}</span>
-            <button className="button" disabled={historyPage >= historyTotalPages} onClick={() => setHistoryPage(historyPage + 1)}>Next</button>
+            )) : (
+              <div className="history-row" style={{ justifyContent: "center", padding: "24px 0" }}>
+                <span className="micro" style={{ color: "var(--muted)" }}>No {historyFilter} history</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
