@@ -19,6 +19,24 @@ type Question = {
   options: PredictionOption[];
 };
 
+type HistoryItem = {
+  date: string;
+  time: string;
+  action: "Claim" | "Predict" | "Payout" | "Refund";
+  detail: string;
+  amount: number;
+};
+
+type ApiHistoryResponse = {
+  ok: boolean;
+  data?: {
+    rows: Array<HistoryItem & { id: string; balanceAfter: number }>;
+    page: number;
+    totalPages: number;
+  };
+  error?: string;
+};
+
 type RunningPrediction = {
   id: string;
   questionId: string;
@@ -298,9 +316,15 @@ export default function SuperWinPrototype() {
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [coinInputs, setCoinInputs] = useState<Record<string, number>>({});
   const [running, setRunning] = useState<RunningPrediction[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [historyFilter, setHistoryFilter] = useState<"All" | HistoryItem["action"]>("All");
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const historyPageSize = 10;
+  const [historyTotalPages, setHistoryTotalPages] = useState(1);
   const [questionDeadlines, setQuestionDeadlines] = useState<Record<string, number>>({});
   const [claimLabel, setClaimLabel] = useState("Ready");
-  const [openModal, setOpenModal] = useState<"running" | "info" | null>(null);
+  const [openModal, setOpenModal] = useState<"history" | "running" | "info" | null>(null);
   const [toast, setToast] = useState<Record<string, string>>({});
   const [accountStatus, setAccountStatus] = useState<"demo" | "loading" | "synced" | "error">("demo");
   const [accountRole, setAccountRole] = useState<"user" | "admin">("user");
@@ -683,6 +707,25 @@ export default function SuperWinPrototype() {
     })));
   }
 
+  async function loadHistory(filter = historyFilter, page = 1) {
+    if (!isSignedIn) return;
+    setHistoryLoading(true);
+    try {
+      const response = await fetch(`/api/history?filter=${encodeURIComponent(filter)}&page=${page}&pageSize=${historyPageSize}`);
+      const payload = (await response.json()) as ApiHistoryResponse;
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.error || "Failed to load history");
+      }
+      setHistory(payload.data.rows);
+      setHistoryPage(payload.data.page || 1);
+      setHistoryTotalPages(payload.data.totalPages || 1);
+    } catch {
+      setAccountStatus("error");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
   function selectedOption(question: Question) {
     return question.options.find((option) => option.name === selected[question.id]) || question.options[0];
   }
@@ -823,7 +866,7 @@ export default function SuperWinPrototype() {
                 <span className="pill">{accountStatus === "synced" ? "Synced" : accountStatus === "loading" ? "Syncing" : accountStatus === "error" ? "Sync Error" : "Demo"}</span>
                 <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Claim 100</button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
-                <Link className="button gold" href="/history">History</Link>
+                <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory("All", 1); }}>History</button>
                 {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
                 <UserButton />
               </>
@@ -1074,6 +1117,7 @@ export default function SuperWinPrototype() {
 
       {openModal === "running" && <RunningModal running={running} onClose={() => setOpenModal(null)} />}
       {openModal === "info" && <InfoModal settings={settings} onClose={() => setOpenModal(null)} />}
+      {openModal === "history" && <HistoryModal history={history} historyFilter={historyFilter} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} historyTotalPages={historyTotalPages} setHistoryPage={setHistoryPage} setHistoryFilter={(value) => { setHistoryFilter(value); loadHistory(value, 1); }} onClose={() => setOpenModal(null)} />}
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
       )}
@@ -1224,7 +1268,83 @@ function ProfileModal({
                   </div>
                 )}
               </div>
-            </>
+              </>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function renderHistoryDetail(detail: string) {
+  return detail.split(" · ")
+    .filter((part) => !part.toLowerCase().includes("approx return"))
+    .map((part) => (
+      <span key={part}>{part}</span>
+    ));
+}
+
+function HistoryModal({
+  history,
+  historyFilter,
+  historyLoading,
+  historyPage,
+  historyPageSize,
+  historyTotalPages,
+  setHistoryPage,
+  setHistoryFilter,
+  onClose
+}: {
+  history: HistoryItem[];
+  historyFilter: "All" | HistoryItem["action"];
+  historyLoading: boolean;
+  historyPage: number;
+  historyPageSize: number;
+  historyTotalPages: number;
+  setHistoryPage: (page: number) => void;
+  setHistoryFilter: (value: "All" | HistoryItem["action"]) => void;
+  onClose: () => void;
+}) {
+  const modalRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => modalRef.current?.classList.add("open")));
+  }, []);
+  const filtered = historyFilter === "All" ? history : history.filter((item) => item.action === historyFilter);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / historyPageSize));
+  const start = (historyPage - 1) * historyPageSize;
+  const rows = filtered.slice(start, start + historyPageSize);
+
+  return (
+    <section ref={modalRef} className="modal" aria-label="Coin history" onClick={(event) => event.target === event.currentTarget && onClose()}>
+      <div className="modal-card">
+        <div className="modal-head"><h3>Coin History</h3><button className="button" onClick={onClose}>Close</button></div>
+        <div className="modal-body">
+          <div className="filter-row">
+            {(["All", "Predict", "Claim", "Payout"] as const).map((filter) => (
+              <button key={filter} className={`button ${historyFilter === filter ? "active" : ""}`} onClick={() => { setHistoryFilter(filter); setHistoryPage(1); }}>{filter}</button>
+            ))}
+          </div>
+          <div>
+            {historyLoading ? (
+              <div className="history-row" style={{ justifyContent: "center", padding: "24px 0" }}>
+                <span className="micro" style={{ color: "var(--muted)" }}>Loading...</span>
+              </div>
+            ) : rows.length ? rows.map((row, index) => (
+              <div key={`${row.date}-${row.time}-${index}`} className="history-row">
+                <span>{row.date}</span><span>{row.time}</span><span>{row.action}</span><span className="history-detail">{renderHistoryDetail(row.detail)}</span><b className={row.amount >= 0 ? "accent-gold" : "accent-red"}>{money(row.amount)}</b>
+              </div>
+            )) : (
+              <div className="history-row" style={{ justifyContent: "center", padding: "24px 0" }}>
+                <span className="micro" style={{ color: "var(--muted)" }}>No {historyFilter} history</span>
+              </div>
+            )}
+          </div>
+          {totalPages > 1 && (
+            <div className="history-footer">
+              <button className="button" disabled={historyPage <= 1} onClick={() => setHistoryPage(historyPage - 1)}>Prev</button>
+              <span className="micro">{historyPage} / {totalPages}</span>
+              <button className="button" disabled={historyPage >= totalPages} onClick={() => setHistoryPage(historyPage + 1)}>Next</button>
+            </div>
           )}
         </div>
       </div>
