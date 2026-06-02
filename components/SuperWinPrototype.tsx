@@ -320,7 +320,7 @@ export default function SuperWinPrototype() {
   const [historyFilter, setHistoryFilter] = useState<"All" | HistoryItem["action"]>("All");
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
-  const historyPageSize = 10;
+  const historyPageSize = 7;
   const [historyTotalPages, setHistoryTotalPages] = useState(1);
   const [runningPage, setRunningPage] = useState(1);
   const runningPageSize = 10;
@@ -1293,9 +1293,7 @@ function ProfileModal({
 function renderHistoryDetail(detail: string) {
   return detail.split(" · ")
     .filter((part) => !part.toLowerCase().includes("approx return"))
-    .map((part) => (
-      <span key={part}>{part}</span>
-    ));
+    .join(" · ");
 }
 
 function HistoryModal({
