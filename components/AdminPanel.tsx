@@ -353,6 +353,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     reloadAll().catch((error) => setMessage(error.message));
   }, []);
 
+  useEffect(() => {
+    if (activeTab !== "dashboard") return;
+    loadDashboardData().catch(() => undefined);
+    const timer = setInterval(() => {
+      loadDashboardData().catch(() => undefined);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [activeTab]);
+
   function addOption() {
     const next = optionInput.trim();
     if (!next) return;
