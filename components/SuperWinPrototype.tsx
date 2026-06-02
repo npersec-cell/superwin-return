@@ -666,7 +666,10 @@ export default function SuperWinPrototype() {
       tournament: item.tournamentName,
       title: item.question,
       closesAt: item.closesAt,
-      options: item.options.map((option) => ({
+      options: item.options
+        .slice()
+        .sort((a, b) => a.estimatedReturnPercent - b.estimatedReturnPercent)
+        .map((option) => ({
         id: option.id,
         name: option.label,
         returns: option.estimatedReturnPercent
