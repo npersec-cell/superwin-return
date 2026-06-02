@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 type PredictionOption = {
   id: string;
   name: string;
-  returns?: number;
+  returns: number;
 };
 
 type Question = {
@@ -35,7 +35,7 @@ type RunningPrediction = {
   tournamentName?: string;
   answer: string;
   coins: number;
-  returns?: number;
+  returns: number;
   createdAt?: string;
   status: "Running";
 };
@@ -550,6 +550,12 @@ export default function SuperWinPrototype() {
     return () => window.clearInterval(timer);
   }, [nextClaimAt, settings]);
 
+  useEffect(() => {
+    loadOpenPredictions();
+    const timer = window.setInterval(loadOpenPredictions, 10000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const leaderboard = useMemo(() => {
     let rows = [...leaderboardRows];
     if (isSignedIn && currentUserId) {
@@ -692,7 +698,7 @@ export default function SuperWinPrototype() {
       options: item.options.map((option) => ({
         id: option.id,
         name: option.label,
-        returns: undefined // ไม่แสดง Approx return ตามเงื่อนไข working memory
+        returns: option.estimatedReturnPercent
       }))
     }));
 
@@ -715,7 +721,7 @@ export default function SuperWinPrototype() {
       question: item.question,
       answer: item.optionLabel,
       coins: item.amount,
-      returns: undefined, // ไม่แสดง estimated return ตาม working memory
+      returns: item.estimatedReturnPercent || 0,
       createdAt: item.createdAt,
       status: "Running" as const
     })));
@@ -874,7 +880,7 @@ export default function SuperWinPrototype() {
         question: question.title,
         answer: answer.name,
         coins: amount,
-        returns: undefined, // Demo mode ไม่แสดง estimated return
+        returns: answer.returns,
         status: "Running" as const
       },
       ...current
@@ -1000,7 +1006,7 @@ export default function SuperWinPrototype() {
                                 setActiveQuestion(question.id);
                                 setOpenDropdown(openDropdown === question.id ? null : question.id);
                               }}>
-                                <span className="dropdown-label">{option.name}</span>
+                                <span className="dropdown-label">{option.name} · ~{option.returns}%</span>
                               </button>
                               <div className="dropdown-menu">
                                 {question.options.map((choice) => (
@@ -1009,7 +1015,7 @@ export default function SuperWinPrototype() {
                                     setSelected((current) => ({ ...current, [question.id]: choice.name }));
                                     setOpenDropdown(null);
                                   }}>
-                                    <span>{choice.name}</span>
+                                    <span>{choice.name}</span><span className="return">~{choice.returns}%</span>
                                   </button>
                                 ))}
                               </div>
