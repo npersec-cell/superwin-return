@@ -1086,10 +1086,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "10px" }}>
                     <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="คีย์คำถาม หรือเลือกจากแม่แบบขวา" style={{ height: "34px" }} />
-                    <select className="button" value="" onChange={(event) => { if (event.target.value) setQuestion(event.target.value); }} style={{ height: "34px", width: "160px" }}>
+                    <select className="button" value="" onChange={(event) => { if (event.target.value) setQuestion(event.target.value); }} style={{ height: "34px", width: "auto", minWidth: "260px", maxWidth: "400px" }}>
                       <option value="">-- แม่แบบคำถาม --</option>
                       {(settings.savedQuestions || []).map((q) => (
-                        <option key={q} value={q}>{q.slice(0, 20)}...</option>
+                        <option key={q} value={q}>{q}</option>
                       ))}
                     </select>
                   </div>
