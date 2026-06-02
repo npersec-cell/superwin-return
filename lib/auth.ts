@@ -8,7 +8,6 @@ export type AppUser = {
   displayName: string | null;
   role: "user" | "admin";
   coinBalance: number;
-  monthlyProfit: number;
   lifetimeProfit: number;
   lastClaimAt: string | null;
   nextClaimAt: string | null;
@@ -23,7 +22,6 @@ type UserRow = {
   display_name: string | null;
   role: "user" | "admin";
   coin_balance: number;
-  monthly_profit: number;
   lifetime_profit: number;
   last_claim_at: string | null;
   next_claim_at: string | null;
@@ -39,7 +37,6 @@ function mapUser(row: UserRow): AppUser {
     displayName: row.display_name,
     role: row.role,
     coinBalance: row.coin_balance,
-    monthlyProfit: row.monthly_profit,
     lifetimeProfit: row.lifetime_profit,
     lastClaimAt: row.last_claim_at,
     nextClaimAt: row.next_claim_at,
@@ -76,7 +73,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
 
   const { data: existing, error: selectError } = await supabase
     .from("users")
-    .select("id, clerk_user_id, email, display_name, role, coin_balance, monthly_profit, lifetime_profit, last_claim_at, next_claim_at, status, avatar_url")
+    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, last_claim_at, next_claim_at, status, avatar_url")
     .eq("clerk_user_id", userId)
     .maybeSingle<UserRow>();
 
@@ -100,7 +97,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
           updated_at: new Date().toISOString() 
         })
         .eq("id", existing.id)
-        .select("id, clerk_user_id, email, display_name, role, coin_balance, monthly_profit, lifetime_profit, last_claim_at, next_claim_at, status, avatar_url")
+        .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, last_claim_at, next_claim_at, status, avatar_url")
         .single<UserRow>();
 
       if (updateError) {
@@ -120,12 +117,11 @@ export async function getCurrentUser(): Promise<AppUser | null> {
       display_name: displayName,
       role: "user",
       coin_balance: 0,
-      monthly_profit: 0,
       lifetime_profit: 0,
       status: "active",
       avatar_url: avatarUrl
     })
-    .select("id, clerk_user_id, email, display_name, role, coin_balance, monthly_profit, lifetime_profit, last_claim_at, next_claim_at, status, avatar_url")
+    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, last_claim_at, next_claim_at, status, avatar_url")
     .single<UserRow>();
 
   if (insertError) {

@@ -187,7 +187,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [draftOptions, setDraftOptions] = useState<string[]>([]);
   const [winningOptions, setWinningOptions] = useState<Record<string, string>>({});
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
-  const [topUsers, setTopUsers] = useState<Array<{ id: string; email: string; displayName: string; monthlyProfit?: number }>>([]);
+  const [topUsers, setTopUsers] = useState<Array<{ id: string; email: string; displayName: string; lifetimeProfit?: number }>>([]);
   const [editClosesAt, setEditClosesAt] = useState<Record<string, string>>({});
   const [editQuestions, setEditQuestions] = useState<Record<string, string>>({});
   const [editOptionsInputs, setEditOptionsInputs] = useState<Record<string, Record<string, string>>>({});

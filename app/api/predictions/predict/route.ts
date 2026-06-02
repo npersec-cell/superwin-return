@@ -22,7 +22,6 @@ type OptionRow = {
 
 type UserBalanceRow = {
   coin_balance: number;
-  monthly_profit: number;
   lifetime_profit: number;
 };
 
@@ -82,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     const { data: balanceRow, error: balanceError } = await supabase
       .from("users")
-      .select("coin_balance, monthly_profit, lifetime_profit")
+      .select("coin_balance, lifetime_profit")
       .eq("id", user.id)
       .single<UserBalanceRow>();
 
@@ -150,7 +149,6 @@ export async function POST(request: NextRequest) {
       data: {
         user: {
           coinBalance: balanceAfter,
-          monthlyProfit: balanceRow.monthly_profit,
           lifetimeProfit: balanceRow.lifetime_profit
         },
         entry: {

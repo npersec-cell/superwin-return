@@ -71,7 +71,7 @@ type ApiRunningResponse = {
 type ApiPredictResponse = {
   ok: boolean;
   data?: {
-    user: { coinBalance: number; monthlyProfit: number; lifetimeProfit: number };
+    user: { coinBalance: number; lifetimeProfit: number };
     entry: {
       id: string;
       predictionId: string;
@@ -146,7 +146,6 @@ type ApiMeResponse = {
     displayName: string | null;
     role: "user" | "admin";
     coinBalance: number;
-    monthlyProfit: number;
     lifetimeProfit: number;
     nextClaimAt: string | null;
   };
@@ -159,7 +158,6 @@ type ApiClaimResponse = {
     amount: number;
     user: {
       coinBalance: number;
-      monthlyProfit: number;
       lifetimeProfit: number;
       lastClaimAt: string | null;
       nextClaimAt: string | null;
@@ -790,7 +788,7 @@ export default function SuperWinPrototype() {
           throw new Error(payload.error || "Claim failed");
         }
         setCoins(payload.data.user.coinBalance);
-        setProfit(payload.data.user.monthlyProfit);
+        setProfit(payload.data.user.lifetimeProfit);
         setNextClaimAt(payload.data.user.nextClaimAt ? new Date(payload.data.user.nextClaimAt).getTime() : 0);
         await loadHistory(historyFilter, historyPage, true);
       } catch {
@@ -836,7 +834,7 @@ export default function SuperWinPrototype() {
           throw new Error(payload.error || "Prediction failed");
         }
         setCoins(payload.data.user.coinBalance);
-        setProfit(payload.data.user.monthlyProfit);
+        setProfit(payload.data.user.lifetimeProfit);
         setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
         setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${answer.name} · now running` }));
         await loadRunningPredictions();

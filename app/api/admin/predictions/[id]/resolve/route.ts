@@ -34,7 +34,6 @@ type EntryRow = {
 type UserRow = {
   id: string;
   coin_balance: number;
-  monthly_profit: number;
   lifetime_profit: number;
 };
 
@@ -111,7 +110,7 @@ export async function POST(request: NextRequest, context: Params) {
 
       const { data: user, error: userError } = await supabase
         .from("users")
-        .select("id, coin_balance, monthly_profit, lifetime_profit")
+        .select("id, coin_balance, lifetime_profit")
         .eq("id", entry.user_id)
         .single<UserRow>();
 
@@ -123,7 +122,6 @@ export async function POST(request: NextRequest, context: Params) {
         .from("users")
         .update({
           coin_balance: balanceAfter,
-          monthly_profit: user.monthly_profit + profitDelta,
           lifetime_profit: user.lifetime_profit + profitDelta,
           updated_at: resolvedAt
         })

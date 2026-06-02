@@ -14,7 +14,7 @@ export async function GET() {
     await requireAdmin();
     const supabase = createSupabaseAdminClient();
 
-    // ดึงผู้ใช้ 10 อันดับแรกที่มี monthly_profit สูงสุดเพื่อทำ dropdown หน้ารางวัล
+    // ดึงผู้ใช้ 10 อันดับแรกที่มี lifetime_profit สูงสุดเพื่อทำ dropdown หน้ารางวัล
     const { data, error } = await supabase
       .from("users")
       .select("id, email, display_name, lifetime_profit")

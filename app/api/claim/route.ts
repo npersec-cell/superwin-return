@@ -41,7 +41,7 @@ export async function POST() {
         updated_at: claimedAt.toISOString()
       })
       .eq("id", user.id)
-      .select("id, coin_balance, monthly_profit, lifetime_profit, last_claim_at, next_claim_at")
+      .select("id, coin_balance, lifetime_profit, last_claim_at, next_claim_at")
       .single();
 
     if (updateError) {
@@ -71,7 +71,6 @@ export async function POST() {
         amount: CLAIM_AMOUNT,
         user: {
           coinBalance: updatedUser.coin_balance,
-          monthlyProfit: updatedUser.monthly_profit,
           lifetimeProfit: updatedUser.lifetime_profit,
           lastClaimAt: updatedUser.last_claim_at,
           nextClaimAt: updatedUser.next_claim_at
