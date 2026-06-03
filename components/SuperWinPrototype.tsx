@@ -995,9 +995,12 @@ export default function SuperWinPrototype() {
                           <div className="question-sub-row">
                             <span className="meta">Closes in {formatQuestionCountdown(question)} · {formatQuestionCloseTime(question)}{runningCount ? ` · ${runningCount} running` : ""}</span>
                             <div className={`dropdown ${openDropdown === question.id ? "open" : ""} ${isLocked ? "locked" : ""}`}>
-                              <button className="dropdown-trigger" disabled={isLocked} onClick={(event) => {
-                                if (isLocked) return;
+                              <button className="dropdown-trigger" onClick={(event) => {
                                 event.stopPropagation();
+                                if (isLocked) {
+                                  confirmPrediction(question);
+                                  return;
+                                }
                                 setActiveQuestion(question.id);
                                 setOpenDropdown(openDropdown === question.id ? null : question.id);
                               }}>
