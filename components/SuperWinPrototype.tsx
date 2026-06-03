@@ -1025,10 +1025,14 @@ export default function SuperWinPrototype() {
                             )}
                           </div>
                         </div>
-                        <div className="question-action" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: 10 }}>
+                        <div className="question-action" style={{ display: activeQuestion === question.id ? "flex" : "none", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: 10 }}>
                           <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
                             {[5, 10, 50, 100, 500].map((amount) => (
-                              <button key={amount} onClick={() => setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount }))} style={{ padding: "5px 12px", borderRadius: "16px", border: "1px solid rgba(255,225,0,0.35)", background: "transparent", color: "var(--yellow)", fontSize: "12px", fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }} onMouseEnter={(e) => { e.currentTarget.style.background = "var(--yellow)"; e.currentTarget.style.color = "var(--bg)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--yellow)"; }}>{amount}</button>
+                              <button key={amount} onClick={() => setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount }))}
+                                style={{ padding: "5px 12px", borderRadius: "16px", border: "1px solid rgba(255,225,0,0.35)", background: "transparent", color: "var(--yellow)", fontSize: "12px", fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--yellow)"; e.currentTarget.style.color = "var(--bg)"; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--yellow)"; }}
+                              >{amount}</button>
                             ))}
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
@@ -1037,6 +1041,12 @@ export default function SuperWinPrototype() {
                           </div>
                           <button className="button primary confirm" onClick={() => confirmPrediction(question)} style={{ padding: "9px 22px", fontWeight: 700, borderRadius: "10px", fontSize: "13px", boxShadow: "0 2px 10px rgba(255,225,0,0.12)" }}>{isLocked ? "Top Up" : "Predict"}</button>
                         </div>
+                        {activeQuestion !== question.id && (
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: 8 }}>
+                            <span style={{ display: "flex", alignItems: "center", gap: "4px", padding: "4px 10px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", fontSize: "12px", color: "var(--yellow)", fontWeight: 600 }}>{coinInputs[question.id] || 0} <img src="/ammo-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.7 }} /></span>
+                          <button className="button primary confirm" onClick={() => { setActiveQuestion(question.id); setOpenDropdown(null); }} style={{ padding: "7px 18px", fontWeight: 600, borderRadius: "10px", fontSize: "12px" }}>{isLocked ? "Top Up" : "Predict"}</button>
+                          </div>
+                        )}
                         <div className="toast">{toast[question.id]}</div>
                       </div>
                     );
