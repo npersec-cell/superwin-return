@@ -861,9 +861,9 @@ export default function SuperWinPrototype() {
               </SignInButton>
             ) : (
               <>
-                <span className="pill gold" style={{ fontSize: "16px", padding: "4px 16px", height: "36px", fontWeight: "bold", border: "1.5px solid var(--yellow)", boxShadow: "0 0 12px rgba(255, 225, 0, 0.3)", display: "flex", alignItems: "center", gap: "6px" }}>
+                <span className="pill gold" style={{ fontSize: "16px", padding: "4px 16px", height: "36px", fontWeight: "bold", border: "1.5px solid var(--yellow)", display: "flex", alignItems: "center", gap: "4px" }}>
                   <span>{coins.toLocaleString()}</span>
-                  <img src="/ammo-icon.webp" alt="" width={20} height={20} style={{ objectFit: "contain" }} />
+                  <img src="/ammo-icon.webp" alt="" width={14} height={14} style={{ objectFit: "contain", opacity: 0.85 }} />
                 </span>
                 <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Claim 100</button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
