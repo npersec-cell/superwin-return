@@ -278,6 +278,7 @@ type LeaderboardRow = {
   id?: string;
   name: string;
   profit: number;
+  profitScore: number;
   isReal?: boolean;
   avatarUrl?: string | null;
 };
@@ -541,18 +542,18 @@ export default function SuperWinPrototype() {
     if (isSignedIn && currentUserId) {
       rows = rows.map((row) => {
         if (row.id === currentUserId) {
-          return { ...row, id: currentUserId, name: "You", profit } as LeaderboardRow;
+          return { ...row, id: currentUserId, name: "You", profitScore } as LeaderboardRow;
         }
         return row;
       });
       if (!rows.some((row) => row.id === currentUserId || row.name === "You")) {
-        rows.push({ id: currentUserId, name: "You", profit, isReal: true });
+        rows.push({ id: currentUserId, name: "You", profit: 0, profitScore, isReal: true });
       }
     } else {
-      rows = rows.map((row) => (row.name === "You" ? { ...row, profit } as LeaderboardRow : row));
+      rows = rows.map((row) => (row.name === "You" ? { ...row, profitScore } as LeaderboardRow : row));
     }
-    return rows.sort((a, b) => b.profit - a.profit).slice(0, 10);
-  }, [leaderboardRows, profit, isSignedIn, currentUserId]);
+    return rows.sort((a, b) => b.profitScore - a.profitScore).slice(0, 10);
+  }, [leaderboardRows, profitScore, isSignedIn, currentUserId]);
 
   const userRank = leaderboard.findIndex((row) => row.name === "You") + 1;
 
@@ -1046,7 +1047,7 @@ export default function SuperWinPrototype() {
 
           <aside className="side">
             <section className="panel">
-              <div className="panel-head"><h3>All time Top 10</h3><span className="micro">All time profit</span></div>
+              <div className="panel-head"><h3>All time Top 10</h3><span className="micro" style={{ display: "flex", alignItems: "center", gap: "4px" }}>Profit Score <img src="/ammo-556-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} /></span></div>
               <div className="leaderboard-body">
                 {leaderboard.map((row, index) => {
                   const targetId = row.id || (row.name === "You" ? currentUserId : null);
@@ -1084,7 +1085,7 @@ export default function SuperWinPrototype() {
                           {maskName(row.name)}
                         </span>
                       </div>
-                      <b>{money(row.profit)}</b>
+                      <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{money(row.profitScore)} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", opacity: 0.8 }} /></b>
                     </div>
                   );
                 })}
