@@ -35,33 +35,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const filter = searchParams.get("filter") || "All";
 
-    // Cleanup: keep only latest 700 records per user (delete older permanently)
-    try {
-      const { count } = await supabase
-        .from("coin_ledger")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id);
-
-      if (count && count > 700) {
-        const { data: threshold } = await supabase
-          .from("coin_ledger")
-          .select("created_at")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .range(699, 699);
-
-        if (threshold && threshold[0]) {
-          await supabase
-            .from("coin_ledger")
-            .delete()
-            .eq("user_id", user.id)
-            .lt("created_at", threshold[0].created_at);
-        }
-      }
-    } catch {
-      // Cleanup failed — continue to serve data
-    }
-
+    // ดึงประวัติล่าสุด (ไม่ลบข้อมูลเก่า — ใช้สำหรับ Leaderboard ด้วย)
     let query = supabase
       .from("coin_ledger")
       .select("id, type, amount, balance_after, detail, created_at")
