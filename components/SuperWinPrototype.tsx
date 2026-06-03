@@ -861,8 +861,9 @@ export default function SuperWinPrototype() {
               </SignInButton>
             ) : (
               <>
-                <span className="pill gold" style={{ fontSize: "16px", padding: "4px 16px", height: "36px", fontWeight: "bold", border: "1.5px solid var(--yellow)", boxShadow: "0 0 12px rgba(255, 225, 0, 0.3)" }}>
-                  <span>{coins}</span> Coins
+                <span className="pill gold" style={{ fontSize: "16px", padding: "4px 16px", height: "36px", fontWeight: "bold", border: "1.5px solid var(--yellow)", boxShadow: "0 0 12px rgba(255, 225, 0, 0.3)", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span>{coins.toLocaleString()}</span>
+                  <img src="/ammo-icon.webp" alt="" width={20} height={20} style={{ objectFit: "contain" }} />
                 </span>
                 <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Claim 100</button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
@@ -976,7 +977,7 @@ export default function SuperWinPrototype() {
                               <button key={amount} className="button gold" onClick={() => setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount }))}>{amount}</button>
                             ))}
                           </div>
-                          <span className="pill gold">{coinInputs[question.id] || 0} Coins</span>
+                          <span className="pill gold" style={{ display: "flex", alignItems: "center", gap: "4px" }}>{coinInputs[question.id] || 0} <img src="/ammo-icon.webp" alt="" width={16} height={16} style={{ objectFit: "contain" }} /></span>
                           <button className="button" onClick={() => setCoinInputs((current) => ({ ...current, [question.id]: 0 }))}>Clear</button>
                           <button className="button primary confirm" onClick={() => confirmPrediction(question)}>Predict</button>
                         </div>
@@ -1151,7 +1152,7 @@ function RunningModal({ running, runningPage, runningPageSize, setRunningPage, o
                 <div key={item.id} className="running-row">
                   <div className="running-detail">
                     <strong>{item.question}</strong>
-                    <span className="meta">{item.answer} · {item.coins} Coins · Predict time: {formattedDate}</span>
+                    <span className="meta">{item.answer} · {item.coins} <img src="/ammo-icon.webp" alt="" width={14} height={14} style={{ objectFit: "contain", verticalAlign: "middle" }} /> · Predict time: {formattedDate}</span>
                   </div>
                   <b className="running-label">Running</b>
                 </div>
