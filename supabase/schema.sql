@@ -73,7 +73,7 @@ create table if not exists public.prediction_entries (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id),
   prediction_id uuid not null references public.predictions(id),
-  option_id uuid not null references public.prediction_options(id),
+  option_id uuid references public.prediction_options(id) on delete set null,
   amount integer not null check (amount > 0),
   estimated_return_percent numeric,
   status text not null default 'running' check (status in ('running', 'won', 'lost', 'refunded')),

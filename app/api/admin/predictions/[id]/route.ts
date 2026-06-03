@@ -95,21 +95,14 @@ export async function DELETE(request: NextRequest, context: Params) {
       throw new Error("ลบได้เฉพาะคำถามที่ทำการสรุปผล (Resolved) หรือยกเลิก (Canceled) แล้วเท่านั้น");
     }
 
-    // 2. ลบรายการแทง (prediction_entries)
-    const { error: entriesError } = await supabase
-      .from("prediction_entries")
-      .delete()
-      .eq("prediction_id", id);
-
-    if (entriesError) throw new Error(entriesError.message);
-
-    // 3. ลบตัวเลือกคำตอบ (prediction_options)
+    // 2. ลบตัวเลือกคำตอบ (prediction_options) — entries จะถูก set option_id = null อัตโนมัติ
+    //    เพื่อให้ prediction_entries ยังอยู่สำหรับคำนวณ leaderboard
     await supabase
       .from("prediction_options")
       .delete()
       .eq("prediction_id", id);
 
-    // 4. ลบตัวคำถาม (predictions)
+    // 3. ลบตัวคำถาม (predictions)
     const { error: deleteError } = await supabase
       .from("predictions")
       .delete()
