@@ -64,7 +64,7 @@ export async function POST() {
       })
       .eq("id", user.id)
       .or(`next_claim_at.is.null,next_claim_at.lte.${nowISO}`)
-      .select("id, coin_balance, lifetime_profit, last_claim_at, next_claim_at");
+      .select("id, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at");
 
     if (updateError) {
       throw new Error(updateError.message || "Failed to update claim");
@@ -109,6 +109,7 @@ export async function POST() {
         user: {
           coinBalance: updatedUser.coin_balance,
           lifetimeProfit: updatedUser.lifetime_profit,
+          profitScore: updatedUser.profit_score,
           lastClaimAt: updatedUser.last_claim_at,
           nextClaimAt: updatedUser.next_claim_at
         },

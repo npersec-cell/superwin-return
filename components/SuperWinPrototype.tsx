@@ -154,6 +154,7 @@ type ApiMeResponse = {
     role: "user" | "admin";
     coinBalance: number;
     lifetimeProfit: number;
+    profitScore: number;
     nextClaimAt: string | null;
   };
   error?: string;
@@ -166,6 +167,7 @@ type ApiClaimResponse = {
     user: {
       coinBalance: number;
       lifetimeProfit: number;
+      profitScore: number;
       lastClaimAt: string | null;
       nextClaimAt: string | null;
     };
@@ -306,6 +308,7 @@ export default function SuperWinPrototype() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [coins, setCoins] = useState(500);
   const [profit, setProfit] = useState(0);
+  const [profitScore, setProfitScore] = useState(0);
   const [winRate, setWinRate] = useState(0);
   const [nextClaimAt, setNextClaimAt] = useState(0);
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
@@ -405,6 +408,7 @@ export default function SuperWinPrototype() {
     setMounted(true);
     setCoins(Number(localStorage.getItem("sr_coins")) || 500);
     setProfit(Number(localStorage.getItem("sr_profit")) || 0);
+    setProfitScore(Number(localStorage.getItem("sr_profit_score")) || 0);
     setNextClaimAt(Number(localStorage.getItem("sr_next_claim")) || 0);
     setRunning(safeJson("sr_running", []));
     loadOpenPredictions().catch(() => undefined);
@@ -466,6 +470,7 @@ export default function SuperWinPrototype() {
         if (cancelled) return;
         setCoins(user.coinBalance);
         setProfit(user.lifetimeProfit);
+        setProfitScore(user.profitScore || 0);
         setNextClaimAt(user.nextClaimAt ? new Date(user.nextClaimAt).getTime() : 0);
         setAccountRole(user.role);
         setCurrentUserId(user.id);
@@ -640,6 +645,7 @@ export default function SuperWinPrototype() {
         const user = payload.data;
         setCoins(user.coinBalance);
         setProfit(user.lifetimeProfit);
+        setProfitScore(user.profitScore || 0);
         setNextClaimAt(user.nextClaimAt ? new Date(user.nextClaimAt).getTime() : 0);
         setAccountRole(user.role);
         setCurrentUserId(user.id);
@@ -867,6 +873,10 @@ export default function SuperWinPrototype() {
                 <span className="button gold" style={{ display: "flex", alignItems: "center", gap: "3px", cursor: "default" }}>
                   <span>{coins.toLocaleString()}</span>
                   <img src="/ammo-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} />
+                </span>
+                <span className="button gold" style={{ display: "flex", alignItems: "center", gap: "3px", cursor: "default" }}>
+                  <span>{profitScore.toLocaleString()}</span>
+                  <img src="/ammo-556-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} />
                 </span>
                 <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Reload 100</button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>

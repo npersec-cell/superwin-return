@@ -35,6 +35,7 @@ type UserRow = {
   id: string;
   coin_balance: number;
   lifetime_profit: number;
+  profit_score: number;
 };
 
 function toStatus(error: unknown) {
@@ -110,19 +111,21 @@ export async function POST(request: NextRequest, context: Params) {
 
       const { data: user, error: userError } = await supabase
         .from("users")
-        .select("id, coin_balance, lifetime_profit")
+        .select("id, coin_balance, lifetime_profit, profit_score")
         .eq("id", entry.user_id)
         .single<UserRow>();
 
       if (userError || !user) throw new Error(userError?.message || "User not found");
 
       const balanceAfter = user.coin_balance + payout;
+      const profitScoreDelta = isWinner ? (payout - entry.amount) : 0;
 
       const { error: userUpdateError } = await supabase
         .from("users")
         .update({
           coin_balance: balanceAfter,
           lifetime_profit: user.lifetime_profit + profitDelta,
+          profit_score: user.profit_score + profitScoreDelta,
           updated_at: resolvedAt
         })
         .eq("id", entry.user_id);
