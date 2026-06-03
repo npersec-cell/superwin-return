@@ -783,6 +783,14 @@ export default function SuperWinPrototype() {
     return `${date} ${time} UTC+7`;
   }
 
+  function randomClaimAmount(): number {
+    const r = Math.random();
+    if (r < 0.50) return Math.floor(Math.random() * 21) + 10;
+    if (r < 0.80) return Math.floor(Math.random() * 30) + 31;
+    if (r < 0.95) return Math.floor(Math.random() * 30) + 61;
+    return Math.floor(Math.random() * 10) + 91;
+  }
+
   async function claim() {
     if (!loggedIn || Date.now() < nextClaimAt) return;
 
@@ -804,8 +812,11 @@ export default function SuperWinPrototype() {
       return;
     }
 
-    setCoins((current) => current + 100);
+    const amount = randomClaimAmount();
+    setCoins((current) => current + amount);
     setNextClaimAt(Date.now() + 60 * 60 * 1000);
+    setClaimResult(amount);
+    setOpenModal("claimResult");
   }
 
   async function confirmPrediction(question: Question) {
