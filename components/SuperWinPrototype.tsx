@@ -22,7 +22,7 @@ type Question = {
 type HistoryItem = {
   date: string;
   time: string;
-  action: "Claim" | "Predict" | "Payout" | "Refund";
+  action: "Reload" | "Predict" | "Payout" | "Refund";
   detail: string;
   amount: number;
 };
@@ -865,7 +865,7 @@ export default function SuperWinPrototype() {
                   <span>{coins.toLocaleString()}</span>
                   <img src="/ammo-icon.webp" alt="" width={14} height={14} style={{ objectFit: "contain", opacity: 0.85 }} />
                 </span>
-                <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Claim 100</button>
+                <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Reload 100</button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                 <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory("All"); }}>History</button>
                 {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
@@ -905,7 +905,7 @@ export default function SuperWinPrototype() {
           <div className="stat"><span className="label">Win Rate</span><b className="value">{winRate}%</b></div>
           <div className="stat"><span className="label">All time Profit</span><b className="value">{profit}</b></div>
           <div className="stat"><span className="label">All time Rank</span><b className="value">{userRank ? `#${userRank}` : "--"}</b></div>
-          <div className="stat"><span className="label">Next Claim</span><b className="value">{claimLabel}</b></div>
+          <div className="stat"><span className="label">Next Reload</span><b className="value">{claimLabel}</b></div>
         </section>
         )}
 
@@ -1329,7 +1329,7 @@ function HistoryModal({
         <div className="modal-head"><h3>Coin History</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body">
           <div className="filter-row">
-            {(["All", "Predict", "Claim", "Payout"] as const).map((filter) => (
+            {(["All", "Predict", "Reload", "Payout"] as const).map((filter) => (
               <button key={filter} className={`button ${historyFilter === filter ? "active" : ""}`} onClick={() => { setHistoryFilter(filter); setHistoryPage(1); }}>{filter}</button>
             ))}
           </div>
