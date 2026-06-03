@@ -7,19 +7,18 @@ export async function GET() {
   try {
     const supabase = createSupabaseAdminClient();
 
-    // 1. ดึง prediction_entries ที่ settled ทั้งหมด
-    const { data: entries, error: err1 } = await supabase
-      .from("prediction_entries")
-      .select("user_id, amount, payout_amount, status")
-      .in("status", ["won", "lost"]);
+    // 1. ดึง coin_ledger predict + payout ทั้งหมด (entries อาจถูกลบไปแล้ว แต่ ledger ยังอยู่)
+    const { data: ledgerRows, error: err1 } = await supabase
+      .from("coin_ledger")
+      .select("user_id, amount, type")
+      .in("type", ["predict", "payout"]);
 
     if (err1) throw new Error(err1.message);
 
-    // 2. คำนวณ profit ต่อ user
+    // 2. คำนวณ profit ต่อ user (predict = -amount, payout = +payout)
     const profitMap = new Map<string, number>();
-    for (const entry of entries || []) {
-      const profit = (entry.payout_amount || 0) - entry.amount;
-      profitMap.set(entry.user_id, (profitMap.get(entry.user_id) || 0) + profit);
+    for (const row of ledgerRows || []) {
+      profitMap.set(row.user_id, (profitMap.get(row.user_id) || 0) + row.amount);
     }
 
     // 3. เรียงตาม profit มาก → น้อย
