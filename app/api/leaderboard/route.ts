@@ -21,7 +21,28 @@ export async function GET() {
       profitMap.set(row.user_id, (profitMap.get(row.user_id) || 0) + row.amount);
     }
 
-    // 3. เรียงตาม profit มาก → น้อย
+    // 3. ถ้าไม่มี ledger data (เช่นหลัง reset) ให้ดึง users มาแสดง profit = 0
+    if (profitMap.size === 0) {
+      const { data: allUsers, error: err3 } = await supabase
+        .from("users")
+        .select("id, display_name, email, avatar_url, role")
+        .neq("role", "admin")
+        .limit(10);
+
+      if (err3) throw new Error(err3.message);
+
+      const rows = (allUsers || []).map((u) => ({
+        id: u.id,
+        name: u.display_name || u.email.split("@")[0],
+        profit: 0,
+        avatarUrl: u.avatar_url || null,
+        isReal: true
+      }));
+
+      return NextResponse.json({ ok: true, data: rows });
+    }
+
+    // 4. เรียงตาม profit มาก → น้อย
     const sorted = Array.from(profitMap.entries()).sort((a, b) => b[1] - a[1]);
     if (sorted.length === 0) {
       return NextResponse.json({ ok: true, data: [] });
