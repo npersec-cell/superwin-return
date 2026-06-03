@@ -704,7 +704,7 @@ export default function SuperWinPrototype() {
     if (!response.ok || !payload.ok || !payload.data) {
       throw new Error(payload.error || "Failed to load running predictions");
     }
-    setRunning(payload.data.map((item) => ({
+    const formatted = payload.data.map((item) => ({
       id: item.id,
       questionId: item.predictionId,
       tournamentName: item.tournamentName,
@@ -714,7 +714,20 @@ export default function SuperWinPrototype() {
       returns: item.estimatedReturnPercent || 0,
       createdAt: item.createdAt,
       status: "Running" as const
-    })));
+    }));
+    setRunning(formatted);
+
+    // Sync locked options: if user already predicted on a question, lock the dropdown to that answer
+    setSelected((current) => {
+      const updated = { ...current };
+      for (const entry of formatted) {
+        // Only set if not already set (preserve manual selection for non-running questions)
+        if (!updated[entry.questionId]) {
+          updated[entry.questionId] = entry.answer;
+        }
+      }
+      return updated;
+    });
   }
 
   async function loadHistory(filter = historyFilter) {
@@ -736,6 +749,12 @@ export default function SuperWinPrototype() {
 
   function selectedOption(question: Question) {
     return question.options.find((option) => option.name === selected[question.id]) || question.options[0];
+  }
+
+  function getLockedOptionName(questionId: string): string | null {
+    const entries = running.filter((item) => item.questionId === questionId);
+    if (entries.length === 0) return null;
+    return entries[0].answer;
   }
 
   function formatQuestionCountdown(question: Question) {
@@ -952,6 +971,8 @@ export default function SuperWinPrototype() {
                     const option = selectedOption(question);
                     const runningCount = running.filter((item) => item.questionId === question.id).length;
                     const isActive = activeQuestion === question.id;
+                    const lockedOptionName = getLockedOptionName(question.id);
+                    const isLocked = lockedOptionName !== null;
                     return (
                       <div key={question.id} className={`question ${isActive ? "active" : ""} ${runningCount ? "running" : ""}`} onClick={(event) => {
                         if ((event.target as HTMLElement).closest("button")) return;
@@ -962,13 +983,14 @@ export default function SuperWinPrototype() {
                           <span className="question-title">{question.title}</span>
                           <div className="question-sub-row">
                             <span className="meta">Closes in {formatQuestionCountdown(question)} · {formatQuestionCloseTime(question)}{runningCount ? ` · ${runningCount} running` : ""}</span>
-                            <div className={`dropdown ${openDropdown === question.id ? "open" : ""}`}>
-                              <button className="dropdown-trigger" onClick={(event) => {
+                            <div className={`dropdown ${openDropdown === question.id ? "open" : ""} ${isLocked ? "locked" : ""}`}>
+                              <button className="dropdown-trigger" disabled={isLocked} onClick={(event) => {
+                                if (isLocked) return;
                                 event.stopPropagation();
                                 setActiveQuestion(question.id);
                                 setOpenDropdown(openDropdown === question.id ? null : question.id);
                               }}>
-                                <span className="dropdown-label">{option.name} · ~{option.returns}%</span>
+                                <span className="dropdown-label">{option.name} · ~{option.returns}%{isLocked ? " · Locked" : ""}</span>
                               </button>
                               <div className="dropdown-menu">
                                 {question.options.map((choice) => (
@@ -992,7 +1014,7 @@ export default function SuperWinPrototype() {
                           </div>
                           <span className="pill gold" style={{ display: "flex", alignItems: "center", gap: "4px" }}>{coinInputs[question.id] || 0} <img src="/ammo-icon.webp" alt="" width={16} height={16} style={{ objectFit: "contain" }} /></span>
                           <button className="button" onClick={() => setCoinInputs((current) => ({ ...current, [question.id]: 0 }))}>Clear</button>
-                          <button className="button primary confirm" onClick={() => confirmPrediction(question)}>Predict</button>
+                          <button className="button primary confirm" onClick={() => confirmPrediction(question)}>{isLocked ? "Top Up" : "Predict"}</button>
                         </div>
                         <div className="toast">{toast[question.id]}</div>
                       </div>
