@@ -998,39 +998,25 @@ export default function SuperWinPrototype() {
                             <div className={`dropdown ${openDropdown === question.id ? "open" : ""} ${isLocked ? "locked" : ""}`}>
                               <button className="dropdown-trigger" onClick={(event) => {
                                 event.stopPropagation();
+                                if (isLocked) {
+                                  confirmPrediction(question);
+                                  return;
+                                }
                                 setActiveQuestion(question.id);
                                 setOpenDropdown(openDropdown === question.id ? null : question.id);
                               }}>
                                 <span className="dropdown-label">{option.name} · ~{option.returns}%{isLocked ? " · Locked" : ""}</span>
                               </button>
                               <div className="dropdown-menu">
-                                {isLocked ? (
-                                  <div style={{ padding: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
-                                    <button className="option-button active" disabled style={{ opacity: 0.7, cursor: "default" }}>
-                                      <span>{option.name}</span><span className="return">~{option.returns}%</span>
-                                    </button>
-                                    <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "center" }}>
-                                      {[5, 10, 50, 100, 500].map((amount) => (
-                                        <button key={amount} className="button gold" style={{ padding: "4px 8px", fontSize: "11px", height: "28px" }} onClick={(event) => { event.stopPropagation(); setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount })); }}>{amount}</button>
-                                      ))}
-                                    </div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "6px", justifyContent: "center" }}>
-                                      <span className="pill gold" style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}>{coinInputs[question.id] || 0} <img src="/ammo-icon.webp" alt="" width={14} height={14} style={{ objectFit: "contain" }} /></span>
-                                      <button className="button" style={{ padding: "4px 8px", fontSize: "11px", height: "28px" }} onClick={(event) => { event.stopPropagation(); setCoinInputs((current) => ({ ...current, [question.id]: 0 })); }}>Clear</button>
-                                      <button className="button primary confirm" style={{ padding: "4px 12px", fontSize: "11px", height: "28px" }} onClick={(event) => { event.stopPropagation(); confirmPrediction(question); setOpenDropdown(null); }}>Top Up</button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  question.options.map((choice) => (
-                                    <button key={choice.id} className={`option-button ${choice.name === option.name ? "active" : ""}`} onClick={(event) => {
-                                      event.stopPropagation();
-                                      setSelected((current) => ({ ...current, [question.id]: choice.name }));
-                                      setOpenDropdown(null);
-                                    }}>
-                                      <span>{choice.name}</span><span className="return">~{choice.returns}%</span>
-                                    </button>
-                                  ))
-                                )}
+                                {question.options.map((choice) => (
+                                  <button key={choice.id} className={`option-button ${choice.name === option.name ? "active" : ""}`} onClick={(event) => {
+                                    event.stopPropagation();
+                                    setSelected((current) => ({ ...current, [question.id]: choice.name }));
+                                    setOpenDropdown(null);
+                                  }}>
+                                    <span>{choice.name}</span><span className="return">~{choice.returns}%</span>
+                                  </button>
+                                ))}
                               </div>
                             </div>
                           </div>
