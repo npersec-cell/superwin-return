@@ -995,41 +995,47 @@ export default function SuperWinPrototype() {
                           <span className="question-title">{question.title}</span>
                           <div className="question-sub-row">
                             <span className="meta">Closes in {formatQuestionCountdown(question)} · {formatQuestionCloseTime(question)}{runningCount ? ` · ${runningCount} running` : ""}</span>
-                            <div className={`dropdown ${openDropdown === question.id ? "open" : ""} ${isLocked ? "locked" : ""}`}>
-                              <button className="dropdown-trigger" onClick={(event) => {
-                                event.stopPropagation();
-                                if (isLocked) {
-                                  confirmPrediction(question);
-                                  return;
-                                }
-                                setActiveQuestion(question.id);
-                                setOpenDropdown(openDropdown === question.id ? null : question.id);
-                              }}>
-                                <span className="dropdown-label">{option.name} · ~{option.returns}%{isLocked ? " · Locked" : ""}</span>
+                            {isLocked ? (
+                              <button onClick={(event) => { event.stopPropagation(); confirmPrediction(question); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 14px", background: "rgba(255,255,255,0.05)", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)", cursor: "pointer", fontSize: "13px" }}>
+                                <span style={{ color: "var(--yellow)", fontWeight: 600 }}>{option.name}</span>
+                                <span style={{ color: "var(--muted)", fontSize: "12px" }}>~{option.returns}%</span>
+                                <span style={{ color: "#ff6b6b", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Locked</span>
                               </button>
-                              <div className="dropdown-menu">
-                                {question.options.map((choice) => (
-                                  <button key={choice.id} className={`option-button ${choice.name === option.name ? "active" : ""}`} onClick={(event) => {
-                                    event.stopPropagation();
-                                    setSelected((current) => ({ ...current, [question.id]: choice.name }));
-                                    setOpenDropdown(null);
-                                  }}>
-                                    <span>{choice.name}</span><span className="return">~{choice.returns}%</span>
-                                  </button>
-                                ))}
+                            ) : (
+                              <div className={`dropdown ${openDropdown === question.id ? "open" : ""}`}>
+                                <button className="dropdown-trigger" onClick={(event) => {
+                                  event.stopPropagation();
+                                  setActiveQuestion(question.id);
+                                  setOpenDropdown(openDropdown === question.id ? null : question.id);
+                                }}>
+                                  <span className="dropdown-label">{option.name} · ~{option.returns}%</span>
+                                </button>
+                                <div className="dropdown-menu">
+                                  {question.options.map((choice) => (
+                                    <button key={choice.id} className={`option-button ${choice.name === option.name ? "active" : ""}`} onClick={(event) => {
+                                      event.stopPropagation();
+                                      setSelected((current) => ({ ...current, [question.id]: choice.name }));
+                                      setOpenDropdown(null);
+                                    }}>
+                                      <span>{choice.name}</span><span className="return">~{choice.returns}%</span>
+                                    </button>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
+                            )}
                           </div>
                         </div>
-                        <div className="question-action">
-                          <div className="amounts">
+                        <div className="question-action" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: 10 }}>
+                          <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
                             {[5, 10, 50, 100, 500].map((amount) => (
-                              <button key={amount} className="button gold" onClick={() => setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount }))}>{amount}</button>
+                              <button key={amount} onClick={() => setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount }))} style={{ padding: "5px 12px", borderRadius: "16px", border: "1px solid rgba(255,225,0,0.35)", background: "transparent", color: "var(--yellow)", fontSize: "12px", fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }} onMouseEnter={(e) => { e.currentTarget.style.background = "var(--yellow)"; e.currentTarget.style.color = "var(--bg)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--yellow)"; }}>{amount}</button>
                             ))}
                           </div>
-                          <span className="pill gold" style={{ display: "flex", alignItems: "center", gap: "4px" }}>{coinInputs[question.id] || 0} <img src="/ammo-icon.webp" alt="" width={16} height={16} style={{ objectFit: "contain" }} /></span>
-                          <button className="button" onClick={() => setCoinInputs((current) => ({ ...current, [question.id]: 0 }))}>Clear</button>
-                          <button className="button primary confirm" onClick={() => confirmPrediction(question)}>{isLocked ? "Top Up" : "Predict"}</button>
+                          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                            <span style={{ display: "flex", alignItems: "center", gap: "4px", padding: "5px 10px", background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", fontSize: "13px", fontWeight: 600, color: "var(--yellow)", minWidth: "52px", justifyContent: "center" }}>{coinInputs[question.id] || 0} <img src="/ammo-icon.webp" alt="" width={14} height={14} style={{ objectFit: "contain" }} /></span>
+                            <button onClick={() => setCoinInputs((current) => ({ ...current, [question.id]: 0 }))} style={{ padding: "4px 8px", fontSize: "14px", color: "var(--muted)", background: "none", border: "none", cursor: "pointer", lineHeight: 1 }}>×</button>
+                          </div>
+                          <button className="button primary confirm" onClick={() => confirmPrediction(question)} style={{ padding: "9px 22px", fontWeight: 700, borderRadius: "10px", fontSize: "13px", boxShadow: "0 2px 10px rgba(255,225,0,0.12)" }}>{isLocked ? "Top Up" : "Predict"}</button>
                         </div>
                         <div className="toast">{toast[question.id]}</div>
                       </div>
