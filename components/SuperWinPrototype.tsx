@@ -324,7 +324,8 @@ export default function SuperWinPrototype() {
   const runningPageSize = 10;
   const [questionDeadlines, setQuestionDeadlines] = useState<Record<string, number>>({});
   const [claimLabel, setClaimLabel] = useState("Ready");
-  const [openModal, setOpenModal] = useState<"history" | "running" | "info" | null>(null);
+  const [openModal, setOpenModal] = useState<"history" | "running" | "info" | "claimResult" | null>(null);
+  const [claimResult, setClaimResult] = useState<number>(0);
   const [toast, setToast] = useState<Record<string, string>>({});
   const [accountStatus, setAccountStatus] = useState<"demo" | "loading" | "synced" | "error">("demo");
   const [accountRole, setAccountRole] = useState<"user" | "admin">("user");
@@ -770,6 +771,8 @@ export default function SuperWinPrototype() {
         setCoins(payload.data.user.coinBalance);
         setProfit(payload.data.user.lifetimeProfit);
         setNextClaimAt(payload.data.user.nextClaimAt ? new Date(payload.data.user.nextClaimAt).getTime() : 0);
+        setClaimResult(payload.data.amount);
+        setOpenModal("claimResult");
       } catch {
         setAccountStatus("error");
       }
@@ -1118,6 +1121,19 @@ export default function SuperWinPrototype() {
 
       {openModal === "running" && <RunningModal running={running} runningPage={runningPage} runningPageSize={runningPageSize} setRunningPage={(page) => { setRunningPage(page); }} onClose={() => setOpenModal(null)} />}
       {openModal === "info" && <InfoModal settings={settings} onClose={() => setOpenModal(null)} />}
+      {openModal === "claimResult" && (
+        <section className="modal" aria-label="Reload result" onClick={(event) => event.target === event.currentTarget && setOpenModal(null)}>
+          <div className="modal-card" style={{ maxWidth: 360, textAlign: "center", padding: "32px 24px" }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}></div>
+            <h3 style={{ fontSize: 18, marginBottom: 8 }}>Reload Result</h3>
+            <p style={{ fontSize: 32, fontWeight: 700, color: "var(--yellow)", margin: "12px 0" }}>
+              +{claimResult} <img src="/ammo-icon.webp" alt="" width={24} height={24} style={{ verticalAlign: "middle" }} />
+            </p>
+            <p style={{ fontSize: 13, color: "var(--muted)" }}>Ammo reloaded!</p>
+            <button className="button primary" style={{ marginTop: 20, width: "100%" }} onClick={() => setOpenModal(null)}>OK</button>
+          </div>
+        </section>
+      )}
       {openModal === "history" && <HistoryModal history={history} historyFilter={historyFilter} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} setHistoryPage={(page) => { setHistoryPage(page); }} setHistoryFilter={(value) => { setHistoryFilter(value); loadHistory(value); }} onClose={() => setOpenModal(null)} />}
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />

@@ -2,8 +2,29 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 
-const CLAIM_AMOUNT = 100;
 const CLAIM_COOLDOWN_MS = 60 * 60 * 1000;
+
+/**
+ * Weighted random: 10-100 coins, 100 is rarest
+ * Probability: 10-30 (~50%), 31-60 (~30%), 61-90 (~15%), 91-100 (~5%)
+ */
+function randomClaimAmount(): number {
+  const r = Math.random(); // 0-1
+  if (r < 0.50) {
+    // 10-30 (common)
+    return Math.floor(Math.random() * 21) + 10;
+  }
+  if (r < 0.80) {
+    // 31-60 (uncommon)
+    return Math.floor(Math.random() * 30) + 31;
+  }
+  if (r < 0.95) {
+    // 61-90 (rare)
+    return Math.floor(Math.random() * 30) + 61;
+  }
+  // 91-100 (very rare)
+  return Math.floor(Math.random() * 10) + 91;
+}
 
 export async function POST() {
   try {
@@ -27,7 +48,8 @@ export async function POST() {
     const supabase = createSupabaseAdminClient();
     const claimedAt = new Date();
     const nextClaimAt = new Date(claimedAt.getTime() + CLAIM_COOLDOWN_MS);
-    const balanceAfter = user.coinBalance + CLAIM_AMOUNT;
+    const claimAmount = randomClaimAmount();
+    const balanceAfter = user.coinBalance + claimAmount;
     const nowISO = new Date(now).toISOString();
 
     // Atomic update: only succeeds if (next_claim_at IS NULL) OR (next_claim_at <= now)
@@ -68,7 +90,7 @@ export async function POST() {
       .insert({
         user_id: user.id,
         type: "claim",
-        amount: CLAIM_AMOUNT,
+        amount: claimAmount,
         balance_after: balanceAfter,
         ref_type: "claim",
         detail: "Hourly reward"
@@ -83,7 +105,7 @@ export async function POST() {
     return NextResponse.json({
       ok: true,
       data: {
-        amount: CLAIM_AMOUNT,
+        amount: claimAmount,
         user: {
           coinBalance: updatedUser.coin_balance,
           lifetimeProfit: updatedUser.lifetime_profit,
