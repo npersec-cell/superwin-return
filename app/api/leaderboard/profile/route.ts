@@ -71,19 +71,21 @@ export async function GET(request: NextRequest) {
 
     // สร้างประวัติจาก predict rows โดยหา payout ที่ match ตาม question
     const history = predictRows.slice(0, 5).map((predict) => {
-      const question = extractQuestion(predict.detail, "Prediction: ");
+      const tournament = extractQuestion(predict.detail, "Tournament: ");
+      const question = extractQuestion(predict.detail, "Question: ");
 
       // หา payout ที่ question ตรงกัน และเกิดขึ้นหลัง predict
       const payout = payoutRows.find((p) => {
-        const payoutQuestion = extractQuestion(p.detail, "Payout: ");
+        const payoutQuestion = extractQuestion(p.detail, "Question: ");
         return payoutQuestion === question && new Date(p.created_at) >= new Date(predict.created_at);
       });
 
-      const pickText = predict.detail?.split(" · ")[1]?.replace("Option: ", "") || "Unknown";
+      const pickSegment = predict.detail?.split(" · ").find((part) => part.startsWith("Pick: "));
+      const pickText = pickSegment ? pickSegment.replace("Pick: ", "").trim() : "Unknown";
 
       return {
         id: predict.id,
-        tournament: "Prediction",
+        tournament: tournament || "Prediction",
         question,
         pick: pickText,
         amount: Math.abs(predict.amount),
