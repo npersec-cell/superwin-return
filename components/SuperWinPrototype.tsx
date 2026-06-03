@@ -908,7 +908,7 @@ export default function SuperWinPrototype() {
                   <span>{profitScore.toLocaleString()}</span>
                   <img src="/ammo-556-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} />
                 </span>
-                <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Reload 100</button>
+                <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Reload</button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                 <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory("All"); }}>History</button>
                 {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}

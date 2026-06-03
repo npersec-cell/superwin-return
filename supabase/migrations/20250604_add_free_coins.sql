@@ -1,0 +1,3 @@
+-- DEPRECATED: this migration is no longer needed.
+-- free_coins column is NOT added; use 20250604_refactor_single_balance.sql instead
+-- if you need to clean up an existing free_coins column.

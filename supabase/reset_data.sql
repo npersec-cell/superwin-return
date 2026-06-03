@@ -15,11 +15,12 @@ DELETE FROM public.predictions;
 -- 4. ลบ coin_ledger ทั้งหมด
 DELETE FROM public.coin_ledger;
 
--- 5. รีเซ็ต coin ของ users กลับเป็น 1,000 และ lifetime_profit = 0
+-- 5. รีเซ็ต coin ของ users กลับเป็น 1,000 และ lifetime_profit = 0, profit_score = 0
 UPDATE public.users
 SET
-  coin = 1000,
-  lifetime_profit = 0;
+  coin_balance = 1000,
+  lifetime_profit = 0,
+  profit_score = 0;
 
 -- 6. เช็คผลลัพธ์
 SELECT 'users' as tbl, count(*) as cnt, 'kept' as note FROM public.users
@@ -33,4 +34,4 @@ UNION ALL
 SELECT 'coin_ledger', count(*), 'deleted' FROM public.coin_ledger;
 
 -- 7. เช็ค coin ของ users หลังรีเซ็ต
-SELECT id, email, coin, lifetime_profit FROM public.users LIMIT 10;
+SELECT id, email, coin_balance, lifetime_profit, profit_score FROM public.users LIMIT 10;

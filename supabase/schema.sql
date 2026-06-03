@@ -9,7 +9,7 @@ create table if not exists public.users (
   email text not null,
   display_name text,
   role text not null default 'user' check (role in ('user', 'admin')),
-  coin_balance integer not null default 0 check (coin_balance >= 0),
+  coin_balance integer not null default 1000 check (coin_balance >= 0),
   lifetime_profit integer not null default 0,
   profit_score integer not null default 0,
   last_claim_at timestamptz,
