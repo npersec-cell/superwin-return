@@ -864,7 +864,7 @@ export default function SuperWinPrototype() {
               </SignInButton>
             ) : (
               <>
-                <span className="pill gold" style={{ fontSize: "14px", padding: "3px 12px", height: "32px", fontWeight: "600", display: "flex", alignItems: "center", gap: "3px" }}>
+                <span className="button gold" style={{ display: "flex", alignItems: "center", gap: "3px", cursor: "default" }}>
                   <span>{coins.toLocaleString()}</span>
                   <img src="/ammo-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} />
                 </span>
