@@ -7,7 +7,15 @@ export async function GET() {
   try {
     const supabase = createSupabaseAdminClient();
 
-    // 1. ดึง coin_ledger predict + payout ทั้งหมด (entries อาจถูกลบไปแล้ว แต่ ledger ยังอยู่)
+    // 1. ดึง users ทั้งหมด (ไม่รวม admin) — เอาทุกคนมารวมกับ profit map
+    const { data: allUsers, error: errUsers } = await supabase
+      .from("users")
+      .select("id, display_name, email, avatar_url, role")
+      .neq("role", "admin");
+
+    if (errUsers) throw new Error(errUsers.message);
+
+    // 2. ดึง coin_ledger predict + payout ทั้งหมด
     const { data: ledgerRows, error: err1 } = await supabase
       .from("coin_ledger")
       .select("user_id, amount, type")
@@ -15,51 +23,13 @@ export async function GET() {
 
     if (err1) throw new Error(err1.message);
 
-    // 2. คำนวณ profit ต่อ user (predict = -amount, payout = +payout)
+    // 3. คำนวณ profit ต่อ user (predict = -amount, payout = +payout)
     const profitMap = new Map<string, number>();
     for (const row of ledgerRows || []) {
       profitMap.set(row.user_id, (profitMap.get(row.user_id) || 0) + row.amount);
     }
 
-    // 3. ถ้าไม่มี ledger data (เช่นหลัง reset) ให้ดึง users มาแสดง profit = 0
-    if (profitMap.size === 0) {
-      const { data: allUsers, error: err3 } = await supabase
-        .from("users")
-        .select("id, display_name, email, avatar_url, role")
-        .neq("role", "admin")
-        .limit(10);
-
-      if (err3) throw new Error(err3.message);
-
-      const rows = (allUsers || []).map((u) => ({
-        id: u.id,
-        name: u.display_name || u.email.split("@")[0],
-        profit: 0,
-        avatarUrl: u.avatar_url || null,
-        isReal: true
-      }));
-
-      return NextResponse.json({ ok: true, data: rows });
-    }
-
-    // 4. เรียงตาม profit มาก → น้อย
-    const sorted = Array.from(profitMap.entries()).sort((a, b) => b[1] - a[1]);
-    if (sorted.length === 0) {
-      return NextResponse.json({ ok: true, data: [] });
-    }
-
-    // 4. ดึง users ที่มี profit (ดึงทั้งหมดที่มีใน profitMap)
-    const allUserIds = sorted.map(([id]) => id);
-    const { data: users, error: err2 } = await supabase
-      .from("users")
-      .select("id, display_name, email, avatar_url, role")
-      .in("id", allUserIds);
-
-    if (err2) throw new Error(err2.message);
-
-    const userMap = new Map((users || []).map((u) => [u.id, u]));
-
-    // 5. สร้าง rows กรอง admin ออก เอา top 10
+    // 4. รวม users ทั้งหมดกับ profit map (คนที่ไม่มี ledger ให้ profit = 0)
     const rows: Array<{
       id: string;
       name: string;
@@ -68,20 +38,20 @@ export async function GET() {
       isReal: boolean;
     }> = [];
 
-    for (const [id, profit] of sorted) {
-      const user = userMap.get(id);
-      if (!user || user.role === "admin") continue;
+    for (const u of allUsers || []) {
       rows.push({
-        id,
-        name: user.display_name || user.email.split("@")[0],
-        profit,
-        avatarUrl: user.avatar_url || null,
+        id: u.id,
+        name: u.display_name || u.email.split("@")[0],
+        profit: profitMap.get(u.id) || 0,
+        avatarUrl: u.avatar_url || null,
         isReal: true
       });
-      if (rows.length >= 10) break;
     }
 
-    return NextResponse.json({ ok: true, data: rows });
+    // 5. เรียงตาม profit มาก → น้อย แล้วเอา top 10
+    const sorted = rows.sort((a, b) => b.profit - a.profit).slice(0, 10);
+
+    return NextResponse.json({ ok: true, data: sorted });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Load leaderboard failed";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
