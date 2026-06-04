@@ -1045,8 +1045,13 @@ export default function SuperWinPrototype() {
                     return (
                       <div key={question.id} className={`question ${isActive ? "active" : ""} ${runningCount ? "running" : ""} ${isLocked ? "locked" : ""}`} style={{ gap: "6px" }} onClick={(event) => {
                         if ((event.target as HTMLElement).closest("button, input, .dropdown, .dropdown-new")) return;
-                        setActiveQuestion(question.id);
-                        setOpenDropdown(null);
+                        if (isActive) {
+                          setActiveQuestion(null);
+                          setOpenDropdown(null);
+                        } else {
+                          setActiveQuestion(question.id);
+                          setOpenDropdown(null);
+                        }
                       }}>
                         {/* Header */}
                         <div className="question-card-header">
