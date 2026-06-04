@@ -1595,6 +1595,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 )}
               </section>
 
+              {/* Section "คำถามทั้งหมดในระบบ" ซ่อนไว้ตามคำขอ — เก็บโค้ดไว้ใช้หลังบ้าน
               <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h3>คำถามทั้งหมดในระบบ</h3><span className="micro">{predictions.length} รายการ</span></div>
                 <div className="leaderboard-body admin-list" style={{ gap: "10px", padding: "12px 0 0 0" }}>
@@ -1616,6 +1617,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
                 )}
               </section>
+              */}
             </section>
           )}
 
