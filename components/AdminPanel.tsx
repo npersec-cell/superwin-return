@@ -373,6 +373,21 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     setDraftOptions((current) => current.filter((_, itemIndex) => itemIndex !== index));
   }
 
+  function usePreviousOptions() {
+    const latest = [...predictions].sort((a, b) => {
+      const timeA = a.closesAt ? new Date(a.closesAt).getTime() : 0;
+      const timeB = b.closesAt ? new Date(b.closesAt).getTime() : 0;
+      return timeB - timeA;
+    })[0];
+    if (!latest || !latest.options.length) {
+      setMessage("ไม่พบคำถามก่อนหน้า");
+      return;
+    }
+    const labels = latest.options.sort((a, b) => a.sortOrder - b.sortOrder).map((o) => o.label);
+    setDraftOptions(labels);
+    setMessage(`ดึงตัวเลือกจากคำถามก่อนหน้า: ${latest.question}`);
+  }
+
   async function createPrediction(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
@@ -1135,11 +1150,16 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 </div>
 
                 <div className="admin-box" style={{ marginTop: "6px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
                     <strong>ตัวเลือกคำตอบ</strong>
-                    <button type="button" onClick={() => setShowBulkOptions(!showBulkOptions)} style={{ fontSize: "10px", color: "var(--yellow)", background: "transparent", border: "0", cursor: "pointer", textDecoration: "underline" }}>
-                      {showBulkOptions ? "ใส่ทีละข้อ" : "ใส่ทีละหลายคำตอบ (เว้นบรรทัด)"}
-                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <button type="button" onClick={usePreviousOptions} style={{ fontSize: "10px", color: "var(--green)", background: "transparent", border: "0", cursor: "pointer", textDecoration: "underline" }}>
+                        ใช้ตัวเลือกจากข้อที่แล้ว
+                      </button>
+                      <button type="button" onClick={() => setShowBulkOptions(!showBulkOptions)} style={{ fontSize: "10px", color: "var(--yellow)", background: "transparent", border: "0", cursor: "pointer", textDecoration: "underline" }}>
+                        {showBulkOptions ? "ใส่ทีละข้อ" : "ใส่ทีละหลายคำตอบ (เว้นบรรทัด)"}
+                      </button>
+                    </div>
                   </div>
 
                   {!showBulkOptions ? (
