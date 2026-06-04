@@ -987,7 +987,7 @@ export default function SuperWinPrototype() {
           <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
             <span className="label">Rank</span>
             <b className="value" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <img src={getRankInfo(profitScore).icon} alt="" width={14} height={14} style={{ objectFit: "contain" }} />
+              <img src={getRankInfo(profitScore).icon} alt="" width={21} height={21} style={{ objectFit: "contain" }} />
               {getRankInfo(profitScore).name}
             </b>
           </div>
@@ -1214,7 +1214,7 @@ export default function SuperWinPrototype() {
                           {maskName(row.name)}
                         </span>
                         <span style={{ display: "flex", alignItems: "center", gap: "3px", color: "var(--muted)", fontSize: "10px", fontWeight: 500, flexShrink: 0 }}>
-                          <img src={getRankInfo(row.profitScore).icon} alt="" width={12} height={12} style={{ objectFit: "contain" }} />
+                          <img src={getRankInfo(row.profitScore).icon} alt="" width={18} height={18} style={{ objectFit: "contain" }} />
                           {getRankInfo(row.profitScore).name}
                         </span>
                       </div>
@@ -1427,7 +1427,7 @@ function ProfileModal({
                   <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>RANK</span>
                   <strong style={{ display: "block", fontSize: "18px", color: "var(--yellow)", marginTop: "4px" }}>
                     <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <img src={getRankInfo(profile.profitScore).icon} alt="" width={18} height={18} style={{ objectFit: "contain" }} />
+                      <img src={getRankInfo(profile.profitScore).icon} alt="" width={27} height={27} style={{ objectFit: "contain" }} />
                       {getRankInfo(profile.profitScore).name}
                     </span>
                   </strong>
