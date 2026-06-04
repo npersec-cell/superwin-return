@@ -330,6 +330,8 @@ export default function SuperWinPrototype() {
   const [claimLabel, setClaimLabel] = useState("Ready");
   const [openModal, setOpenModal] = useState<"history" | "running" | "info" | "claimResult" | null>(null);
   const [claimResult, setClaimResult] = useState<number>(0);
+  const [claimFlash, setClaimFlash] = useState(false);
+  const claimFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [toast, setToast] = useState<Record<string, string>>({});
   const [accountStatus, setAccountStatus] = useState<"demo" | "loading" | "synced" | "error">("demo");
   const [accountRole, setAccountRole] = useState<"user" | "admin">("user");
@@ -520,6 +522,7 @@ export default function SuperWinPrototype() {
       const claimRemaining = nextClaimAt - Date.now();
       if (claimRemaining <= 0) {
         setClaimLabel("Ready");
+        setClaimFlash(false);
       } else {
         const minutes = Math.floor(claimRemaining / 60000);
         const seconds = Math.floor((claimRemaining % 60000) / 1000);
@@ -807,6 +810,10 @@ export default function SuperWinPrototype() {
         setNextClaimAt(payload.data.user.nextClaimAt ? new Date(payload.data.user.nextClaimAt).getTime() : 0);
         setClaimResult(payload.data.amount);
         setOpenModal("claimResult");
+        // Flash button with amount for 5 seconds
+        setClaimFlash(true);
+        if (claimFlashTimer.current) clearTimeout(claimFlashTimer.current);
+        claimFlashTimer.current = setTimeout(() => { setClaimFlash(false); setOpenModal(null); }, 5000);
       } catch {
         setAccountStatus("error");
       }
@@ -818,6 +825,10 @@ export default function SuperWinPrototype() {
     setNextClaimAt(Date.now() + 60 * 60 * 1000);
     setClaimResult(amount);
     setOpenModal("claimResult");
+    // Flash button with amount for 5 seconds
+    setClaimFlash(true);
+    if (claimFlashTimer.current) clearTimeout(claimFlashTimer.current);
+    claimFlashTimer.current = setTimeout(() => { setClaimFlash(false); setOpenModal(null); }, 5000);
   }
 
   async function confirmPrediction(question: Question) {
@@ -909,7 +920,9 @@ export default function SuperWinPrototype() {
                   <span>{profitScore.toLocaleString()}</span>
                   <img src="/ammo-556-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} />
                 </span>
-                <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>Reload</button>
+                <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>
+                  {claimFlash ? `+${claimResult}` : "Reload"}
+                </button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                 <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory("All"); }}>History</button>
                 {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
