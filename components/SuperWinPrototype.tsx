@@ -1144,10 +1144,12 @@ export default function SuperWinPrototype() {
                                 <input
                                   type="number"
                                   min="0"
+                                  readOnly
                                   value={coinInputs[question.id] || 0}
                                   onChange={(e) => setCoinInputs((current) => ({ ...current, [question.id]: Math.max(0, parseInt(e.target.value) || 0) }))}
                                   onClick={(e) => e.stopPropagation()}
                                   className="amount-input-new"
+                                  style={{ cursor: "default" }}
                                 />
                                 <img src="/ammo-icon.webp" alt="" width={16} height={16} style={{ objectFit: "contain", opacity: 0.5, flexShrink: 0 }} />
                               </div>
