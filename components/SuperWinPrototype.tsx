@@ -1006,91 +1006,108 @@ export default function SuperWinPrototype() {
                         {/* Title */}
                         <h3 className="question-card-title">{question.title}</h3>
 
-                        {/* Step 1 */}
-                        <div className="question-step">
-                          <span className="step-num">1.</span>
-                          <span className="step-label">Pick your team</span>
-                        </div>
-
-                        {/* Team picker */}
-                        {isLocked ? (
-                          <button className="team-picker locked" onClick={(event) => { event.stopPropagation(); confirmPrediction(question); }}>
-                            <span className="team-name">{option.name}</span>
-                            <span className="team-returns">~{option.returns}%</span>
-                            <span className="locked-badge">Locked</span>
-                          </button>
-                        ) : (
-                          <div className={`dropdown-new ${openDropdown === question.id ? "open" : ""}`}>
-                            <button className="dropdown-trigger-new" onClick={(event) => {
-                              event.stopPropagation();
-                              setActiveQuestion(question.id);
-                              setOpenDropdown(openDropdown === question.id ? null : question.id);
-                            }}>
-                              <span className="dropdown-label-new">{option.name}</span>
-                              <span className="dropdown-returns">~{option.returns}%</span>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ opacity: 0.5, flexShrink: 0 }}>
-                                <polyline points="6 9 12 15 18 9"/>
-                              </svg>
+                        {/* Compact row when inactive */}
+                        {!isActive && (
+                          <div className="question-compact-row">
+                            <div className="compact-team" onClick={(event) => { event.stopPropagation(); setActiveQuestion(question.id); }}>
+                              <span className="compact-label">{isLocked ? "Locked:" : "Pick:"}</span>
+                              <span className="compact-name">{option.name}</span>
+                              <span className="compact-returns">~{option.returns}%</span>
+                            </div>
+                            <button className="compact-predict-btn" onClick={(event) => { event.stopPropagation(); setActiveQuestion(question.id); }}>
+                              {isLocked ? "Top Up" : "Predict"}
                             </button>
-                            <div className="dropdown-menu-new">
-                              {question.options.map((choice) => (
-                                <button key={choice.id} className={`option-button-new ${choice.name === option.name ? "active" : ""}`} onClick={(event) => {
+                          </div>
+                        )}
+
+                        {/* Expanded form when active */}
+                        {isActive && (
+                          <>
+                            {/* Step 1 */}
+                            <div className="question-step">
+                              <span className="step-num">1.</span>
+                              <span className="step-label">Pick your team</span>
+                            </div>
+
+                            {/* Team picker */}
+                            {isLocked ? (
+                              <button className="team-picker locked" onClick={(event) => { event.stopPropagation(); confirmPrediction(question); }}>
+                                <span className="team-name">{option.name}</span>
+                                <span className="team-returns">~{option.returns}%</span>
+                                <span className="locked-badge">Locked</span>
+                              </button>
+                            ) : (
+                              <div className={`dropdown-new ${openDropdown === question.id ? "open" : ""}`}>
+                                <button className="dropdown-trigger-new" onClick={(event) => {
                                   event.stopPropagation();
-                                  setSelected((current) => ({ ...current, [question.id]: choice.name }));
-                                  setOpenDropdown(null);
+                                  setActiveQuestion(question.id);
+                                  setOpenDropdown(openDropdown === question.id ? null : question.id);
                                 }}>
-                                  <span>{choice.name}</span>
-                                  <span className="return">~{choice.returns}%</span>
+                                  <span className="dropdown-label-new">{option.name}</span>
+                                  <span className="dropdown-returns">~{option.returns}%</span>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ opacity: 0.5, flexShrink: 0 }}>
+                                    <polyline points="6 9 12 15 18 9"/>
+                                  </svg>
                                 </button>
+                                <div className="dropdown-menu-new">
+                                  {question.options.map((choice) => (
+                                    <button key={choice.id} className={`option-button-new ${choice.name === option.name ? "active" : ""}`} onClick={(event) => {
+                                      event.stopPropagation();
+                                      setSelected((current) => ({ ...current, [question.id]: choice.name }));
+                                      setOpenDropdown(null);
+                                    }}>
+                                      <span>{choice.name}</span>
+                                      <span className="return">~{choice.returns}%</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Step 2 */}
+                            <div className="question-step">
+                              <span className="step-num">2.</span>
+                              <span className="step-label">Enter amount</span>
+                            </div>
+
+                            {/* Amount row */}
+                            <div className="amount-row-new">
+                              <div className="amount-input-wrap">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={coinInputs[question.id] || 0}
+                                  onChange={(e) => setCoinInputs((current) => ({ ...current, [question.id]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="amount-input-new"
+                                />
+                                <img src="/ammo-icon.webp" alt="" width={16} height={16} style={{ objectFit: "contain", opacity: 0.5, flexShrink: 0 }} />
+                              </div>
+                              <div className="returns-box">
+                                <span className="returns-label">Est. payout</span>
+                                <span className="returns-value">~ {Math.round((coinInputs[question.id] || 0) * (1 + option.returns / 100))}</span>
+                              </div>
+                            </div>
+
+                            {/* Amount chips */}
+                            <div className="amount-chips-new">
+                              {[5, 10, 50, 100, 500].map((amount) => (
+                                <button key={amount} className="chip" onClick={(event) => {
+                                  event.stopPropagation();
+                                  setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount }));
+                                }}>{amount}</button>
                               ))}
                             </div>
-                          </div>
+
+                            {/* Big predict button */}
+                            <button className="predict-big-btn" onClick={(event) => {
+                              event.stopPropagation();
+                              confirmPrediction(question);
+                            }}>
+                              {isLocked ? "Top Up" : "Predict"}
+                            </button>
+                          </>
                         )}
-
-                        {/* Step 2 */}
-                        <div className="question-step">
-                          <span className="step-num">2.</span>
-                          <span className="step-label">Enter amount</span>
-                        </div>
-
-                        {/* Amount row */}
-                        <div className="amount-row-new">
-                          <div className="amount-input-wrap">
-                            <input
-                              type="number"
-                              min="0"
-                              value={coinInputs[question.id] || 0}
-                              onChange={(e) => setCoinInputs((current) => ({ ...current, [question.id]: Math.max(0, parseInt(e.target.value) || 0) }))}
-                              onClick={(e) => e.stopPropagation()}
-                              className="amount-input-new"
-                            />
-                            <img src="/ammo-icon.webp" alt="" width={16} height={16} style={{ objectFit: "contain", opacity: 0.5, flexShrink: 0 }} />
-                          </div>
-                          <div className="returns-box">
-                            <span className="returns-label">Est. payout</span>
-                            <span className="returns-value">~ {Math.round((coinInputs[question.id] || 0) * (1 + option.returns / 100))}</span>
-                          </div>
-                        </div>
-
-                        {/* Amount chips */}
-                        {isActive && (
-                          <div className="amount-chips-new">
-                            {[5, 10, 50, 100, 500].map((amount) => (
-                              <button key={amount} className="chip" onClick={(event) => {
-                                event.stopPropagation();
-                                setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount }));
-                              }}>{amount}</button>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Big predict button */}
-                        <button className="predict-big-btn" onClick={(event) => {
-                          event.stopPropagation();
-                          confirmPrediction(question);
-                        }}>
-                          {isLocked ? "Top Up" : "Predict"}
-                        </button>
 
                         <div className="toast">{toast[question.id]}</div>
                       </div>
