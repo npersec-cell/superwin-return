@@ -11,6 +11,7 @@ type AdminPrediction = {
   opensAt: string | null;
   closesAt: string | null;
   feeRate: number;
+  createdAt: string;
   options: { id: string; label: string; sortOrder: number }[];
 };
 
@@ -414,8 +415,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   function usePreviousOptions() {
     const latest = [...predictions].sort((a, b) => {
-      const timeA = a.closesAt ? new Date(a.closesAt).getTime() : 0;
-      const timeB = b.closesAt ? new Date(b.closesAt).getTime() : 0;
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return timeB - timeA;
     })[0];
     if (!latest || !latest.options.length) {
