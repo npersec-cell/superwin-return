@@ -986,10 +986,10 @@ export default function SuperWinPrototype() {
           <div className="stat"><span className="label">Win Rate</span><b className="value">{winRate}%</b></div>
           <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
             <span className="label">Rank</span>
-            <b className="value" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
-              <img src={getRankInfo(profitScore).icon} alt="" width={21} height={21} style={{ objectFit: "contain" }} />
-              {getRankInfo(profitScore).name}
-            </b>
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <img src={getRankInfo(profitScore).icon} alt="" width={21} height={21} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "4px", objectFit: "contain" }} />
+              <b className="value">{getRankInfo(profitScore).name}</b>
+            </div>
           </div>
           <div className="stat"><span className="label">All time Rank</span><b className="value">{userRank ? `#${userRank}` : "--"}</b></div>
           <div className="stat"><span className="label">Next Reload</span><b className="value">{claimLabel}</b></div>
@@ -1425,9 +1425,11 @@ function ProfileModal({
                 </div>
                 <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                   <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>RANK</span>
-                  <strong style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "18px", color: "var(--yellow)", marginTop: "4px" }}>
-                    <img src={getRankInfo(profile.profitScore).icon} alt="" width={27} height={27} style={{ objectFit: "contain" }} />
-                    {getRankInfo(profile.profitScore).name}
+                  <strong style={{ display: "flex", justifyContent: "center", fontSize: "18px", color: "var(--yellow)", marginTop: "4px" }}>
+                    <span style={{ position: "relative", display: "inline-block" }}>
+                      <img src={getRankInfo(profile.profitScore).icon} alt="" width={27} height={27} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "6px", objectFit: "contain" }} />
+                      {getRankInfo(profile.profitScore).name}
+                    </span>
                   </strong>
                   <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
                     Profit Score: {profile.profitScore.toLocaleString()}
