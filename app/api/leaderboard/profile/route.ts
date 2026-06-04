@@ -60,13 +60,23 @@ export async function GET(request: NextRequest) {
     const predictRows = ledgerRows.filter((r) => r.type === "predict");
     const payoutRows = ledgerRows.filter((r) => r.type === "payout");
 
-    const totalSettled = predictRows.length;
-    const wonCount = payoutRows.length;
+    // นับเฉพาะ prediction ที่ถูกสรุปผลแล้ว (มี payout ตรงกัน)
+    const settledPredictRows = predictRows.filter((predict) => {
+      const question = extractQuestion(predict.detail, "Question: ");
+      return payoutRows.some((p) => {
+        const payoutQuestion = extractQuestion(p.detail, "Question: ");
+        return payoutQuestion === question && new Date(p.created_at) >= new Date(predict.created_at);
+      });
+    });
+
+    // นับเฉพาะ payout ที่ amount > 0 (ชนะจริงๆ) — ผู้แพ้ก็ได้ payout row แต่ amount = 0
+    const totalSettled = settledPredictRows.length;
+    const wonCount = payoutRows.filter((r) => r.amount > 0).length;
     const lostCount = totalSettled - wonCount;
     const winRate = totalSettled > 0 ? Math.round((wonCount / totalSettled) * 100) : 0;
 
-    const totalCoinsBet = predictRows.reduce((acc, r) => acc + Math.abs(r.amount), 0);
-    const totalCoinsWon = payoutRows.reduce((acc, r) => acc + r.amount, 0);
+    const totalCoinsBet = settledPredictRows.reduce((acc, r) => acc + Math.abs(r.amount), 0);
+    const totalCoinsWon = payoutRows.filter((r) => r.amount > 0).reduce((acc, r) => acc + r.amount, 0);
     const avgBetSize = totalSettled > 0 ? Math.round(totalCoinsBet / totalSettled) : 0;
 
     // สร้างประวัติจาก predict rows โดยหา payout ที่ match ตาม question
@@ -83,6 +93,9 @@ export async function GET(request: NextRequest) {
       const pickSegment = predict.detail?.split(" · ").find((part) => part.startsWith("Pick: "));
       const pickText = pickSegment ? pickSegment.replace("Pick: ", "").trim() : "Unknown";
 
+      // ชนะจริงๆ ต้องมี payout และ amount > 0
+      const isWon = payout && payout.amount > 0;
+
       return {
         id: predict.id,
         tournament: tournament || "Prediction",
@@ -90,7 +103,7 @@ export async function GET(request: NextRequest) {
         pick: pickText,
         amount: Math.abs(predict.amount),
         payout: payout ? payout.amount : 0,
-        status: payout ? "won" : ("lost" as "won" | "lost"),
+        status: isWon ? "won" : ("lost" as "won" | "lost"),
         date: new Date(payout ? payout.created_at : predict.created_at).toLocaleDateString("en-GB", {
           day: "numeric",
           month: "short"
