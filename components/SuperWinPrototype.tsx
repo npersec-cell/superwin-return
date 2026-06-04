@@ -1006,7 +1006,6 @@ export default function SuperWinPrototype() {
                       }}>
                         {/* Header */}
                         <div className="question-card-header">
-                          <span className="status-badge">Open</span>
                           <span className="question-timer">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ opacity: 0.6 }}>
                               <circle cx="12" cy="12" r="10"/>
@@ -1121,6 +1120,8 @@ export default function SuperWinPrototype() {
                             </button>
                           </>
                         )}
+
+                        <div className="question-close-time">Closes: {formatQuestionCloseTime(question)}</div>
 
                         <div className="toast">{toast[question.id]}</div>
                       </div>
