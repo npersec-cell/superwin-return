@@ -186,6 +186,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [selectedDashboardTournament, setSelectedDashboardTournament] = useState("");
   const [draftOptions, setDraftOptions] = useState<string[]>([]);
   const [winningOptions, setWinningOptions] = useState<Record<string, string>>({});
+  const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
+  const [editTemplateInput, setEditTemplateInput] = useState("");
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
   const [topUsers, setTopUsers] = useState<Array<{ id: string; email: string; displayName: string; lifetimeProfit?: number }>>([]);
   const [editClosesAt, setEditClosesAt] = useState<Record<string, string>>({});
@@ -672,6 +674,36 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }
   }
 
+  async function renameQuestionTemplate(oldName: string, newName: string) {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    if (trimmed === oldName) {
+      setEditingTemplate(null);
+      return;
+    }
+    if (settings.savedQuestions?.includes(trimmed)) {
+      setMessage("มีชื่อคำถามนี้ในระบบแล้ว");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const nextQuestions = (settings.savedQuestions || []).map((q) => (q === oldName ? trimmed : q));
+      const data = await requestJson<SiteSettings>("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ savedQuestions: nextQuestions })
+      });
+      setSettings(data);
+      setEditingTemplate(null);
+      setMessage("แก้ไขแม่แบบคำถามสำเร็จ");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "แก้ไขแม่แบบคำถามไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function saveInfoSettings(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
@@ -1110,12 +1142,27 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
                   {settings.savedQuestions && settings.savedQuestions.length > 0 && (
                     <details style={{ marginTop: "6px", cursor: "pointer" }}>
-                      <summary className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>✏️ จัดการลบแม่แบบคำถามที่บันทึกไว้</summary>
+                      <summary className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>✏️ จัดการแม่แบบคำถามที่บันทึกไว้</summary>
                       <div style={{ display: "grid", gap: "4px", marginTop: "6px", maxHeight: "120px", overflowY: "auto", padding: "4px", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)" }}>
                         {settings.savedQuestions.map((q) => (
                           <div key={q} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", padding: "4px 8px", background: "var(--card)", borderRadius: "4px" }}>
-                            <span style={{ fontSize: "11px", color: "var(--text)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{q}</span>
-                            <button className="button" type="button" onClick={() => removeQuestionTemplate(q)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(240, 84, 84, 0.1)", border: "1px solid #ef4444", color: "#ef4444" }}>ลบ</button>
+                            {editingTemplate === q ? (
+                              <>
+                                <input value={editTemplateInput} onChange={(event) => setEditTemplateInput(event.target.value)} style={{ flex: 1, height: "26px", fontSize: "11px" }} autoFocus />
+                                <div style={{ display: "flex", gap: "4px" }}>
+                                  <button className="button" type="button" onClick={() => renameQuestionTemplate(q, editTemplateInput)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", color: "var(--green)" }}>บันทึก</button>
+                                  <button className="button" type="button" onClick={() => setEditingTemplate(null)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--muted)", color: "var(--muted)" }}>ยกเลิก</button>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <span style={{ fontSize: "11px", color: "var(--text)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{q}</span>
+                                <div style={{ display: "flex", gap: "4px" }}>
+                                  <button className="button" type="button" onClick={() => { setEditingTemplate(q); setEditTemplateInput(q); }} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(59, 130, 246, 0.1)", border: "1px solid var(--info)", color: "var(--info)" }}>แก้ไข</button>
+                                  <button className="button" type="button" onClick={() => removeQuestionTemplate(q)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(240, 84, 84, 0.1)", border: "1px solid #ef4444", color: "#ef4444" }}>ลบ</button>
+                                </div>
+                              </>
+                            )}
                           </div>
                         ))}
                       </div>
