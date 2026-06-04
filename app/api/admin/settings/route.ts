@@ -23,6 +23,7 @@ type SiteSettings = {
   };
   tournaments: (string | TournamentItem)[];
   savedQuestions: string[];
+  savedRounds: string[];
   predictionOrder?: string[];
   announcement?: string;
 };
@@ -46,6 +47,11 @@ const fallback: SiteSettings = {
     "Which team will win the championship?",
     "Which team will get the Chicken Dinner?",
     "Who will get the most kills in this match?"
+  ],
+  savedRounds: [
+    "รอบ 16 ทีม",
+    "รอบ 8 ทีม",
+    "รอบชิงชนะเลิศ"
   ],
   announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the All time Top 10!"
 };
@@ -117,6 +123,7 @@ export async function PATCH(request: NextRequest) {
       reward: { ...fallback.reward, ...current.reward, ...(body.reward || {}) },
       tournaments: body.tournaments !== undefined ? body.tournaments : (current.tournaments || fallback.tournaments),
       savedQuestions: body.savedQuestions !== undefined ? body.savedQuestions : (current.savedQuestions || fallback.savedQuestions),
+      savedRounds: body.savedRounds !== undefined ? body.savedRounds : (current.savedRounds || fallback.savedRounds),
       predictionOrder: body.predictionOrder !== undefined ? body.predictionOrder : (current.predictionOrder || fallback.predictionOrder),
       announcement: body.announcement !== undefined ? body.announcement : (current.announcement || fallback.announcement)
     };
