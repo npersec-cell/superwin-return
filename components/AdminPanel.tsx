@@ -208,6 +208,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [userSort, setUserSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
+  const [userPage, setUserPage] = useState(1);
   const [reports, setReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
 
@@ -1835,12 +1836,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
                       <thead>
                         <tr style={{ color: "var(--muted)", textAlign: "left", borderBottom: "1px solid var(--hairline)" }}>
-                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "name", dir: s.key === "name" && s.dir === "asc" ? "desc" : "asc" })); }}>ชื่อผู้ใช้ ⬍</th>
-                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "email", dir: s.key === "email" && s.dir === "asc" ? "desc" : "asc" })); }}>อีเมล ⬍</th>
-                          <th style={{ padding: "6px 8px", cursor: "pointer", textAlign: "right", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "coinBalance", dir: s.key === "coinBalance" && s.dir === "asc" ? "desc" : "asc" })); }}>Coin Balance ⬍</th>
-                          <th style={{ padding: "6px 8px", cursor: "pointer", textAlign: "right", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "profitScore", dir: s.key === "profitScore" && s.dir === "asc" ? "desc" : "asc" })); }}>Profit Score ⬍</th>
+                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserPage(1); setUserSort(s => ({ key: "name", dir: s.key === "name" && s.dir === "asc" ? "desc" : "asc" })); }}>ชื่อผู้ใช้ ⬍</th>
+                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserPage(1); setUserSort(s => ({ key: "email", dir: s.key === "email" && s.dir === "asc" ? "desc" : "asc" })); }}>อีเมล ⬍</th>
+                          <th style={{ padding: "6px 8px", cursor: "pointer", textAlign: "right", whiteSpace: "nowrap" }} onClick={() => { setUserPage(1); setUserSort(s => ({ key: "coinBalance", dir: s.key === "coinBalance" && s.dir === "asc" ? "desc" : "asc" })); }}>Coin Balance ⬍</th>
+                          <th style={{ padding: "6px 8px", cursor: "pointer", textAlign: "right", whiteSpace: "nowrap" }} onClick={() => { setUserPage(1); setUserSort(s => ({ key: "profitScore", dir: s.key === "profitScore" && s.dir === "asc" ? "desc" : "asc" })); }}>Profit Score ⬍</th>
                           <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>Admin</th>
-                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "createdAt", dir: s.key === "createdAt" && s.dir === "asc" ? "desc" : "asc" })); }}>สร้างเมื่อ ⬍</th>
+                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserPage(1); setUserSort(s => ({ key: "createdAt", dir: s.key === "createdAt" && s.dir === "asc" ? "desc" : "asc" })); }}>สร้างเมื่อ ⬍</th>
                           <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>Claim ล่าสุด</th>
                         </tr>
                       </thead>
@@ -1856,7 +1857,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             if (key === "createdAt") return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
                             return 0;
                           });
-                          return sorted.map((u) => (
+                          const userPageSize = 20;
+                          const totalPages = Math.max(1, Math.ceil(sorted.length / userPageSize));
+                          const safePage = Math.min(userPage, totalPages);
+                          const start = (safePage - 1) * userPageSize;
+                          const paged = sorted.slice(start, start + userPageSize);
+                          return paged.map((u) => (
                             <tr key={u.id} style={{ borderBottom: "1px solid var(--hairline-soft)", transition: "background 120ms" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--card-2)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                               <td style={{ padding: "8px", fontWeight: 600, color: "var(--text-strong)", whiteSpace: "nowrap" }}>{u.name || "-"}</td>
                               <td style={{ padding: "8px", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "180px" }}>{u.email || "-"}</td>
@@ -1870,6 +1876,20 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         })()}
                       </tbody>
                     </table>
+
+                    {users.length > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "12px", paddingTop: "8px", borderTop: "1px solid var(--hairline-soft)" }}>
+                        <span style={{ color: "var(--muted)", fontSize: "11px" }}>
+                          แสดง {Math.min((userPage - 1) * 20 + 1, users.length)}–{Math.min(userPage * 20, users.length)} จาก {users.length} คน
+                        </span>
+                        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                          <button className="button" disabled={userPage <= 1} onClick={() => setUserPage(p => Math.max(1, p - 1))} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>◀ ก่อนหน้า</button>
+                          <span style={{ color: "var(--text)", fontSize: "11px", fontWeight: 600, minWidth: "40px", textAlign: "center" }}>หน้า {userPage}</span>
+                          <button className="button" disabled={userPage >= Math.max(1, Math.ceil(users.length / 20))} onClick={() => setUserPage(p => p + 1)} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>ถัดไป ▶</button>
+                        </div>
+                      </div>
+                    )}
+
                     {users.length === 0 && (
                       <div style={{ textAlign: "center", padding: "30px", color: "var(--text-weak)", border: "1px dashed var(--hairline)", borderRadius: "8px" }}>
                         <strong>ไม่มีผู้ใช้ในระบบ</strong>
