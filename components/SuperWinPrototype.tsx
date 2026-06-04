@@ -986,67 +986,112 @@ export default function SuperWinPrototype() {
                     const lockedOptionName = getLockedOptionName(question.id);
                     const isLocked = lockedOptionName !== null;
                     return (
-                      <div key={question.id} className={`question ${isActive ? "active" : ""} ${runningCount ? "running" : ""}`} onClick={(event) => {
-                        if ((event.target as HTMLElement).closest("button")) return;
+                      <div key={question.id} className={`question ${isActive ? "active" : ""} ${runningCount ? "running" : ""} ${isLocked ? "locked" : ""}`} style={{ gap: "10px" }} onClick={(event) => {
+                        if ((event.target as HTMLElement).closest("button, input, .dropdown, .dropdown-new")) return;
                         setActiveQuestion(question.id);
                         setOpenDropdown(null);
                       }}>
-                        <div className="question-top">
-                          <span className="question-title">{question.title}</span>
-                          <div className="question-sub-row">
-                            <span className="meta">Closes in {formatQuestionCountdown(question)} · {formatQuestionCloseTime(question)}{runningCount ? ` · ${runningCount} running` : ""}</span>
-                            {isLocked ? (
-                              <button onClick={(event) => { event.stopPropagation(); confirmPrediction(question); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 14px", background: "rgba(255,255,255,0.05)", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)", cursor: "pointer", fontSize: "13px" }}>
-                                <span style={{ color: "var(--yellow)", fontWeight: 600 }}>{option.name}</span>
-                                <span style={{ color: "var(--muted)", fontSize: "12px" }}>~{option.returns}%</span>
-                                <span style={{ color: "#ff6b6b", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Locked</span>
-                              </button>
-                            ) : (
-                              <div className={`dropdown ${openDropdown === question.id ? "open" : ""}`}>
-                                <button className="dropdown-trigger" onClick={(event) => {
+                        {/* Header */}
+                        <div className="question-card-header">
+                          <span className="status-badge">Open</span>
+                          <span className="question-timer">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ opacity: 0.6 }}>
+                              <circle cx="12" cy="12" r="10"/>
+                              <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            {formatQuestionCountdown(question)}
+                          </span>
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="question-card-title">{question.title}</h3>
+
+                        {/* Step 1 */}
+                        <div className="question-step">
+                          <span className="step-num">1.</span>
+                          <span className="step-label">Pick your team</span>
+                        </div>
+
+                        {/* Team picker */}
+                        {isLocked ? (
+                          <button className="team-picker locked" onClick={(event) => { event.stopPropagation(); confirmPrediction(question); }}>
+                            <span className="team-name">{option.name}</span>
+                            <span className="team-returns">~{option.returns}%</span>
+                            <span className="locked-badge">Locked</span>
+                          </button>
+                        ) : (
+                          <div className={`dropdown-new ${openDropdown === question.id ? "open" : ""}`}>
+                            <button className="dropdown-trigger-new" onClick={(event) => {
+                              event.stopPropagation();
+                              setActiveQuestion(question.id);
+                              setOpenDropdown(openDropdown === question.id ? null : question.id);
+                            }}>
+                              <span className="dropdown-label-new">{option.name}</span>
+                              <span className="dropdown-returns">~{option.returns}%</span>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ opacity: 0.5, flexShrink: 0 }}>
+                                <polyline points="6 9 12 15 18 9"/>
+                              </svg>
+                            </button>
+                            <div className="dropdown-menu-new">
+                              {question.options.map((choice) => (
+                                <button key={choice.id} className={`option-button-new ${choice.name === option.name ? "active" : ""}`} onClick={(event) => {
                                   event.stopPropagation();
-                                  setActiveQuestion(question.id);
-                                  setOpenDropdown(openDropdown === question.id ? null : question.id);
+                                  setSelected((current) => ({ ...current, [question.id]: choice.name }));
+                                  setOpenDropdown(null);
                                 }}>
-                                  <span className="dropdown-label">{option.name} · ~{option.returns}%</span>
+                                  <span>{choice.name}</span>
+                                  <span className="return">~{choice.returns}%</span>
                                 </button>
-                                <div className="dropdown-menu">
-                                  {question.options.map((choice) => (
-                                    <button key={choice.id} className={`option-button ${choice.name === option.name ? "active" : ""}`} onClick={(event) => {
-                                      event.stopPropagation();
-                                      setSelected((current) => ({ ...current, [question.id]: choice.name }));
-                                      setOpenDropdown(null);
-                                    }}>
-                                      <span>{choice.name}</span><span className="return">~{choice.returns}%</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="question-action" style={{ display: activeQuestion === question.id ? "flex" : "none", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: 10 }}>
-                          <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
-                            {[5, 10, 50, 100, 500].map((amount) => (
-                              <button key={amount} onClick={() => setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount }))}
-                                style={{ padding: "5px 12px", borderRadius: "16px", border: "1px solid rgba(255,225,0,0.35)", background: "transparent", color: "var(--yellow)", fontSize: "12px", fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}
-                                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--yellow)"; e.currentTarget.style.color = "var(--bg)"; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--yellow)"; }}
-                              >{amount}</button>
-                            ))}
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "4px", padding: "5px 10px", background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", fontSize: "13px", fontWeight: 600, color: "var(--yellow)", minWidth: "52px", justifyContent: "center" }}>{coinInputs[question.id] || 0} <img src="/ammo-icon.webp" alt="" width={14} height={14} style={{ objectFit: "contain" }} /></span>
-                            <button onClick={() => setCoinInputs((current) => ({ ...current, [question.id]: 0 }))} style={{ padding: "4px 8px", fontSize: "14px", color: "var(--muted)", background: "none", border: "none", cursor: "pointer", lineHeight: 1 }}>×</button>
-                          </div>
-                          <button className="button primary confirm" onClick={() => confirmPrediction(question)} style={{ padding: "9px 22px", fontWeight: 700, borderRadius: "10px", fontSize: "13px", boxShadow: "0 2px 10px rgba(255,225,0,0.12)" }}>{isLocked ? "Top Up" : "Predict"}</button>
-                        </div>
-                        {activeQuestion !== question.id && (
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: 8 }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "4px", padding: "4px 10px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", fontSize: "12px", color: "var(--yellow)", fontWeight: 600 }}>{coinInputs[question.id] || 0} <img src="/ammo-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.7 }} /></span>
-                          <button className="button primary confirm" onClick={() => { setActiveQuestion(question.id); setOpenDropdown(null); }} style={{ padding: "7px 18px", fontWeight: 600, borderRadius: "10px", fontSize: "12px" }}>{isLocked ? "Top Up" : "Predict"}</button>
+                              ))}
+                            </div>
                           </div>
                         )}
+
+                        {/* Step 2 */}
+                        <div className="question-step">
+                          <span className="step-num">2.</span>
+                          <span className="step-label">Enter amount</span>
+                        </div>
+
+                        {/* Amount row */}
+                        <div className="amount-row-new">
+                          <div className="amount-input-wrap">
+                            <input
+                              type="number"
+                              min="0"
+                              value={coinInputs[question.id] || 0}
+                              onChange={(e) => setCoinInputs((current) => ({ ...current, [question.id]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                              onClick={(e) => e.stopPropagation()}
+                              className="amount-input-new"
+                            />
+                            <img src="/ammo-icon.webp" alt="" width={16} height={16} style={{ objectFit: "contain", opacity: 0.5, flexShrink: 0 }} />
+                          </div>
+                          <div className="returns-box">
+                            <span className="returns-label">Est. payout</span>
+                            <span className="returns-value">~ {Math.round((coinInputs[question.id] || 0) * (1 + option.returns / 100))}</span>
+                          </div>
+                        </div>
+
+                        {/* Amount chips */}
+                        {isActive && (
+                          <div className="amount-chips-new">
+                            {[5, 10, 50, 100, 500].map((amount) => (
+                              <button key={amount} className="chip" onClick={(event) => {
+                                event.stopPropagation();
+                                setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount }));
+                              }}>{amount}</button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Big predict button */}
+                        <button className="predict-big-btn" onClick={(event) => {
+                          event.stopPropagation();
+                          confirmPrediction(question);
+                        }}>
+                          {isLocked ? "Top Up" : "Predict"}
+                        </button>
+
                         <div className="toast">{toast[question.id]}</div>
                       </div>
                     );
