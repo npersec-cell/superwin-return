@@ -67,6 +67,7 @@ type SiteSettings = {
   };
   tournaments: (string | TournamentItem)[];
   savedQuestions: string[];
+  savedRounds: string[];
   predictionOrder?: string[];
   announcement?: string;
 };
@@ -121,6 +122,12 @@ const defaultSettings: SiteSettings = {
     "Which team will get the Chicken Dinner?",
     "Who will get the most kills in this match?"
   ],
+  savedRounds: [
+    "แบ่งกลุ่ม",
+    "รอบ 16 ทีม",
+    "รอบ 8 ทีม",
+    "รอบชิงชนะเลิศ"
+  ],
   announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the All time Top 10!"
 };
 
@@ -170,6 +177,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [message, setMessage] = useState("");
   const [tournamentName, setTournamentName] = useState("Super League");
   const [question, setQuestion] = useState("");
+  const [round, setRound] = useState("");
   const [opensAt, setOpensAt] = useState(toDateTimeLocal(new Date()));
   const [closesAt, setClosesAt] = useState(toDateTimeLocal(new Date(Date.now() + 24 * 60 * 60 * 1000)));
   const [feeRate, setFeeRate] = useState("0.03");
@@ -396,10 +404,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     setMessage("");
     try {
       const options = draftOptions.map((item) => item.trim()).filter(Boolean);
+      const fullQuestion = round.trim() ? `รอบ ${round.trim()} - ${question.trim()}` : question.trim();
       const data = await requestJson<AdminPrediction>("/api/admin/predictions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tournamentName, question, opensAt, closesAt, feeRate: Number(feeRate), status: "open", options })
+        body: JSON.stringify({ tournamentName, question: fullQuestion, opensAt, closesAt, feeRate: Number(feeRate), status: "open", options })
       });
       // Auto-sort: insert new prediction ID into predictionOrder by closesAt
       const currentOrder = settings.predictionOrder || [];
@@ -417,6 +426,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       });
       setMessage("สร้างคำถามแล้ว");
       setQuestion("");
+      setRound("");
       setDraftOptions([]);
       await loadPredictions();
     } catch (error) {
@@ -699,6 +709,85 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       setMessage("แก้ไขแม่แบบคำถามสำเร็จ");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "แก้ไขแม่แบบคำถามไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveRoundTemplate() {
+    const name = round.trim();
+    if (!name) return;
+    if (settings.savedRounds?.includes(name)) {
+      setMessage("มีรอบนี้ในระบบแล้ว");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const nextRounds = [...(settings.savedRounds || []), name];
+      const data = await requestJson<SiteSettings>("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ savedRounds: nextRounds })
+      });
+      setSettings(data);
+      setMessage("บันทึกแม่แบบรอบสำเร็จ");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "บันทึกแม่แบบรอบไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function removeRoundTemplate(name: string) {
+    const confirmed = window.confirm(`ลบแม่แบบรอบ "${name}"?`);
+    if (!confirmed) return;
+    setLoading(true);
+    setMessage("");
+    try {
+      const nextRounds = (settings.savedRounds || []).filter((r) => r !== name);
+      const data = await requestJson<SiteSettings>("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ savedRounds: nextRounds })
+      });
+      setSettings(data);
+      setMessage("ลบแม่แบบรอบสำเร็จ");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "ลบแม่แบบรอบไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const [editingRound, setEditingRound] = useState<string | null>(null);
+  const [editRoundInput, setEditRoundInput] = useState("");
+
+  async function renameRoundTemplate(oldName: string, newName: string) {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    if (trimmed === oldName) {
+      setEditingRound(null);
+      return;
+    }
+    if (settings.savedRounds?.includes(trimmed)) {
+      setMessage("มีชื่อรอบนี้ในระบบแล้ว");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const nextRounds = (settings.savedRounds || []).map((r) => (r === oldName ? trimmed : r));
+      const data = await requestJson<SiteSettings>("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ savedRounds: nextRounds })
+      });
+      setSettings(data);
+      setEditingRound(null);
+      setMessage("แก้ไขแม่แบบรอบสำเร็จ");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "แก้ไขแม่แบบรอบไม่สำเร็จ");
     } finally {
       setLoading(false);
     }
@@ -1121,6 +1210,53 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       <input value={quickTournamentInput} onChange={(event) => setQuickTournamentInput(event.target.value)} placeholder="พิมพ์ชื่อทัวร์นาเมนต์ใหม่" style={{ height: "34px", border: "1px solid var(--hairline)" }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); saveQuickTournament(); } }} />
                       <button className="button gold" type="button" onClick={saveQuickTournament}>เพิ่มและเลือก</button>
                     </div>
+                  )}
+                </div>
+
+                <div style={{ display: "grid", gap: "4px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>รอบ (Round)</span>
+                    <button className="button" type="button" disabled={!round.trim()} onClick={saveRoundTemplate} style={{ height: "18px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--yellow)", color: "var(--yellow)", borderRadius: "4px" }}>
+                      💾 บันทึกรอบนี้
+                    </button>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "6px", alignItems: "center" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-strong)", whiteSpace: "nowrap" }}>รอบ</span>
+                    <input value={round} onChange={(event) => setRound(event.target.value)} placeholder="เช่น แบ่งกลุ่ม, รอบ 16 ทีม" style={{ height: "34px" }} />
+                    <select className="button" value="" onChange={(event) => { if (event.target.value) setRound(event.target.value); }} style={{ height: "34px", width: "auto", minWidth: "140px", maxWidth: "200px" }}>
+                      <option value="">-- รอบ --</option>
+                      {(settings.savedRounds || []).map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {settings.savedRounds && settings.savedRounds.length > 0 && (
+                    <details style={{ marginTop: "4px", cursor: "pointer" }}>
+                      <summary className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>✏️ จัดการรอบที่บันทึกไว้</summary>
+                      <div style={{ display: "grid", gap: "4px", marginTop: "4px", maxHeight: "120px", overflowY: "auto", padding: "4px", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)" }}>
+                        {settings.savedRounds.map((r) => (
+                          <div key={r} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", padding: "4px 8px", background: "var(--card)", borderRadius: "4px" }}>
+                            {editingRound === r ? (
+                              <>
+                                <input value={editRoundInput} onChange={(event) => setEditRoundInput(event.target.value)} style={{ flex: 1, height: "26px", fontSize: "11px" }} autoFocus />
+                                <div style={{ display: "flex", gap: "4px" }}>
+                                  <button className="button" type="button" onClick={() => renameRoundTemplate(r, editRoundInput)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", color: "var(--green)" }}>บันทึก</button>
+                                  <button className="button" type="button" onClick={() => setEditingRound(null)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--muted)", color: "var(--muted)" }}>ยกเลิก</button>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <span style={{ fontSize: "11px", color: "var(--text)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{r}</span>
+                                <div style={{ display: "flex", gap: "4px" }}>
+                                  <button className="button" type="button" onClick={() => { setEditingRound(r); setEditRoundInput(r); }} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(59, 130, 246, 0.1)", border: "1px solid var(--info)", color: "var(--info)" }}>แก้ไข</button>
+                                  <button className="button" type="button" onClick={() => removeRoundTemplate(r)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(240, 84, 84, 0.1)", border: "1px solid #ef4444", color: "#ef4444" }}>ลบ</button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </details>
                   )}
                 </div>
 
