@@ -296,8 +296,17 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   }
 
   async function loadAdmins() {
-    const data = await requestJson<AdminUser[]>("/api/admin/users");
-    setAdmins(data);
+    const data = await requestJson<any[]>("/api/admin/users");
+    const adminsOnly = data
+      .filter((u) => u.isAdmin)
+      .map((u) => ({
+        id: u.id,
+        email: u.email,
+        displayName: u.name || null,
+        role: "admin" as const,
+        createdAt: u.createdAt || new Date().toISOString(),
+      }));
+    setAdmins(adminsOnly);
   }
 
   async function loadSettings() {
