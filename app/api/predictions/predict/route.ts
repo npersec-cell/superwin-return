@@ -79,6 +79,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Option not found" }, { status: 404 });
     }
 
+    const { data: existingEntry } = await supabase
+      .from("prediction_entries")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("prediction_id", prediction.id)
+      .eq("status", "running")
+      .maybeSingle();
+
+    if (existingEntry) {
+      return NextResponse.json({ ok: false, error: "You have already predicted this question" }, { status: 400 });
+    }
+
     const { data: balanceRow, error: balanceError } = await supabase
       .from("users")
       .select("coin_balance, lifetime_profit")

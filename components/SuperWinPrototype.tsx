@@ -360,6 +360,7 @@ export default function SuperWinPrototype() {
   const [claimFlash, setClaimFlash] = useState(false);
   const claimFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [toast, setToast] = useState<Record<string, string>>({});
+  const [predictingIds, setPredictingIds] = useState<Set<string>>(new Set());
   const [accountStatus, setAccountStatus] = useState<"demo" | "loading" | "synced" | "error">("demo");
   const [accountRole, setAccountRole] = useState<"user" | "admin">("user");
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
@@ -879,6 +880,7 @@ export default function SuperWinPrototype() {
     }
 
     if (isSignedIn) {
+      setPredictingIds((current) => new Set(current).add(question.id));
       try {
         const response = await fetch("/api/predictions/predict", {
           method: "POST",
@@ -897,6 +899,12 @@ export default function SuperWinPrototype() {
       } catch (error) {
         const message = error instanceof Error ? error.message : "Prediction failed";
         setToast((current) => ({ ...current, [question.id]: message }));
+      } finally {
+        setPredictingIds((current) => {
+          const next = new Set(current);
+          next.delete(question.id);
+          return next;
+        });
       }
       return;
     }
@@ -1069,7 +1077,7 @@ export default function SuperWinPrototype() {
                               <span className="compact-name">{option.name}</span>
                               <span className="compact-returns">~{option.returns}%</span>
                             </div>
-                            <button className="compact-predict-btn" onClick={(event) => { event.stopPropagation(); setActiveQuestion(question.id); }}>
+                            <button className="compact-predict-btn" disabled={predictingIds.has(question.id)} onClick={(event) => { event.stopPropagation(); setActiveQuestion(question.id); }}>
                               {isLocked ? "Top Up" : "Predict"}
                             </button>
                           </div>
@@ -1086,7 +1094,7 @@ export default function SuperWinPrototype() {
 
                             {/* Team picker */}
                             {isLocked ? (
-                              <button className="team-picker locked" onClick={(event) => { event.stopPropagation(); confirmPrediction(question); }}>
+                              <button className="team-picker locked" disabled={predictingIds.has(question.id)} onClick={(event) => { event.stopPropagation(); confirmPrediction(question); }}>
                                 <span className="team-name">{option.name}</span>
                                 <span className="team-returns">~{option.returns}%</span>
                                 <span className="locked-badge">Locked</span>
@@ -1155,7 +1163,7 @@ export default function SuperWinPrototype() {
                             </div>
 
                             {/* Big predict button */}
-                            <button className="predict-big-btn" onClick={(event) => {
+                            <button className="predict-big-btn" disabled={predictingIds.has(question.id)} onClick={(event) => {
                               event.stopPropagation();
                               confirmPrediction(question);
                             }}>
