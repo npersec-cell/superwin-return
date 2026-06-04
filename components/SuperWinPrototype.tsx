@@ -310,6 +310,12 @@ function money(amount: number) {
   return `${amount >= 0 ? "+" : ""}${amount}`;
 }
 
+function compact(n: number): string {
+  if (n < 1000) return `${n >= 0 ? "+" : ""}${n}`;
+  if (n < 10000) return `${(n / 1000).toFixed(1)}k`;
+  return `${Math.round(n / 1000)}k`;
+}
+
 function safeJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
@@ -1218,7 +1224,7 @@ export default function SuperWinPrototype() {
                           {getRankInfo(row.profitScore).name}
                         </span>
                       </div>
-                      <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{money(row.profitScore)} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", opacity: 0.8 }} /></b>
+                      <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{compact(row.profitScore)} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", opacity: 0.8 }} /></b>
                     </div>
                   );
                 })}
