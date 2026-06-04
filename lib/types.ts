@@ -23,6 +23,8 @@ export type PredictionWithOptionsDto = {
   tournamentName: string;
   question: string;
   closesAt: string;
+  totalPool: number;
+  playerCount: number;
   options: PredictionOptionDto[];
 };
 

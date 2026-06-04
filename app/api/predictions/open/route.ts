@@ -24,6 +24,7 @@ type EntryRow = {
   prediction_id: string;
   amount: number;
   status: string;
+  user_id: string;
 };
 
 function estimateReturn(sortOrder: number) {
@@ -73,7 +74,7 @@ export async function GET() {
     const { data: entryRows } = ids.length
       ? await supabase
           .from("prediction_entries")
-          .select("option_id, prediction_id, amount, status")
+          .select("option_id, prediction_id, amount, status, user_id")
           .in("prediction_id", ids)
           .in("status", ["running", "won", "lost"])
           .returns<EntryRow[]>()
@@ -86,6 +87,12 @@ export async function GET() {
 
     const poolByPrediction = (entryRows || []).reduce<Record<string, number>>((acc, entry) => {
       acc[entry.prediction_id] = (acc[entry.prediction_id] || 0) + entry.amount;
+      return acc;
+    }, {});
+
+    const playersByPrediction = (entryRows || []).reduce<Record<string, Set<string>>>((acc, entry) => {
+      acc[entry.prediction_id] = acc[entry.prediction_id] || new Set();
+      acc[entry.prediction_id].add(entry.user_id);
       return acc;
     }, {});
 
@@ -104,6 +111,8 @@ export async function GET() {
       tournamentName: prediction.tournament_name,
       question: prediction.question,
       closesAt: prediction.closes_at,
+      totalPool: poolByPrediction[prediction.id] || 0,
+      playerCount: playersByPrediction[prediction.id]?.size || 0,
       options: (optionsByPrediction[prediction.id] || []).map((option) => ({
         id: option.id,
         label: option.label,

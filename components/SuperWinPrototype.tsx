@@ -16,6 +16,8 @@ type Question = {
   title: string;
   closeOffsetMinutes?: number;
   closesAt?: string;
+  totalPool: number;
+  playerCount: number;
   options: PredictionOption[];
 };
 
@@ -54,6 +56,8 @@ type ApiPredictionsResponse = {
     tournamentName: string;
     question: string;
     closesAt: string;
+    totalPool: number;
+    playerCount: number;
     options: Array<{ id: string; label: string; estimatedReturnPercent: number }>;
   }>;
   error?: string;
@@ -195,6 +199,8 @@ const demoQuestions: Question[] = [
     tournament: "Super League",
     title: "Which team will win the championship?",
     closeOffsetMinutes: 4300,
+    totalPool: 0,
+    playerCount: 0,
     options: [
       { id: "demo-1-alpha", name: "Alpha Esports", returns: 185 },
       { id: "demo-1-bravo", name: "Bravo Gaming", returns: 230 },
@@ -213,6 +219,8 @@ const demoQuestions: Question[] = [
     tournament: "Global Open",
     title: "Which region will finish first?",
     closeOffsetMinutes: 1480,
+    totalPool: 0,
+    playerCount: 0,
     options: [
       { id: "demo-2-sea", name: "SEA", returns: 210 },
       { id: "demo-2-sa", name: "South Asia", returns: 280 },
@@ -227,6 +235,8 @@ const demoQuestions: Question[] = [
     tournament: "Scrim Night",
     title: "Most kills team in final map?",
     closeOffsetMinutes: 360,
+    totalPool: 0,
+    playerCount: 0,
     options: [
       { id: "demo-3-rex", name: "Rex", returns: 260 },
       { id: "demo-3-nova", name: "Nova", returns: 275 },
@@ -243,6 +253,8 @@ const demoQuestions: Question[] = [
     tournament: "Weekly Final",
     title: "Which team gets the first chicken dinner?",
     closeOffsetMinutes: 90,
+    totalPool: 0,
+    playerCount: 0,
     options: [
       { id: "demo-4-alpha", name: "Alpha", returns: 220 },
       { id: "demo-4-bravo", name: "Bravo", returns: 260 },
@@ -675,6 +687,8 @@ export default function SuperWinPrototype() {
       tournament: item.tournamentName,
       title: item.question,
       closesAt: item.closesAt,
+      totalPool: item.totalPool,
+      playerCount: item.playerCount,
       options: item.options
         .slice()
         .sort((a, b) => a.estimatedReturnPercent - b.estimatedReturnPercent)
@@ -1017,6 +1031,13 @@ export default function SuperWinPrototype() {
 
                         {/* Title */}
                         <h3 className="question-card-title">{question.title}</h3>
+
+                        {/* Pool / Players meta */}
+                        <div className="question-pool-meta">
+                          <span>Pool: <b>{question.totalPool.toLocaleString()} Coins</b></span>
+                          <span className="dot" />
+                          <span>Players: <b>{question.playerCount.toLocaleString()}</b></span>
+                        </div>
 
                         {/* Compact row when inactive */}
                         {!isActive && (
