@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       lastClaimAt: u.last_claim_at,
     }));
 
-    return NextResponse.json(users);
+    return NextResponse.json({ ok: true, data: users });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     const status = message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500;
