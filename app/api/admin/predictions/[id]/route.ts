@@ -102,6 +102,24 @@ export async function DELETE(request: NextRequest, context: Params) {
       .delete()
       .eq("prediction_id", id);
 
+    // 2.5 ลบ coin_ledger ที่เกี่ยวข้องกับคำถามนี้ (match จาก question ใน detail)
+    const { data: predictionData } = await supabase
+      .from("predictions")
+      .select("question, tournament_name")
+      .eq("id", id)
+      .single();
+    
+    if (predictionData) {
+      // ลบ coin_ledger ที่ detail มี Question: {question} อยู่
+      const { error: ledgerDelError } = await supabase
+        .from("coin_ledger")
+        .delete()
+        .or(
+          `detail.ilike.%Question: ${predictionData.question}%,detail.ilike.%Tournament: ${predictionData.tournament_name}%`
+        );
+      if (ledgerDelError) console.error("Failed to delete ledger:", ledgerDelError.message);
+    }
+
     // 3. ลบตัวคำถาม (predictions)
     const { error: deleteError } = await supabase
       .from("predictions")
