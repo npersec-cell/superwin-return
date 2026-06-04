@@ -999,7 +999,7 @@ export default function SuperWinPrototype() {
                     const lockedOptionName = getLockedOptionName(question.id);
                     const isLocked = lockedOptionName !== null;
                     return (
-                      <div key={question.id} className={`question ${isActive ? "active" : ""} ${runningCount ? "running" : ""} ${isLocked ? "locked" : ""}`} style={{ gap: "10px" }} onClick={(event) => {
+                      <div key={question.id} className={`question ${isActive ? "active" : ""} ${runningCount ? "running" : ""} ${isLocked ? "locked" : ""}`} style={{ gap: "6px" }} onClick={(event) => {
                         if ((event.target as HTMLElement).closest("button, input, .dropdown, .dropdown-new")) return;
                         setActiveQuestion(question.id);
                         setOpenDropdown(null);
