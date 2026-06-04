@@ -204,7 +204,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   
   // แท็บเมนูหลังบ้าน
-  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "shop" | "dashboard" | "reports">("dashboard");
+  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "shop" | "dashboard" | "reports" | "users">("dashboard");
+  const [users, setUsers] = useState<any[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userSort, setUserSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
   const [reports, setReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
 
@@ -370,6 +373,22 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       loadDashboardData().catch(() => undefined);
     }, 10000);
     return () => clearInterval(timer);
+  }, [activeTab]);
+
+  async function loadUsers() {
+    setUsersLoading(true);
+    try {
+      const data = await requestJson<any[]>("/api/admin/users");
+      setUsers(data);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "โหลดรายชื่อผู้ใช้ไม่สำเร็จ");
+    } finally {
+      setUsersLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === "users") loadUsers().catch(() => undefined);
   }, [activeTab]);
 
   function addOption() {
@@ -1067,6 +1086,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "shop" ? "active" : ""}`} onClick={() => setActiveTab("shop")} style={{ borderRadius: "999px" }}>Shop</button>
           <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>แอดมิน ({admins.length})</button>
           <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>แจ้งปัญหา ({reports.length})</button>
+          <button className={`button ${activeTab === "users" ? "active" : ""}`} onClick={() => setActiveTab("users")} style={{ borderRadius: "999px" }}>จัดการผู้ใช้ ({users.length})</button>
         </div>
 
         <section className="admin-content" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", width: "100%", maxWidth: "100%", justifyItems: "center", alignContent: "start", margin: "0 auto" }}>
@@ -1789,74 +1809,68 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
             </section>
           )}
 
-          {activeTab === "reports" && (
-            <section className="panel" style={{ width: "100%", maxWidth: "800px", display: "grid", gap: "16px", margin: "0 auto" }}>
+          {activeTab === "users" && (
+            <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "16px", margin: "0 auto" }}>
               <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h3>รายการแจ้งปัญหาและข้อเสนอแนะ</h3>
-                  <button className="button gold" onClick={loadReports} disabled={reportsLoading} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
-                    🔄 รีเฟรชข้อมูล
+                  <h3>จัดการผู้ใช้ ({users.length} คน)</h3>
+                  <button className="button gold" onClick={loadUsers} disabled={usersLoading} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
+                    🔄 รีเฟรช
                   </button>
                 </div>
-                
-                <div className="admin-option-list" style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
-                  {reportsLoading ? (
-                    <div style={{ textAlign: "center", padding: "20px", color: "var(--text-weak)" }}>กำลังโหลดข้อมูลรายงานการแจ้งปัญหา...</div>
-                  ) : reports.length > 0 ? (
-                    reports.map((report) => (
-                      <div key={report.id} style={{ border: "1px solid var(--hairline)", borderRadius: "8px", padding: "12px", background: "var(--bg)", display: "flex", flexDirection: "column", gap: "8px", width: "100%", textAlign: "left" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: "11px", color: "var(--text-weak)" }}>
-                            จาก: <b>{report.email}</b>
-                          </span>
-                          <span style={{ 
-                            fontSize: "10px", 
-                            padding: "2px 6px", 
-                            borderRadius: "4px", 
-                            fontWeight: "bold",
-                            background: report.status === "resolved" ? "rgba(76, 175, 80, 0.2)" : "rgba(244, 67, 54, 0.2)",
-                            color: report.status === "resolved" ? "#4caf50" : "#f44336"
-                          }}>
-                            {report.status === "resolved" ? "✓ แก้ไขแล้ว" : "⏳ รอดำเนินการ"}
-                          </span>
-                        </div>
-                        
-                        <p style={{ fontSize: "12px", color: "var(--text-strong)", whiteSpace: "pre-wrap", lineHeight: "1.4", margin: 0 }}>
-                          {report.message}
-                        </p>
-                        
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", borderTop: "1px solid var(--hairline-soft)", paddingTop: "8px", marginTop: "4px" }}>
-                          <span style={{ color: "var(--text-weak)" }}>
-                            วันที่ส่ง: {new Date(report.created_at).toLocaleString("th-TH")}
-                          </span>
-                          
-                          <div style={{ display: "flex", gap: "6px" }}>
-                            {report.status !== "resolved" && (
-                              <button 
-                                className="button gold" 
-                                onClick={() => handleUpdateReport(report.id, "resolved")}
-                                style={{ height: "24px", fontSize: "10px", padding: "0 8px" }}
-                              >
-                                ✔️ ทำเครื่องหมายว่าแก้ไขแล้ว
-                              </button>
-                            )}
-                            <button 
-                              className="button" 
-                              onClick={() => { if(confirm("ต้องการลบรายงานนี้ใช่หรือไม่?")) handleUpdateReport(report.id, report.status, true); }}
-                              style={{ height: "24px", fontSize: "10px", padding: "0 8px", background: "rgba(244, 67, 54, 0.1)", border: "1px solid rgba(244, 67, 54, 0.3)", color: "#f44336" }}
-                            >
-                              🗑️ ลบ
-                            </button>
-                          </div>
-                        </div>
+
+                {usersLoading ? (
+                  <div style={{ textAlign: "center", padding: "20px", color: "var(--text-weak)" }}>กำลังโหลดข้อมูลผู้ใช้...</div>
+                ) : (
+                  <div style={{ overflowX: "auto", marginTop: "12px" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
+                      <thead>
+                        <tr style={{ color: "var(--muted)", textAlign: "left", borderBottom: "1px solid var(--hairline)" }}>
+                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "name", dir: s.key === "name" && s.dir === "asc" ? "desc" : "asc" })); }}>ชื่อผู้ใช้ ⬍</th>
+                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "email", dir: s.key === "email" && s.dir === "asc" ? "desc" : "asc" })); }}>อีเมล ⬍</th>
+                          <th style={{ padding: "6px 8px", cursor: "pointer", textAlign: "right", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "coinBalance", dir: s.key === "coinBalance" && s.dir === "asc" ? "desc" : "asc" })); }}>Coin Balance ⬍</th>
+                          <th style={{ padding: "6px 8px", cursor: "pointer", textAlign: "right", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "freeCoins", dir: s.key === "freeCoins" && s.dir === "asc" ? "desc" : "asc" })); }}>Free Coins ⬍</th>
+                          <th style={{ padding: "6px 8px", cursor: "pointer", textAlign: "right", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "profitScore", dir: s.key === "profitScore" && s.dir === "asc" ? "desc" : "asc" })); }}>Profit Score ⬍</th>
+                          <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>Admin</th>
+                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "createdAt", dir: s.key === "createdAt" && s.dir === "asc" ? "desc" : "asc" })); }}>สร้างเมื่อ ⬍</th>
+                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>Claim ล่าสุด</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const sorted = [...users].sort((a, b) => {
+                            const dir = userSort.dir === "asc" ? 1 : -1;
+                            const key = userSort.key;
+                            if (key === "name") return dir * (a.name || "").localeCompare(b.name || "");
+                            if (key === "email") return dir * (a.email || "").localeCompare(b.email || "");
+                            if (key === "coinBalance") return dir * ((a.coinBalance || 0) - (b.coinBalance || 0));
+                            if (key === "freeCoins") return dir * ((a.freeCoins || 0) - (b.freeCoins || 0));
+                            if (key === "profitScore") return dir * ((a.profitScore || 0) - (b.profitScore || 0));
+                            if (key === "createdAt") return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+                            return 0;
+                          });
+                          return sorted.map((u) => (
+                            <tr key={u.id} style={{ borderBottom: "1px solid var(--hairline-soft)", transition: "background 120ms" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--card-2)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                              <td style={{ padding: "8px", fontWeight: 600, color: "var(--text-strong)", whiteSpace: "nowrap" }}>{u.name || "-"}</td>
+                              <td style={{ padding: "8px", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "180px" }}>{u.email || "-"}</td>
+                              <td style={{ padding: "8px", textAlign: "right", fontFamily: "var(--mono)", fontWeight: 600 }}>{Number(u.coinBalance || 0).toLocaleString()}</td>
+                              <td style={{ padding: "8px", textAlign: "right", fontFamily: "var(--mono)", color: "var(--yellow)" }}>{Number(u.freeCoins || 0).toLocaleString()}</td>
+                              <td style={{ padding: "8px", textAlign: "right", fontFamily: "var(--mono)", color: "var(--green)" }}>{Number(u.profitScore || 0).toLocaleString()}</td>
+                              <td style={{ padding: "8px", textAlign: "center" }}>{u.isAdmin ? "✅" : "-"}</td>
+                              <td style={{ padding: "8px", color: "var(--muted)", fontSize: "10px", whiteSpace: "nowrap" }}>{u.createdAt ? new Date(u.createdAt).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "-"}</td>
+                              <td style={{ padding: "8px", color: "var(--muted)", fontSize: "10px", whiteSpace: "nowrap" }}>{u.lastClaimAt ? new Date(u.lastClaimAt).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "-"}</td>
+                            </tr>
+                          ));
+                        })()}
+                      </tbody>
+                    </table>
+                    {users.length === 0 && (
+                      <div style={{ textAlign: "center", padding: "30px", color: "var(--text-weak)", border: "1px dashed var(--hairline)", borderRadius: "8px" }}>
+                        <strong>ไม่มีผู้ใช้ในระบบ</strong>
                       </div>
-                    ))
-                  ) : (
-                    <div style={{ textAlign: "center", padding: "30px", color: "var(--text-weak)", border: "1px dashed var(--hairline)", borderRadius: "8px" }}>
-                      <strong>ไม่มีรายงานการแจ้งปัญหาหรือข้อเสนอแนะเข้ามาในขณะนี้</strong>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </section>
             </section>
           )}
