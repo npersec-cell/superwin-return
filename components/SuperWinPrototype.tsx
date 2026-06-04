@@ -964,7 +964,7 @@ export default function SuperWinPrototype() {
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                 <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory("All"); }}>History</button>
                 {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
-                <UserButton />
+                <UserButton showName={false} />
               </>
             )}
             <button className="button gold" onClick={() => setOpenModal("info")}>Info</button>
@@ -1423,7 +1423,7 @@ function ProfileModal({
     <section ref={modalRef} className="modal" aria-label="User Profile" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card" style={{ maxWidth: "480px" }}>
         <div className="modal-head">
-          <h3>🎮 {profile.name}'s Profile</h3>
+          <h3>🎮 {maskName(profile.name)}'s Profile</h3>
           <button className="button" onClick={onClose}>Close</button>
         </div>
         <div className="modal-body" style={{ gap: "12px", minHeight: "180px" }}>
