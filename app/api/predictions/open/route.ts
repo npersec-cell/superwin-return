@@ -102,8 +102,8 @@ export async function GET() {
       if (optionPool <= 0 || totalPool <= 0) {
         return estimateReturn(sortOrder);
       }
-      const raw = (totalPool / optionPool) * (1 - feeRate) * 100;
-      return Math.round(raw);
+      const multiplier = (totalPool / optionPool) * (1 - feeRate);
+      return Math.round((multiplier - 1) * 100);
     }
 
     const predictions: PredictionWithOptionsDto[] = (predictionRows || []).map((prediction) => ({
