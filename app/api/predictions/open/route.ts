@@ -27,11 +27,6 @@ type EntryRow = {
   user_id: string;
 };
 
-function estimateReturn(sortOrder: number) {
-  const estimates = [185, 230, 310, 420, 560, 690, 760, 840, 920, 980];
-  return estimates[sortOrder] || Math.min(1200, 200 + sortOrder * 90);
-}
-
 export async function GET() {
   try {
     const supabase = createSupabaseAdminClient();
@@ -100,7 +95,7 @@ export async function GET() {
       const optionPool = poolByOption[optionId] || 0;
       const totalPool = poolByPrediction[predictionId] || 0;
       if (optionPool <= 0 || totalPool <= 0) {
-        return estimateReturn(sortOrder);
+        return 0;
       }
       const multiplier = (totalPool / optionPool) * (1 - feeRate);
       return Math.round((multiplier - 1) * 100);
