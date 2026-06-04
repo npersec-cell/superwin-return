@@ -94,8 +94,8 @@ export async function GET(request: NextRequest) {
     const totalCoinsWon = payoutRows.filter((r) => r.amount > 0).reduce((acc, r) => acc + r.amount, 0);
     const avgBetSize = totalSettled > 0 ? Math.round(totalCoinsBet / totalSettled) : 0;
 
-    // สร้างประวัติจาก predict rows โดยหา payout ที่ match ตาม question
-    const history = predictRows.slice(0, 5).map((predict) => {
+    // สร้างประวัติจาก settled predict rows โดยหา payout ที่ match ตาม question
+    const history = settledPredictRows.slice(0, 5).map((predict) => {
       const tournament = extractQuestion(predict.detail, "Tournament: ");
       const question = extractQuestion(predict.detail, "Question: ");
 

@@ -110,13 +110,11 @@ export async function DELETE(request: NextRequest, context: Params) {
       .single();
     
     if (predictionData) {
-      // ลบ coin_ledger ที่ detail มี Question: {question} อยู่
+      // ลบ coin_ledger ที่ detail มี Question: {question} อยู่ (match เฉพาะคำถามนี้ ไม่ใช่ทั้งทัวร์นาเมนต์)
       const { error: ledgerDelError } = await supabase
         .from("coin_ledger")
         .delete()
-        .or(
-          `detail.ilike.%Question: ${predictionData.question}%,detail.ilike.%Tournament: ${predictionData.tournament_name}%`
-        );
+        .ilike("detail", `%Question: ${predictionData.question}%`);
       if (ledgerDelError) console.error("Failed to delete ledger:", ledgerDelError.message);
     }
 
