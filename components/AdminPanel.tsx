@@ -1881,6 +1881,70 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
             </section>
           )}
 
+          {activeTab === "reports" && (
+            <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "16px", margin: "0 auto" }}>
+              <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
+                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <h3>รายการแจ้งปัญหา ({reports.length} รายการ)</h3>
+                  <button className="button gold" onClick={loadReports} disabled={reportsLoading} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
+                    🔄 รีเฟรช
+                  </button>
+                </div>
+
+                {reportsLoading ? (
+                  <div style={{ textAlign: "center", padding: "20px", color: "var(--text-weak)" }}>กำลังโหลดข้อมูล...</div>
+                ) : (
+                  <div style={{ overflowX: "auto", marginTop: "12px" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
+                      <thead>
+                        <tr style={{ color: "var(--muted)", textAlign: "left", borderBottom: "1px solid var(--hairline)" }}>
+                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>อีเมล</th>
+                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>ข้อความ</th>
+                          <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>สถานะ</th>
+                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>วันที่</th>
+                          <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>จัดการ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {reports.map((r) => (
+                          <tr key={r.id} style={{ borderBottom: "1px solid var(--hairline-soft)", transition: "background 120ms" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--card-2)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                            <td style={{ padding: "8px", color: "var(--text)", whiteSpace: "nowrap" }}>{r.email || "-"}</td>
+                            <td style={{ padding: "8px", color: "var(--text-strong)", maxWidth: "300px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.message || "-"}</td>
+                            <td style={{ padding: "8px", textAlign: "center" }}>
+                              {r.status === "pending" ? (
+                                <span style={{ color: "var(--yellow)", fontWeight: 700, fontSize: "10px" }}>⏳ รอดำเนินการ</span>
+                              ) : (
+                                <span style={{ color: "var(--green)", fontWeight: 700, fontSize: "10px" }}>✅ เสร็จสิ้น</span>
+                              )}
+                            </td>
+                            <td style={{ padding: "8px", color: "var(--muted)", fontSize: "10px", whiteSpace: "nowrap" }}>
+                              {r.created_at ? new Date(r.created_at).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "-"}
+                            </td>
+                            <td style={{ padding: "8px", textAlign: "center", whiteSpace: "nowrap" }}>
+                              {r.status === "pending" && (
+                                <button className="button gold" style={{ height: "22px", fontSize: "10px", padding: "0 8px" }} onClick={() => handleUpdateReport(r.id, "resolved")}>
+                                  ทำเครื่องหมายเสร็จสิ้น
+                                </button>
+                              )}
+                              <button className="button" style={{ height: "22px", fontSize: "10px", padding: "0 8px", marginLeft: "4px", color: "#ff4d4f", borderColor: "#ff4d4f", background: "transparent" }} onClick={() => handleUpdateReport(r.id, r.status, true)}>
+                                ลบ
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {reports.length === 0 && (
+                      <div style={{ textAlign: "center", padding: "30px", color: "var(--text-weak)", border: "1px dashed var(--hairline)", borderRadius: "8px" }}>
+                        <strong>ไม่มีรายการแจ้งปัญหา</strong>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            </section>
+          )}
+
         </section>
       </div>
     </main>
