@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from("users")
-      .select("id, name, email, coin_balance, free_coins, profit_score, is_admin, created_at, last_claim_at")
+      .select("id, display_name, email, role, coin_balance, profit_score, created_at, last_claim_at")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -21,12 +21,11 @@ export async function GET(request: NextRequest) {
 
     const users = (data || []).map((u) => ({
       id: u.id,
-      name: u.name,
+      name: u.display_name,
       email: u.email,
+      isAdmin: u.role === "admin",
       coinBalance: u.coin_balance,
-      freeCoins: u.free_coins,
       profitScore: u.profit_score,
-      isAdmin: u.is_admin,
       createdAt: u.created_at,
       lastClaimAt: u.last_claim_at,
     }));

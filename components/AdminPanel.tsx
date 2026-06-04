@@ -1829,7 +1829,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "name", dir: s.key === "name" && s.dir === "asc" ? "desc" : "asc" })); }}>ชื่อผู้ใช้ ⬍</th>
                           <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "email", dir: s.key === "email" && s.dir === "asc" ? "desc" : "asc" })); }}>อีเมล ⬍</th>
                           <th style={{ padding: "6px 8px", cursor: "pointer", textAlign: "right", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "coinBalance", dir: s.key === "coinBalance" && s.dir === "asc" ? "desc" : "asc" })); }}>Coin Balance ⬍</th>
-                          <th style={{ padding: "6px 8px", cursor: "pointer", textAlign: "right", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "freeCoins", dir: s.key === "freeCoins" && s.dir === "asc" ? "desc" : "asc" })); }}>Free Coins ⬍</th>
                           <th style={{ padding: "6px 8px", cursor: "pointer", textAlign: "right", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "profitScore", dir: s.key === "profitScore" && s.dir === "asc" ? "desc" : "asc" })); }}>Profit Score ⬍</th>
                           <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>Admin</th>
                           <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserSort(s => ({ key: "createdAt", dir: s.key === "createdAt" && s.dir === "asc" ? "desc" : "asc" })); }}>สร้างเมื่อ ⬍</th>
@@ -1844,7 +1843,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             if (key === "name") return dir * (a.name || "").localeCompare(b.name || "");
                             if (key === "email") return dir * (a.email || "").localeCompare(b.email || "");
                             if (key === "coinBalance") return dir * ((a.coinBalance || 0) - (b.coinBalance || 0));
-                            if (key === "freeCoins") return dir * ((a.freeCoins || 0) - (b.freeCoins || 0));
                             if (key === "profitScore") return dir * ((a.profitScore || 0) - (b.profitScore || 0));
                             if (key === "createdAt") return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
                             return 0;
@@ -1854,7 +1852,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                               <td style={{ padding: "8px", fontWeight: 600, color: "var(--text-strong)", whiteSpace: "nowrap" }}>{u.name || "-"}</td>
                               <td style={{ padding: "8px", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "180px" }}>{u.email || "-"}</td>
                               <td style={{ padding: "8px", textAlign: "right", fontFamily: "var(--mono)", fontWeight: 600 }}>{Number(u.coinBalance || 0).toLocaleString()}</td>
-                              <td style={{ padding: "8px", textAlign: "right", fontFamily: "var(--mono)", color: "var(--yellow)" }}>{Number(u.freeCoins || 0).toLocaleString()}</td>
                               <td style={{ padding: "8px", textAlign: "right", fontFamily: "var(--mono)", color: "var(--green)" }}>{Number(u.profitScore || 0).toLocaleString()}</td>
                               <td style={{ padding: "8px", textAlign: "center" }}>{u.isAdmin ? "✅" : "-"}</td>
                               <td style={{ padding: "8px", color: "var(--muted)", fontSize: "10px", whiteSpace: "nowrap" }}>{u.createdAt ? new Date(u.createdAt).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "-"}</td>
