@@ -1089,7 +1089,7 @@ export default function SuperWinPrototype() {
                             {/* Step 1 */}
                             <div className="question-step">
                               <span className="step-num">1.</span>
-                              <span className="step-label">Pick your team</span>
+                              <span className="step-label">Pick your choice</span>
                             </div>
 
                             {/* Team picker */}
