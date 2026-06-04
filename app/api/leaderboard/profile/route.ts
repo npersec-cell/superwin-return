@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const [userRes, ledgerRes] = await Promise.all([
       supabase
         .from("users")
-        .select("display_name, email")
+        .select("display_name, email, profit_score")
         .eq("id", userId)
         .single(),
       supabase
@@ -116,6 +116,7 @@ export async function GET(request: NextRequest) {
       ok: true,
       data: {
         name: user.email.split("@")[0],
+        profitScore: user.profit_score || 0,
         allTimeProfit: ledgerRows.reduce((acc, r) => acc + r.amount, 0),
         winRate,
         wonCount,

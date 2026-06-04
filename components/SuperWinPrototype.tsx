@@ -122,8 +122,17 @@ function maskName(name: string): string {
   return name.slice(0, -2) + "xx";
 }
 
+function getRankInfo(profitScore: number) {
+  if (profitScore >= 50000) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
+  if (profitScore >= 20000) return { name: "Ace", icon: "/ranks/ace.png" };
+  if (profitScore >= 5000) return { name: "Diamond", icon: "/ranks/diamond.png" };
+  if (profitScore >= 1000) return { name: "Gold", icon: "/ranks/gold.png" };
+  return { name: "Bronze", icon: "/ranks/bronze.png" };
+}
+
 type UserProfileStats = {
   name: string;
+  profitScore: number;
   allTimeProfit: number;
   winRate: number;
   wonCount: number;
@@ -274,7 +283,7 @@ const defaultSettings: SiteSettings = {
   },
   reward: {
     name: "Shop",
-    winnerBy: "All time Profit",
+    winnerBy: "Rank",
     month: "Continuous"
   },
   tournaments: [{ name: "Super League", logoUrl: "" }],
@@ -625,6 +634,7 @@ export default function SuperWinPrototype() {
     // show modal immediately with loading state
     setSelectedProfile({
       name: userName,
+      profitScore: 0,
       allTimeProfit: 0,
       winRate: 0,
       wonCount: 0,
@@ -974,7 +984,13 @@ export default function SuperWinPrototype() {
         {isSignedIn && (
         <section className="stats" aria-label="Account stats">
           <div className="stat"><span className="label">Win Rate</span><b className="value">{winRate}%</b></div>
-          <div className="stat"><span className="label">All time Profit</span><b className="value">{profit}</b></div>
+          <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+            <span className="label">Rank</span>
+            <b className="value" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <img src={getRankInfo(profitScore).icon} alt="" width={14} height={14} style={{ objectFit: "contain" }} />
+              {getRankInfo(profitScore).name}
+            </b>
+          </div>
           <div className="stat"><span className="label">All time Rank</span><b className="value">{userRank ? `#${userRank}` : "--"}</b></div>
           <div className="stat"><span className="label">Next Reload</span><b className="value">{claimLabel}</b></div>
         </section>
@@ -1160,7 +1176,7 @@ export default function SuperWinPrototype() {
 
           <aside className="side">
             <section className="panel">
-              <div className="panel-head"><h3>All time Top 10</h3><span className="micro" style={{ display: "flex", alignItems: "center", gap: "4px" }}>Profit Score <img src="/ammo-556-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} /></span></div>
+              <div className="panel-head"><h3>All time Top 10</h3><span className="micro" style={{ display: "flex", alignItems: "center", gap: "4px" }}>Rank <img src="/ammo-556-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} /></span></div>
               <div className="leaderboard-body">
                 {leaderboard.map((row, index) => {
                   const targetId = row.id || (row.name === "You" ? currentUserId : null);
@@ -1196,6 +1212,10 @@ export default function SuperWinPrototype() {
                           whiteSpace: "nowrap"
                         }}>
                           {maskName(row.name)}
+                        </span>
+                        <span style={{ display: "flex", alignItems: "center", gap: "3px", color: "var(--muted)", fontSize: "10px", fontWeight: 500, flexShrink: 0 }}>
+                          <img src={getRankInfo(row.profitScore).icon} alt="" width={12} height={12} style={{ objectFit: "contain" }} />
+                          {getRankInfo(row.profitScore).name}
                         </span>
                       </div>
                       <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{money(row.profitScore)} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", opacity: 0.8 }} /></b>
@@ -1404,12 +1424,15 @@ function ProfileModal({
                   </span>
                 </div>
                 <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>ALL TIME PROFIT</span>
-                  <strong style={{ display: "block", fontSize: "18px", color: profile.allTimeProfit >= 0 ? "var(--green)" : "var(--red)", marginTop: "4px" }}>
-                    {profile.allTimeProfit >= 0 ? "+" : ""}{profile.allTimeProfit}
+                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>RANK</span>
+                  <strong style={{ display: "block", fontSize: "18px", color: "var(--yellow)", marginTop: "4px" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <img src={getRankInfo(profile.profitScore).icon} alt="" width={18} height={18} style={{ objectFit: "contain" }} />
+                      {getRankInfo(profile.profitScore).name}
+                    </span>
                   </strong>
                   <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    Total settled: {profile.totalSettled}
+                    Profit Score: {profile.profitScore.toLocaleString()}
                   </span>
                 </div>
               </div>
