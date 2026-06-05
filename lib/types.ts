@@ -44,4 +44,5 @@ export type PredictRequestBody = {
   predictionId: string;
   optionId: string;
   amount: number;
+  insurance?: boolean;
 };

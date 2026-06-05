@@ -29,6 +29,7 @@ type EntryRow = {
   user_id: string;
   option_id: string;
   amount: number;
+  insurance: boolean;
 };
 
 type UserRow = {
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest, context: Params) {
 
     const { data: entries, error: entriesError } = await supabase
       .from("prediction_entries")
-      .select("id, user_id, option_id, amount")
+      .select("id, user_id, option_id, amount, insurance")
       .eq("prediction_id", id)
       .eq("status", "running")
       .returns<EntryRow[]>();
@@ -120,10 +121,16 @@ export async function POST(request: NextRequest, context: Params) {
       const balanceAfter = user.coin_balance + payout;
       const profitScoreDelta = isWinner ? (payout - entry.amount) : 0;
 
+      let insuranceRefund = 0;
+      if (!isWinner && entry.insurance) {
+        insuranceRefund = Math.floor(entry.amount * 0.5);
+      }
+      const balanceAfterWithRefund = balanceAfter + insuranceRefund;
+
       const { error: userUpdateError } = await supabase
         .from("users")
         .update({
-          coin_balance: balanceAfter,
+          coin_balance: balanceAfterWithRefund,
           lifetime_profit: user.lifetime_profit + profitDelta,
           profit_score: user.profit_score + profitScoreDelta,
           updated_at: resolvedAt
@@ -140,7 +147,8 @@ export async function POST(request: NextRequest, context: Params) {
       if (entryUpdateError) throw new Error(entryUpdateError.message);
 
       const returnMultiplier = isWinner && entry.amount > 0 ? (Math.round((payout / entry.amount) * 100) / 100).toFixed(2) : null;
-      const detail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Winning: ${winningOption.label} · Result: ${isWinner ? "Won" : "Lost"}${isWinner && returnMultiplier ? ` · Return: ${returnMultiplier}x` : ""} · Payout: ${payout} · Profit: ${profitDelta}`;
+      const insuranceNote = (!isWinner && entry.insurance) ? ` · Insurance Refund: ${insuranceRefund}` : "";
+      const detail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Winning: ${winningOption.label} · Result: ${isWinner ? "Won" : "Lost"}${isWinner && returnMultiplier ? ` · Return: ${returnMultiplier}x` : ""}${insuranceNote} · Payout: ${payout} · Profit: ${profitDelta}`;
 
       const { error: ledgerError } = await supabase
         .from("coin_ledger")
@@ -148,13 +156,29 @@ export async function POST(request: NextRequest, context: Params) {
           user_id: entry.user_id,
           type: "payout",
           amount: payout,
-          balance_after: balanceAfter,
+          balance_after: balanceAfterWithRefund,
           ref_type: "prediction_entry",
           ref_id: entry.id,
           detail
         });
 
       if (ledgerError) throw new Error(ledgerError.message);
+
+      if (insuranceRefund > 0) {
+        const refundDetail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Insurance Refund: 50% of ${entry.amount} = ${insuranceRefund}`;
+        const { error: refundLedgerError } = await supabase
+          .from("coin_ledger")
+          .insert({
+            user_id: entry.user_id,
+            type: "insurance_refund",
+            amount: insuranceRefund,
+            balance_after: balanceAfterWithRefund,
+            ref_type: "prediction_entry",
+            ref_id: entry.id,
+            detail: refundDetail
+          });
+        if (refundLedgerError) throw new Error(refundLedgerError.message || "Failed to write insurance refund ledger");
+      }
 
       if (isWinner) winners += 1;
       else losers += 1;

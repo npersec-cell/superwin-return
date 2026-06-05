@@ -23,11 +23,16 @@ type OptionRow = {
 type UserBalanceRow = {
   coin_balance: number;
   lifetime_profit: number;
+  profit_score: number;
 };
 
-function estimateReturn(sortOrder: number) {
-  const estimates = [185, 230, 310, 420, 560, 690, 760, 840, 920, 980];
-  return estimates[sortOrder] || Math.min(1200, 200 + sortOrder * 90);
+function getInsuranceCost(betAmount: number): number {
+  if (betAmount <= 100) return 20;
+  if (betAmount <= 300) return 60;
+  if (betAmount <= 500) return 100;
+  if (betAmount <= 1000) return 200;
+  const multiplier = 1 + Math.floor((betAmount - 1001) / 1000);
+  return 200 * multiplier;
 }
 
 export async function POST(request: NextRequest) {
@@ -39,6 +44,7 @@ export async function POST(request: NextRequest) {
 
     const body = (await request.json()) as PredictRequestBody;
     const amount = Number(body.amount || 0);
+    const insurance = Boolean(body.insurance);
 
     if (!body.predictionId || !body.optionId) {
       return NextResponse.json({ ok: false, error: "Prediction and option are required" }, { status: 400 });
@@ -47,6 +53,8 @@ export async function POST(request: NextRequest) {
     if (!amount || amount <= 0) {
       return NextResponse.json({ ok: false, error: "Amount must be greater than zero" }, { status: 400 });
     }
+
+    const insuranceCost = insurance ? getInsuranceCost(amount) : 0;
 
     const supabase = createSupabaseAdminClient();
 
@@ -93,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     const { data: balanceRow, error: balanceError } = await supabase
       .from("users")
-      .select("coin_balance, lifetime_profit")
+      .select("coin_balance, lifetime_profit, profit_score")
       .eq("id", user.id)
       .single<UserBalanceRow>();
 
@@ -105,14 +113,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Not enough coins" }, { status: 400 });
     }
 
+    if (insurance && (balanceRow.profit_score || 0) < insuranceCost) {
+      return NextResponse.json({ ok: false, error: `Not enough green ammo. Need ${insuranceCost} more.` }, { status: 400 });
+    }
+
     const balanceAfter = balanceRow.coin_balance - amount;
-    const estimatedReturnPercent = estimateReturn(option.sort_order);
+    const profitScoreAfter = insurance ? (balanceRow.profit_score || 0) - insuranceCost : (balanceRow.profit_score || 0);
     const createdAt = new Date().toISOString();
 
     const { error: updateError } = await supabase
       .from("users")
       .update({
         coin_balance: balanceAfter,
+        profit_score: profitScoreAfter,
         updated_at: createdAt
       })
       .eq("id", user.id);
@@ -128,10 +141,11 @@ export async function POST(request: NextRequest) {
         prediction_id: prediction.id,
         option_id: option.id,
         amount,
-        estimated_return_percent: estimatedReturnPercent,
-        status: "running"
+        estimated_return_percent: 0,
+        status: "running",
+        insurance
       })
-      .select("id, prediction_id, option_id, amount, estimated_return_percent, status, created_at")
+      .select("id, prediction_id, option_id, amount, estimated_return_percent, status, created_at, insurance")
       .single();
 
     if (entryError) {
@@ -156,11 +170,30 @@ export async function POST(request: NextRequest) {
       throw new Error(ledgerError.message || "Failed to write ledger");
     }
 
+    if (insurance && insuranceCost > 0) {
+      const insuranceDetail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Insurance Cost: ${insuranceCost} green ammo`;
+      const { error: insuranceLedgerError } = await supabase
+        .from("coin_ledger")
+        .insert({
+          user_id: user.id,
+          type: "insurance",
+          amount: -insuranceCost,
+          balance_after: profitScoreAfter,
+          ref_type: "prediction_entry",
+          ref_id: entry.id,
+          detail: insuranceDetail
+        });
+      if (insuranceLedgerError) {
+        throw new Error(insuranceLedgerError.message || "Failed to write insurance ledger");
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       data: {
         user: {
           coinBalance: balanceAfter,
+          profitScore: profitScoreAfter,
           lifetimeProfit: balanceRow.lifetime_profit
         },
         entry: {
@@ -171,6 +204,7 @@ export async function POST(request: NextRequest) {
           estimatedReturnPercent: entry.estimated_return_percent,
           status: entry.status,
           createdAt: entry.created_at,
+          insurance: entry.insurance,
           question: prediction.question,
           tournamentName: prediction.tournament_name,
           optionLabel: option.label
