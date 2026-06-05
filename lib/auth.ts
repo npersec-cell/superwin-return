@@ -105,6 +105,32 @@ export async function getCurrentUser(request?: Request): Promise<AppUser | null>
     }
   }
 
+  // DEV BYPASS: Check for ?dev_bypass=SECRET in URL (for preview_url / direct access)
+  if (bypassSecret && request) {
+    try {
+      const url = new URL(request.url);
+      const urlBypass = url.searchParams.get("dev_bypass");
+      if (urlBypass === bypassSecret) {
+        const devUserId = process.env.DEV_USER_ID;
+        if (devUserId) {
+          console.warn(`[DEV] Bypassing Clerk auth via URL param, using user ID: ${devUserId}`);
+          const supabase = createSupabaseAdminClient();
+          const { data, error } = await supabase
+            .from("users")
+            .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, status, avatar_url")
+            .eq("id", devUserId)
+            .maybeSingle<UserRow>();
+
+          if (data && !error) {
+            return mapUser(data);
+          }
+        }
+      }
+    } catch {
+      // ignore URL parse errors
+    }
+  }
+
   const { userId } = await auth();
   if (!userId) return null;
 

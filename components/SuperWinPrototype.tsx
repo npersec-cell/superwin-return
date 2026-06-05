@@ -392,33 +392,48 @@ export default function SuperWinPrototype() {
   const [reportError, setReportError] = useState<string | null>(null);
   const [reportSuccess, setReportSuccess] = useState(false);
 
-  // DEV BYPASS: Check for dev_bypass cookie on mount
+  // DEV BYPASS: Check for dev_bypass cookie OR URL param on mount
   useEffect(() => {
     if (typeof document === "undefined") return;
+
     const cookies = document.cookie.split("; ").reduce((acc: Record<string, string>, curr) => {
       const [key, val] = curr.split("=");
       acc[key] = val;
       return acc;
     }, {});
-    if (cookies["dev_bypass"] === "1") {
+
+    const hasCookieBypass = cookies["dev_bypass"] === "1";
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasUrlBypass = urlParams.has("dev_bypass");
+
+    if (!hasCookieBypass && !hasUrlBypass) return;
+
+    // Cookie bypass: already validated by /api/dev-bypass route
+    if (hasCookieBypass) {
       console.warn("[DEV] dev_bypass cookie found, enabling bypass mode");
       setDevBypass(true);
-      // Fetch dev user info
-      fetch("/api/me", { credentials: "include" })
-        .then(res => res.json())
-        .then(data => {
-          if (data.ok && data.user) {
-            setDevUser(data.user);
-            setCoins(data.user.coinBalance ?? 500);
-            setProfit(data.user.lifetimeProfit ?? 0);
-            setProfitScore(data.user.profitScore ?? 0);
-            setCurrentUserId(data.user.id);
-            setAccountStatus("synced");
-            setAccountRole(data.user.role || "user");
-          }
-        })
-        .catch(() => {});
     }
+
+    // Fetch user info (include URL params for server validation)
+    const meUrl = hasUrlBypass ? `/api/me${window.location.search}` : "/api/me";
+    fetch(meUrl, { credentials: "include" })
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok && data.user) {
+          if (hasUrlBypass) {
+            console.warn("[DEV] dev_bypass URL param validated, enabling bypass mode");
+            setDevBypass(true);
+          }
+          setDevUser(data.user);
+          setCoins(data.user.coinBalance ?? 500);
+          setProfit(data.user.lifetimeProfit ?? 0);
+          setProfitScore(data.user.profitScore ?? 0);
+          setCurrentUserId(data.user.id);
+          setAccountStatus("synced");
+          setAccountRole(data.user.role || "user");
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const loadCaptcha = async () => {
