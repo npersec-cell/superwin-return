@@ -1192,6 +1192,10 @@ export default function SuperWinPrototype() {
                                     setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount }));
                                   }}>{amount}</button>
                                 ))}
+                                <button className="chip" style={{ opacity: 0.6 }} onClick={(event) => {
+                                  event.stopPropagation();
+                                  setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
+                                }}>Clear</button>
                               </div>
                               <div className="insurance-row" style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
                                 <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "11px", whiteSpace: "nowrap" }}>
