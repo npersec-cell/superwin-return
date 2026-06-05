@@ -33,6 +33,20 @@ export async function GET() {
     const supabase = createSupabaseAdminClient();
     const now = new Date().toISOString();
 
+    // ── AUTO-OPEN: เปลี่ยน draft → open อัตโนมัติเมื่อถึงเวลา opens_at ──
+    //      ทำก่อน fetch รายการเปิดเพื่อให้คำถามที่ถึงเวลาโผล่ทันที
+    const { error: autoOpenError } = await supabase
+      .from("predictions")
+      .update({ status: "open", updated_at: now })
+      .eq("status", "draft")
+      .not("opens_at", "is", null)
+      .lte("opens_at", now);
+
+    if (autoOpenError) {
+      console.warn("[Auto-Open] Failed to auto-open drafts:", autoOpenError.message);
+      // ไม่ throw — แค่ warn แล้วไปต่อได้ เพราะยังมีคำถาม open อยู่แล้ว
+    }
+
     const { data: predictionRows, error: predictionError } = await supabase
       .from("predictions")
       .select("id, tournament_name, question, opens_at, closes_at, fee_rate")
