@@ -79,6 +79,13 @@ type ApiResponse<T> = {
   error?: string;
 };
 
+type OptionSet = {
+  id: string;
+  name: string;
+  options: string[];
+  createdAt: string;
+};
+
 function toDateTimeLocal(value: Date) {
   const offset = value.getTimezoneOffset();
   const local = new Date(value.getTime() - offset * 60000);
@@ -194,6 +201,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
   const [selectedDashboardTournament, setSelectedDashboardTournament] = useState("");
   const [draftOptions, setDraftOptions] = useState<string[]>([]);
+  const [savedOptionSets, setSavedOptionSets] = useState<OptionSet[]>([]);
+  const [showSaveOptionSet, setShowSaveOptionSet] = useState(false);
+  const [optionSetNameInput, setOptionSetNameInput] = useState("");
+  const [editingOptionSetId, setEditingOptionSetId] = useState<string | null>(null);
+  const [editOptionSetNameInput, setEditOptionSetNameInput] = useState("");
   const [winningOptions, setWinningOptions] = useState<Record<string, string>>({});
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editTemplateInput, setEditTemplateInput] = useState("");
@@ -223,6 +235,16 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       return () => clearTimeout(timer);
     }
   }, [message]);
+
+  // Load saved option sets from localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("superwin_option_sets");
+      if (raw) setSavedOptionSets(JSON.parse(raw));
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
 
   useEffect(() => {
     const list = predictions.filter(isRunningNow);
@@ -426,6 +448,83 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const labels = latest.options.sort((a, b) => a.sortOrder - b.sortOrder).map((o) => o.label);
     setDraftOptions(labels);
     setMessage(`ดึงตัวเลือกจากคำถามก่อนหน้า: ${latest.question}`);
+  }
+
+  // ── Option Set (ชุดตัวเลือก) management ───────────────────────
+  function persistOptionSets(sets: OptionSet[]) {
+    setSavedOptionSets(sets);
+    localStorage.setItem("superwin_option_sets", JSON.stringify(sets));
+  }
+
+  function saveOptionSet() {
+    const name = optionSetNameInput.trim();
+    if (!name) {
+      setMessage("กรุณาใส่ชื่อชุดตัวเลือก");
+      return;
+    }
+    if (draftOptions.length < 2) {
+      setMessage("ต้องมีตัวเลือกอย่างน้อย 2 ข้อถึงจะบันทึกเป็นชุดได้");
+      return;
+    }
+    const newSet: OptionSet = {
+      id: crypto.randomUUID(),
+      name,
+      options: [...draftOptions],
+      createdAt: new Date().toISOString()
+    };
+    const updated = [...savedOptionSets, newSet];
+    persistOptionSets(updated);
+    setOptionSetNameInput("");
+    setShowSaveOptionSet(false);
+    setMessage(`บันทึกชุด "${name}" แล้ว (${draftOptions.length} ตัวเลือก)`);
+  }
+
+  function loadOptionSet(id: string) {
+    const set = savedOptionSets.find((s) => s.id === id);
+    if (!set) return;
+    setDraftOptions([...set.options]);
+    setMessage(`โหลดชุด "${set.name}" แล้ว (${set.options.length} ตัวเลือก)`);
+  }
+
+  function deleteOptionSet(id: string) {
+    const set = savedOptionSets.find((s) => s.id === id);
+    if (!set) return;
+    if (!window.confirm(`ลบชุดตัวเลือก "${set.name}"?`)) return;
+    const updated = savedOptionSets.filter((s) => s.id !== id);
+    persistOptionSets(updated);
+    if (editingOptionSetId === id) {
+      setEditingOptionSetId(null);
+      setEditOptionSetNameInput("");
+    }
+    setMessage(`ลบชุด "${set.name}" แล้ว`);
+  }
+
+  function updateOptionSetName(id: string) {
+    const name = editOptionSetNameInput.trim();
+    if (!name) return;
+    const updated = savedOptionSets.map((s) =>
+      s.id === id ? { ...s, name } : s
+    );
+    persistOptionSets(updated);
+    setEditingOptionSetId(null);
+    setEditOptionSetNameInput("");
+    setMessage(`แก้ไขชื่อชุดเป็น "${name}" แล้ว`);
+  }
+
+  function overwriteOptionSet(id: string) {
+    const set = savedOptionSets.find((s) => s.id === id);
+    if (!set) return;
+    if (
+      !window.confirm(
+        `บันทึกทับชุด "${set.name}" ด้วยตัวเลือกปัจจุบัน (${draftOptions.length} ข้อ)?`
+      )
+    )
+      return;
+    const updated = savedOptionSets.map((s) =>
+      s.id === id ? { ...s, options: [...draftOptions] } : s
+    );
+    persistOptionSets(updated);
+    setMessage(`บันทึกทับชุด "${set.name}" แล้ว`);
   }
 
   async function createPrediction(event: React.FormEvent<HTMLFormElement>) {
@@ -1396,6 +1495,118 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       </div>
                     ))}
                   </div>
+
+                  {/* ── ชุดตัวเลือกที่บันทึกไว้ ── */}
+                  <div style={{ marginTop: "10px", borderTop: "1px solid var(--hairline)", paddingTop: "10px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
+                      <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ชุดตัวเลือกที่บันทึกไว้ ({savedOptionSets.length})</span>
+                      {draftOptions.length >= 2 && (
+                        <button
+                          type="button"
+                          className="button gold"
+                          style={{ height: "28px", fontSize: "11px", padding: "0 10px" }}
+                          onClick={() => setShowSaveOptionSet(!showSaveOptionSet)}
+                        >
+                          {showSaveOptionSet ? "ยกเลิก" : "💾 บันทึกชุดตัวเลือก"}
+                        </button>
+                      )}
+                    </div>
+
+                    {showSaveOptionSet && (
+                      <div style={{ display: "flex", gap: "8px", marginTop: "8px", alignItems: "center" }}>
+                        <input
+                          value={optionSetNameInput}
+                          onChange={(e) => setOptionSetNameInput(e.target.value)}
+                          placeholder="ชื่อชุดตัวเลือก เช่น ทีม 16 ทีม"
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveOptionSet(); } }}
+                          style={{ border: "1px solid var(--hairline)", height: "34px", flex: 1 }}
+                        />
+                        <button type="button" className="button gold" onClick={saveOptionSet} style={{ height: "34px", fontSize: "12px", padding: "0 14px" }}>
+                          บันทึก
+                        </button>
+                      </div>
+                    )}
+
+                    {savedOptionSets.length > 0 && (
+                      <div style={{ display: "grid", gap: "6px", marginTop: "8px" }}>
+                        {savedOptionSets.map((set) => (
+                          <div
+                            key={set.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "8px 10px",
+                              background: "var(--bg)",
+                              borderRadius: "8px",
+                              border: "1px solid var(--hairline)"
+                            }}
+                          >
+                            {editingOptionSetId === set.id ? (
+                              <>
+                                <input
+                                  value={editOptionSetNameInput}
+                                  onChange={(e) => setEditOptionSetNameInput(e.target.value)}
+                                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); updateOptionSetName(set.id); } }}
+                                  style={{ border: "1px solid var(--hairline)", height: "28px", flex: 1, fontSize: "12px" }}
+                                  autoFocus
+                                />
+                                <button type="button" className="button gold" onClick={() => updateOptionSetName(set.id)} style={{ height: "28px", fontSize: "11px", padding: "0 8px" }}>OK</button>
+                                <button type="button" className="button" onClick={() => { setEditingOptionSetId(null); setEditOptionSetNameInput(""); }} style={{ height: "28px", fontSize: "11px", padding: "0 8px" }}>ยกเลิก</button>
+                              </>
+                            ) : (
+                              <>
+                                <span style={{ flex: 1, fontSize: "13px" }}>
+                                  <strong>{set.name}</strong>
+                                  <span className="meta" style={{ fontSize: "11px", marginLeft: "6px", color: "var(--muted)" }}>({set.options.length} ตัวเลือก)</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  className="button gold"
+                                  onClick={() => loadOptionSet(set.id)}
+                                  style={{ height: "28px", fontSize: "11px", padding: "0 10px" }}
+                                  title="โหลดชุดตัวเลือกนี้"
+                                >
+                                  โหลด
+                                </button>
+                                <button
+                                  type="button"
+                                  className="button"
+                                  onClick={() => {
+                                    setEditingOptionSetId(set.id);
+                                    setEditOptionSetNameInput(set.name);
+                                  }}
+                                  style={{ height: "28px", fontSize: "11px", padding: "0 8px" }}
+                                  title="แก้ไขชื่อ"
+                                >
+                                  แก้ไข
+                                </button>
+                                <button
+                                  type="button"
+                                  className="button"
+                                  onClick={() => overwriteOptionSet(set.id)}
+                                  style={{ height: "28px", fontSize: "11px", padding: "0 8px" }}
+                                  title="บันทึกทับด้วยตัวเลือกปัจจุบัน"
+                                >
+                                  ทับ
+                                </button>
+                                <button
+                                  type="button"
+                                  className="button"
+                                  onClick={() => deleteOptionSet(set.id)}
+                                  style={{ height: "28px", fontSize: "11px", padding: "0 8px", color: "var(--red)" }}
+                                  title="ลบชุดนี้"
+                                >
+                                  ลบ
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                 </div>
 
                 <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", marginTop: "12px" }}>สร้างคำถามและเปิดรับทาย</button>
