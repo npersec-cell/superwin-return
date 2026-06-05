@@ -37,7 +37,7 @@ export async function GET() {
       .from("predictions")
       .select("id, tournament_name, question, opens_at, closes_at, fee_rate")
       .eq("status", "open")
-      .lte("opens_at", now)
+      .or(`opens_at.is.null,opens_at.lte.${now}`)
       .gt("closes_at", now)
       .order("closes_at", { ascending: true })
       .order("question", { ascending: true })
