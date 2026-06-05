@@ -213,8 +213,8 @@ export async function requireUser(request?: Request): Promise<AppUser> {
   return user;
 }
 
-export async function requireAdmin(): Promise<AppUser> {
-  const user = await requireUser();
+export async function requireAdmin(request?: Request): Promise<AppUser> {
+  const user = await requireUser(request);
   if (user.role !== "admin") {
     throw new Error("Forbidden");
   }

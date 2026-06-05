@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 
@@ -31,9 +31,9 @@ function toStatus(error: unknown) {
   return 500;
 }
 
-export async function POST(_request: Request, context: Params) {
+export async function POST(request: NextRequest, context: Params) {
   try {
-    await requireAdmin();
+    await requireAdmin(request);
     const { id } = await Promise.resolve(context.params);
     const supabase = createSupabaseAdminClient();
     const refundedAt = new Date().toISOString();

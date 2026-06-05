@@ -33,7 +33,7 @@ function parseBkkDateTime(localStr: string) {
 
 export async function PATCH(request: NextRequest, context: Params) {
   try {
-    await requireAdmin();
+    await requireAdmin(request);
     const { id } = await Promise.resolve(context.params);
     const body = (await request.json()) as PatchBody;
     const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -79,7 +79,7 @@ export async function PATCH(request: NextRequest, context: Params) {
 
 export async function DELETE(request: NextRequest, context: Params) {
   try {
-    await requireAdmin();
+    await requireAdmin(request);
     const { id } = await Promise.resolve(context.params);
     const supabase = createSupabaseAdminClient();
 

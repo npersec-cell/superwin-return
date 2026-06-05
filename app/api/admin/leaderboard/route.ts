@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 
@@ -9,9 +9,9 @@ function toStatus(error: unknown) {
   return 500;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    await requireAdmin();
+    await requireAdmin(request);
     const supabase = createSupabaseAdminClient();
 
     // ดึงผู้ใช้ 10 อันดับแรกที่มี lifetime_profit สูงสุดเพื่อทำ dropdown หน้ารางวัล

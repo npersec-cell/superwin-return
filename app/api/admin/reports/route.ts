@@ -5,9 +5,9 @@ import { createSupabaseAdminClient } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 // 1. ดึงรายการแจ้งปัญหาทั้งหมดสำหรับแอดมิน
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    await requireAdmin();
+    await requireAdmin(request);
 
     const supabase = createSupabaseAdminClient();
     const { data: reports, error } = await supabase
@@ -29,7 +29,7 @@ export async function GET() {
 // 2. ปรับปรุงสถานะหรือลบรายงานการแจ้งปัญหา
 export async function PATCH(request: NextRequest) {
   try {
-    await requireAdmin();
+    await requireAdmin(request);
 
     const body = await request.json();
     const { id, status, delete: shouldDelete } = body;

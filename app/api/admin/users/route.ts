@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 // GET /api/admin/users — list all users (admin only)
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAdmin();
+    const user = await requireAdmin(request);
 
     const supabase = createSupabaseAdminClient();
 

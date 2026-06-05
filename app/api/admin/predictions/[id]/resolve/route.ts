@@ -19,7 +19,7 @@ function toStatus(error: unknown) {
 
 export async function POST(request: NextRequest, context: Params) {
   try {
-    await requireAdmin();
+    await requireAdmin(request);
     const { id } = await Promise.resolve(context.params);
     const body = (await request.json()) as ResolveBody;
 

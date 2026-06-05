@@ -94,9 +94,9 @@ function toStatus(error: unknown) {
   return 500;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    await requireAdmin();
+    await requireAdmin(request);
     const supabase = createSupabaseAdminClient();
     const settings = await readSettingsFromDb(supabase);
 
@@ -112,7 +112,7 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    await requireAdmin();
+    await requireAdmin(request);
     const supabase = createSupabaseAdminClient();
     const current = await readSettingsFromDb(supabase);
     const body = (await request.json()) as Partial<SiteSettings>;

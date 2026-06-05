@@ -9,9 +9,9 @@ function toStatus(error: unknown) {
   return 500;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    await requireAdmin();
+    await requireAdmin(request);
     const supabase = createSupabaseAdminClient();
 
     // 1. ดึงข้อมูลคำถามหลักทั้งหมดเพื่อป้องกัน Error PostgREST Embed

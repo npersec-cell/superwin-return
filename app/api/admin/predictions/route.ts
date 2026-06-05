@@ -64,9 +64,9 @@ function mapPrediction(row: PredictionRow, options: OptionRow[]) {
   };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    await requireAdmin();
+    await requireAdmin(request);
     const supabase = createSupabaseAdminClient();
 
     const { data: predictions, error: predictionError } = await supabase
@@ -101,7 +101,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const admin = await requireAdmin();
+    const admin = await requireAdmin(request);
     const body = (await request.json()) as AdminPredictionInput;
 
     const tournamentName = String(body.tournamentName || "").trim();

@@ -15,7 +15,7 @@ function toStatus(error: unknown) {
 
 export async function POST(request: NextRequest) {
   try {
-    const currentAdmin = await requireAdmin();
+    const currentAdmin = await requireAdmin(request);
     const body = (await request.json()) as Body;
     const email = String(body.email || "").trim().toLowerCase();
 
