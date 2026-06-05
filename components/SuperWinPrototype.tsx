@@ -319,7 +319,8 @@ function compact(n: number): string {
 }
 
 function getInsuranceCost(betAmount: number): number {
-  return Math.floor(betAmount * 0.20);
+  const rate = Math.max(0.05, 0.20 - Math.log10(betAmount) * 0.05);
+  return Math.floor(betAmount * rate);
 }
 
 function safeJson<T>(key: string, fallback: T): T {
