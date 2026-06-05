@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 
@@ -26,9 +26,9 @@ function randomClaimAmount(): number {
   return Math.floor(Math.random() * 10) + 91;
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const user = await requireUser();
+    const user = await requireUser(request);
 
     if (user.status !== "active") {
       return NextResponse.json({ ok: false, error: "Account is not active" }, { status: 403 });

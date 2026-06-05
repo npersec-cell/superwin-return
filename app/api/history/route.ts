@@ -31,7 +31,7 @@ function formatDateParts(value: string) {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireUser();
+    const user = await requireUser(request);
     const supabase = createSupabaseAdminClient();
     const searchParams = request.nextUrl.searchParams;
     const filter = searchParams.get("filter") || "All";

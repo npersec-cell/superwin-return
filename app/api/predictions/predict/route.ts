@@ -29,7 +29,7 @@ function getInsuranceCost(betAmount: number): number {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireUser();
+    const user = await requireUser(request);
     if (user.status !== "active") {
       return NextResponse.json({ ok: false, error: "Account is not active" }, { status: 403 });
     }

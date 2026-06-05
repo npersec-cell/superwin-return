@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 import type { RunningPredictionDto } from "@/lib/types";
@@ -15,9 +15,9 @@ type RunningRow = {
   prediction_options: { label: string } | null;
 };
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await requireUser();
+    const user = await requireUser(request);
     const supabase = createSupabaseAdminClient();
 
     const { data, error } = await supabase

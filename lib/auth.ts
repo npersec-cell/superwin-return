@@ -205,8 +205,8 @@ export async function getCurrentUser(request?: Request): Promise<AppUser | null>
   return mapUser(created);
 }
 
-export async function requireUser(): Promise<AppUser> {
-  const user = await getCurrentUser();
+export async function requireUser(request?: Request): Promise<AppUser> {
+  const user = await getCurrentUser(request);
   if (!user) {
     throw new Error("Unauthorized");
   }
