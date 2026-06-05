@@ -40,7 +40,7 @@ function mapUser(row: UserRow): AppUser {
     role: row.role,
     coinBalance: row.coin_balance,
     lifetimeProfit: row.lifetime_profit,
-    profitScore: row.profit_score,
+    profitScore: row.profit_score ?? 0,
     lastClaimAt: row.last_claim_at,
     nextClaimAt: row.next_claim_at,
     status: row.status,
