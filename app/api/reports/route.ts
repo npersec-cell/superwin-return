@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     let dbUserId = null;
     let userEmail = "guest@superwinhub.app";
     try {
-      const user = await getCurrentUser();
+      const user = await getCurrentUser(request);
       if (user) {
         dbUserId = user.id;
         userEmail = user.email;
