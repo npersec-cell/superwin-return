@@ -1641,15 +1641,15 @@ function HistoryModal({
 
   return (
     <section ref={modalRef} className="modal" aria-label="Coin history" onClick={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="modal-card">
+      <div className="modal-card history-modal-card">
         <div className="modal-head"><h3>Coin History</h3><button className="button" onClick={onClose}>Close</button></div>
-        <div className="modal-body">
+        <div className="modal-body history-modal-body">
           <div className="filter-row">
             {(["All", "Predict", "Reload", "Payout"] as const).map((filter) => (
               <button key={filter} className={`button ${historyFilter === filter ? "active" : ""}`} onClick={() => { setHistoryFilter(filter); setHistoryPage(1); }}>{filter}</button>
             ))}
           </div>
-          <div>
+          <div className="history-list-scroll">
             {historyLoading ? (
               <div className="history-row" style={{ justifyContent: "center", padding: "24px 0" }}>
                 <span className="micro" style={{ color: "var(--muted)" }}>Loading...</span>

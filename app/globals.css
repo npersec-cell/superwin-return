@@ -188,9 +188,14 @@ input { width: 100%; min-width: 0; }
   animation-delay: 1ms;
   -webkit-animation-delay: 1ms;
 }
-/* Fixed-size modal: height stays consistent regardless of content count */
-.modal-card { width: min(640px, 100%); height: min(560px, calc(100vh - 32px)); display: flex; flex-direction: column; }
-.modal-body { display: grid; gap: 10px; padding: 12px 14px 14px; flex: 1 1 auto; min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--yellow) var(--card); }
+.modal-card { width: min(640px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; }
+.modal-body { display: grid; gap: 10px; padding: 12px 14px 14px; max-height: calc(100vh - 100px); overflow: auto; scrollbar-width: thin; scrollbar-color: var(--yellow) var(--card); }
+.history-modal-card { width: min(640px, 100%); height: min(520px, calc(100vh - 32px)); display: flex; flex-direction: column; }
+.history-modal-body { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.history-list-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--yellow) var(--card); }
+.history-list-scroll::-webkit-scrollbar { width: 6px; }
+.history-list-scroll::-webkit-scrollbar-track { background: var(--card); border-radius: 999px; }
+.history-list-scroll::-webkit-scrollbar-thumb { background: var(--yellow); border-radius: 999px; }
 .info-block { display: grid; gap: 6px; padding: 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--hairline); }
 .info-block h4 { color: var(--yellow); font-size: 12.5px; letter-spacing: -0.02em; }
 .info-block p, .info-block ol, .info-block ul { display: grid; gap: 4px; padding-left: 0; color: var(--text); }
