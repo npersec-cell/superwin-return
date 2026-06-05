@@ -61,6 +61,23 @@ function getDisplayName(clerkUser: Awaited<ReturnType<typeof currentUser>>) {
 }
 
 export async function getCurrentUser(): Promise<AppUser | null> {
+  // DEV BYPASS: Use DEV_USER_ID from env (set in .env.local)
+  // Only works in development mode for safety
+  const devUserId = process.env.DEV_USER_ID;
+  if (process.env.NODE_ENV === "development" && devUserId) {
+    console.warn(`[DEV] Bypassing Clerk auth, using user ID: ${devUserId}`);
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, status, avatar_url")
+      .eq("id", devUserId)
+      .maybeSingle<UserRow>();
+
+    if (data && !error) {
+      return mapUser(data);
+    }
+  }
+
   const { userId } = await auth();
   if (!userId) return null;
 
