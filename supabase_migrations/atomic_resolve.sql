@@ -1,7 +1,7 @@
 CREATE OR REPLACE FUNCTION resolve_prediction_atomic(
-  p_prediction_id TEXT,
-  p_winning_option_id TEXT,
-  p_resolved_at TEXT
+  p_prediction_id UUID,
+  p_winning_option_id UUID,
+  p_resolved_at TIMESTAMPTZ
 )
 RETURNS JSONB
 LANGUAGE plpgsql
