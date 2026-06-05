@@ -1193,15 +1193,10 @@ export default function SuperWinPrototype() {
                               ))}
                             </div>
 
-                            {/* Step 3 - Insurance */}
-                            <div className="question-step">
-                              <span className="step-num">3.</span>
-                              <span className="step-label">Buy Insurance</span>
-                              <img src="/vest-3.png" alt="" width={16} height={16} style={{ objectFit: "contain", opacity: 0.8, marginLeft: "4px" }} />
-                            </div>
-
-                            <div className="insurance-row" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 0" }}>
+                            {/* Insurance */}
+                            <div className="insurance-row" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "2px 0" }}>
                               <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "12px" }}>
+                                <img src="/vest-3.png" alt="" width={14} height={14} style={{ objectFit: "contain", opacity: 0.7 }} />
                                 <input
                                   type="checkbox"
                                   checked={insuranceEnabled.has(question.id)}
@@ -1214,19 +1209,19 @@ export default function SuperWinPrototype() {
                                     }
                                     setInsuranceEnabled(next);
                                   }}
-                                  disabled={profit < getInsuranceCost(coinInputs[question.id] || 0)}
+                                  disabled={profitScore < getInsuranceCost(coinInputs[question.id] || 0)}
                                   style={{ cursor: "pointer" }}
                                 />
-                                <span>Enable insurance (-50% loss protection)</span>
+                                <span>Insure (-50% loss)</span>
                               </label>
-                              {insuranceEnabled.has(question.id) && (
+                              {insuranceEnabled.has(question.id) && (coinInputs[question.id] || 0) > 0 && (
                                 <span style={{ fontSize: "11px", color: "var(--yellow)", opacity: 0.9 }}>
-                                  Cost: {getInsuranceCost(coinInputs[question.id] || 0)} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", verticalAlign: "middle" }} />
+                                  -{getInsuranceCost(coinInputs[question.id] || 0)} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", verticalAlign: "middle" }} />
                                 </span>
                               )}
-                              {!insuranceEnabled.has(question.id) && (profit < getInsuranceCost(coinInputs[question.id] || 0)) && (
+                              {!insuranceEnabled.has(question.id) && (coinInputs[question.id] || 0) > 0 && profitScore < getInsuranceCost(coinInputs[question.id] || 0) && (
                                 <span style={{ fontSize: "11px", color: "#888", opacity: 0.7 }}>
-                                  Need {getInsuranceCost(coinInputs[question.id] || 0) - profit} more green ammo
+                                  Need {getInsuranceCost(coinInputs[question.id] || 0) - profitScore} more
                                 </span>
                               )}
                             </div>
