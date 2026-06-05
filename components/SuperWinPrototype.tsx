@@ -1195,7 +1195,7 @@ export default function SuperWinPrototype() {
                               </div>
                               <div className="insurance-row" style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
                                 <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "11px", whiteSpace: "nowrap" }}>
-                                  <img src="/vest-3.png" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.7 }} />
+                                  <img src="/vest-3.png" alt="" width={14} height={14} style={{ objectFit: "contain", opacity: 0.7 }} />
                                   <input
                                     type="checkbox"
                                     checked={insuranceEnabled.has(question.id)}
@@ -1211,7 +1211,7 @@ export default function SuperWinPrototype() {
                                     disabled={profitScore < getInsuranceCost(coinInputs[question.id] || 0)}
                                     style={{ cursor: "pointer", width: "14px", height: "14px" }}
                                   />
-                                  <span>Insure</span>
+                                  <span>Insure -50%</span>
                                 </label>
                                 {insuranceEnabled.has(question.id) && (coinInputs[question.id] || 0) > 0 && (
                                   <span style={{ fontSize: "10px", color: "var(--yellow)", opacity: 0.9, whiteSpace: "nowrap" }}>
@@ -1219,8 +1219,8 @@ export default function SuperWinPrototype() {
                                   </span>
                                 )}
                                 {!insuranceEnabled.has(question.id) && (coinInputs[question.id] || 0) > 0 && profitScore < getInsuranceCost(coinInputs[question.id] || 0) && (
-                                  <span style={{ fontSize: "10px", color: "#888", opacity: 0.7, whiteSpace: "nowrap" }}>
-                                    Need {getInsuranceCost(coinInputs[question.id] || 0) - profitScore}
+                                  <span style={{ fontSize: "10px", color: "#888", opacity: 0.7, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "3px" }}>
+                                    Need {getInsuranceCost(coinInputs[question.id] || 0) - profitScore} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", verticalAlign: "middle" }} />
                                   </span>
                                 )}
                               </div>
