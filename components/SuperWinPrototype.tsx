@@ -340,6 +340,8 @@ function createQuestionDeadlines(sourceQuestions = demoQuestions) {
 
 export default function SuperWinPrototype() {
   const { isSignedIn, user: clerkUser } = useUser();
+  const [devBypass, setDevBypass] = useState(false);
+  const [devUser, setDevUser] = useState(null);
   const [mounted, setMounted] = useState(false);
   const [coins, setCoins] = useState(500);
   const [profit, setProfit] = useState(0);
@@ -389,6 +391,35 @@ export default function SuperWinPrototype() {
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
   const [reportSuccess, setReportSuccess] = useState(false);
+
+  // DEV BYPASS: Check for dev_bypass cookie on mount
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const cookies = document.cookie.split("; ").reduce((acc: Record<string, string>, curr) => {
+      const [key, val] = curr.split("=");
+      acc[key] = val;
+      return acc;
+    }, {});
+    if (cookies["dev_bypass"] === "1") {
+      console.warn("[DEV] dev_bypass cookie found, enabling bypass mode");
+      setDevBypass(true);
+      // Fetch dev user info
+      fetch("/api/me", { credentials: "include" })
+        .then(res => res.json())
+        .then(data => {
+          if (data.ok && data.user) {
+            setDevUser(data.user);
+            setCoins(data.user.coinBalance ?? 500);
+            setProfit(data.user.lifetimeProfit ?? 0);
+            setProfitScore(data.user.profitScore ?? 0);
+            setCurrentUserId(data.user.id);
+            setAccountStatus("synced");
+            setAccountRole(data.user.role || "user");
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
 
   const loadCaptcha = async () => {
     try {
@@ -486,7 +517,7 @@ export default function SuperWinPrototype() {
   }, [settings.announcement]);
 
   useEffect(() => {
-    if (!isSignedIn) {
+    if (!(devBypass || isSignedIn)) {
       setAccountStatus("demo");
       setAccountRole("user");
       return;
@@ -531,17 +562,17 @@ export default function SuperWinPrototype() {
     return () => {
       cancelled = true;
     };
-  }, [isSignedIn]);
+  }, [isSignedIn, devBypass]);
 
   // ซิงค์คะแนนเหรียญและตารางคะแนนจากฐานข้อมูลโดยอัตโนมัติทุกๆ 10 วินาที
   useEffect(() => {
-    if (!isSignedIn) return;
+    if (!devBypass && !isSignedIn) return;
     const interval = setInterval(() => {
       syncUserData();
       loadLeaderboard().catch(() => undefined);
     }, 10000); // 10 วินาที
     return () => clearInterval(interval);
-  }, [isSignedIn]);
+  }, [isSignedIn, devBypass]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -676,7 +707,7 @@ export default function SuperWinPrototype() {
   }
 
   async function syncUserData() {
-    if (!isSignedIn) return;
+    if (!devBypass && !isSignedIn) return;
     try {
       const response = await fetch("/api/me");
       const payload = (await response.json()) as ApiMeResponse;
@@ -736,7 +767,7 @@ export default function SuperWinPrototype() {
   }
 
   async function loadRunningPredictions() {
-    if (!isSignedIn) return;
+    if (!devBypass && !isSignedIn) return;
     const response = await fetch("/api/predictions/running");
     const payload = (await response.json()) as ApiRunningResponse;
     if (!response.ok || !payload.ok || !payload.data) {
@@ -770,7 +801,7 @@ export default function SuperWinPrototype() {
   }
 
   async function loadHistory(filter = historyFilter) {
-    if (!isSignedIn) return;
+    if (!devBypass && !isSignedIn) return;
     setHistoryLoading(true);
     try {
       const response = await fetch(`/api/history?filter=${encodeURIComponent(filter)}`);
@@ -831,9 +862,9 @@ export default function SuperWinPrototype() {
   }
 
   async function claim() {
-    if (!isSignedIn || Date.now() < nextClaimAt) return;
+    if ((!devBypass && !isSignedIn) || Date.now() < nextClaimAt) return;
 
-    if (isSignedIn) {
+    if (devBypass || isSignedIn) {
       try {
         const response = await fetch("/api/claim", { method: "POST" });
         const payload = (await response.json()) as ApiClaimResponse;
@@ -869,7 +900,7 @@ export default function SuperWinPrototype() {
   async function confirmPrediction(question: Question) {
     const amount = Number(coinInputs[question.id] || 0);
     const answer = selectedOption(question);
-    if (!isSignedIn) {
+    if (!(devBypass || isSignedIn)) {
       setToast((current) => ({ ...current, [question.id]: "Login first" }));
       return;
     }
@@ -883,7 +914,7 @@ export default function SuperWinPrototype() {
       return;
     }
 
-    if (isSignedIn) {
+    if (devBypass || isSignedIn) {
       setPredictingIds((current) => new Set(current).add(question.id));
       try {
         const response = await fetch("/api/predictions/predict", {
@@ -957,7 +988,7 @@ export default function SuperWinPrototype() {
             </div>
           </div>
           <div className="actions">
-            {!isSignedIn ? (
+            {!(devBypass || isSignedIn) ? (
               <SignInButton mode="modal">
                 <button className="button primary">Sign In</button>
               </SignInButton>
@@ -1008,7 +1039,7 @@ export default function SuperWinPrototype() {
           </div>
         )}
 
-        {isSignedIn && (
+        {(devBypass || isSignedIn) && (
         <section className="stats" aria-label="Account stats">
           <div className="stat"><span className="label">Win Rate</span><b className="value">{winRate}%</b></div>
           <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>

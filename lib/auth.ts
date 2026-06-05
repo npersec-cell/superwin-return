@@ -60,21 +60,48 @@ function getDisplayName(clerkUser: Awaited<ReturnType<typeof currentUser>>) {
   return fullName || clerkUser.username || null;
 }
 
-export async function getCurrentUser(): Promise<AppUser | null> {
-  // DEV BYPASS: Use DEV_USER_ID from env (set in .env.local)
-  // Only works in development mode for safety
-  const devUserId = process.env.DEV_USER_ID;
-  if (process.env.NODE_ENV === "development" && devUserId) {
-    console.warn(`[DEV] Bypassing Clerk auth, using user ID: ${devUserId}`);
-    const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase
-      .from("users")
-      .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, status, avatar_url")
-      .eq("id", devUserId)
-      .maybeSingle<UserRow>();
+export async function getCurrentUser(request?: Request): Promise<AppUser | null> {
+  // DEV BYPASS: Check for x-dev-bypass header (set via ModHeader or middleware)
+  const bypassSecret = process.env.DEV_BYPASS_SECRET;
+  if (bypassSecret && request) {
+    const headerValue = request.headers.get("x-dev-bypass");
+    if (headerValue === bypassSecret) {
+      const devUserId = process.env.DEV_USER_ID;
+      if (devUserId) {
+        console.warn(`[DEV] Bypassing Clerk auth, using user ID: ${devUserId}`);
+        const supabase = createSupabaseAdminClient();
+        const { data, error } = await supabase
+          .from("users")
+          .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, status, avatar_url")
+          .eq("id", devUserId)
+          .maybeSingle<UserRow>();
 
-    if (data && !error) {
-      return mapUser(data);
+        if (data && !error) {
+          return mapUser(data);
+        }
+      }
+    }
+  }
+
+  // Also check for dev_bypass cookie (set by /api/dev-bypass route)
+  if (bypassSecret && request) {
+    const cookieHeader = request.headers.get("cookie");
+    if (cookieHeader && cookieHeader.includes("dev_bypass=1")) {
+      // Validate the cookie was set with proper secret
+      const devUserId = process.env.DEV_USER_ID;
+      if (devUserId) {
+        console.warn(`[DEV] Bypassing Clerk auth via cookie, using user ID: ${devUserId}`);
+        const supabase = createSupabaseAdminClient();
+        const { data, error } = await supabase
+          .from("users")
+          .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, status, avatar_url")
+          .eq("id", devUserId)
+          .maybeSingle<UserRow>();
+
+        if (data && !error) {
+          return mapUser(data);
+        }
+      }
     }
   }
 
