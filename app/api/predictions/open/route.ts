@@ -15,6 +15,7 @@ type PredictionRow = {
   id: string;
   tournament_name: string;
   question: string;
+  opens_at: string;
   closes_at: string;
   fee_rate: number;
 };
@@ -34,8 +35,9 @@ export async function GET() {
 
     const { data: predictionRows, error: predictionError } = await supabase
       .from("predictions")
-      .select("id, tournament_name, question, closes_at, fee_rate")
+      .select("id, tournament_name, question, opens_at, closes_at, fee_rate")
       .eq("status", "open")
+      .lte("opens_at", now)
       .gt("closes_at", now)
       .order("closes_at", { ascending: true })
       .order("question", { ascending: true })
