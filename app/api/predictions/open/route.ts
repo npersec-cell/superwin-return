@@ -91,14 +91,27 @@ export async function GET() {
       return acc;
     }, {});
 
-    function computeReturn(predictionId: string, optionId: string, feeRate: number, sortOrder: number): number {
+    function computeReturn(predictionId: string, optionId: string, feeRate: number): number {
       const optionPool = poolByOption[optionId] || 0;
       const totalPool = poolByPrediction[predictionId] || 0;
-      if (optionPool <= 0 || totalPool <= 0) {
+
+      if (totalPool <= 0) {
         return 0;
       }
+
+      if (optionPool <= 0) {
+        // No bets on this option yet — estimate with average bet size
+        const playerCount = playersByPrediction[predictionId]?.size || 1;
+        const assumedBet = Math.max(10, Math.floor(totalPool / playerCount));
+        const newTotalPool = totalPool + assumedBet;
+        const newOptionPool = assumedBet;
+        const multiplier = (newTotalPool / newOptionPool) * (1 - feeRate);
+        const returnPercent = Math.round((multiplier - 1) * 100);
+        return Math.min(returnPercent, 999);
+      }
+
       const multiplier = (totalPool / optionPool) * (1 - feeRate);
-      return Math.round((multiplier - 1) * 100);
+      return Math.max(0, Math.round((multiplier - 1) * 100));
     }
 
     const predictions: PredictionWithOptionsDto[] = (predictionRows || []).map((prediction) => ({
@@ -112,7 +125,7 @@ export async function GET() {
         id: option.id,
         label: option.label,
         sortOrder: option.sort_order,
-        estimatedReturnPercent: computeReturn(prediction.id, option.id, prediction.fee_rate || 0, option.sort_order)
+        estimatedReturnPercent: computeReturn(prediction.id, option.id, prediction.fee_rate || 0)
       }))
     }));
 
