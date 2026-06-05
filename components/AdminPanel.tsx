@@ -1609,7 +1609,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
                 </div>
 
-                <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", marginTop: "12px" }}>สร้างคำถามและเปิดรับทาย</button>
+                <button
+                  className="button primary"
+                  disabled={loading || !tournamentName.trim() || !question.trim() || draftOptions.filter(Boolean).length < 2 || !closesAt || !feeRate}
+                  type="submit"
+                  style={{ width: "100%", marginTop: "12px" }}
+                >
+                  สร้างคำถามและเปิดรับทาย
+                </button>
               </form>
             </section>
           )}
