@@ -12,10 +12,11 @@ type LedgerRow = {
 };
 
 function formatAction(type: string) {
-  if (type === "claim") return "Claim";
+  if (type === "claim") return "Reload";
   if (type === "predict") return "Predict";
   if (type === "payout") return "Payout";
   if (type === "refund") return "Refund";
+  if (type === "insurance" || type === "insurance_refund") return "Insurance";
   return "Adjustment";
 }
 
