@@ -1183,47 +1183,47 @@ export default function SuperWinPrototype() {
                               </div>
                             </div>
 
-                            {/* Amount chips */}
-                            <div className="amount-chips-new">
-                              {[5, 10, 50, 100, 500].map((amount) => (
-                                <button key={amount} className="chip" onClick={(event) => {
-                                  event.stopPropagation();
-                                  setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount }));
-                                }}>{amount}</button>
-                              ))}
-                            </div>
-
-                            {/* Insurance */}
-                            <div className="insurance-row" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "2px 0" }}>
-                              <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "12px" }}>
-                                <img src="/vest-3.png" alt="" width={14} height={14} style={{ objectFit: "contain", opacity: 0.7 }} />
-                                <input
-                                  type="checkbox"
-                                  checked={insuranceEnabled.has(question.id)}
-                                  onChange={(e) => {
-                                    const next = new Set(insuranceEnabled);
-                                    if (e.target.checked) {
-                                      next.add(question.id);
-                                    } else {
-                                      next.delete(question.id);
-                                    }
-                                    setInsuranceEnabled(next);
-                                  }}
-                                  disabled={profitScore < getInsuranceCost(coinInputs[question.id] || 0)}
-                                  style={{ cursor: "pointer" }}
-                                />
-                                <span>Insure (-50% loss)</span>
-                              </label>
-                              {insuranceEnabled.has(question.id) && (coinInputs[question.id] || 0) > 0 && (
-                                <span style={{ fontSize: "11px", color: "var(--yellow)", opacity: 0.9 }}>
-                                  -{getInsuranceCost(coinInputs[question.id] || 0)} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", verticalAlign: "middle" }} />
-                                </span>
-                              )}
-                              {!insuranceEnabled.has(question.id) && (coinInputs[question.id] || 0) > 0 && profitScore < getInsuranceCost(coinInputs[question.id] || 0) && (
-                                <span style={{ fontSize: "11px", color: "#888", opacity: 0.7 }}>
-                                  Need {getInsuranceCost(coinInputs[question.id] || 0) - profitScore} more
-                                </span>
-                              )}
+                            {/* Amount chips + Insurance */}
+                            <div className="amount-chips-new" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                              <div style={{ display: "flex", gap: "8px" }}>
+                                {[5, 10, 50, 100, 500].map((amount) => (
+                                  <button key={amount} className="chip" onClick={(event) => {
+                                    event.stopPropagation();
+                                    setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount }));
+                                  }}>{amount}</button>
+                                ))}
+                              </div>
+                              <div className="insurance-row" style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+                                <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "11px", whiteSpace: "nowrap" }}>
+                                  <img src="/vest-3.png" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.7 }} />
+                                  <input
+                                    type="checkbox"
+                                    checked={insuranceEnabled.has(question.id)}
+                                    onChange={(e) => {
+                                      const next = new Set(insuranceEnabled);
+                                      if (e.target.checked) {
+                                        next.add(question.id);
+                                      } else {
+                                        next.delete(question.id);
+                                      }
+                                      setInsuranceEnabled(next);
+                                    }}
+                                    disabled={profitScore < getInsuranceCost(coinInputs[question.id] || 0)}
+                                    style={{ cursor: "pointer", width: "14px", height: "14px" }}
+                                  />
+                                  <span>Insure</span>
+                                </label>
+                                {insuranceEnabled.has(question.id) && (coinInputs[question.id] || 0) > 0 && (
+                                  <span style={{ fontSize: "10px", color: "var(--yellow)", opacity: 0.9, whiteSpace: "nowrap" }}>
+                                    -{getInsuranceCost(coinInputs[question.id] || 0)} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", verticalAlign: "middle" }} />
+                                  </span>
+                                )}
+                                {!insuranceEnabled.has(question.id) && (coinInputs[question.id] || 0) > 0 && profitScore < getInsuranceCost(coinInputs[question.id] || 0) && (
+                                  <span style={{ fontSize: "10px", color: "#888", opacity: 0.7, whiteSpace: "nowrap" }}>
+                                    Need {getInsuranceCost(coinInputs[question.id] || 0) - profitScore}
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
                             {/* Big predict button */}
