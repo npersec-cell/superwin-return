@@ -45,7 +45,14 @@ export async function GET(request: NextRequest) {
       .limit(700);
 
     if (filter !== "All") {
-      query = query.eq("type", filter.toLowerCase());
+      const f = filter.toLowerCase();
+      if (f === "reload") {
+        query = query.eq("type", "claim");
+      } else if (f === "insurance") {
+        query = query.in("type", ["insurance", "insurance_refund"]);
+      } else {
+        query = query.eq("type", f);
+      }
     }
 
     const { data, error } = await query.returns<LedgerRow[]>();
