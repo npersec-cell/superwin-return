@@ -8,3 +8,6 @@ out
 .vercel
 
 .workbuddy
+
+# Temporary Python scripts
+/write_*.py
