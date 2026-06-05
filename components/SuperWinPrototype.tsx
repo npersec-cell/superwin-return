@@ -341,7 +341,6 @@ function createQuestionDeadlines(sourceQuestions = demoQuestions) {
 export default function SuperWinPrototype() {
   const { isSignedIn, user: clerkUser } = useUser();
   const [mounted, setMounted] = useState(false);
-  const [loggedIn, setLoggedIn] = useState(false);
   const [coins, setCoins] = useState(500);
   const [profit, setProfit] = useState(0);
   const [profitScore, setProfitScore] = useState(0);
@@ -487,8 +486,6 @@ export default function SuperWinPrototype() {
   }, [settings.announcement]);
 
   useEffect(() => {
-    setLoggedIn(Boolean(isSignedIn));
-
     if (!isSignedIn) {
       setAccountStatus("demo");
       setAccountRole("user");
@@ -834,7 +831,7 @@ export default function SuperWinPrototype() {
   }
 
   async function claim() {
-    if (!loggedIn || Date.now() < nextClaimAt) return;
+    if (!isSignedIn || Date.now() < nextClaimAt) return;
 
     if (isSignedIn) {
       try {
@@ -872,7 +869,7 @@ export default function SuperWinPrototype() {
   async function confirmPrediction(question: Question) {
     const amount = Number(coinInputs[question.id] || 0);
     const answer = selectedOption(question);
-    if (!loggedIn) {
+    if (!isSignedIn) {
       setToast((current) => ({ ...current, [question.id]: "Login first" }));
       return;
     }
