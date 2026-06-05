@@ -188,6 +188,7 @@ input { width: 100%; min-width: 0; }
   animation-delay: 1ms;
   -webkit-animation-delay: 1ms;
 }
+/* Fixed-size modal: height stays consistent regardless of content count */
 .modal-card { width: min(640px, 100%); height: min(560px, calc(100vh - 32px)); display: flex; flex-direction: column; }
 .modal-body { display: grid; gap: 10px; padding: 12px 14px 14px; flex: 1 1 auto; min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--yellow) var(--card); }
 .info-block { display: grid; gap: 6px; padding: 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--hairline); }
