@@ -907,6 +907,7 @@ export default function SuperWinPrototype() {
         setProfitScore(payload.data.user.profitScore);
         setProfit(payload.data.user.lifetimeProfit);
         setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
+        setInsuranceEnabled((prev) => { const next = new Set(prev); next.delete(question.id); return next; });
         setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${answer.name} · now running` }));
         await loadRunningPredictions();
       } catch (error) {
@@ -938,6 +939,7 @@ export default function SuperWinPrototype() {
       ...current
     ].slice(0, 30));
     setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
+    setInsuranceEnabled((prev) => { const next = new Set(prev); next.delete(question.id); return next; });
     setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${answer.name} · now running` }));
   }
 

@@ -115,20 +115,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: `Not enough green ammo. Need ${insuranceCost} more.` }, { status: 400 });
     }
 
-    const coinBalanceAfter = bal.coin_balance - amount;
-    const profitScoreAfter = insurance ? profitScore - insuranceCost : profitScore;
     const createdAt = new Date().toISOString();
 
-    // 4. Deduct balances (non-atomic but with re-check after)
-    const { error: updError } = await supabase
+    // 3. Atomically deduct coins + profit_score using optimistic locking
+    //    This prevents race conditions where two requests read the same balance.
+    const { count: updatedCount, error: updError } = await supabase
       .from("users")
       .update({
-        coin_balance: coinBalanceAfter,
-        profit_score: profitScoreAfter,
+        coin_balance: bal.coin_balance - amount,
+        profit_score: insurance ? (bal.profit_score ?? 0) - insuranceCost : (bal.profit_score ?? 0),
         updated_at: createdAt,
       })
-      .eq("id", user.id);
+      .eq("id", user.id)
+      .eq("coin_balance", bal.coin_balance)
+      .eq("profit_score", bal.profit_score ?? 0);
+
     if (updError) throw new Error(updError.message || "Failed to update balance");
+    if (updatedCount === 0) {
+      return NextResponse.json({ ok: false, error: "Balance changed, please try again" }, { status: 409 });
+    }
+
+    const coinBalanceAfter = bal.coin_balance - amount;
+    const profitScoreAfter = insurance ? (bal.profit_score ?? 0) - insuranceCost : (bal.profit_score ?? 0);
 
     // 5. Create prediction entry (DB constraint prevents duplicates)
     const { data: entry, error: entryError } = await supabase
