@@ -27,12 +27,7 @@ type UserBalanceRow = {
 };
 
 function getInsuranceCost(betAmount: number): number {
-  if (betAmount <= 100) return 20;
-  if (betAmount <= 300) return 60;
-  if (betAmount <= 500) return 100;
-  if (betAmount <= 1000) return 200;
-  const multiplier = 1 + Math.floor((betAmount - 1001) / 1000);
-  return 200 * multiplier;
+  return Math.floor(betAmount * 0.20);
 }
 
 export async function POST(request: NextRequest) {
