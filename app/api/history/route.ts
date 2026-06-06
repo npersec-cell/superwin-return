@@ -16,7 +16,7 @@ function formatAction(type: string) {
   if (type === "predict") return "Predict";
   if (type === "payout") return "Payout";
   if (type === "refund") return "Refund";
-  if (type === "insurance_refund") return "Insured";
+  if (type === "insurance" || type === "insurance_refund") return "Insured";
   return "Adjustment";
 }
 
@@ -41,7 +41,6 @@ export async function GET(request: NextRequest) {
       .from("coin_ledger")
       .select("id, type, amount, balance_after, detail, created_at")
       .eq("user_id", user.id)
-      .neq("type", "insurance")
       .order("created_at", { ascending: false })
       .limit(700);
 
@@ -52,7 +51,7 @@ export async function GET(request: NextRequest) {
       } else if (f === "payout") {
         query = query.eq("type", "payout");
       } else if (f === "insured") {
-        query = query.eq("type", "insurance_refund");
+        query = query.in("type", ["insurance", "insurance_refund"]);
       } else {
         query = query.eq("type", f);
       }
