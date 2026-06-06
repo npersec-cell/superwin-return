@@ -61,6 +61,7 @@ type ApiPredictionsResponse = {
     totalPool: number;
     playerCount: number;
     options: Array<{ id: string; label: string; estimatedReturnPercent: number }>;
+    entries?: Array<{ optionId: string; userId: string; amount: number; status: string }>;
   }>;
   error?: string;
 };
