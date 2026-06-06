@@ -29,7 +29,7 @@ export async function POST(request: NextRequest, context: Params) {
     }
 
     const supabase = createSupabaseAdminClient();
-    const resolvedAt = new Date().toISOString();
+    const resolvedAt = new Date(); // ส่งเป็น Date object เพื่อให้ PostgreSQL เลือก timestamptz version
 
     // 1. Check prediction exists and current status
     const { data: pred, error: predErr } = await supabase
