@@ -31,11 +31,12 @@ export async function POST(request: NextRequest, context: Params) {
     const resolvedAt = new Date().toISOString();
 
     // Set status to "resolving" to prevent concurrent resolves
+    // Allow resolving from "open" or "closed" status
     const { error: statusError } = await supabase
       .from("predictions")
       .update({ status: "resolving", updated_at: resolvedAt })
       .eq("id", id)
-      .eq("status", "open");
+      .in("status", ["open", "closed"]);
 
     if (statusError) {
       throw new Error("Failed to lock prediction for resolution");
@@ -62,10 +63,18 @@ export async function POST(request: NextRequest, context: Params) {
 
     // rpcResult is a JSONB object: { ok: true, data: {...} } or { ok: false, error: "..." }
     if (!rpcResult?.ok) {
-      // Reset status if stuck in "resolving"
+      // Reset status if stuck in "resolving" — restore to original state based on closesAt
+      const { data: pred } = await supabase
+        .from("predictions")
+        .select("closes_at")
+        .eq("id", id)
+        .single();
+      const now = Date.now();
+      const closesAt = pred?.closes_at ? new Date(pred.closes_at).getTime() : 0;
+      const shouldBeOpen = now < closesAt;
       await supabase
         .from("predictions")
-        .update({ status: "open", updated_at: new Date().toISOString() })
+        .update({ status: shouldBeOpen ? "open" : "closed", updated_at: new Date().toISOString() })
         .eq("id", id)
         .eq("status", "resolving");
 
@@ -79,12 +88,20 @@ export async function POST(request: NextRequest, context: Params) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Resolve failed";
     
-    // Reset status back to "open" if stuck in "resolving"
+    // Reset status back to original state if stuck in "resolving"
     try {
       const supabase = createSupabaseAdminClient();
+      const { data: pred } = await supabase
+        .from("predictions")
+        .select("closes_at")
+        .eq("id", id)
+        .single();
+      const now = Date.now();
+      const closesAt = pred?.closes_at ? new Date(pred.closes_at).getTime() : 0;
+      const shouldBeOpen = now < closesAt;
       await supabase
         .from("predictions")
-        .update({ status: "open", updated_at: new Date().toISOString() })
+        .update({ status: shouldBeOpen ? "open" : "closed", updated_at: new Date().toISOString() })
         .eq("id", id)
         .eq("status", "resolving");
     } catch {

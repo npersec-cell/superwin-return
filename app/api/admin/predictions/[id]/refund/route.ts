@@ -17,11 +17,14 @@ type EntryRow = {
   id: string;
   user_id: string;
   amount: number;
+  insurance: boolean;
+  insurance_cost: number;
 };
 
 type UserRow = {
   id: string;
   coin_balance: number;
+  profit_score: number | null;
 };
 
 function toStatus(error: unknown) {
@@ -54,7 +57,7 @@ export async function POST(request: NextRequest, context: Params) {
 
     const { data: entries, error: entriesError } = await supabase
       .from("prediction_entries")
-      .select("id, user_id, amount")
+      .select("id, user_id, amount, insurance, insurance_cost")
       .eq("prediction_id", id)
       .eq("status", "running")
       .returns<EntryRow[]>();
@@ -67,17 +70,18 @@ export async function POST(request: NextRequest, context: Params) {
     for (const entry of entries || []) {
       const { data: user, error: userError } = await supabase
         .from("users")
-        .select("id, coin_balance")
+        .select("id, coin_balance, profit_score")
         .eq("id", entry.user_id)
         .single<UserRow>();
 
       if (userError || !user) throw new Error(userError?.message || "User not found");
 
       const balanceAfter = user.coin_balance + entry.amount;
+      const profitScoreAfter = (user.profit_score ?? 0) + (entry.insurance ? entry.insurance_cost : 0);
 
       const { error: userUpdateError } = await supabase
         .from("users")
-        .update({ coin_balance: balanceAfter, updated_at: refundedAt })
+        .update({ coin_balance: balanceAfter, profit_score: profitScoreAfter, updated_at: refundedAt })
         .eq("id", entry.user_id);
 
       if (userUpdateError) throw new Error(userUpdateError.message);
@@ -104,6 +108,24 @@ export async function POST(request: NextRequest, context: Params) {
         });
 
       if (ledgerError) throw new Error(ledgerError.message);
+
+      // Refund insurance cost (green ammo) if purchased
+      if (entry.insurance && entry.insurance_cost > 0) {
+        const insDetail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Result: Refunded · Insurance Refund: ${entry.insurance_cost} green ammo`;
+        const { error: insLedgerError } = await supabase
+          .from("coin_ledger")
+          .insert({
+            user_id: entry.user_id,
+            type: "refund",
+            amount: entry.insurance_cost,
+            balance_after: profitScoreAfter,
+            ref_type: "prediction_entry",
+            ref_id: entry.id,
+            detail: insDetail,
+          });
+        if (insLedgerError) throw new Error(insLedgerError.message);
+      }
+
       refundedEntries += 1;
       totalRefunded += entry.amount;
     }

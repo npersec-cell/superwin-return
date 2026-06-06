@@ -71,8 +71,8 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'error', 'Prediction already resolved');
   END IF;
 
-  IF v_prediction.status != 'open' THEN
-    RETURN jsonb_build_object('ok', false, 'error', 'Prediction must be open to resolve');
+  IF v_prediction.status NOT IN ('open', 'closed') THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'Prediction must be open or closed to resolve');
   END IF;
 
   -- Calculate total pool (all running entries)
