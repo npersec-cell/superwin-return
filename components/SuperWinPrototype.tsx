@@ -1146,7 +1146,7 @@ export default function SuperWinPrototype() {
                             <div className="compact-team" onClick={(event) => { event.stopPropagation(); setActiveQuestion(question.id); }}>
                               <span className="compact-label">{isLocked ? "Locked:" : "Pick:"}</span>
                               <span className="compact-name">{option.name}</span>
-                              <span className="compact-returns">~{option.returns}%</span>
+                              <span className="compact-returns">~{option.returns}x</span>
                             </div>
                             <button className="compact-predict-btn" disabled={predictingIds.has(question.id)} onClick={(event) => { event.stopPropagation(); setActiveQuestion(question.id); }}>
                               {predictingIds.has(question.id) ? "Placing..." : isLocked ? "Top Up" : "Predict"}
@@ -1167,7 +1167,7 @@ export default function SuperWinPrototype() {
                             {isLocked ? (
                               <button className="team-picker locked" disabled={predictingIds.has(question.id)} onClick={(event) => { event.stopPropagation(); /* locked — no action */ }}>
                                 <span className="team-name">{option.name}</span>
-                                <span className="team-returns">~{option.returns}%</span>
+                                <span className="team-returns">~{option.returns}x</span>
                                 <span className="locked-badge">Locked</span>
                               </button>
                             ) : (
@@ -1178,7 +1178,7 @@ export default function SuperWinPrototype() {
                                   setOpenDropdown(openDropdown === question.id ? null : question.id);
                                 }}>
                                   <span className="dropdown-label-new">{option.name}</span>
-                                  <span className="dropdown-returns">~{option.returns}%</span>
+                                  <span className="dropdown-returns">~{option.returns}x</span>
                                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ opacity: 0.5, flexShrink: 0 }}>
                                     <polyline points="6 9 12 15 18 9"/>
                                   </svg>
@@ -1191,7 +1191,7 @@ export default function SuperWinPrototype() {
                                       setOpenDropdown(null);
                                     }}>
                                       <span>{choice.name}</span>
-                                      <span className="return">~{choice.returns}%</span>
+                                      <span className="return">~{choice.returns}x</span>
                                     </button>
                                   ))}
                                 </div>
@@ -1221,7 +1221,7 @@ export default function SuperWinPrototype() {
                               </div>
                               <div className="returns-box">
                                 <span className="returns-label">Est. payout</span>
-                                <span className="returns-value">~ {Math.round((coinInputs[question.id] || 0) * (1 + option.returns / 100))}</span>
+                                <span className="returns-value">~ {Math.round((coinInputs[question.id] || 0) * option.returns)}</span>
                               </div>
                             </div>
 

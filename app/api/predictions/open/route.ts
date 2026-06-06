@@ -133,12 +133,12 @@ export async function GET() {
         const newTotalPool = totalPool + assumedBet;
         const newOptionPool = assumedBet;
         const multiplier = (newTotalPool / newOptionPool) * (1 - feeRate);
-        const returnPercent = Math.round((multiplier - 1) * 100);
-        return Math.min(returnPercent, 999);
+        const returnValue = Math.round(multiplier * 10) / 10;
+        return Math.min(returnValue, 999);
       }
 
       const multiplier = (totalPool / optionPool) * (1 - feeRate);
-      return Math.max(0, Math.round((multiplier - 1) * 100));
+      return Math.max(0, Math.round(multiplier * 10) / 10);
     }
 
     const predictions: PredictionWithOptionsDto[] = (predictionRows || []).map((prediction) => ({
