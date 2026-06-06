@@ -25,6 +25,7 @@ type UserRow = {
   id: string;
   coin_balance: number;
   profit_score: number | null;
+  lifetime_profit: number | null;
 };
 
 function toStatus(error: unknown) {
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest, context: Params) {
     for (const entry of entries || []) {
       const { data: user, error: userError } = await supabase
         .from("users")
-        .select("id, coin_balance, profit_score")
+        .select("id, coin_balance, profit_score, lifetime_profit")
         .eq("id", entry.user_id)
         .single<UserRow>();
 
@@ -78,10 +79,16 @@ export async function POST(request: NextRequest, context: Params) {
 
       const balanceAfter = user.coin_balance + entry.amount;
       const profitScoreAfter = (user.profit_score ?? 0) + (entry.insurance ? entry.insurance_cost : 0);
+      const lifeAfter = Math.max(0, (user.lifetime_profit ?? 0) + entry.amount);
 
       const { error: userUpdateError } = await supabase
         .from("users")
-        .update({ coin_balance: balanceAfter, profit_score: profitScoreAfter, updated_at: refundedAt })
+        .update({
+          coin_balance: balanceAfter,
+          profit_score: profitScoreAfter,
+          lifetime_profit: lifeAfter,
+          updated_at: refundedAt,
+        })
         .eq("id", entry.user_id);
 
       if (userUpdateError) throw new Error(userUpdateError.message);

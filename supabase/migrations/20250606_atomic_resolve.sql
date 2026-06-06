@@ -114,7 +114,9 @@ BEGIN
     UPDATE users
     SET
       coin_balance = coin_balance + v_payout,
-      lifetime_profit = lifetime_profit + (v_payout - v_entry.amount),
+      -- Real-time net profit: amount was already deducted when bet was placed,
+      -- so we add the full payout here.
+      lifetime_profit = lifetime_profit + v_payout,
       profit_score = profit_score + (v_payout - v_entry.amount),
       updated_at = p_resolved_at
     WHERE id = v_entry.user_id;
@@ -157,8 +159,13 @@ BEGIN
         v_total_insurance_refunded := v_total_insurance_refunded + v_insurance_refund;
         v_insured_losers_count := v_insured_losers_count + 1;
 
+        -- Insurance refund: return 50% to coin_balance AND add to lifetime_profit
+        -- (partial recovery from loss, so lifetime_profit increases by the refunded amount)
         UPDATE users
-        SET coin_balance = coin_balance + v_insurance_refund, updated_at = p_resolved_at
+        SET
+          coin_balance = coin_balance + v_insurance_refund,
+          lifetime_profit = lifetime_profit + v_insurance_refund,
+          updated_at = p_resolved_at
         WHERE id = v_entry.user_id;
 
         INSERT INTO coin_ledger (user_id, type, amount, balance_after, ref_type, ref_id, detail)

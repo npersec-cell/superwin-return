@@ -105,18 +105,23 @@ export async function POST(request: NextRequest) {
 
     const createdAt = new Date().toISOString();
 
-    // 3. Atomically deduct coins + profit_score using optimistic locking
-    //    This prevents race conditions where two requests read the same balance.
+    // 3. Atomically deduct coins + profit_score + lifetime_profit using optimistic locking
+    //    lifetime_profit is reduced immediately (real-time net profit: -amount when bet is placed)
+    //    It will be added back in full (payout) when the user wins.
+    const lifetimeProfitBefore = bal.lifetime_profit ?? 0;
+    const lifetimeProfitAfter = Math.max(0, lifetimeProfitBefore - amount);
     const { count: updatedCount, error: updError } = await supabase
       .from("users")
       .update({
         coin_balance: bal.coin_balance - amount,
         profit_score: insurance ? (bal.profit_score ?? 0) - insuranceCost : (bal.profit_score ?? 0),
+        lifetime_profit: lifetimeProfitAfter,
         updated_at: createdAt,
       })
       .eq("id", user.id)
       .eq("coin_balance", bal.coin_balance)
-      .eq("profit_score", bal.profit_score ?? 0);
+      .eq("profit_score", bal.profit_score ?? 0)
+      .eq("lifetime_profit", lifetimeProfitBefore);
 
     if (updError) throw new Error(updError.message || "Failed to update balance");
     if (updatedCount === 0) {
@@ -149,6 +154,7 @@ export async function POST(request: NextRequest) {
         .update({
           coin_balance: bal.coin_balance,
           profit_score: bal.profit_score ?? 0,
+          lifetime_profit: lifetimeProfitBefore,
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);
