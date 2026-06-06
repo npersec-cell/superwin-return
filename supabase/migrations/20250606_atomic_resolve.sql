@@ -12,6 +12,17 @@ BEGIN
   END IF;
 END $$;
 
+-- 1b. Add insurance_cost column to prediction_entries (if not exists)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'prediction_entries' AND column_name = 'insurance_cost'
+  ) THEN
+    ALTER TABLE public.prediction_entries ADD COLUMN insurance_cost integer NOT NULL DEFAULT 0;
+  END IF;
+END $$;
+
 -- 2. Update coin_ledger type constraint to include insurance types
 ALTER TABLE public.coin_ledger DROP CONSTRAINT IF EXISTS coin_ledger_type_check;
 ALTER TABLE public.coin_ledger ADD CONSTRAINT coin_ledger_type_check
@@ -85,7 +96,7 @@ BEGIN
 
   -- Process winning entries
   FOR v_entry IN
-    SELECT id, user_id, amount, insurance
+    SELECT id, user_id, amount, insurance, insurance_cost
     FROM prediction_entries
     WHERE prediction_id = p_prediction_id
       AND option_id = p_winning_option_id
@@ -96,11 +107,12 @@ BEGIN
     v_total_paid := v_total_paid + v_payout;
     v_winners_count := v_winners_count + 1;
 
-    -- Update user balance + lifetime_profit
+    -- Update user balance + lifetime_profit + profit_score (profit from this bet)
     UPDATE users
     SET
       coin_balance = coin_balance + v_payout,
       lifetime_profit = lifetime_profit + (v_payout - v_entry.amount),
+      profit_score = profit_score + (v_payout - v_entry.amount),
       updated_at = p_resolved_at
     WHERE id = v_entry.user_id;
 
@@ -127,7 +139,7 @@ BEGIN
 
   -- Process losing entries (insurance refund)
   FOR v_entry IN
-    SELECT id, user_id, amount, insurance
+    SELECT id, user_id, amount, insurance, insurance_cost
     FROM prediction_entries
     WHERE prediction_id = p_prediction_id
       AND option_id IS DISTINCT FROM p_winning_option_id

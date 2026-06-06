@@ -79,6 +79,7 @@ create table if not exists public.prediction_entries (
   estimated_return_percent numeric,
   status text not null default 'running' check (status in ('running', 'won', 'lost', 'refunded')),
   insurance boolean not null default false,
+  insurance_cost integer not null default 0,
   payout_amount integer not null default 0,
   created_at timestamptz not null default now(),
   resolved_at timestamptz

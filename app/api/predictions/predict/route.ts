@@ -137,8 +137,9 @@ export async function POST(request: NextRequest) {
         estimated_return_percent: 0,
         status: "running",
         insurance,
+        insurance_cost: insuranceCost,
       })
-      .select("id, prediction_id, option_id, amount, estimated_return_percent, status, created_at, insurance")
+      .select("id, prediction_id, option_id, amount, estimated_return_percent, status, created_at, insurance, insurance_cost")
       .single();
 
     if (entryError) {
