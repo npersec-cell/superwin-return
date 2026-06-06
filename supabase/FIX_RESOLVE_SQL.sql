@@ -1,6 +1,5 @@
--- Migration: Atomic resolution + insurance support
--- Date: 2026-06-06
--- FIXED: All syntax errors corrected
+-- Fix: Complete SQL for Supabase (no syntax errors)
+-- Run this in Supabase SQL Editor
 
 -- 1. Add insurance column (if not exists)
 DO $$
@@ -24,15 +23,15 @@ BEGIN
   END IF;
 END $$;
 
--- 2. Update coin_ledger type constraint to include insurance types
+-- 2. Update coin_ledger type constraint
 ALTER TABLE public.coin_ledger DROP CONSTRAINT IF EXISTS coin_ledger_type_check;
 ALTER TABLE public.coin_ledger ADD CONSTRAINT coin_ledger_type_check
   CHECK (type IN ('claim', 'predict', 'payout', 'refund', 'fee', 'adjustment', 'insurance', 'insurance_refund'));
 
--- 3. Drop old function to avoid signature conflict
+-- 3. Drop old function
 DROP FUNCTION IF EXISTS resolve_prediction_atomic(uuid, uuid, timestamptz);
 
--- 4. Create atomic resolve function
+-- 4. Create atomic resolve function (FIXED SYNTAX)
 CREATE OR REPLACE FUNCTION resolve_prediction_atomic(
   p_prediction_id uuid,
   p_winning_option_id uuid,
@@ -57,7 +56,7 @@ DECLARE
   v_winners_count integer := 0;
   v_insured_losers_count integer := 0;
 BEGIN
-  -- Lock prediction row to prevent concurrent resolves
+  -- Lock prediction row
   SELECT id, tournament_name, question, fee_rate, status
   INTO v_prediction
   FROM predictions
@@ -76,7 +75,7 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'error', 'Prediction must be open or closed to resolve');
   END IF;
 
-  -- Calculate total pool (all running entries)
+  -- Calculate total pool
   SELECT COALESCE(SUM(amount), 0)::integer
   INTO v_total_pool
   FROM prediction_entries
@@ -88,12 +87,10 @@ BEGIN
   FROM prediction_entries
   WHERE prediction_id = p_prediction_id AND option_id = p_winning_option_id AND status = 'running';
 
-  -- If nobody bet on winning option, allow resolution anyway.
-  -- The pool becomes platform revenue; insured losers still get refunds.
   v_fee_rate := COALESCE(v_prediction.fee_rate, 0.03);
   v_distributable := FLOOR((v_total_pool * (1 - v_fee_rate))::numeric)::integer;
 
-  -- Process winning entries
+  -- Process winners
   FOR v_entry IN
     SELECT id, user_id, amount, insurance, insurance_cost
     FROM prediction_entries
@@ -102,7 +99,6 @@ BEGIN
       AND status = 'running'
     ORDER BY id
   LOOP
-    -- Safety: skip if winning_pool is 0 (should not happen, loop would be empty)
     IF v_winning_pool = 0 THEN
       CONTINUE;
     END IF;
@@ -110,7 +106,6 @@ BEGIN
     v_total_paid := v_total_paid + v_payout;
     v_winners_count := v_winners_count + 1;
 
-    -- Update user balance + lifetime_profit + profit_score (profit from this bet)
     UPDATE users
     SET
       coin_balance = coin_balance + v_payout,
@@ -119,12 +114,10 @@ BEGIN
       updated_at = p_resolved_at
     WHERE id = v_entry.user_id;
 
-    -- Update entry
     UPDATE prediction_entries
     SET status = 'won', payout_amount = v_payout, resolved_at = p_resolved_at
     WHERE id = v_entry.id;
 
-    -- Insert payout ledger
     INSERT INTO coin_ledger (user_id, type, amount, balance_after, ref_type, ref_id, detail)
     SELECT
       v_entry.user_id,
@@ -137,7 +130,7 @@ BEGIN
     FROM users WHERE id = v_entry.user_id;
   END LOOP;
 
-  -- Process losing entries (insurance refund)
+  -- Process losers (insurance refund)
   FOR v_entry IN
     SELECT id, user_id, amount, insurance, insurance_cost
     FROM prediction_entries
@@ -150,7 +143,6 @@ BEGIN
     SET status = 'lost', payout_amount = 0, resolved_at = p_resolved_at
     WHERE id = v_entry.id;
 
-    -- Insurance refund: return 50% of bet amount
     IF v_entry.insurance THEN
       v_insurance_refund := FLOOR((v_entry.amount * 0.5)::numeric)::integer;
       IF v_insurance_refund > 0 THEN
@@ -197,6 +189,8 @@ BEGIN
 END;
 $$;
 
--- 5. Grant execute permission
+-- 5. Grant permissions
 GRANT EXECUTE ON FUNCTION resolve_prediction_atomic(uuid, uuid, timestamptz) TO authenticated;
 GRANT EXECUTE ON FUNCTION resolve_prediction_atomic(uuid, uuid, timestamptz) TO service_role;
+
+SELECT 'Done! Function created successfully.' AS result;
