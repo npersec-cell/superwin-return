@@ -22,7 +22,7 @@ export type PredictionEntryDto = {
   optionId: string;
   userId: string;
   amount: number;
-  status: EntryStatus;
+  status: string;
 };
 
 export type PredictionWithOptionsDto = {
