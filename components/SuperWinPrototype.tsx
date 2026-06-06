@@ -1141,8 +1141,8 @@ export default function SuperWinPrototype() {
                               <span className="compact-name">{option.name}</span>
                               <span className="compact-returns">~{option.returns}%</span>
                             </div>
-                            <button className="compact-predict-btn" disabled={isLocked || predictingIds.has(question.id)} onClick={(event) => { event.stopPropagation(); setActiveQuestion(question.id); }}>
-                              {predictingIds.has(question.id) ? "Placing..." : isLocked ? "Locked" : "Predict"}
+                            <button className="compact-predict-btn" disabled={predictingIds.has(question.id)} onClick={(event) => { event.stopPropagation(); setActiveQuestion(question.id); }}>
+                              {predictingIds.has(question.id) ? "Placing..." : isLocked ? "Top Up" : "Predict"}
                             </button>
                           </div>
                         )}
@@ -1266,11 +1266,11 @@ export default function SuperWinPrototype() {
                             </div>
 
                             {/* Big predict button */}
-                            <button className="predict-big-btn" disabled={isLocked || predictingIds.has(question.id)} onClick={(event) => {
+                            <button className="predict-big-btn" disabled={predictingIds.has(question.id)} onClick={(event) => {
                               event.stopPropagation();
                               confirmPrediction(question);
                             }}>
-                              {predictingIds.has(question.id) ? "Placing..." : isLocked ? "Already Predicted" : "Predict"}
+                              {predictingIds.has(question.id) ? "Placing..." : isLocked ? "Top Up" : "Predict"}
                             </button>
                           </>
                         )}
