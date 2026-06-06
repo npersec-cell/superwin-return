@@ -1,37 +1,10 @@
--- Migration: Atomic resolution + insurance support
--- Date: 2026-06-06
+-- Fix: Allow resolving prediction even when nobody bet on winning option
+-- Run this in Supabase SQL Editor
 
--- 1. Add insurance column to prediction_entries (if not exists)
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'prediction_entries' AND column_name = 'insurance'
-  ) THEN
-    ALTER TABLE public.prediction_entries ADD COLUMN insurance boolean NOT NULL DEFAULT false;
-  END IF;
-END $$;
-
--- 1b. Add insurance_cost column to prediction_entries (if not exists)
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'prediction_entries' AND column_name = 'insurance_cost'
-  ) THEN
-    ALTER TABLE public.prediction_entries ADD COLUMN insurance_cost integer NOT NULL DEFAULT 0;
-  END IF;
-END $$;
-
--- 2. Update coin_ledger type constraint to include insurance types
-ALTER TABLE public.coin_ledger DROP CONSTRAINT IF EXISTS coin_ledger_type_check;
-ALTER TABLE public.coin_ledger ADD CONSTRAINT coin_ledger_type_check
-  CHECK (type IN ('claim', 'predict', 'payout', 'refund', 'fee', 'adjustment', 'insurance', 'insurance_refund'));
-
--- 3. Drop old function to avoid signature conflict
+-- 1. Drop old function
 DROP FUNCTION IF EXISTS resolve_prediction_atomic(uuid, uuid, timestamptz);
 
--- 4. Create atomic resolve function
+-- 2. Create updated function (without "No bets on winning option" error)
 CREATE OR REPLACE FUNCTION resolve_prediction_atomic(
   p_prediction_id uuid,
   p_winning_option_id uuid,
@@ -101,7 +74,7 @@ BEGIN
       AND status = 'running'
     ORDER BY id
   LOOP
-    -- Safety: skip if winning_pool is 0 (should not happen, loop would be empty)
+    -- Safety: skip if winning_pool is 0
     IF v_winning_pool = 0 THEN
       CONTINUE;
     END IF;
@@ -208,6 +181,9 @@ BEGIN
 END;
 $$;
 
--- 5. Grant execute permission
+-- 3. Grant permissions
 GRANT EXECUTE ON FUNCTION resolve_prediction_atomic(uuid, uuid, timestamptz) TO authenticated;
 GRANT EXECUTE ON FUNCTION resolve_prediction_atomic(uuid, uuid, timestamptz) TO service_role;
+
+-- Done!
+SELECT 'Function updated: resolve_prediction_atomic now allows resolution with no winners' AS result;
