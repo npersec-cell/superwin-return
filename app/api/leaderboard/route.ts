@@ -7,11 +7,14 @@ export async function GET() {
   try {
     const supabase = createSupabaseAdminClient();
 
-    // 1. ดึง users ทั้งหมด (ไม่รวม admin)
+    // 1. ดึง users ทั้งหมด (ไม่รวม admin และ user ทดสอบ)
     const { data: allUsers, error: errUsers } = await supabase
       .from("users")
       .select("id, display_name, email, avatar_url, role, profit_score, lifetime_profit")
-      .neq("role", "admin");
+      .neq("role", "admin")
+      .not("email", "ilike", "%test%")
+      .not("display_name", "ilike", "%test%")
+      .not("display_name", "ilike", "%ทดสอบ%");
 
     if (errUsers) throw new Error(errUsers.message);
 

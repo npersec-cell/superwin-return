@@ -14,10 +14,13 @@ export async function GET(request: NextRequest) {
     await requireAdmin(request);
     const supabase = createSupabaseAdminClient();
 
-    // ดึงผู้ใช้ 10 อันดับแรกที่มี lifetime_profit สูงสุดเพื่อทำ dropdown หน้ารางวัล
+    // ดึงผู้ใช้ 10 อันดับแรกที่มี lifetime_profit สูงสุดเพื่อทำ dropdown หน้ารางวัล (ไม่รวม test)
     const { data, error } = await supabase
       .from("users")
       .select("id, email, display_name, lifetime_profit")
+      .not("email", "ilike", "%test%")
+      .not("display_name", "ilike", "%test%")
+      .not("display_name", "ilike", "%ทดสอบ%")
       .order("lifetime_profit", { ascending: false })
       .limit(10);
 
