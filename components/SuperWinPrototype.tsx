@@ -1141,8 +1141,8 @@ export default function SuperWinPrototype() {
                               <span className="compact-name">{option.name}</span>
                               <span className="compact-returns">~{option.returns}%</span>
                             </div>
-                            <button className="compact-predict-btn" disabled={predictingIds.has(question.id)} onClick={(event) => { event.stopPropagation(); setActiveQuestion(question.id); }}>
-                              {isLocked ? "Top Up" : "Predict"}
+                            <button className="compact-predict-btn" disabled={isLocked || predictingIds.has(question.id)} onClick={(event) => { event.stopPropagation(); setActiveQuestion(question.id); }}>
+                              {predictingIds.has(question.id) ? "Placing..." : isLocked ? "Locked" : "Predict"}
                             </button>
                           </div>
                         )}
@@ -1158,7 +1158,7 @@ export default function SuperWinPrototype() {
 
                             {/* Team picker */}
                             {isLocked ? (
-                              <button className="team-picker locked" disabled={predictingIds.has(question.id)} onClick={(event) => { event.stopPropagation(); confirmPrediction(question); }}>
+                              <button className="team-picker locked" disabled={predictingIds.has(question.id)} onClick={(event) => { event.stopPropagation(); /* locked — no action */ }}>
                                 <span className="team-name">{option.name}</span>
                                 <span className="team-returns">~{option.returns}%</span>
                                 <span className="locked-badge">Locked</span>
@@ -1266,11 +1266,11 @@ export default function SuperWinPrototype() {
                             </div>
 
                             {/* Big predict button */}
-                            <button className="predict-big-btn" disabled={predictingIds.has(question.id)} onClick={(event) => {
+                            <button className="predict-big-btn" disabled={isLocked || predictingIds.has(question.id)} onClick={(event) => {
                               event.stopPropagation();
                               confirmPrediction(question);
                             }}>
-                              {isLocked ? "Top Up" : "Predict"}
+                              {predictingIds.has(question.id) ? "Placing..." : isLocked ? "Already Predicted" : "Predict"}
                             </button>
                           </>
                         )}
