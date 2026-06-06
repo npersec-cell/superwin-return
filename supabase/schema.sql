@@ -22,7 +22,7 @@ create table if not exists public.users (
 create table if not exists public.coin_ledger (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id),
-  type text not null check (type in ('claim', 'predict', 'payout', 'refund', 'fee', 'adjustment')),
+  type text not null check (type in ('claim', 'predict', 'payout', 'refund', 'fee', 'adjustment', 'insurance', 'insurance_refund')),
   amount integer not null,
   balance_after integer not null,
   ref_type text,
@@ -78,6 +78,7 @@ create table if not exists public.prediction_entries (
   amount integer not null check (amount > 0),
   estimated_return_percent numeric,
   status text not null default 'running' check (status in ('running', 'won', 'lost', 'refunded')),
+  insurance boolean not null default false,
   payout_amount integer not null default 0,
   created_at timestamptz not null default now(),
   resolved_at timestamptz
