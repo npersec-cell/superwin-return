@@ -86,14 +86,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Prediction is closed" }, { status: 400 });
     }
 
-    // 2. Check prediction is open
-    const opensAt = prediction.opens_at ? new Date(prediction.opens_at).getTime() : 0;
-    const closesAt = prediction.closes_at ? new Date(prediction.closes_at).getTime() : 0;
-    if (prediction.status !== "open" || now < opensAt || now >= closesAt) {
-      return NextResponse.json({ ok: false, error: "Prediction is closed" }, { status: 400 });
-    }
-
-    // 3. Atomically deduct coins + profit_score in one DB transaction via RPC
+    // 2. Atomically deduct coins + profit_score in one DB transaction via RPC
     // Fallback: use two-step atomic UPDATE with balance check
     const { data: bal } = await supabase
       .from("users")
@@ -112,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     const createdAt = new Date().toISOString();
 
-    // 4. Atomically deduct coins + profit_score using optimistic locking
+    // 3. Atomically deduct coins + profit_score using optimistic locking
     //    This prevents race conditions where two requests read the same balance.
     const { count: updatedCount, error: updError } = await supabase
       .from("users")
@@ -133,7 +126,7 @@ export async function POST(request: NextRequest) {
     const coinBalanceAfter = bal.coin_balance - amount;
     const profitScoreAfter = insurance ? (bal.profit_score ?? 0) - insuranceCost : (bal.profit_score ?? 0);
 
-    // 5. Create prediction entry (DB constraint prevents duplicates)
+    // 4. Create prediction entry (DB constraint prevents duplicates)
     const { data: entry, error: entryError } = await supabase
       .from("prediction_entries")
       .insert({
@@ -165,7 +158,7 @@ export async function POST(request: NextRequest) {
       throw new Error(entryError.message || "Failed to create prediction entry");
     }
 
-    // 6. Write coin_ledger entries
+    // 5. Write coin_ledger entries
     const predictDetail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Pick: ${option.label} · Status: Running`;
     await supabase.from("coin_ledger").insert({
       user_id: user.id,
