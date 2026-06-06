@@ -7,16 +7,24 @@ export async function GET() {
   try {
     const supabase = createSupabaseAdminClient();
 
-    // 1. ดึง users ทั้งหมด (ไม่รวม admin และ user ทดสอบ)
+    // 1. ดึง users ทั้งหมด (ไม่รวม admin)
     const { data: allUsers, error: errUsers } = await supabase
       .from("users")
       .select("id, display_name, email, avatar_url, role, profit_score, lifetime_profit")
-      .neq("role", "admin")
-      .not("email", "ilike", "%test%")
-      .not("display_name", "ilike", "%test%")
-      .not("display_name", "ilike", "%ทดสอบ%");
+      .neq("role", "admin");
 
     if (errUsers) throw new Error(errUsers.message);
+
+    // กรอง user ทดสอบออก (ทำใน JS เพื่อจัดการ NULL ได้ถูกต้อง)
+    const filteredUsers = (allUsers || []).filter((u) => {
+      const email = (u.email || "").toLowerCase();
+      const displayName = (u.display_name || "").toLowerCase();
+      return (
+        !email.includes("test") &&
+        !displayName.includes("test") &&
+        !displayName.includes("ทดสอบ")
+      );
+    });
 
     // 2. รวม users ทั้งหมด (ใช้ lifetime_profit จากฐานข้อมูลแทนการคำนวณซ้ำ)
     const rows: Array<{
@@ -28,7 +36,7 @@ export async function GET() {
       isReal: boolean;
     }> = [];
 
-    for (const u of allUsers || []) {
+    for (const u of filteredUsers) {
       rows.push({
         id: u.id,
         name: u.display_name || u.email.split("@")[0],

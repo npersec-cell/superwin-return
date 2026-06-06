@@ -14,17 +14,25 @@ export async function GET(request: NextRequest) {
     await requireAdmin(request);
     const supabase = createSupabaseAdminClient();
 
-    // ดึงผู้ใช้ 10 อันดับแรกที่มี lifetime_profit สูงสุดเพื่อทำ dropdown หน้ารางวัล (ไม่รวม test)
-    const { data, error } = await supabase
+    // ดึงผู้ใช้ 10 อันดับแรกที่มี lifetime_profit สูงสุดเพื่อทำ dropdown หน้ารางวัล
+    const { data: allUsers, error } = await supabase
       .from("users")
       .select("id, email, display_name, lifetime_profit")
-      .not("email", "ilike", "%test%")
-      .not("display_name", "ilike", "%test%")
-      .not("display_name", "ilike", "%ทดสอบ%")
       .order("lifetime_profit", { ascending: false })
-      .limit(10);
+      .limit(20);
 
     if (error) throw new Error(error.message);
+
+    // กรอง user ทดสอบออก (ทำใน JS เพื่อจัดการ NULL ได้ถูกต้อง)
+    const data = (allUsers || []).filter((u) => {
+      const email = (u.email || "").toLowerCase();
+      const displayName = (u.display_name || "").toLowerCase();
+      return (
+        !email.includes("test") &&
+        !displayName.includes("test") &&
+        !displayName.includes("ทดสอบ")
+      );
+    }).slice(0, 10);
 
     const defaultLeaderboard = [
       { id: "default-1", email: "maverick@email.com", displayName: "Maverick" },
