@@ -18,6 +18,13 @@ export type PredictionOptionDto = {
   estimatedReturnPercent: number;
 };
 
+export type PredictionEntryDto = {
+  optionId: string;
+  userId: string;
+  amount: number;
+  status: EntryStatus;
+};
+
 export type PredictionWithOptionsDto = {
   id: string;
   tournamentName: string;
@@ -26,6 +33,7 @@ export type PredictionWithOptionsDto = {
   totalPool: number;
   playerCount: number;
   options: PredictionOptionDto[];
+  entries: PredictionEntryDto[];
 };
 
 export type RunningPredictionDto = {

@@ -19,6 +19,7 @@ type Question = {
   totalPool: number;
   playerCount: number;
   options: PredictionOption[];
+  entries?: { optionId: string; userId: string; amount: number; status: string }[];
 };
 
 type HistoryItem = {
@@ -762,7 +763,8 @@ export default function SuperWinPrototype() {
         id: option.id,
         name: option.label,
         returns: option.estimatedReturnPercent
-      }))
+      })),
+      entries: item.entries || [],
     }));
 
     setLiveQuestions(apiQuestions);
@@ -836,10 +838,12 @@ export default function SuperWinPrototype() {
     return question.options.find((option) => option.name === selected[question.id]) || question.options[0];
   }
 
-  function getLockedOptionName(questionId: string): string | null {
-    const entries = running.filter((item) => item.questionId === questionId);
-    if (entries.length === 0) return null;
-    return entries[0].answer;
+  function getLockedOptionName(question: Question): string | null {
+    if (!currentUserId || !question.entries?.length) return null;
+    const userEntries = question.entries.filter((e) => e.userId === currentUserId && e.status === "running");
+    if (userEntries.length === 0) return null;
+    const option = question.options.find((o) => o.id === userEntries[0].optionId);
+    return option?.name || null;
   }
 
   function formatQuestionCountdown(question: Question) {
@@ -1097,12 +1101,14 @@ export default function SuperWinPrototype() {
                   })()}
                   {questions.map((question) => {
                     const option = selectedOption(question);
-                    const runningCount = running.filter((item) => item.questionId === question.id).length;
+                    const userEntryCount = currentUserId
+                      ? (question.entries || []).filter((e) => e.userId === currentUserId && e.status === "running").length
+                      : 0;
                     const isActive = activeQuestion === question.id;
-                    const lockedOptionName = getLockedOptionName(question.id);
+                    const lockedOptionName = getLockedOptionName(question);
                     const isLocked = lockedOptionName !== null;
                     return (
-                      <div key={question.id} className={`question ${isActive ? "active" : ""} ${runningCount ? "running" : ""} ${isLocked ? "locked" : ""}`} style={{ gap: "6px" }} onClick={(event) => {
+                      <div key={question.id} className={`question ${isActive ? "active" : ""} ${userEntryCount ? "running" : ""} ${isLocked ? "locked" : ""}`} style={{ gap: "6px" }} onClick={(event) => {
                         if ((event.target as HTMLElement).closest("button, input, .dropdown, .dropdown-new")) return;
                         if (isActive) {
                           setActiveQuestion(null);

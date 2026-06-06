@@ -107,6 +107,17 @@ export async function GET() {
       return acc;
     }, {});
 
+    const entriesByPrediction = (entryRows || []).reduce<Record<string, { optionId: string; userId: string; amount: number; status: string }[]>>((acc, entry) => {
+      acc[entry.prediction_id] = acc[entry.prediction_id] || [];
+      acc[entry.prediction_id].push({
+        optionId: entry.option_id,
+        userId: entry.user_id,
+        amount: entry.amount,
+        status: entry.status,
+      });
+      return acc;
+    }, {});
+
     function computeReturn(predictionId: string, optionId: string, feeRate: number): number {
       const optionPool = poolByOption[optionId] || 0;
       const totalPool = poolByPrediction[predictionId] || 0;
@@ -142,7 +153,8 @@ export async function GET() {
         label: option.label,
         sortOrder: option.sort_order,
         estimatedReturnPercent: computeReturn(prediction.id, option.id, prediction.fee_rate || 0)
-      }))
+      })),
+      entries: entriesByPrediction[prediction.id] || [],
     }));
 
     return NextResponse.json({ ok: true, data: predictions });
