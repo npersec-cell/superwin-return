@@ -112,13 +112,22 @@ export async function POST(request: NextRequest, context: Params) {
       // Refund insurance cost (green ammo) if purchased
       if (entry.insurance && entry.insurance_cost > 0) {
         const insDetail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Result: Refunded · Insurance Refund: ${entry.insurance_cost} green ammo`;
+        // Re-fetch user to get updated profit_score after the refund
+        const { data: userAfterIns, error: userAfterInsError } = await supabase
+          .from("users")
+          .select("profit_score")
+          .eq("id", entry.user_id)
+          .single();
+        if (userAfterInsError) throw new Error(userAfterInsError.message);
+        const profitScoreAfterRefund = userAfterIns?.profit_score ?? 0;
+
         const { error: insLedgerError } = await supabase
           .from("coin_ledger")
           .insert({
             user_id: entry.user_id,
             type: "refund",
             amount: entry.insurance_cost,
-            balance_after: profitScoreAfter,
+            balance_after: profitScoreAfterRefund,
             ref_type: "prediction_entry",
             ref_id: entry.id,
             detail: insDetail,

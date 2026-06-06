@@ -1,10 +1,10 @@
--- Fix: Allow resolving prediction even when nobody bet on winning option
+-- Fix: Allow resolving prediction from "closed" status + no winners case
 -- Run this in Supabase SQL Editor
 
 -- 1. Drop old function
 DROP FUNCTION IF EXISTS resolve_prediction_atomic(uuid, uuid, timestamptz);
 
--- 2. Create updated function (without "No bets on winning option" error)
+-- 2. Create updated function
 CREATE OR REPLACE FUNCTION resolve_prediction_atomic(
   p_prediction_id uuid,
   p_winning_option_id uuid,
@@ -44,8 +44,9 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'error', 'Prediction already resolved');
   END IF;
 
-  IF v_prediction.status != 'open' THEN
-    RETURN jsonb_build_object('ok', false, 'error', 'Prediction must be open to resolve');
+  -- Allow resolving from "open" or "closed" status
+  IF v_prediction.status NOT IN ('open', 'closed') THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'Prediction must be open or closed to resolve');
   END IF;
 
   -- Calculate total pool (all running entries)
@@ -185,5 +186,4 @@ $$;
 GRANT EXECUTE ON FUNCTION resolve_prediction_atomic(uuid, uuid, timestamptz) TO authenticated;
 GRANT EXECUTE ON FUNCTION resolve_prediction_atomic(uuid, uuid, timestamptz) TO service_role;
 
--- Done!
-SELECT 'Function updated: resolve_prediction_atomic now allows resolution with no winners' AS result;
+SELECT 'Function updated!' AS result;
