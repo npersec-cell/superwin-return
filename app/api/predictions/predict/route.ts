@@ -86,16 +86,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Prediction is closed" }, { status: 400 });
     }
 
-    // 2. Check duplicate (best-effort; DB constraint is the source of truth)
-    const { data: existing } = await supabase
-      .from("prediction_entries")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("prediction_id", prediction.id)
-      .eq("status", "running")
-      .maybeSingle();
-    if (existing) {
-      return NextResponse.json({ ok: false, error: "You have already predicted this question" }, { status: 400 });
+    // 2. Check prediction is open
+    const opensAt = prediction.opens_at ? new Date(prediction.opens_at).getTime() : 0;
+    const closesAt = prediction.closes_at ? new Date(prediction.closes_at).getTime() : 0;
+    if (prediction.status !== "open" || now < opensAt || now >= closesAt) {
+      return NextResponse.json({ ok: false, error: "Prediction is closed" }, { status: 400 });
     }
 
     // 3. Atomically deduct coins + profit_score in one DB transaction via RPC
@@ -117,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     const createdAt = new Date().toISOString();
 
-    // 3. Atomically deduct coins + profit_score using optimistic locking
+    // 4. Atomically deduct coins + profit_score using optimistic locking
     //    This prevents race conditions where two requests read the same balance.
     const { count: updatedCount, error: updError } = await supabase
       .from("users")
@@ -164,7 +159,7 @@ export async function POST(request: NextRequest) {
         })
         .eq("id", user.id);
 
-      if (entryError.message?.includes("idx_unique_running_entry") || entryError.message?.includes("duplicate") || entryError.code === "23505") {
+      if (entryError.message?.includes("duplicate") || entryError.code === "23505") {
         return NextResponse.json({ ok: false, error: "You have already predicted this question" }, { status: 400 });
       }
       throw new Error(entryError.message || "Failed to create prediction entry");
