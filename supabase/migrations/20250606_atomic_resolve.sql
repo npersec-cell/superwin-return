@@ -133,7 +133,7 @@ BEGIN
       coin_balance,
       'prediction_entry',
       v_entry.id,
-      'Tournament: ' || v_prediction.tournament_name || ' · Question: ' || v_prediction.question || ' · Result: Won · Payout: ' || v_payout
+      'Tournament: ' || v_prediction.tournament_name || ' . Question: ' || v_prediction.question || ' . Result: Won . Payout: ' || v_payout
     FROM users WHERE id = v_entry.user_id;
   END LOOP;
 
@@ -169,7 +169,7 @@ BEGIN
           coin_balance,
           'prediction_entry',
           v_entry.id,
-          'Tournament: ' || v_prediction.tournament_name || ' · Question: ' || v_prediction.question || ' · Result: Insured Loss · Refund: ' || v_insurance_refund
+          'Tournament: ' || v_prediction.tournament_name || ' . Question: ' || v_prediction.question || ' . Result: Insured Loss . Refund: ' || v_insurance_refund
         FROM users WHERE id = v_entry.user_id;
       END IF;
     END IF;
