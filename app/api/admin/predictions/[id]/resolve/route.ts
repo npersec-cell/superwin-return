@@ -30,6 +30,17 @@ export async function POST(request: NextRequest, context: Params) {
     const supabase = createSupabaseAdminClient();
     const resolvedAt = new Date().toISOString();
 
+    // Set status to "resolving" to prevent concurrent resolves
+    const { error: statusError } = await supabase
+      .from("predictions")
+      .update({ status: "resolving", updated_at: resolvedAt })
+      .eq("id", id)
+      .eq("status", "open");
+
+    if (statusError) {
+      throw new Error("Failed to lock prediction for resolution");
+    }
+
     // Use atomic database function for resolution.
     // This prevents partial updates: if any error occurs, the entire transaction rolls back.
     const { data: rpcResult, error: rpcError } = await supabase.rpc("resolve_prediction_atomic", {
@@ -67,6 +78,19 @@ export async function POST(request: NextRequest, context: Params) {
     return NextResponse.json({ ok: true, data: rpcResult.data });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Resolve failed";
+    
+    // Reset status back to "open" if stuck in "resolving"
+    try {
+      const supabase = createSupabaseAdminClient();
+      await supabase
+        .from("predictions")
+        .update({ status: "open", updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .eq("status", "resolving");
+    } catch {
+      // Ignore reset errors
+    }
+    
     return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
   }
 }

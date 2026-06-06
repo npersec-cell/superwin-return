@@ -1,5 +1,5 @@
 -- Migration: Atomic resolution + insurance support
--- Date: 2025-06-06
+-- Date: 2026-06-06
 
 -- 1. Add insurance column to prediction_entries (if not exists)
 DO $$
@@ -17,7 +17,10 @@ ALTER TABLE public.coin_ledger DROP CONSTRAINT IF EXISTS coin_ledger_type_check;
 ALTER TABLE public.coin_ledger ADD CONSTRAINT coin_ledger_type_check
   CHECK (type IN ('claim', 'predict', 'payout', 'refund', 'fee', 'adjustment', 'insurance', 'insurance_refund'));
 
--- 3. Create atomic resolve function
+-- 3. Drop old function to avoid signature conflict
+DROP FUNCTION IF EXISTS resolve_prediction_atomic(uuid, uuid, timestamptz);
+
+-- 4. Create atomic resolve function
 CREATE OR REPLACE FUNCTION resolve_prediction_atomic(
   p_prediction_id uuid,
   p_winning_option_id uuid,
@@ -35,7 +38,6 @@ DECLARE
   v_fee_rate numeric;
   v_distributable integer;
   v_entry RECORD;
-  v_user RECORD;
   v_payout integer;
   v_insurance_refund integer;
   v_total_paid integer := 0;
@@ -79,7 +81,7 @@ BEGIN
   END IF;
 
   v_fee_rate := COALESCE(v_prediction.fee_rate, 0.03);
-  v_distributable := FLOOR(v_total_pool * (1 - v_fee_rate))::integer;
+  v_distributable := FLOOR((v_total_pool * (1 - v_fee_rate))::numeric)::integer;
 
   -- Process winning entries
   FOR v_entry IN
@@ -139,9 +141,9 @@ BEGIN
       resolved_at = p_resolved_at
     WHERE id = v_entry.id;
 
-    -- Insurance refund: return 50% of bet amount
+    -- Insurance refund: return 50% of bet amount (coins only, no profit_score refund)
     IF v_entry.insurance THEN
-      v_insurance_refund := FLOOR(v_entry.amount * 0.5)::integer;
+      v_insurance_refund := FLOOR((v_entry.amount * 0.5)::numeric)::integer;
       IF v_insurance_refund > 0 THEN
         v_total_insurance_refunded := v_total_insurance_refunded + v_insurance_refund;
         v_insured_losers_count := v_insured_losers_count + 1;
@@ -192,6 +194,6 @@ BEGIN
 END;
 $$;
 
--- 4. Grant execute permission
+-- 5. Grant execute permission
 GRANT EXECUTE ON FUNCTION resolve_prediction_atomic(uuid, uuid, timestamptz) TO authenticated;
 GRANT EXECUTE ON FUNCTION resolve_prediction_atomic(uuid, uuid, timestamptz) TO service_role;
