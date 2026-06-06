@@ -18,9 +18,11 @@ function toStatus(error: unknown) {
 }
 
 export async function POST(request: NextRequest, context: Params) {
+  let predictionId = "";
   try {
     await requireAdmin(request);
     const { id } = await Promise.resolve(context.params);
+    predictionId = id;
     const body = (await request.json()) as ResolveBody;
 
     if (!body.winningOptionId) {
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest, context: Params) {
     const { error: statusError } = await supabase
       .from("predictions")
       .update({ status: "resolving", updated_at: resolvedAt })
-      .eq("id", id)
+      .eq("id", predictionId)
       .in("status", ["open", "closed"]);
 
     if (statusError) {
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest, context: Params) {
     // Use atomic database function for resolution.
     // This prevents partial updates: if any error occurs, the entire transaction rolls back.
     const { data: rpcResult, error: rpcError } = await supabase.rpc("resolve_prediction_atomic", {
-      p_prediction_id: id,
+      p_prediction_id: predictionId,
       p_winning_option_id: body.winningOptionId,
       p_resolved_at: resolvedAt,
     });
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest, context: Params) {
       const { data: pred } = await supabase
         .from("predictions")
         .select("closes_at")
-        .eq("id", id)
+        .eq("id", predictionId)
         .single();
       const now = Date.now();
       const closesAt = pred?.closes_at ? new Date(pred.closes_at).getTime() : 0;
@@ -75,7 +77,7 @@ export async function POST(request: NextRequest, context: Params) {
       await supabase
         .from("predictions")
         .update({ status: shouldBeOpen ? "open" : "closed", updated_at: new Date().toISOString() })
-        .eq("id", id)
+        .eq("id", predictionId)
         .eq("status", "resolving");
 
       return NextResponse.json(
@@ -90,11 +92,12 @@ export async function POST(request: NextRequest, context: Params) {
     
     // Reset status back to original state if stuck in "resolving"
     try {
+      if (!predictionId) return; // Skip if predictionId was never set
       const supabase = createSupabaseAdminClient();
       const { data: pred } = await supabase
         .from("predictions")
         .select("closes_at")
-        .eq("id", id)
+        .eq("id", predictionId)
         .single();
       const now = Date.now();
       const closesAt = pred?.closes_at ? new Date(pred.closes_at).getTime() : 0;
@@ -102,7 +105,7 @@ export async function POST(request: NextRequest, context: Params) {
       await supabase
         .from("predictions")
         .update({ status: shouldBeOpen ? "open" : "closed", updated_at: new Date().toISOString() })
-        .eq("id", id)
+        .eq("id", predictionId)
         .eq("status", "resolving");
     } catch {
       // Ignore reset errors
