@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
         user: {
           coinBalance: coinBalanceAfter,
           profitScore: profitScoreAfter,
-          lifetimeProfit: bal.lifetime_profit,
+          lifetimeProfit: lifetimeProfitAfter,
         },
         entry: {
           id: entry.id,
