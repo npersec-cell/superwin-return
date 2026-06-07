@@ -1,6 +1,8 @@
 // Safe error messages mapping - prevents technical leakage
 // Date: 2026-06-08
 
+import { NextResponse } from "next/server";
+
 export type AppErrorType = 
   | 'UNAUTHORIZED'
   | 'FORBIDDEN'
