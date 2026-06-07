@@ -43,7 +43,6 @@ export class AppError extends Error {
 const ERROR_MESSAGES: Record<string, string> = {
   // Auth errors
   'Unauthorized': 'เข้าสู่ก่อนใช้งานระบบ',
-  'Unauthorized': 'เข้าสู่ก่อนใช้งานระบบ',
   'Forbidden': 'ไม่มีสิทธิ์ในการทำรายการนี้',
   'Unauthorized access': 'ไม่มีสิทธิ์ในการเข้าถึง',
 
