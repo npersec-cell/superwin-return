@@ -60,77 +60,81 @@ function getDisplayName(clerkUser: Awaited<ReturnType<typeof currentUser>>) {
   return fullName || clerkUser.username || null;
 }
 
-export async function getCurrentUser(request?: Request): Promise<AppUser | null> {
-  // DEV BYPASS: Check for x-dev-bypass header (set via ModHeader or middleware)
-  const bypassSecret = process.env.DEV_BYPASS_SECRET;
-  if (bypassSecret && request) {
-    const headerValue = request.headers.get("x-dev-bypass");
-    if (headerValue === bypassSecret) {
-      const devUserId = process.env.DEV_USER_ID;
-      if (devUserId) {
-        console.warn(`[DEV] Bypassing Clerk auth, using user ID: ${devUserId}`);
-        const supabase = createSupabaseAdminClient();
-        const { data, error } = await supabase
-          .from("users")
-          .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, status, avatar_url")
-          .eq("id", devUserId)
-          .maybeSingle<UserRow>();
-
-        if (data && !error) {
-          return mapUser(data);
-        }
-      }
-    }
+/**
+ * SECURITY: Dev bypass ONLY works in NODE_ENV=development
+ * In production, this function is NEVER called
+ */
+async function tryDevBypass(request?: Request): Promise<AppUser | null> {
+  // Only allow in development mode
+  if (process.env.NODE_ENV !== 'development') {
+    return null;
   }
 
-  // Also check for dev_bypass cookie (set by /api/dev-bypass route)
-  if (bypassSecret && request) {
+  const bypassSecret = process.env.DEV_BYPASS_SECRET;
+  if (!bypassSecret || !request) {
+    return null;
+  }
+
+  const devUserId = process.env.DEV_USER_ID;
+  if (!devUserId) {
+    return null;
+  }
+
+  let bypassMatched = false;
+
+  // Method 1: Check x-dev-bypass header
+  const headerValue = request.headers.get("x-dev-bypass");
+  if (headerValue === bypassSecret) {
+    bypassMatched = true;
+  }
+
+  // Method 2: Check dev_bypass cookie (simple check - improve with HMAC in future)
+  if (!bypassMatched) {
     const cookieHeader = request.headers.get("cookie");
     if (cookieHeader && cookieHeader.includes("dev_bypass=1")) {
-      // Validate the cookie was set with proper secret
-      const devUserId = process.env.DEV_USER_ID;
-      if (devUserId) {
-        console.warn(`[DEV] Bypassing Clerk auth via cookie, using user ID: ${devUserId}`);
-        const supabase = createSupabaseAdminClient();
-        const { data, error } = await supabase
-          .from("users")
-          .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, status, avatar_url")
-          .eq("id", devUserId)
-          .maybeSingle<UserRow>();
-
-        if (data && !error) {
-          return mapUser(data);
-        }
-      }
+      bypassMatched = true;
     }
   }
 
-  // DEV BYPASS: Check for ?dev_bypass=SECRET in URL (for preview_url / direct access)
-  if (bypassSecret && request) {
+  // Method 3: Check URL parameter
+  if (!bypassMatched) {
     try {
       const url = new URL(request.url);
       const urlBypass = url.searchParams.get("dev_bypass");
       if (urlBypass === bypassSecret) {
-        const devUserId = process.env.DEV_USER_ID;
-        if (devUserId) {
-          console.warn(`[DEV] Bypassing Clerk auth via URL param, using user ID: ${devUserId}`);
-          const supabase = createSupabaseAdminClient();
-          const { data, error } = await supabase
-            .from("users")
-            .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, status, avatar_url")
-            .eq("id", devUserId)
-            .maybeSingle<UserRow>();
-
-          if (data && !error) {
-            return mapUser(data);
-          }
-        }
+        bypassMatched = true;
       }
     } catch {
       // ignore URL parse errors
     }
   }
 
+  if (!bypassMatched) {
+    return null;
+  }
+
+  // Dev bypass matched - load user from DB
+  console.warn(`[DEV] Bypassing Clerk auth, using user ID: ${devUserId}`);
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, status, avatar_url")
+    .eq("id", devUserId)
+    .maybeSingle<UserRow>();
+
+  if (data && !error) {
+    return mapUser(data);
+  }
+
+  console.error("[DEV] Dev bypass user not found:", devUserId);
+  return null;
+}
+
+/**
+ * Normal Clerk authentication flow
+ * This is used in production AND when dev bypass fails in development
+ */
+async function clerkAuth(request?: Request): Promise<AppUser | null> {
   const { userId } = await auth();
   if (!userId) return null;
 
@@ -155,11 +159,12 @@ export async function getCurrentUser(request?: Request): Promise<AppUser | null>
   }
 
   if (existing) {
+    // Update user info if changed
     const shouldUpdate = 
       existing.email !== email || 
       existing.display_name !== displayName || 
       existing.avatar_url !== avatarUrl;
-      
+    
     if (shouldUpdate) {
       const { data: updated, error: updateError } = await supabase
         .from("users")
@@ -182,6 +187,7 @@ export async function getCurrentUser(request?: Request): Promise<AppUser | null>
     return mapUser(existing);
   }
 
+  // Create new user
   const { data: created, error: insertError } = await supabase
     .from("users")
     .insert({
@@ -203,6 +209,19 @@ export async function getCurrentUser(request?: Request): Promise<AppUser | null>
   }
 
   return mapUser(created);
+}
+
+export async function getCurrentUser(request?: Request): Promise<AppUser | null> {
+  // In development mode, try dev bypass first
+  if (process.env.NODE_ENV === 'development') {
+    const bypassResult = await tryDevBypass(request);
+    if (bypassResult) {
+      return bypassResult;
+    }
+  }
+
+  // Always use Clerk auth (production) or (development + bypass failed)
+  return await clerkAuth(request);
 }
 
 export async function requireUser(request?: Request): Promise<AppUser> {
