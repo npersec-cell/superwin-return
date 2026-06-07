@@ -314,8 +314,182 @@ input { width: 100%; min-width: 0; }
   .history-detail { font-size: 10px; }
 }
 
-/* Scrolling Announcement Marquee (JS-driven) */
-.announcement-container {
+/* Small Mobile Breakpoint - iPhone SE (375px), Samsung Galaxy (360px) */
+@media (max-width: 480px) {
+  body { font-size: 12px; } /* Increase base font for readability */
+  
+  .page { padding: 6px 8px 12px; }
+  .app { width: 100%; gap: 6px; }
+  
+  /* Topbar: Stack vertically with compact spacing */
+  .topbar { 
+    flex-direction: column; 
+    height: auto; 
+    padding: 6px 8px; 
+    gap: 6px; 
+  }
+  .brand { width: 100%; justify-content: flex-start; }
+  .brand h1 { font-size: 12px; }
+  .brand span { font-size: 7.5px; }
+  .actions { 
+    width: 100%; 
+    flex-wrap: wrap; 
+    gap: 4px; 
+    justify-content: flex-start; 
+  }
+  .actions .button { 
+    height: 32px; 
+    padding: 0 8px; 
+    font-size: 10px; 
+    min-width: 0; 
+  }
+  .actions .button.gold { 
+    padding: 0 6px; 
+    font-size: 10px; 
+  }
+  
+  /* Stats: Single column on very small screens */
+  .stats { grid-template-columns: 1fr 1fr; gap: 0; }
+  .stat { padding: 8px 6px; }
+  .stat .label { font-size: 7.5px; }
+  .stat .value { font-size: 14px; }
+  
+  /* Content: Single column */
+  .content { grid-template-columns: 1fr; gap: 6px; }
+  .side { grid-template-rows: auto auto; gap: 6px; }
+  
+  /* Question Cards: More compact */
+  .question { padding: 8px; }
+  .question-card-title { font-size: 11px; }
+  .question-step { font-size: 9.5px; }
+  .question-compact-row { flex-wrap: wrap; gap: 4px; }
+  .compact-predict-btn { 
+    height: 32px; 
+    padding: 0 8px; 
+    font-size: 10px; 
+  }
+  
+  /* Dropdown: Full width on mobile */
+  .dropdown-new { width: 100%; }
+  .dropdown-trigger-new { 
+    min-height: 40px; /* Touch target >= 44px */
+    padding: 8px 10px; 
+  }
+  .dropdown-menu-new { 
+    position: fixed; 
+    top: auto; 
+    bottom: 0; 
+    left: 0; 
+    right: 0; 
+    max-height: 50vh; 
+    border-radius: 12px 12px 0 0; 
+    z-index: 1000; 
+  }
+  .option-button-new { 
+    min-height: 44px; /* Touch target */ 
+    padding: 10px; 
+    font-size: 12px; 
+  }
+  
+  /* Amount Input: Larger touch target */
+  .amount-input-new { 
+    min-height: 40px; 
+    font-size: 14px; 
+    padding: 8px; 
+  }
+  .chip { 
+    min-height: 32px; 
+    min-width: 32px; 
+    padding: 4px 8px; 
+    font-size: 10px; 
+  }
+  .predict-big-btn { 
+    min-height: 44px; /* Touch target */ 
+    font-size: 14px; 
+    padding: 12px; 
+  }
+  
+  /* Leaderboard: Compact */
+  .leaderboard-body { padding: 6px 8px; gap: 4px; }
+  .rank { 
+    padding: 6px 8px; 
+    gap: 4px; 
+    min-height: 40px; 
+  }
+  .rank-name-container { font-size: 10px; }
+  .rank img { width: 14px; height: 14px; }
+  
+  /* Modal: Full screen on mobile */
+  .modal { padding: 8px; }
+  .modal-card { 
+    width: 100%; 
+    max-width: 100%; 
+    max-height: calc(100vh - 16px); 
+    border-radius: 10px; 
+  }
+  .modal-head { padding: 8px 10px; }
+  .modal-head h3 { font-size: 13px; }
+  .modal-body { padding: 10px; gap: 8px; }
+  
+  /* History Modal: Compact */
+  .history-row { 
+    grid-template-columns: 64px 46px 1fr auto; 
+    gap: 4px; 
+    padding: 6px 8px; 
+    font-size: 10px; 
+  }
+  .history-detail { font-size: 9.5px; }
+  
+  /* Running Modal: Compact */
+  .running-row { padding: 8px; font-size: 10px; }
+  
+  /* Announcement: Smaller */
+  .announcement-bar { 
+    padding: 4px 8px; 
+    font-size: 10px; 
+    margin: 0 0 6px 0; 
+  }
+  
+  /* Insurance Row: Wrap */
+  .insurance-row { 
+    flex-wrap: wrap; 
+    gap: 4px; 
+    font-size: 10px; 
+  }
+  
+  /* Profile Modal: Compact */
+  .info-block { padding: 8px; }
+  .info-block h4 { font-size: 11px; }
+}
+
+/* Extra Small Mobile (iPhone 5/SE: 320px) */
+@media (max-width: 360px) {
+  body { font-size: 11px; }
+  
+  .brand h1 { font-size: 11px; }
+  .brand-text { gap: 0; }
+  .brand span { font-size: 7px; }
+  
+  .actions .button { 
+    height: 28px; 
+    padding: 0 6px; 
+    font-size: 9.5px; 
+  }
+  
+  .stats { grid-template-columns: 1fr; } /* Single column */
+  .stat { padding: 6px 8px; }
+  
+  .question-card-title { font-size: 10px; }
+  .compact-name { font-size: 9.5px; }
+  .compact-returns { font-size: 8.5px; }
+  
+  .leaderboard-body { padding: 4px 6px; }
+  .rank { padding: 4px 6px; font-size: 9.5px; }
+  
+  .modal-card { border-radius: 8px; }
+  .modal-body { padding: 8px; }
+}
+
   flex: 1 1 0%;
   min-width: 0;
   overflow: hidden;
