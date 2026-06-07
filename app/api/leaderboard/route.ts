@@ -7,19 +7,20 @@ export async function GET() {
   try {
     const supabase = createSupabaseAdminClient();
 
-    // 1. ดึง users ทั้งหมด (ไม่รวม admin)
+    // 1. ดึง users ทั้งหมด
     const { data: allUsers, error: errUsers } = await supabase
       .from("users")
-      .select("id, display_name, email, avatar_url, role, profit_score, lifetime_profit")
-      .neq("role", "admin");
+      .select("id, display_name, email, avatar_url, role, profit_score, lifetime_profit");
 
     if (errUsers) throw new Error(errUsers.message);
 
-    // กรอง user ทดสอบออก (ทำใน JS เพื่อจัดการ NULL ได้ถูกต้อง)
+    // กรอง admin และ user ทดสอบออก (ทำใน JS เพื่อให้แน่ใจว่าทำงานถูกต้อง)
     const filteredUsers = (allUsers || []).filter((u) => {
       const email = (u.email || "").toLowerCase();
       const displayName = (u.display_name || "").toLowerCase();
+      const role = (u.role || "").toLowerCase();
       return (
+        role !== "admin" &&
         !email.includes("test") &&
         !displayName.includes("test") &&
         !displayName.includes("ทดสอบ")
