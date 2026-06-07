@@ -70,7 +70,7 @@ export async function GET() {
     );
 
     // 4. เรียงตาม profitScore มาก → น้อย แล้วเอา top 10
-    const sorted = rows.sort((a, b) => b.profitScore - a.profitScore).slice(0, 10);
+    const sorted = usersWithProfitScore.sort((a, b) => b.profitScore - a.profitScore).slice(0, 10);
 
     // 5. บันทึกลง Cache (UPSERT)
     const expiresAt = new Date(Date.now() + CACHE_TTL_SECONDS * 1000).toISOString();
