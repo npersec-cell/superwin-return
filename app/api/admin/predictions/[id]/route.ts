@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
+import { validateRequest, updatePredictionBodySchema } from "@/lib/validation";
 
 type Params = {
   params: { id: string } | Promise<{ id: string }>;
-};
-
-type PatchBody = {
-  tournamentName?: string;
-  question?: string;
-  opensAt?: string;
-  closesAt?: string;
-  feeRate?: number;
-  status?: "draft" | "open" | "closed" | "resolved" | "canceled";
-  options?: { id: string; label: string }[];
 };
 
 function toStatus(error: unknown) {
@@ -35,14 +26,21 @@ export async function PATCH(request: NextRequest, context: Params) {
   try {
     await requireAdmin(request);
     const { id } = await Promise.resolve(context.params);
-    const body = (await request.json()) as PatchBody;
+
+    // Validate request body with Zod
+    const validation = await validateRequest(request, updatePredictionBodySchema);
+    if (!validation.success) {
+      return validation.response;
+    }
+
+    const body = validation.data;
     const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
-    if (body.tournamentName !== undefined) update.tournament_name = String(body.tournamentName).trim();
-    if (body.question !== undefined) update.question = String(body.question).trim();
+    if (body.tournamentName !== undefined) update.tournament_name = body.tournamentName.trim();
+    if (body.question !== undefined) update.question = body.question.trim();
     if (body.opensAt !== undefined && body.opensAt) update.opens_at = parseBkkDateTime(body.opensAt);
     if (body.closesAt !== undefined && body.closesAt) update.closes_at = parseBkkDateTime(body.closesAt);
-    if (body.feeRate !== undefined) update.fee_rate = Number(body.feeRate);
+    if (body.feeRate !== undefined) update.fee_rate = body.feeRate;
     if (body.status !== undefined) update.status = body.status;
 
     const supabase = createSupabaseAdminClient();
@@ -53,7 +51,7 @@ export async function PATCH(request: NextRequest, context: Params) {
         if (option.id && option.label) {
           const { error: optErr } = await supabase
             .from("prediction_options")
-            .update({ label: String(option.label).trim() })
+            .update({ label: option.label.trim() })
             .eq("id", option.id)
             .eq("prediction_id", id);
           if (optErr) throw new Error("Failed to update option: " + optErr.message);

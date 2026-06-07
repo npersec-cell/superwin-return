@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
+import { validateRequest, createPredictionBodySchema } from "@/lib/validation";
 
 function parseBkkDateTime(localStr: string) {
   if (!localStr) return null;
@@ -9,16 +10,6 @@ function parseBkkDateTime(localStr: string) {
   }
   return new Date(localStr + "+07:00").toISOString();
 }
-
-type AdminPredictionInput = {
-  tournamentName?: string;
-  question?: string;
-  opensAt?: string;
-  closesAt?: string;
-  feeRate?: number;
-  status?: "draft" | "open" | "closed" | "resolved" | "canceled";
-  options?: string[];
-};
 
 type PredictionRow = {
   id: string;
@@ -102,26 +93,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const admin = await requireAdmin(request);
-    const body = (await request.json()) as AdminPredictionInput;
 
-    const tournamentName = String(body.tournamentName || "").trim();
-    const question = String(body.question || "").trim();
-    const options = (body.options || []).map((item) => String(item).trim()).filter(Boolean);
-    const feeRate = Number(body.feeRate ?? 0.03);
-    const status = body.status || "draft";
-
-    if (!tournamentName || !question) {
-      return NextResponse.json({ ok: false, error: "Tournament and question are required" }, { status: 400 });
+    // Validate request body with Zod
+    const validation = await validateRequest(request, createPredictionBodySchema);
+    if (!validation.success) {
+      return validation.response;
     }
 
-    if (!body.closesAt) {
-      return NextResponse.json({ ok: false, error: "Close time is required" }, { status: 400 });
-    }
-
-    if (options.length < 2) {
-      return NextResponse.json({ ok: false, error: "At least 2 options are required" }, { status: 400 });
-    }
-
+    const body = validation.data;
     const supabase = createSupabaseAdminClient();
     const now = new Date().toISOString();
     const opensAt = body.opensAt ? (parseBkkDateTime(body.opensAt) || now) : now;
@@ -134,12 +113,12 @@ export async function POST(request: NextRequest) {
     const { data: prediction, error: predictionError } = await supabase
       .from("predictions")
       .insert({
-        tournament_name: tournamentName,
-        question,
-        status,
+        tournament_name: body.tournamentName,
+        question: body.question,
+        status: body.status,
         opens_at: opensAt,
         closes_at: closesAt,
-        fee_rate: feeRate,
+        fee_rate: body.feeRate,
         created_by: admin.id
       })
       .select("id, tournament_name, question, status, opens_at, closes_at, fee_rate, created_at, updated_at")
@@ -147,7 +126,7 @@ export async function POST(request: NextRequest) {
 
     if (predictionError) throw new Error(predictionError.message);
 
-    const optionRows = options.map((label, index) => ({
+    const optionRows = body.options.map((label, index) => ({
       prediction_id: prediction.id,
       label,
       sort_order: index

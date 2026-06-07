@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
+import { validateRequest, resolveBodySchema } from "@/lib/validation";
 
 type Params = {
   params: { id: string } | Promise<{ id: string }>;
-};
-
-type ResolveBody = {
-  winningOptionId?: string;
 };
 
 function toStatus(error: unknown) {
@@ -22,12 +19,14 @@ export async function POST(request: NextRequest, context: Params) {
     await requireAdmin(request);
     const { id } = await Promise.resolve(context.params);
     const predictionId = id;
-    const body = (await request.json()) as ResolveBody;
 
-    if (!body.winningOptionId) {
-      return NextResponse.json({ ok: false, error: "Winning option is required" }, { status: 400 });
+    // Validate request body with Zod
+    const validation = await validateRequest(request, resolveBodySchema);
+    if (!validation.success) {
+      return validation.response;
     }
 
+    const body = validation.data;
     const supabase = createSupabaseAdminClient();
     const resolvedAt = new Date(); // ส่งเป็น Date object เพื่อให้ PostgreSQL เลือก timestamptz version
 

@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
-
-type Body = {
-  email?: string;
-};
+import { validateRequest, adminUserRoleSchema } from "@/lib/validation";
 
 function toStatus(error: unknown) {
   const message = error instanceof Error ? error.message : "Admin update failed";
@@ -16,12 +13,15 @@ function toStatus(error: unknown) {
 export async function POST(request: NextRequest) {
   try {
     await requireAdmin(request);
-    const body = (await request.json()) as Body;
-    const email = String(body.email || "").trim().toLowerCase();
 
-    if (!email || !email.includes("@")) {
-      return NextResponse.json({ ok: false, error: "Valid email is required" }, { status: 400 });
+    // Validate request body with Zod
+    const validation = await validateRequest(request, adminUserRoleSchema);
+    if (!validation.success) {
+      return validation.response;
     }
+
+    const body = validation.data;
+    const email = body.email.toLowerCase().trim();
 
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase

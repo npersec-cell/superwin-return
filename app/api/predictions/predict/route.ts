@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
-import type { PredictRequestBody } from "@/lib/types";
+import { validateRequest, predictBodySchema } from "@/lib/validation";
 
 type PredictionRow = {
   id: string;
@@ -27,23 +27,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Account is not active" }, { status: 403 });
     }
 
-    const body = (await request.json()) as PredictRequestBody;
-    const amount = Number(body.amount || 0);
-    const insurance = Boolean(body.insurance);
-
-    if (!body.predictionId || !body.optionId) {
-      return NextResponse.json({ ok: false, error: "Prediction and option are required" }, { status: 400 });
-    }
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return NextResponse.json({ ok: false, error: "Amount must be a positive number" }, { status: 400 });
-    }
-    if (!Number.isInteger(amount)) {
-      return NextResponse.json({ ok: false, error: "Amount must be a whole number (no decimals)" }, { status: 400 });
-    }
-    if (amount > 100000) {
-      return NextResponse.json({ ok: false, error: "Maximum prediction is 100,000 coins" }, { status: 400 });
+    // Validate request body with Zod
+    const validation = await validateRequest(request, predictBodySchema);
+    if (!validation.success) {
+      return validation.response;
     }
 
+    const body = validation.data;
     const supabase = createSupabaseAdminClient();
 
     // Call atomic database function (prevents Race Condition)
@@ -52,8 +42,8 @@ export async function POST(request: NextRequest) {
       p_user_id: user.id,
       p_prediction_id: body.predictionId,
       p_option_id: body.optionId,
-      p_amount: amount,
-      p_insurance: insurance,
+      p_amount: body.amount,
+      p_insurance: body.insurance,
     });
 
     if (rpcError) {
