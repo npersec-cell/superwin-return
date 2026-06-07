@@ -11,3 +11,8 @@ out
 
 # Temporary Python scripts
 /write_*.py
+
+# Temporary JS migration scripts (may contain secrets)
+run_mig.js
+run_migration.mjs
+run_rate_limits.js

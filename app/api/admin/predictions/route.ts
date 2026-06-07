@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 import { validateRequest, createPredictionBodySchema } from "@/lib/validation";
+import { checkRateLimit, applyRateLimitHeaders, createRateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
 
 function parseBkkDateTime(localStr: string) {
   if (!localStr) return null;
@@ -94,6 +95,12 @@ export async function POST(request: NextRequest) {
   try {
     const admin = await requireAdmin(request);
 
+    // Rate Limiting Check
+    const rateLimitResult = await checkRateLimit(request, RATE_LIMITS.CREATE_PREDICTION, admin.id);
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult);
+    }
+
     // Validate request body with Zod
     const validation = await validateRequest(request, createPredictionBodySchema);
     if (!validation.success) {
@@ -140,7 +147,8 @@ export async function POST(request: NextRequest) {
 
     if (optionError) throw new Error(optionError.message);
 
-    return NextResponse.json({ ok: true, data: mapPrediction(prediction, createdOptions || []) });
+    let response = NextResponse.json({ ok: true, data: mapPrediction(prediction, createdOptions || []) });
+    return applyRateLimitHeaders(response, rateLimitResult);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create prediction";
     return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });

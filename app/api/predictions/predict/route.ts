@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 import { validateRequest, predictBodySchema } from "@/lib/validation";
+import { checkRateLimit, applyRateLimitHeaders, createRateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
 
 type PredictionRow = {
   id: string;
@@ -25,6 +26,12 @@ export async function POST(request: NextRequest) {
     const user = await requireUser(request);
     if (user.status !== "active") {
       return NextResponse.json({ ok: false, error: "Account is not active" }, { status: 403 });
+    }
+
+    // Rate Limiting Check
+    const rateLimitResult = await checkRateLimit(request, RATE_LIMITS.PREDICT, user.id);
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult);
     }
 
     // Validate request body with Zod
@@ -74,7 +81,7 @@ export async function POST(request: NextRequest) {
       .eq("id", body.predictionId)
       .single<{ tournament_name: string; question: string }>();
 
-    return NextResponse.json({
+    let response = NextResponse.json({
       ok: true,
       data: {
         user: {
@@ -94,6 +101,8 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    return applyRateLimitHeaders(response, rateLimitResult);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Prediction failed";
     const status = message === "Unauthorized" ? 401 : 500;

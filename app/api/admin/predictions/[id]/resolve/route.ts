@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 import { validateRequest, resolveBodySchema } from "@/lib/validation";
+import { checkRateLimit, applyRateLimitHeaders, createRateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
 
 type Params = {
   params: { id: string } | Promise<{ id: string }>;
@@ -16,9 +17,15 @@ function toStatus(error: unknown) {
 
 export async function POST(request: NextRequest, context: Params) {
   try {
-    await requireAdmin(request);
+    const admin = await requireAdmin(request);
     const { id } = await Promise.resolve(context.params);
     const predictionId = id;
+
+    // Rate Limiting Check
+    const rateLimitResult = await checkRateLimit(request, RATE_LIMITS.RESOLVE, admin.id);
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult);
+    }
 
     // Validate request body with Zod
     const validation = await validateRequest(request, resolveBodySchema);
@@ -85,7 +92,8 @@ export async function POST(request: NextRequest, context: Params) {
       );
     }
 
-    return NextResponse.json({ ok: true, data: rpcResult.data });
+    let response = NextResponse.json({ ok: true, data: rpcResult.data });
+    return applyRateLimitHeaders(response, rateLimitResult);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Resolve failed";
     return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });

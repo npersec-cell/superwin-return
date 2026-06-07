@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
+import { checkRateLimit, applyRateLimitHeaders, createRateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
 
 type Params = {
   params: { id: string } | Promise<{ id: string }>;
@@ -15,10 +16,16 @@ function toStatus(error: unknown) {
 
 export async function POST(request: NextRequest, context: Params) {
   try {
-    await requireAdmin(request);
+    const admin = await requireAdmin(request);
     const { id } = await Promise.resolve(context.params);
     const supabase = createSupabaseAdminClient();
     const refundedAt = new Date().toISOString();
+
+    // Rate Limiting Check
+    const rateLimitResult = await checkRateLimit(request, RATE_LIMITS.REFUND, admin.id);
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult);
+    }
 
     // Use atomic database function for refund
     const { data, error } = await supabase.rpc("refund_prediction_atomic", {
@@ -58,7 +65,7 @@ export async function POST(request: NextRequest, context: Params) {
       );
     }
 
-    return NextResponse.json({
+    let response = NextResponse.json({
       ok: true,
       data: {
         predictionId: result.data?.predictionId || id,
@@ -66,6 +73,8 @@ export async function POST(request: NextRequest, context: Params) {
         totalRefunded: result.data?.totalRefunded || 0,
       },
     });
+
+    return applyRateLimitHeaders(response, rateLimitResult);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Refund failed";
     return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
