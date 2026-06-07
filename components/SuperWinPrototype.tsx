@@ -3,6 +3,7 @@
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import NotificationBell from "./NotificationBell";
 
 type PredictionOption = {
   id: string;
@@ -1029,6 +1030,7 @@ export default function SuperWinPrototype() {
                 <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory("All"); }}>History</button>
                 {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
                 <UserButton showName={false} />
+                <NotificationBell />
               </>
             )}
             <button className="button gold" onClick={() => setOpenModal("info")}>Info</button>
