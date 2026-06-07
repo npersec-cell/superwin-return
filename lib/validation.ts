@@ -15,9 +15,9 @@ export async function validateRequest<T>(
     return { success: true, data: parsed };
   } catch (error) {
     if (error instanceof ZodError) {
-      const messages = error.errors.map((e) => {
-        const path = e.path.length > 0 ? e.path.join(".") : "input";
-        return `${path}: ${e.message}`;
+      const messages = error.issues.map((issue) => {
+        const path = issue.path.length > 0 ? issue.path.join(".") : "input";
+        return `${path}: ${issue.message}`;
       });
 
       const response = NextResponse.json(
@@ -47,9 +47,9 @@ export async function validateRequest<T>(
  * Helper to format Zod validation errors for API responses
  */
 export function formatZodErrors(error: ZodError): string[] {
-  return error.errors.map((e) => {
-    const path = e.path.length > 0 ? e.path.join(".") : "input";
-    return `${path}: ${e.message}`;
+  return error.issues.map((issue) => {
+    const path = issue.path.length > 0 ? issue.path.join(".") : "input";
+    return `${path}: ${issue.message}`;
   });
 }
 

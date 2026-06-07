@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase';
+import { createSupabaseAdminClient } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 export interface RateLimitConfig {
@@ -45,7 +45,7 @@ export async function checkRateLimit(
   config: RateLimitConfig,
   userId?: string
 ): Promise<RateLimitResult> {
-  const supabase = createClient();
+  const supabase = createSupabaseAdminClient();
   
   const identifier = userId || getClientIP(request);
   const endpoint = config.endpoint;
