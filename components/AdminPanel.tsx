@@ -1111,12 +1111,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     setLoading(true);
     setMessage("");
     try {
-      const data = await requestJson<{ winnersCount: number; insuredLosersCount: number; totalPaid: number }>(`/api/admin/predictions/${item.id}/resolve`, {
+      const data = await requestJson<{ winnersCount: number; totalLosersCount: number; totalPaid: number }>(`/api/admin/predictions/${item.id}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ winningOptionId })
       });
-      setMessage(`สรุปผลแล้ว: ชนะ ${data.winnersCount || 0}, แพ้ ${data.insuredLosersCount || 0}, จ่าย ${data.totalPaid || 0}`);
+      setMessage(`สรุปผลแล้ว: ชนะ ${data.winnersCount || 0}, แพ้ ${data.totalLosersCount || 0}, จ่าย ${data.totalPaid || 0}`);
       setPredictions((current) => current.map((row) => row.id === item.id ? { ...row, status: "resolved" } : row));
       await loadPredictions();
     } catch (error) {
