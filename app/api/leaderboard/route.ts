@@ -28,9 +28,10 @@ export async function GET() {
     }
 
     // 2. Cache ไม่มี หรือหมดอายุ → คำนวณใหม่
+    // ดึง users ทั้งหมด (ไม่เอา profit_score จากตาราง users แล้ว)
     const { data: allUsers, error: errUsers } = await supabase
       .from("users")
-      .select("id, display_name, email, avatar_url, role, profit_score, lifetime_profit");
+      .select("id, display_name, email, avatar_url, role, lifetime_profit");
 
     if (errUsers) throw new Error(errUsers.message);
 
@@ -47,15 +48,26 @@ export async function GET() {
       );
     });
 
-    // 3. รวม users
-    const rows = filteredUsers.map((u) => ({
-      id: u.id,
-      name: u.display_name || u.email.split("@")[0],
-      profit: u.lifetime_profit || 0,
-      profitScore: u.profit_score || 0,
-      avatarUrl: u.avatar_url || null,
-      isReal: true,
-    }));
+    // 3. คำนวณ profit_score แบบ real-time สำหรับแต่ละ user
+    const usersWithProfitScore = await Promise.all(
+      filteredUsers.map(async (u) => {
+        const { data: profitScore, error: profitError } = await supabase
+          .rpc('calculate_user_profit_score', { p_user_id: u.id });
+        
+        if (profitError) {
+          console.error('[Leaderboard] Error calculating profit_score for user', u.id, profitError);
+        }
+
+        return {
+          id: u.id,
+          name: u.display_name || u.email.split("@")[0],
+          profit: u.lifetime_profit || 0,
+          profitScore: profitScore || 0,
+          avatarUrl: u.avatar_url || null,
+          isReal: true,
+        };
+      })
+    );
 
     // 4. เรียงตาม profitScore มาก → น้อย แล้วเอา top 10
     const sorted = rows.sort((a, b) => b.profitScore - a.profitScore).slice(0, 10);

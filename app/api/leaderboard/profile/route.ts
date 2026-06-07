@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const [userRes, ledgerRes, predictionsRes] = await Promise.all([
       supabase
         .from("users")
-        .select("display_name, email, profit_score, lifetime_profit")
+        .select("display_name, email, lifetime_profit")
         .eq("id", userId)
         .single(),
       supabase
@@ -58,6 +58,17 @@ export async function GET(request: NextRequest) {
     }
 
     const user = userRes.data;
+
+    // Calculate real-time profit_score
+    const { data: calculatedProfitScore, error: profitError } = await supabase
+      .rpc('calculate_user_profit_score', { p_user_id: userId });
+    
+    if (profitError) {
+      console.error('[Profile] Error calculating profit_score:', profitError);
+    }
+    
+    const profitScore = calculatedProfitScore ?? 0;
+
     const allLedgerRows = ledgerRes.data || [];
 
     // กรองเฉพาะ coin_ledger ที่ยังมี predictions อยู่จริงๆ (ป้องกันข้อมูลค้างจากการลบคำถามเก่า)
@@ -144,7 +155,7 @@ export async function GET(request: NextRequest) {
       ok: true,
       data: {
         name: user.email.split("@")[0],
-        profitScore: user.profit_score || 0,
+        profitScore: profitScore,
         allTimeProfit: user.lifetime_profit || 0,
         winRate,
         wonCount,

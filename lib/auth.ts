@@ -165,6 +165,8 @@ async function clerkAuth(request?: Request): Promise<AppUser | null> {
       existing.display_name !== displayName || 
       existing.avatar_url !== avatarUrl;
     
+    let userRow = existing;
+    
     if (shouldUpdate) {
       const { data: updated, error: updateError } = await supabase
         .from("users")
@@ -181,10 +183,24 @@ async function clerkAuth(request?: Request): Promise<AppUser | null> {
       if (updateError) {
         throw new Error(updateError.message || "Failed to update user");
       }
-      return mapUser(updated);
+      userRow = updated;
     }
 
-    return mapUser(existing);
+    // Calculate real-time profit_score
+    const { data: calculatedProfitScore, error: profitError } = await supabase
+      .rpc('calculate_user_profit_score', { p_user_id: userRow.id });
+    
+    if (profitError) {
+      console.error('[Auth] Error calculating profit_score:', profitError);
+    }
+    
+    const user = mapUser(userRow);
+    // Override with calculated profit_score
+    if (calculatedProfitScore !== null && calculatedProfitScore !== undefined) {
+      user.profitScore = calculatedProfitScore;
+    }
+    
+    return user;
   }
 
   // Create new user
