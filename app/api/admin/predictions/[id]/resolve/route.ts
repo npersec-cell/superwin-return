@@ -102,10 +102,21 @@ export async function POST(request: NextRequest, context: Params) {
       metadata: {
         winningOptionId: body.winningOptionId,
         resolvedAt: resolvedAt.toISOString(),
-        payoutCount: rpcResult.data?.payoutCount || 0,
-        totalPayout: rpcResult.data?.totalPayout || 0,
+        payoutCount: rpcResult.data?.winnersCount || 0,
+        totalPayout: rpcResult.data?.totalPaid || 0,
       },
     });
+
+    // 5. Invalidate leaderboard cache (so next request gets fresh data)
+    try {
+      await supabase
+        .from("cache")
+        .delete()
+        .eq("key", "leaderboard_top10");
+    } catch (cacheError) {
+      console.error("[Resolve] Failed to invalidate leaderboard cache:", cacheError);
+      // Non-blocking - leaderboard will refresh after TTL
+    }
 
     let response = NextResponse.json({ ok: true, data: rpcResult.data });
     return applyRateLimitHeaders(response, rateLimitResult);

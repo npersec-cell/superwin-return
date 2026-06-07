@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 import { logAudit } from "@/lib/audit-log";
+import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +38,6 @@ export async function POST(request: NextRequest) {
       th: "ล้างแคช Leaderboard สำเร็จ คำขอถัดไปจะคำนวณข้อมูลใหม่",
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Refresh leaderboard cache failed";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return createSafeErrorResponse(error);
   }
 }

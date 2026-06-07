@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
+import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 interface NotificationRow {
   id: string;
@@ -86,8 +87,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load notifications";
-    return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
+    return createSafeErrorResponse(error);
   }
 }
 
@@ -125,8 +125,7 @@ export async function PATCH(request: NextRequest) {
       message: `Marked ${notificationIds.length} notifications as ${markAsRead ? "read" : "unread"}`,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to update notifications";
-    return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
+    return createSafeErrorResponse(error);
   }
 }
 
@@ -170,7 +169,6 @@ export async function DELETE(request: NextRequest) {
       message: `Deleted ${count || 0} notifications`,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to delete notifications";
-    return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
+    return createSafeErrorResponse(error);
   }
 }

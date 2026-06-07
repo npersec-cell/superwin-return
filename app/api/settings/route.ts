@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/db";
+import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,6 @@ export async function GET() {
     // หากไม่มีข้อมูลในฐานข้อมูล ให้คืนค่าเริ่มต้นและเตรียมไปบันทึกเมื่อแอดมินกดเซฟครั้งแรก
     return NextResponse.json({ ok: true, data: fallbackSettings });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load settings";
-    return NextResponse.json({ ok: true, data: fallbackSettings, error: message });
+    return createSafeErrorResponse(error);
   }
 }

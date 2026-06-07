@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
+import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 function toStatus(error: unknown) {
   const message = error instanceof Error ? error.message : "Admin request failed";
@@ -110,7 +111,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ ok: true, data: formatted });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load dashboard metrics";
-    return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
+    return createSafeErrorResponse(error);
   }
 }

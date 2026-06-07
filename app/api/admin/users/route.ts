@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 // GET /api/admin/users — list all users (admin only)
 export async function GET(request: NextRequest) {
@@ -44,8 +45,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ ok: true, data: users });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    const status = message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500;
-    return NextResponse.json({ ok: false, error: message }, { status });
+    return createSafeErrorResponse(error);
   }
 }

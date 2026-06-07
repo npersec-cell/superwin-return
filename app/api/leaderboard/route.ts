@@ -4,7 +4,7 @@ import { createSupabaseAdminClient } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 const CACHE_KEY = "leaderboard_top10";
-const CACHE_TTL_SECONDS = 300; // 5 minutes
+const CACHE_TTL_SECONDS = 60; // 1 minute (was 5 minutes) - ensures faster consistency
 
 export async function GET() {
   try {

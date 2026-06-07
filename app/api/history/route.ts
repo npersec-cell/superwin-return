@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
+import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 type LedgerRow = {
   id: string;
@@ -80,8 +81,6 @@ export async function GET(request: NextRequest) {
       data: { rows }
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load history";
-    const status = message === "Unauthorized" ? 401 : 500;
-    return NextResponse.json({ ok: false, error: message }, { status });
+    return createSafeErrorResponse(error);
   }
 }

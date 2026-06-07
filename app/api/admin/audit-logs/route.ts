@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
+import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 interface AuditLogRow {
   id: string;
@@ -130,7 +131,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load audit logs";
-    return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
+    return createSafeErrorResponse(error);
   }
 }

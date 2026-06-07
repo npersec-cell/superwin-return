@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/lib/db";
 import { validateRequest, createPredictionBodySchema } from "@/lib/validation";
 import { checkRateLimit, applyRateLimitHeaders, createRateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit-log";
+import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 function parseBkkDateTime(localStr: string) {
   if (!localStr) return null;
@@ -166,7 +167,6 @@ export async function POST(request: NextRequest) {
     let response = NextResponse.json({ ok: true, data: mapPrediction(prediction, createdOptions || []) });
     return applyRateLimitHeaders(response, rateLimitResult);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create prediction";
-    return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
+    return createSafeErrorResponse(error);
   }
 }

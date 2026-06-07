@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/db";
+import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -167,7 +168,6 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Load profile failed";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return createSafeErrorResponse(error);
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +12,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ ok: true, data: user });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load user";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return createSafeErrorResponse(error);
   }
 }

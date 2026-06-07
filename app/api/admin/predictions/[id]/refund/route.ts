@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 import { checkRateLimit, applyRateLimitHeaders, createRateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit-log";
+import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 type Params = {
   params: { id: string } | Promise<{ id: string }>;
@@ -90,7 +91,6 @@ export async function POST(request: NextRequest, context: Params) {
 
     return applyRateLimitHeaders(response, rateLimitResult);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Refund failed";
-    return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
+    return createSafeErrorResponse(error);
   }
 }
