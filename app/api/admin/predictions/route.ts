@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 import { validateRequest, createPredictionBodySchema } from "@/lib/validation";
 import { checkRateLimit, applyRateLimitHeaders, createRateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/audit-log";
 
 function parseBkkDateTime(localStr: string) {
   if (!localStr) return null;
@@ -146,6 +147,21 @@ export async function POST(request: NextRequest) {
       .returns<OptionRow[]>();
 
     if (optionError) throw new Error(optionError.message);
+
+    // Audit Log: Record this admin action
+    await logAudit({
+      adminId: admin.id,
+      action: "create_prediction",
+      targetType: "prediction",
+      targetId: prediction.id,
+      metadata: {
+        tournamentName: body.tournamentName,
+        question: body.question,
+        status: body.status,
+        feeRate: body.feeRate,
+        optionsCount: body.options.length,
+      },
+    });
 
     let response = NextResponse.json({ ok: true, data: mapPrediction(prediction, createdOptions || []) });
     return applyRateLimitHeaders(response, rateLimitResult);

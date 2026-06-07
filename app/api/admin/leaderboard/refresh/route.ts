@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
+import { logAudit } from "@/lib/audit-log";
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin(request);
+    const admin = await requireAdmin(request);
     const supabase = createSupabaseAdminClient();
 
     // ลบ Cache ปัจจุบันออก (จะคำนวณใหม่เมื่อมีคนเรียก GET /api/leaderboard)
@@ -19,6 +20,16 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Audit Log: Record this admin action
+    await logAudit({
+      adminId: admin.id,
+      action: "refresh_leaderboard_cache",
+      targetType: "leaderboard",
+      metadata: {
+        clearedAt: new Date().toISOString(),
+      },
+    });
 
     return NextResponse.json({
       ok: true,

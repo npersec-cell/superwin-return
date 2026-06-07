@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 import { checkRateLimit, applyRateLimitHeaders, createRateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
+import { logAudit } from "@/lib/audit-log";
 
 type Params = {
   params: { id: string } | Promise<{ id: string }>;
@@ -64,6 +65,19 @@ export async function POST(request: NextRequest, context: Params) {
         { status: result.error?.includes("not found") ? 404 : 400 }
       );
     }
+
+    // Audit Log: Record this admin action
+    await logAudit({
+      adminId: admin.id,
+      action: "refund_prediction",
+      targetType: "prediction",
+      targetId: id,
+      metadata: {
+        refundedAt,
+        refundedCount: result.data?.refundedCount || 0,
+        totalRefunded: result.data?.totalRefunded || 0,
+      },
+    });
 
     let response = NextResponse.json({
       ok: true,

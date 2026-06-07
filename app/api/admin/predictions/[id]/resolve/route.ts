@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 import { validateRequest, resolveBodySchema } from "@/lib/validation";
 import { checkRateLimit, applyRateLimitHeaders, createRateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
+import { logAudit, AuditAction } from "@/lib/audit-log";
 
 type Params = {
   params: { id: string } | Promise<{ id: string }>;
@@ -91,6 +92,20 @@ export async function POST(request: NextRequest, context: Params) {
         { status: 500 }
       );
     }
+
+    // 4. Audit Log: Record this admin action
+    await logAudit({
+      adminId: admin.id,
+      action: "resolve_prediction",
+      targetType: "prediction",
+      targetId: predictionId,
+      metadata: {
+        winningOptionId: body.winningOptionId,
+        resolvedAt: resolvedAt.toISOString(),
+        payoutCount: rpcResult.data?.payoutCount || 0,
+        totalPayout: rpcResult.data?.totalPayout || 0,
+      },
+    });
 
     let response = NextResponse.json({ ok: true, data: rpcResult.data });
     return applyRateLimitHeaders(response, rateLimitResult);
