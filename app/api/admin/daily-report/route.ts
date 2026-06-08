@@ -89,12 +89,12 @@ export async function GET(request: NextRequest) {
     
     // Calculate total coins distributed (credit entries only)
     const totalCoinsDistributed = (ledgerCountRes.data || [])
-      .filter((l: { type: string }) => l.type === 'credit')
-      .reduce((sum: number, l: { amount: number }) => sum + (l.amount || 0), 0);
+      .filter((l: { type?: string }) => l.type === 'credit')
+      .reduce((sum: number, l: { amount?: number }) => sum + (l.amount || 0), 0);
     
     const coinsDistributedToday = (todayLedgerRes.data || [])
-      .filter((l: { type: string }) => l.type === 'credit')
-      .reduce((sum: number, l: { amount: number }) => sum + (l.amount || 0), 0);
+      .filter((l: { type?: string }) => l.type === 'credit')
+      .reduce((sum: number, l: { amount?: number }) => sum + (l.amount || 0), 0);
 
     // ========== Recent Activity (Last 10 audit logs) ==========
     const { data: recentAuditLogs } = await supabase
