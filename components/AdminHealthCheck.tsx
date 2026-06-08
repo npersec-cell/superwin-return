@@ -19,12 +19,14 @@ type HealthReport = {
 
 type AuditLog = {
   id: string;
-  admin_id: string;
+  adminId: string;
+  adminEmail: string;
+  adminName: string | null;
   action: string;
-  target_type: string;
-  target_id: string;
-  metadata: Record<string, unknown>;
-  created_at: string;
+  targetType: string | null;
+  targetId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
 };
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -324,13 +326,13 @@ export default function AdminHealthCheck() {
                       </span>
                     </td>
                     <td style={{ padding: "8px", color: "var(--muted)", whiteSpace: "nowrap" }}>
-                      {alert.admin_id === "system" ? "🤖 System" : alert.admin_id.substring(0, 8)}
+                      {alert.adminId === "system" ? "🤖 System" : alert.adminId?.substring(0, 8) || "-"}
                     </td>
                     <td style={{ padding: "8px", color: "var(--text)", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {alert.target_type}#{alert.target_id.substring(0, 8)}
+                      {alert.targetType || "-"}#{alert.targetId?.substring(0, 8) || "-"}
                     </td>
                     <td style={{ padding: "8px", color: "var(--muted)", fontSize: "10px", whiteSpace: "nowrap" }}>
-                      {alert.created_at ? new Date(alert.created_at).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "-"}
+                      {alert.createdAt ? new Date(alert.createdAt).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "-"}
                     </td>
                   </tr>
                 ))}
