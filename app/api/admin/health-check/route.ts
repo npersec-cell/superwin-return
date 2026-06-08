@@ -31,8 +31,7 @@ export async function GET(request: NextRequest) {
       // Calculate expected balance from ledger for each user
       const { data: ledgerBalances, error: ledgerError } = await supabase
         .from("coin_ledger")
-        .select("user_id, type, amount")
-        .neq("type", "claim"); // Exclude claim (it's handled separately)
+        .select("user_id, amount");
 
       if (ledgerError) {
         balanceCheck = {
@@ -41,20 +40,14 @@ export async function GET(request: NextRequest) {
           message: "Cannot query coin_ledger: " + ledgerError.message,
         };
       } else {
-        // Calculate balance from ledger
+        // Calculate balance from ledger (amount is already signed: + for credit, - for debit)
         const ledgerMap = new Map<string, number>();
         for (const entry of ledgerBalances || []) {
           const userId = entry.user_id;
-          const amount = entry.amount || 0;
-          const type = entry.type;
+          const amount = entry.amount || 0; // amount is already signed
           
           if (!ledgerMap.has(userId)) ledgerMap.set(userId, 0);
-          
-          if (type === 'credit') {
-            ledgerMap.set(userId, ledgerMap.get(userId)! + amount);
-          } else {
-            ledgerMap.set(userId, ledgerMap.get(userId)! - amount);
-          }
+          ledgerMap.set(userId, ledgerMap.get(userId)! + amount);
         }
 
         // Get actual balances from users table
