@@ -62,7 +62,6 @@ export async function GET(request: NextRequest) {
     const { data: activeUsersData } = await supabase
       .from("coin_ledger")
       .select("user_id")
-      .distinct("user_id")
       .gte("created_at", todayStart);
     const activeUsersToday = new Set((activeUsersData || []).map((r: { user_id: string }) => r.user_id)).size;
 
