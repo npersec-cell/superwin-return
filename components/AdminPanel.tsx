@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import NotificationBell from "./NotificationBell";
 import AdminHealthCheck from "./AdminHealthCheck";
 
@@ -185,7 +185,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [tournamentName, setTournamentName] = useState("Super League");
+  const hasInitializedTournament = useRef(false);
+  const [tournamentName, setTournamentName] = useState("");
   const [question, setQuestion] = useState("");
   const [round, setRound] = useState("");
   const [opensAt, setOpensAt] = useState(toDateTimeLocal(new Date()));
@@ -338,11 +339,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   async function loadSettings() {
     const data = await requestJson<SiteSettings>("/api/admin/settings");
     setSettings(data);
-    if (data.tournaments && data.tournaments.length > 0) {
-      const first = data.tournaments[0];
-      const firstName = typeof first === "string" ? first : first.name;
-      setTournamentName(firstName);
-    }
   }
 
   async function loadTopUsers() {
@@ -356,6 +352,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     if (data.length > 0) {
       if (!selectedDashboardTournament) {
         setSelectedDashboardTournament(data[0].tournamentName);
+      }
+      // Set default tournament to the one with the latest question
+      if (!hasInitializedTournament.current) {
+        setTournamentName(data[0].tournamentName);
+        hasInitializedTournament.current = true;
       }
     }
   }
