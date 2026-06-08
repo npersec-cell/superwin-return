@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
                 samples: mismatches.slice(0, 5),
               },
             };
-            if (overallStatus === 'HEALTHY') overallStatus = status;
+            if (overallStatus === 'HEALTHY') overallStatus = status === 'WARN' ? 'WARNING' : 'CRITICAL';
             if (status === 'FAIL') overallStatus = 'CRITICAL';
           }
         }
