@@ -1334,10 +1334,28 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       {!(settings.tournaments && settings.tournaments.length > 0) && (
                         <option value="">-- กรุณาเพิ่มชื่อทัวร์นาเมนต์ก่อน --</option>
                       )}
-                      {(settings.tournaments || []).map((t) => {
-                        const name = typeof t === "string" ? t : t.name;
-                        return <option key={name} value={name}>{name}</option>;
-                      })}
+                      {(settings.tournaments || [])
+                        .map((t) => {
+                          const name = typeof t === "string" ? t : t.name;
+                          // Find latest question createdAt for this tournament
+                          const latestQuestion = dashboardData
+                            .filter((d) => d.tournamentName === name)
+                            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                          return { name, latestCreatedAt: latestQuestion ? latestQuestion.createdAt : null };
+                        })
+                        .sort((a, b) => {
+                          // Sort by latest question date descending (most recent first)
+                          if (a.latestCreatedAt && b.latestCreatedAt) {
+                            return new Date(b.latestCreatedAt).getTime() - new Date(a.latestCreatedAt).getTime();
+                          }
+                          // Put tournaments with questions above those without
+                          if (a.latestCreatedAt && !b.latestCreatedAt) return -1;
+                          if (!a.latestCreatedAt && b.latestCreatedAt) return 1;
+                          return 0;
+                        })
+                        .map((t) => (
+                          <option key={t.name} value={t.name}>{t.name}</option>
+                        ))}
                     </select>
                   ) : (
                     <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "10px" }}>
