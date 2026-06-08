@@ -55,7 +55,7 @@ export default function AdminHealthCheck() {
     setLoading(true);
     setError(null);
     try {
-      const report = await fetchJson<HealthReport>("/api/admin/health-check");
+      const report = await fetchJson<HealthReport>("/api/admin/health-check-v2");
       setHealthReport(report);
       setLastRunTime(new Date().toLocaleString("th-TH"));
     } catch (e) {
