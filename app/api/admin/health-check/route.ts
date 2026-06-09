@@ -230,6 +230,22 @@ export async function GET(request: NextRequest) {
             message: "No predictions stuck in pending status",
           };
         } else {
+          // Auto-close stuck predictions
+          const stuckIds = (stuckPredictions || []).map(p => p.id);
+          let autoClosedCount = 0;
+          try {
+            const { error: updateError } = await supabase
+              .from("predictions")
+              .update({ status: "closed", closes_at: new Date().toISOString() })
+              .in("id", stuckIds);
+            
+            if (!updateError) {
+              autoClosedCount = stuckIds.length;
+            }
+          } catch (e) {
+            // Ignore auto-close errors, just report warning
+          }
+
           const stuckSamples = (stuckPredictions || []).slice(0, 3).map(p => 
             `${p.question.substring(0, 30)}... (${p.created_at})`
           );
@@ -237,9 +253,10 @@ export async function GET(request: NextRequest) {
           pendingCheck = {
             name: "Stuck Predictions",
             status: "WARN",
-            message: `${stuckCount} predictions stuck in 'open' status for >24h`,
+            message: `${stuckCount} predictions were stuck in 'open' status for >24h and auto-closed`,
             details: {
               stuckCount,
+              autoClosedCount,
               samples: stuckSamples,
             },
           };
@@ -290,6 +307,75 @@ export async function GET(request: NextRequest) {
       };
     }
     checks.push(perfCheck);
+
+    // ========== CHECK 5: Number War Rounds ==========
+    let numberWarCheck: CheckResult;
+    try {
+      const now = Date.now();
+      const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+      const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      // Check for closed rounds without winner for >24h
+      const { data: unresolvedRounds, error: unresolvedError } = await supabase
+        .from("number_war_rounds")
+        .select("id, name, close_at, winner_slot")
+        .is("winner_slot", null)
+        .lt("close_at", twentyFourHoursAgo)
+        .not("close_at", "is", null);
+
+      // Check for rounds open for >7 days
+      const { data: longOpenRounds, error: longOpenError } = await supabase
+        .from("number_war_rounds")
+        .select("id, name, open_at")
+        .lt("open_at", sevenDaysAgo)
+        .gt("close_at", new Date().toISOString())
+        .not("close_at", "is", null);
+
+      if (unresolvedError || longOpenError) {
+        numberWarCheck = {
+          name: "Number War Rounds",
+          status: "WARN",
+          message: "Cannot query number_war_rounds: " + (unresolvedError?.message || longOpenError?.message),
+        };
+      } else {
+        const unresolvedCount = (unresolvedRounds || []).length;
+        const longOpenCount = (longOpenRounds || []).length;
+        const unresolvedSamples = (unresolvedRounds || []).slice(0, 3).map(r => r.name);
+        const longOpenSamples = (longOpenRounds || []).slice(0, 3).map(r => r.name);
+
+        if (unresolvedCount > 0 || longOpenCount > 0) {
+          const issues: string[] = [];
+          if (unresolvedCount > 0) issues.push(`${unresolvedCount} round(s) closed >24h without winner`);
+          if (longOpenCount > 0) issues.push(`${longOpenCount} round(s) open for >7 days`);
+
+          numberWarCheck = {
+            name: "Number War Rounds",
+            status: "WARN",
+            message: issues.join(" | "),
+            details: {
+              unresolvedCount,
+              unresolvedSamples,
+              longOpenCount,
+              longOpenSamples,
+            },
+          };
+          if (overallStatus === 'HEALTHY') overallStatus = 'WARNING';
+        } else {
+          numberWarCheck = {
+            name: "Number War Rounds",
+            status: "PASS",
+            message: "All Number War rounds are healthy",
+          };
+        }
+      }
+    } catch (error: unknown) {
+      numberWarCheck = {
+        name: "Number War Rounds",
+        status: "WARN",
+        message: "Error during check: " + (error instanceof Error ? error.message : String(error)),
+      };
+    }
+    checks.push(numberWarCheck);
 
     // ========== Generate Summary ==========
     const failedChecks = checks.filter(c => c.status === 'FAIL');
