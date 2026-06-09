@@ -30,11 +30,11 @@ export async function POST(request: NextRequest) {
     // Check if admin
     const { data: adminUser, error: adminError } = await supabase
       .from("users")
-      .select("is_admin")
+      .select("role")
       .eq("id", user.id)
       .single();
 
-    if (adminError || !adminUser?.is_admin) {
+    if (adminError || adminUser?.role !== "admin") {
       return NextResponse.json(
         { ok: false, error: "Forbidden: Admin only" },
         { status: 403 }
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { matchName, winningScores } = body;
+    const { matchName, winningScore } = body;
 
     // Validate inputs
     if (!matchName || !matchName.trim()) {
@@ -52,15 +52,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!winningScores || !Array.isArray(winningScores) || winningScores.length === 0) {
+    if (winningScore === undefined || winningScore === null || isNaN(Number(winningScore))) {
       return NextResponse.json(
-        { ok: false, error: "กรุณากรอกคะแนนทีมชนะอย่างน้อย 1 คะแนน" },
+        { ok: false, error: "กรุณากรอกเลขที่ชนะ (0-200)" },
         { status: 400 }
       );
     }
 
-    // Calculate winning number = sum of all winning scores
-    const slotNumber = winningScores.reduce((sum, score) => sum + Number(score), 0);
+    const slotNumber = Number(winningScore);
 
     if (slotNumber < 0 || slotNumber > 200) {
       return NextResponse.json(
@@ -107,7 +106,7 @@ export async function POST(request: NextRequest) {
         user_id: slot.owner_id,
         slot_number: slotNumber,
         match_name: matchName.trim(),
-        winning_scores: winningScores.map(Number),
+        winning_score: slotNumber,
         shipping_status: "pending",
       })
       .select()
@@ -142,7 +141,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         slot_number: slotNumber,
         match_name: matchName.trim(),
-        winning_scores: winningScores.map(Number),
+        winning_score: slotNumber,
         winner_id: slot.owner_id,
         winner_name: winnerUser?.display_name || "Unknown",
         winner_address: {

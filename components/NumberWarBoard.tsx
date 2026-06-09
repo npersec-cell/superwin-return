@@ -2,6 +2,16 @@
 
 import { useEffect, useState } from "react";
 
+function GreenBullet({ size = 10 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ display: "inline-block", verticalAlign: "middle", marginLeft: "2px" }}>
+      <ellipse cx="12" cy="12" rx="10" ry="6" fill="#0ecb81" />
+      <ellipse cx="12" cy="12" rx="7" ry="3.5" fill="#1a3d2e" opacity="0.3" />
+      <ellipse cx="10" cy="10" rx="3" ry="1.5" fill="#ffffff" opacity="0.4" />
+    </svg>
+  );
+}
+
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) {
@@ -40,7 +50,7 @@ interface WinnerLog {
   user_id: string;
   slot_number: number;
   match_name: string | null;
-  winning_scores: number[] | null;
+  winning_score: number | null;
   shipping_status: string;
   tracking_number: string | null;
   admin_notes: string | null;
@@ -73,7 +83,7 @@ export default function NumberWarBoard() {
   const [loading, setLoading] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<NumberSlot | null>(null);
   const [matchName, setMatchName] = useState("");
-  const [winningScores, setWinningScores] = useState("");
+  const [winningScore, setWinningScore] = useState("");
   const [calculatedNumber, setCalculatedNumber] = useState<number | null>(null);
   const [setWinnerLoading, setSetWinnerLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -168,21 +178,19 @@ export default function NumberWarBoard() {
     return () => clearInterval(interval);
   }, [config]);
 
-  // Calculate winning number when scores change
+  // Calculate winning number when score changes
   useEffect(() => {
-    if (!winningScores.trim()) {
+    if (!winningScore.trim()) {
       setCalculatedNumber(null);
       return;
     }
-    const scores = winningScores.split(/[,\s]+/).filter(s => s.trim() !== "").map(Number);
-    const validScores = scores.filter(s => !isNaN(s));
-    if (validScores.length > 0) {
-      const sum = validScores.reduce((a, b) => a + b, 0);
-      setCalculatedNumber(sum);
+    const score = Number(winningScore.trim());
+    if (!isNaN(score)) {
+      setCalculatedNumber(score);
     } else {
       setCalculatedNumber(null);
     }
-  }, [winningScores]);
+  }, [winningScore]);
 
   async function handleSetWinner() {
     if (!matchName.trim()) {
@@ -190,20 +198,17 @@ export default function NumberWarBoard() {
       return;
     }
 
-    if (!winningScores.trim()) {
-      setMessage("กรุณากรอกคะแนนทีมชนะ");
+    if (!winningScore.trim()) {
+      setMessage("กรุณากรอกเลขที่ชนะ");
       return;
     }
 
-    const scores = winningScores.split(/[,\s]+/).filter(s => s.trim() !== "").map(Number);
-    const validScores = scores.filter(s => !isNaN(s));
+    const slotNumber = Number(winningScore.trim());
     
-    if (validScores.length === 0) {
-      setMessage("กรุณากรอกคะแนนที่ถูกต้อง");
+    if (isNaN(slotNumber)) {
+      setMessage("กรุณากรอกตัวเลขที่ถูกต้อง");
       return;
     }
-
-    const slotNumber = validScores.reduce((a, b) => a + b, 0);
 
     if (slotNumber < 0 || slotNumber > 200) {
       setMessage(`เลขชนะที่คำนวณได้คือ ${slotNumber} ซึ่งไม่อยู่ในช่วง 0-200`);
@@ -229,7 +234,7 @@ export default function NumberWarBoard() {
         },
         body: JSON.stringify({ 
           matchName: matchName.trim(),
-          winningScores: validScores 
+          winningScore: slotNumber 
         }),
       });
 
@@ -238,7 +243,7 @@ export default function NumberWarBoard() {
       if (data.ok) {
         setMessage(`✅ ประกาศผลสำเร็จ! เลข ${slotNumber} ชนะรางวัลจาก "${matchName.trim()}"`);
         setMatchName("");
-        setWinningScores("");
+        setWinningScore("");
         setCalculatedNumber(null);
         await loadWinners();
       } else {
@@ -357,7 +362,7 @@ export default function NumberWarBoard() {
       <div style={{ marginBottom: "20px" }}>
         <h2 style={{ color: "var(--yellow)", marginBottom: "8px" }}>🏆 PUBG Number War</h2>
         <p style={{ color: "var(--muted)", fontSize: "12px" }}>
-          ระบบทายเลข 0-200 | ซื้อครั้งแรก 10 <span style={{ color: '#0ecb81', fontSize: '10px' }}>●</span> | แย่งซื้อ x2 ทุกครั้ง
+          ระบบทายเลข 0-200 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง
         </p>
       </div>
 
@@ -444,22 +449,24 @@ export default function NumberWarBoard() {
               />
             </div>
 
-            {/* Winning Scores */}
+            {/* Winning Score */}
             <div style={{ marginBottom: "12px" }}>
               <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>
-                คะแนนทีมชนะ (คั่นด้วยเว้นวรรคหรือจุลภาค)
+                เลขที่ชนะ (0-200)
               </label>
               <input
-                type="text"
-                value={winningScores}
-                onChange={(e) => setWinningScores(e.target.value)}
-                placeholder="เช่น 18, 22, 15"
+                type="number"
+                value={winningScore}
+                onChange={(e) => setWinningScore(e.target.value)}
+                placeholder="เช่น 55"
+                min="0"
+                max="200"
                 style={{ width: "100%", height: "40px" }}
               />
               {calculatedNumber !== null && (
                 <div style={{ marginTop: "8px", padding: "8px 12px", background: "rgba(255, 225, 0, 0.1)", borderRadius: "6px", fontSize: "12px" }}>
                   <span style={{ color: "var(--yellow)", fontWeight: "700" }}>
-                    🎯 เลขชนะที่คำนวณได้: {calculatedNumber}
+                    🎯 เลขชนะ: {calculatedNumber}
                   </span>
                   <span style={{ color: "var(--muted)", marginLeft: "8px" }}>
                     (0-200)
@@ -557,7 +564,7 @@ export default function NumberWarBoard() {
                     {slot.slot_number}
                   </div>
                   <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>
-                    {slot.current_price} <span style={{ color: '#0ecb81', fontSize: '10px' }}>●</span>
+                    {slot.current_price} <GreenBullet />
                   </div>
                   {slot.owner_id && (
                     <div
@@ -629,7 +636,7 @@ export default function NumberWarBoard() {
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ color: "var(--muted)" }}>ราคาปัจจุบัน:</span>
                     <span style={{ color: "var(--yellow)", fontWeight: "700" }}>
-                      {selectedSlot.current_price} <span style={{ color: '#0ecb81', fontSize: '10px' }}>●</span>
+                      {selectedSlot.current_price} <GreenBullet />
                     </span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -738,9 +745,9 @@ export default function NumberWarBoard() {
                       🏆 {winner.match_name}
                     </div>
                   )}
-                  {winner.winning_scores && winner.winning_scores.length > 0 && (
+                  {winner.winning_score !== null && winner.winning_score !== undefined && (
                     <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "8px" }}>
-                      คะแนนทีมชนะ: {winner.winning_scores.join(" + ")} = {winner.slot_number}
+                      เลขที่ชนะ: {winner.winning_score}
                     </div>
                   )}
 

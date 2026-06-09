@@ -1199,11 +1199,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "running" ? "active" : ""}`} onClick={() => setActiveTab("running")} style={{ borderRadius: "999px" }}>จัดการคำถาม</button>
           <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => setActiveTab("settings")} style={{ borderRadius: "999px" }}>ตั้งค่าหน้าเว็บ</button>
           <button className={`button ${activeTab === "shop" ? "active" : ""}`} onClick={() => setActiveTab("shop")} style={{ borderRadius: "999px" }}>Shop</button>
-          <button className={`button ${activeTab === "numberwar" ? "active" : ""}`} onClick={() => setActiveTab("numberwar")} style={{ borderRadius: "999px" }}>🏆 Number War</button>
+          <button className={`button ${activeTab === "numberwar" ? "active" : ""}`} onClick={() => setActiveTab("numberwar")} style={{ borderRadius: "999px" }}>Number War</button>
           <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>แอดมิน ({admins.length})</button>
           <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>แจ้งปัญหา ({reports.length})</button>
           <button className={`button ${activeTab === "users" ? "active" : ""}`} onClick={() => setActiveTab("users")} style={{ borderRadius: "999px" }}>จัดการผู้ใช้ ({users.length})</button>
-          <button className={`button ${activeTab === "health" ? "active" : ""}`} onClick={() => setActiveTab("health")} style={{ borderRadius: "999px" }}>🏥 สุขภาพระบบ</button>
+          <button className={`button ${activeTab === "health" ? "active" : ""}`} onClick={() => setActiveTab("health")} style={{ borderRadius: "999px" }}>สุขภาพระบบ</button>
         </div>
 
         <section className="admin-content" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", width: "100%", maxWidth: "100%", justifyItems: "center", alignContent: "start", margin: "0 auto" }}>

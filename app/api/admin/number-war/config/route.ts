@@ -30,11 +30,11 @@ export async function POST(request: NextRequest) {
     // Check if admin
     const { data: adminUser, error: adminError } = await supabase
       .from("users")
-      .select("is_admin")
+      .select("role")
       .eq("id", user.id)
       .single();
 
-    if (adminError || !adminUser?.is_admin) {
+    if (adminError || adminUser?.role !== "admin") {
       return NextResponse.json(
         { ok: false, error: "Forbidden: Admin only" },
         { status: 403 }

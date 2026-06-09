@@ -28,7 +28,7 @@ CREATE POLICY number_war_config_read ON public.number_war_config
 
 -- Policy: only admins can modify
 CREATE POLICY number_war_config_admin ON public.number_war_config
-  FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_admin = true));
+  FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin'));
 
 -- Grant permissions
 GRANT SELECT ON public.number_war_config TO authenticated;
