@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
   const [form, setForm] = useState({
     shippingName: "",
@@ -42,6 +43,10 @@ export default function ProfilePage() {
           shippingZipcode: data.data.shippingZipcode || "",
           shippingPhone: data.data.shippingPhone || "",
         });
+        // ถ้ายังไม่เคยกรอก ที่อยู่ → เปิดโหมดแก้ไขให้เลย
+        if (!data.data.addressCompleted) {
+          setIsEditing(true);
+        }
       }
     } catch (err) {
       console.error("Error loading user:", err);
@@ -78,11 +83,14 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (data.ok) {
-        setMessage("บันทึกข้อมูลสำเร็จ!");
+        setMessage(user?.addressCompleted ? "อัปเดตข้อมูลสำเร็จ!" : "บันทึกข้อมูลสำเร็จ!");
         setUser((prev) => prev ? { ...prev, addressCompleted: data.data.addressCompleted } : null);
-        setTimeout(() => {
-          router.push("/number-war");
-        }, 1500);
+        setIsEditing(false);
+        if (!user?.addressCompleted) {
+          setTimeout(() => {
+            router.push("/number-war");
+          }, 1500);
+        }
       } else {
         setError(data.error || "ไม่สามารถบันทึกข้อมูลได้");
       }
@@ -91,6 +99,12 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleEdit() {
+    setIsEditing(true);
+    setMessage("");
+    setError("");
   }
 
   if (loading) {
@@ -103,6 +117,8 @@ export default function ProfilePage() {
     );
   }
 
+  const readOnly = user?.addressCompleted && !isEditing;
+
   return (
     <div className="page">
       <div className="app" style={{ maxWidth: "480px" }}>
@@ -111,8 +127,12 @@ export default function ProfilePage() {
           <div className="brand">
             <img src="https://superwinhub.app/ammo-556-icon.webp" alt="" className="logo" />
             <div className="brand-text">
-              <div style={{ fontWeight: 700, fontSize: "13px", color: "var(--yellow)" }}>ข้อมูลจัดส่ง</div>
-              <div style={{ fontSize: "10px", color: "var(--muted)" }}>กรอกข้อมูลให้ครบถ้วนเพื่อรับรางวัล</div>
+              <div style={{ fontWeight: 700, fontSize: "13px", color: "var(--yellow)" }}>
+                {readOnly ? "ข้อมูลจัดส่ง" : "แก้ไขข้อมูลจัดส่ง"}
+              </div>
+              <div style={{ fontSize: "10px", color: "var(--muted)" }}>
+                {readOnly ? "ข้อมูลสำหรับจัดส่งรางวัล" : "กรอกข้อมูลให้ครบถ้วนเพื่อรับรางวัล"}
+              </div>
             </div>
           </div>
           <button className="button" onClick={() => router.push("/number-war")} style={{ height: "34px", padding: "0 14px", fontSize: "11px" }}>
@@ -150,84 +170,46 @@ export default function ProfilePage() {
             borderColor: user?.addressCompleted ? "var(--green)" : "var(--red)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <div style={{ fontSize: "20px" }}>{user?.addressCompleted ? "✅" : "⚠️"}</div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: "12px", color: user?.addressCompleted ? "var(--green)" : "var(--red)" }}>
-                {user?.addressCompleted ? "ข้อมูลจัดส่งครบถ้วน" : "ยังไม่มีข้อมูลจัดส่ง"}
-              </div>
-              <div style={{ fontSize: "10px", color: "var(--muted)" }}>
-                {user?.addressCompleted
-                  ? "คุณสามารถเล่น Number War และรับรางวัลได้"
-                  : "กรุณากรอกข้อมูลด้านล่างให้ครบถ้วน"}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ fontSize: "20px" }}>{user?.addressCompleted ? "✅" : "⚠️"}</div>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: "12px", color: user?.addressCompleted ? "var(--green)" : "var(--red)" }}>
+                  {user?.addressCompleted ? "ข้อมูลจัดส่งครบถ้วน" : "ยังไม่มีข้อมูลจัดส่ง"}
+                </div>
+                <div style={{ fontSize: "10px", color: "var(--muted)" }}>
+                  {user?.addressCompleted
+                    ? "คุณสามารถเล่น Number War และรับรางวัลได้"
+                    : "กรุณากรอกข้อมูลด้านล่างให้ครบถ้วน"}
+                </div>
               </div>
             </div>
+            {user?.addressCompleted && !isEditing && (
+              <button
+                type="button"
+                onClick={handleEdit}
+                className="button"
+                style={{ height: "32px", padding: "0 12px", fontSize: "11px", borderRadius: "6px" }}
+              >
+                แก้ไข
+              </button>
+            )}
           </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="panel" style={{ padding: "16px" }}>
-          <div style={{ display: "grid", gap: "14px" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 600, marginBottom: "6px", color: "var(--text)" }}>
-                ชื่อ-นามสกุล ผู้รับ <span style={{ color: "var(--red)" }}>*</span>
-              </label>
-              <input
-                type="text"
-                value={form.shippingName}
-                onChange={(e) => setForm((f) => ({ ...f, shippingName: e.target.value }))}
-                placeholder="ชื่อ นามสกุล"
-                style={{
-                  width: "100%",
-                  height: "40px",
-                  background: "var(--bg)",
-                  border: "1px solid var(--hairline)",
-                  borderRadius: "8px",
-                  padding: "0 12px",
-                  color: "var(--text)",
-                  fontSize: "12px",
-                  outline: "none",
-                }}
-                required
-              />
-            </div>
-
-            <div>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 600, marginBottom: "6px", color: "var(--text)" }}>
-                ที่อยู่จัดส่ง <span style={{ color: "var(--red)" }}>*</span>
-              </label>
-              <textarea
-                value={form.shippingAddress}
-                onChange={(e) => setForm((f) => ({ ...f, shippingAddress: e.target.value }))}
-                placeholder="บ้านเลขที่ หมู่บ้าน/อาคาร ซอย ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด"
-                rows={3}
-                style={{
-                  width: "100%",
-                  background: "var(--bg)",
-                  border: "1px solid var(--hairline)",
-                  borderRadius: "8px",
-                  padding: "10px 12px",
-                  color: "var(--text)",
-                  fontSize: "12px",
-                  outline: "none",
-                  resize: "vertical",
-                  fontFamily: "inherit",
-                }}
-                required
-              />
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+        {isEditing ? (
+          <form onSubmit={handleSubmit} className="panel" style={{ padding: "16px" }}>
+            <div style={{ display: "grid", gap: "14px" }}>
               <div>
                 <label style={{ display: "block", fontSize: "11px", fontWeight: 600, marginBottom: "6px", color: "var(--text)" }}>
-                  รหัสไปรษณีย์ <span style={{ color: "var(--red)" }}>*</span>
+                  ชื่อ-นามสกุล ผู้รับ <span style={{ color: "var(--red)" }}>*</span>
                 </label>
                 <input
                   type="text"
-                  value={form.shippingZipcode}
-                  onChange={(e) => setForm((f) => ({ ...f, shippingZipcode: e.target.value }))}
-                  placeholder="10110"
-                  maxLength={10}
+                  value={form.shippingName}
+                  onChange={(e) => setForm((f) => ({ ...f, shippingName: e.target.value }))}
+                  placeholder="ชื่อ นามสกุล"
                   style={{
                     width: "100%",
                     height: "40px",
@@ -242,62 +224,149 @@ export default function ProfilePage() {
                   required
                 />
               </div>
+
               <div>
                 <label style={{ display: "block", fontSize: "11px", fontWeight: 600, marginBottom: "6px", color: "var(--text)" }}>
-                  เบอร์โทรศัพท์ <span style={{ color: "var(--red)" }}>*</span>
+                  ที่อยู่จัดส่ง <span style={{ color: "var(--red)" }}>*</span>
                 </label>
-                <input
-                  type="tel"
-                  value={form.shippingPhone}
-                  onChange={(e) => setForm((f) => ({ ...f, shippingPhone: e.target.value }))}
-                  placeholder="081-234-5678"
-                  maxLength={20}
+                <textarea
+                  value={form.shippingAddress}
+                  onChange={(e) => setForm((f) => ({ ...f, shippingAddress: e.target.value }))}
+                  placeholder="บ้านเลขที่ หมู่บ้าน/อาคาร ซอย ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด"
+                  rows={3}
                   style={{
                     width: "100%",
-                    height: "40px",
                     background: "var(--bg)",
                     border: "1px solid var(--hairline)",
                     borderRadius: "8px",
-                    padding: "0 12px",
+                    padding: "10px 12px",
                     color: "var(--text)",
                     fontSize: "12px",
                     outline: "none",
+                    resize: "vertical",
+                    fontFamily: "inherit",
                   }}
                   required
                 />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", fontWeight: 600, marginBottom: "6px", color: "var(--text)" }}>
+                    รหัสไปรษณีย์ <span style={{ color: "var(--red)" }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.shippingZipcode}
+                    onChange={(e) => setForm((f) => ({ ...f, shippingZipcode: e.target.value }))}
+                    placeholder="10110"
+                    maxLength={10}
+                    style={{
+                      width: "100%",
+                      height: "40px",
+                      background: "var(--bg)",
+                      border: "1px solid var(--hairline)",
+                      borderRadius: "8px",
+                      padding: "0 12px",
+                      color: "var(--text)",
+                      fontSize: "12px",
+                      outline: "none",
+                    }}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", fontWeight: 600, marginBottom: "6px", color: "var(--text)" }}>
+                    เบอร์โทรศัพท์ <span style={{ color: "var(--red)" }}>*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={form.shippingPhone}
+                    onChange={(e) => setForm((f) => ({ ...f, shippingPhone: e.target.value }))}
+                    placeholder="081-234-5678"
+                    maxLength={20}
+                    style={{
+                      width: "100%",
+                      height: "40px",
+                      background: "var(--bg)",
+                      border: "1px solid var(--hairline)",
+                      borderRadius: "8px",
+                      padding: "0 12px",
+                      color: "var(--text)",
+                      fontSize: "12px",
+                      outline: "none",
+                    }}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <div style={{ marginTop: "12px", padding: "10px", background: "rgba(246, 70, 93, 0.1)", border: "1px solid var(--red)", borderRadius: "8px", color: "var(--red)", fontSize: "11px" }}>
+                {error}
+              </div>
+            )}
+
+            {message && (
+              <div style={{ marginTop: "12px", padding: "10px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", borderRadius: "8px", color: "var(--green)", fontSize: "11px" }}>
+                {message}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+              {user?.addressCompleted && (
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => setIsEditing(false)}
+                  style={{ flex: 1, height: "44px", borderRadius: "8px", fontSize: "13px", fontWeight: 600 }}
+                >
+                  ยกเลิก
+                </button>
+              )}
+              <button
+                type="submit"
+                className="button gold"
+                disabled={saving}
+                style={{
+                  flex: 1,
+                  height: "44px",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  opacity: saving ? 0.6 : 1,
+                }}
+              >
+                {saving ? "กำลังบันทึก..." : user?.addressCompleted ? "อัปเดตข้อมูล" : "บันทึกข้อมูลจัดส่ง"}
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* Read-only view */
+          <div className="panel" style={{ padding: "16px" }}>
+            <div style={{ display: "grid", gap: "14px" }}>
+              <div>
+                <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "4px" }}>ชื่อ-นามสกุล ผู้รับ</div>
+                <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text)" }}>{user?.shippingName || "-"}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "4px" }}>ที่อยู่จัดส่ง</div>
+                <div style={{ fontSize: "12px", color: "var(--text)", lineHeight: "1.6", whiteSpace: "pre-wrap" }}>{user?.shippingAddress || "-"}</div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "4px" }}>รหัสไปรษณีย์</div>
+                  <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text)" }}>{user?.shippingZipcode || "-"}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "4px" }}>เบอร์โทรศัพท์</div>
+                  <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text)" }}>{user?.shippingPhone || "-"}</div>
+                </div>
               </div>
             </div>
           </div>
-
-          {error && (
-            <div style={{ marginTop: "12px", padding: "10px", background: "rgba(246, 70, 93, 0.1)", border: "1px solid var(--red)", borderRadius: "8px", color: "var(--red)", fontSize: "11px" }}>
-              {error}
-            </div>
-          )}
-
-          {message && (
-            <div style={{ marginTop: "12px", padding: "10px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", borderRadius: "8px", color: "var(--green)", fontSize: "11px" }}>
-              {message}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="button gold"
-            disabled={saving}
-            style={{
-              width: "100%",
-              height: "44px",
-              marginTop: "16px",
-              borderRadius: "8px",
-              fontSize: "13px",
-              fontWeight: 700,
-              opacity: saving ? 0.6 : 1,
-            }}
-          >
-            {saving ? "กำลังบันทึก..." : "บันทึกข้อมูลจัดส่ง"}
-          </button>
-        </form>
+        )}
       </div>
     </div>
   );
