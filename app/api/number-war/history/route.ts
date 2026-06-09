@@ -13,11 +13,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("number_war_history")
-      .select(`
-        *,
-        round:number_war_rounds(id, name),
-        opponent:opponent_id(id, display_name, email)
-      `)
+      .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -26,7 +22,7 @@ export async function GET(request: NextRequest) {
       query = query.eq("type", type);
     }
 
-    const { data, error } = await query;
+    const { data: history, error } = await query;
 
     if (error) {
       console.error("Error fetching number war history:", error);
@@ -36,7 +32,32 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ ok: true, data: data || [] });
+    const rows = history || [];
+
+    // Fetch related rounds
+    const roundIds = [...new Set(rows.map((r) => r.round_id).filter(Boolean))];
+    const { data: rounds } = await supabase
+      .from("number_war_rounds")
+      .select("id, name")
+      .in("id", roundIds);
+    const roundMap = new Map((rounds || []).map((r) => [r.id, r]));
+
+    // Fetch related opponents
+    const opponentIds = [...new Set(rows.map((r) => r.opponent_id).filter(Boolean))];
+    const { data: opponents } = await supabase
+      .from("users")
+      .select("id, display_name, email")
+      .in("id", opponentIds);
+    const opponentMap = new Map((opponents || []).map((u) => [u.id, u]));
+
+    // Enrich history
+    const enriched = rows.map((h) => ({
+      ...h,
+      round: h.round_id ? roundMap.get(h.round_id) || null : null,
+      opponent: h.opponent_id ? opponentMap.get(h.opponent_id) || null : null,
+    }));
+
+    return NextResponse.json({ ok: true, data: enriched });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unauthorized";
     return NextResponse.json(

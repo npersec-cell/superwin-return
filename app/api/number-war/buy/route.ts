@@ -181,17 +181,21 @@ export async function POST(request: NextRequest) {
           read: false,
         });
 
-        // Log history for old owner (sold)
-        await supabase.from("number_war_history").insert({
-          user_id: slot.owner_id,
-          round_id: targetRoundId,
-          slot_number: slotNumber,
-          type: "sold",
-          amount: payoutToOldOwner,
-          price: slot.current_price,
-          profit: Math.floor(profit / 2),
-          opponent_id: userId,
-        });
+        // Log history for old owner (sold) - non-blocking
+        try {
+          await supabase.from("number_war_history").insert({
+            user_id: slot.owner_id,
+            round_id: targetRoundId,
+            slot_number: slotNumber,
+            type: "sold",
+            amount: payoutToOldOwner,
+            price: slot.current_price,
+            profit: Math.floor(profit / 2),
+            opponent_id: userId,
+          });
+        } catch (logErr) {
+          console.error("Failed to log sold history:", logErr);
+        }
       }
     }
 
@@ -208,17 +212,21 @@ export async function POST(request: NextRequest) {
 
     if (updateError) throw updateError;
 
-    // 4. Log history for buyer
-    await supabase.from("number_war_history").insert({
-      user_id: userId,
-      round_id: targetRoundId,
-      slot_number: slotNumber,
-      type: isTakeover ? "takeover" : "buy",
-      amount: -price,
-      price: price,
-      profit: 0,
-      opponent_id: isTakeover ? slot.owner_id : null,
-    });
+    // 4. Log history for buyer - non-blocking
+    try {
+      await supabase.from("number_war_history").insert({
+        user_id: userId,
+        round_id: targetRoundId,
+        slot_number: slotNumber,
+        type: isTakeover ? "takeover" : "buy",
+        amount: -price,
+        price: price,
+        profit: 0,
+        opponent_id: isTakeover ? slot.owner_id : null,
+      });
+    } catch (logErr) {
+      console.error("Failed to log buy history:", logErr);
+    }
 
     return NextResponse.json({
       ok: true,
