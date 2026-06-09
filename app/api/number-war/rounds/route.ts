@@ -107,6 +107,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, data: round });
   } catch (error) {
     console.error("Error creating round:", error);
-    return NextResponse.json({ ok: false, error: "Failed to create round" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to create round";
+    const status = message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500;
+    return NextResponse.json({ ok: false, error: message }, { status });
   }
 }
