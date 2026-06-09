@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     // Fetch round info
     const { data: roundInfo } = await supabase
       .from("number_war_rounds")
-      .select("id, name, open_at, close_at, winner_slot, status, created_at")
+      .select("id, name, open_at, close_at, winner_slot, status, prize_name, prize_image_url, created_at")
       .eq("id", targetRoundId)
       .single();
 

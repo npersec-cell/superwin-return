@@ -44,6 +44,8 @@ interface NwRound {
   open_at: string | null;
   close_at: string | null;
   winner_slot: number | null;
+  prize_name: string | null;
+  prize_image_url: string | null;
   status: string;
   computedStatus?: "upcoming" | "open" | "closed" | "resolved";
   created_at: string;
@@ -344,6 +346,54 @@ export default function NumberWarPage() {
       {round && (
         <div style={{ fontSize: "14px", fontWeight: "600", color: "var(--text)", marginBottom: "8px" }}>
           {round.name}
+        </div>
+      )}
+
+      {/* Prize Section */}
+      {round && (round.prize_name || round.prize_image_url) && (
+        <div
+          style={{
+            background: "var(--card)",
+            border: "1px solid var(--hairline)",
+            borderRadius: "12px",
+            padding: "16px",
+            marginBottom: "16px",
+            display: "flex",
+            gap: "16px",
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          {round.prize_image_url && (
+            <div style={{ flexShrink: 0 }}>
+              <img
+                src={round.prize_image_url}
+                alt={round.prize_name || " prize"}
+                style={{
+                  width: "150px",
+                  height: "150px",
+                  objectFit: "cover",
+                  borderRadius: "8px",
+                  border: "1px solid var(--hairline)",
+                }}
+              />
+            </div>
+          )}
+          <div style={{ flex: 1, minWidth: "200px" }}>
+            <div style={{ color: "var(--yellow)", fontSize: "11px", fontWeight: "600", marginBottom: "4px", textTransform: "uppercase" }}>
+              ของรางวัล
+            </div>
+            {round.prize_name && (
+              <div style={{ color: "var(--text)", fontSize: "16px", fontWeight: "700", lineHeight: "1.4" }}>
+                {round.prize_name}
+              </div>
+            )}
+            {!round.prize_name && (
+              <div style={{ color: "var(--muted)", fontSize: "12px" }}>
+                ดูรายละเอียดเพิ่มเติมได้จากการประกาศผล
+              </div>
+            )}
+          </div>
         </div>
       )}
 

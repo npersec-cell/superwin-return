@@ -24,7 +24,7 @@ export async function GET() {
   try {
     const { data: rounds, error } = await supabase
       .from("number_war_rounds")
-      .select("id, name, open_at, close_at, winner_slot, status, created_at")
+      .select("id, name, open_at, close_at, winner_slot, status, prize_name, prize_image_url, created_at")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const user = await requireAdmin(request);
 
     const body = await request.json();
-    const { name, openAt, closeAt } = body;
+    const { name, openAt, closeAt, prizeName, prizeImageUrl } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json({ ok: false, error: "กรุณากรอกชื่อรายการแข่งขัน" }, { status: 400 });
@@ -71,6 +71,8 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         open_at: openDate.toISOString(),
         close_at: closeDate.toISOString(),
+        prize_name: prizeName || null,
+        prize_image_url: prizeImageUrl || null,
         status: "upcoming",
       })
       .select()

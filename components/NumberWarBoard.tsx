@@ -75,6 +75,8 @@ interface NwRound {
   open_at: string | null;
   close_at: string | null;
   winner_slot: number | null;
+  prize_name: string | null;
+  prize_image_url: string | null;
   computedStatus?: "upcoming" | "open" | "closed" | "resolved";
   created_at: string;
 }
@@ -132,6 +134,14 @@ export default function NumberWarBoard() {
   const [editRoundOpenAt, setEditRoundOpenAt] = useState("");
   const [editRoundCloseAt, setEditRoundCloseAt] = useState("");
   const [editLoading, setEditLoading] = useState(false);
+  const [newPrizeName, setNewPrizeName] = useState("");
+  const [newPrizeImageUrl, setNewPrizeImageUrl] = useState("");
+  const [newPrizeImageFile, setNewPrizeImageFile] = useState<File | null>(null);
+  const [newPrizeImageLoading, setNewPrizeImageLoading] = useState(false);
+  const [editPrizeName, setEditPrizeName] = useState("");
+  const [editPrizeImageUrl, setEditPrizeImageUrl] = useState("");
+  const [editPrizeImageFile, setEditPrizeImageFile] = useState<File | null>(null);
+  const [editPrizeImageLoading, setEditPrizeImageLoading] = useState(false);
 
   // Info editor state
   const [infoContent, setInfoContent] = useState("");
@@ -463,6 +473,54 @@ export default function NumberWarBoard() {
                   <input type="datetime-local" value={newRoundCloseAt} onChange={(e) => setNewRoundCloseAt(e.target.value)} style={{ width: "100%", height: "36px" }} />
                 </div>
               </div>
+              <div style={{ borderTop: "1px solid var(--hairline)", paddingTop: "8px" }}>
+                <label style={{ color: "var(--yellow)", fontSize: "11px", display: "block", marginBottom: "4px", fontWeight: "600" }}>ของรางวัล (ไม่บังคับ)</label>
+                <div style={{ display: "grid", gap: "6px" }}>
+                  <div>
+                    <label style={{ color: "var(--muted)", fontSize: "10px", display: "block", marginBottom: "2px" }}>ชื่อรางวัล</label>
+                    <input type="text" value={newPrizeName} onChange={(e) => setNewPrizeName(e.target.value)} placeholder="เช่น รถมอเตอร์ไซค์, เงินสด 10,000 บาท" style={{ width: "100%", height: "34px", background: "var(--card)", color: "var(--text)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "0 8px", fontSize: "12px" }} />
+                  </div>
+                  <div>
+                    <label style={{ color: "var(--muted)", fontSize: "10px", display: "block", marginBottom: "2px" }}>รูปภาพรางวัล (150x150 px)</label>
+                    <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+                      <input type="file" accept="image/*" onChange={(e) => setNewPrizeImageFile(e.target.files?.[0] || null)} style={{ fontSize: "11px", color: "var(--muted)", flex: 1 }} />
+                      <button
+                        onClick={async () => {
+                          if (!newPrizeImageFile) return;
+                          setNewPrizeImageLoading(true);
+                          try {
+                            const formData = new FormData();
+                            formData.append("file", newPrizeImageFile);
+                            const res = await fetch("/api/upload", { method: "POST", body: formData });
+                            const data = await res.json();
+                            if (data.ok) {
+                              setNewPrizeImageUrl(data.url);
+                              setNewPrizeImageFile(null);
+                              alert("อัปโหลดรูปสำเร็จ");
+                            } else {
+                              alert(data.error || "อัปโหลดไม่สำเร็จ");
+                            }
+                          } catch (e) {
+                            alert("เกิดข้อผิดพลาดในการอัปโหลด");
+                          } finally {
+                            setNewPrizeImageLoading(false);
+                          }
+                        }}
+                        disabled={!newPrizeImageFile || newPrizeImageLoading}
+                        style={{ height: "34px", padding: "0 12px", fontSize: "11px", background: "var(--yellow)", color: "#000", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600" }}
+                      >
+                        {newPrizeImageLoading ? "กำลังอัปโหลด..." : "อัปโหลด"}
+                      </button>
+                    </div>
+                    {newPrizeImageUrl && (
+                      <div style={{ marginTop: "6px" }}>
+                        <img src={newPrizeImageUrl} alt="prize preview" style={{ width: "150px", height: "150px", objectFit: "cover", borderRadius: "8px", border: "1px solid var(--hairline)" }} />
+                        <div style={{ fontSize: "10px", color: "var(--green)", marginTop: "2px" }}>อัปโหลดแล้ว ✓</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
               <button
                 className="button primary"
                 disabled={createLoading || !newRoundName.trim() || !newRoundOpenAt || !newRoundCloseAt}
@@ -472,13 +530,22 @@ export default function NumberWarBoard() {
                     const res = await fetch("/api/number-war/rounds", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ name: newRoundName.trim(), openAt: toBangkokIso(newRoundOpenAt), closeAt: toBangkokIso(newRoundCloseAt) }),
+                      body: JSON.stringify({
+                        name: newRoundName.trim(),
+                        openAt: toBangkokIso(newRoundOpenAt),
+                        closeAt: toBangkokIso(newRoundCloseAt),
+                        prizeName: newPrizeName.trim() || null,
+                        prizeImageUrl: newPrizeImageUrl || null,
+                      }),
                     });
                     const data = await res.json();
                     if (data.ok) {
                       setNewRoundName("");
                       setNewRoundOpenAt("");
                       setNewRoundCloseAt("");
+                      setNewPrizeName("");
+                      setNewPrizeImageUrl("");
+                      setNewPrizeImageFile(null);
                       setCreateFormOpen(false);
                       await loadRounds();
                     } else {
@@ -571,6 +638,9 @@ export default function NumberWarBoard() {
                             setEditRoundName(r.name);
                             setEditRoundOpenAt(toDatetimeLocal(r.open_at || ""));
                             setEditRoundCloseAt(toDatetimeLocal(r.close_at || ""));
+                            setEditPrizeName(r.prize_name || "");
+                            setEditPrizeImageUrl(r.prize_image_url || "");
+                            setEditPrizeImageFile(null);
                           }}
                           style={{
                             fontSize: "10px",
@@ -628,6 +698,60 @@ export default function NumberWarBoard() {
                           />
                         </div>
                       </div>
+                      <div style={{ borderTop: "1px solid var(--hairline)", paddingTop: "8px", marginTop: "4px" }}>
+                        <label style={{ color: "var(--yellow)", fontSize: "11px", display: "block", marginBottom: "4px", fontWeight: "600" }}>ของรางวัล (ไม่บังคับ)</label>
+                        <div style={{ display: "grid", gap: "6px" }}>
+                          <div>
+                            <label style={{ color: "var(--muted)", fontSize: "10px", display: "block", marginBottom: "2px" }}>ชื่อรางวัล</label>
+                            <input
+                              type="text"
+                              value={editPrizeName}
+                              onChange={(e) => setEditPrizeName(e.target.value)}
+                              placeholder="เช่น รถมอเตอร์ไซค์, เงินสด 10,000 บาท"
+                              style={{ width: "100%", height: "34px", background: "var(--bg)", color: "var(--text)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "0 8px", fontSize: "12px" }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ color: "var(--muted)", fontSize: "10px", display: "block", marginBottom: "2px" }}>รูปภาพรางวัล (150x150 px)</label>
+                            {editPrizeImageUrl && (
+                              <div style={{ marginBottom: "6px" }}>
+                                <img src={editPrizeImageUrl} alt="prize preview" style={{ width: "150px", height: "150px", objectFit: "cover", borderRadius: "8px", border: "1px solid var(--hairline)" }} />
+                                <div style={{ fontSize: "10px", color: "var(--green)", marginTop: "2px" }}>รูปปัจจุบัน ✓</div>
+                              </div>
+                            )}
+                            <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+                              <input type="file" accept="image/*" onChange={(e) => setEditPrizeImageFile(e.target.files?.[0] || null)} style={{ fontSize: "11px", color: "var(--muted)", flex: 1 }} />
+                              <button
+                                onClick={async () => {
+                                  if (!editPrizeImageFile) return;
+                                  setEditPrizeImageLoading(true);
+                                  try {
+                                    const formData = new FormData();
+                                    formData.append("file", editPrizeImageFile);
+                                    const res = await fetch("/api/upload", { method: "POST", body: formData });
+                                    const data = await res.json();
+                                    if (data.ok) {
+                                      setEditPrizeImageUrl(data.url);
+                                      setEditPrizeImageFile(null);
+                                      alert("อัปโหลดรูปสำเร็จ");
+                                    } else {
+                                      alert(data.error || "อัปโหลดไม่สำเร็จ");
+                                    }
+                                  } catch (e) {
+                                    alert("เกิดข้อผิดพลาดในการอัปโหลด");
+                                  } finally {
+                                    setEditPrizeImageLoading(false);
+                                  }
+                                }}
+                                disabled={!editPrizeImageFile || editPrizeImageLoading}
+                                style={{ height: "34px", padding: "0 12px", fontSize: "11px", background: "var(--yellow)", color: "#000", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600" }}
+                              >
+                                {editPrizeImageLoading ? "กำลังอัปโหลด..." : "อัปโหลด"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                       <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                         <button
                           onClick={() => setEditingRoundId("")}
@@ -647,11 +771,16 @@ export default function NumberWarBoard() {
                                   name: editRoundName,
                                   openAt: editRoundOpenAt ? toBangkokIso(editRoundOpenAt) : null,
                                   closeAt: editRoundCloseAt ? toBangkokIso(editRoundCloseAt) : null,
+                                  prizeName: editPrizeName.trim() || null,
+                                  prizeImageUrl: editPrizeImageUrl || null,
                                 }),
                               });
                               const data = await res.json();
                               if (data.ok) {
                                 setEditingRoundId("");
+                                setEditPrizeName("");
+                                setEditPrizeImageUrl("");
+                                setEditPrizeImageFile(null);
                                 await loadRounds();
                               } else {
                                 alert(data.error || "แก้ไขไม่สำเร็จ");

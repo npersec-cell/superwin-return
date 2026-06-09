@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const user = await requireAdmin(request);
 
     const body = await request.json();
-    const { roundId, name, openAt, closeAt } = body;
+    const { roundId, name, openAt, closeAt, prizeName, prizeImageUrl } = body;
 
     if (!roundId) {
       return NextResponse.json(
@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
     if (name !== undefined) updateData.name = name;
     if (openAt !== undefined) updateData.open_at = openAt || null;
     if (closeAt !== undefined) updateData.close_at = closeAt || null;
+    if (prizeName !== undefined) updateData.prize_name = prizeName;
+    if (prizeImageUrl !== undefined) updateData.prize_image_url = prizeImageUrl;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
