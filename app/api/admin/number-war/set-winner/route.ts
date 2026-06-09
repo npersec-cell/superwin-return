@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
         },
         winnerLog: winnerLog,
         calculatedNumber: slotNumber,
-        winningScores: winningScores.map(Number),
+        winningScore: winningScore,
       },
     });
   } catch (error) {
