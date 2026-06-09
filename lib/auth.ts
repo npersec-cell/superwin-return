@@ -12,6 +12,7 @@ export type AppUser = {
   profitScore: number;
   lastClaimAt: string | null;
   nextClaimAt: string | null;
+  addressCompleted: boolean;
   status: "active" | "suspended" | "banned";
   avatarUrl: string | null;
 };
@@ -27,6 +28,7 @@ type UserRow = {
   profit_score: number;
   last_claim_at: string | null;
   next_claim_at: string | null;
+  address_completed: boolean;
   status: "active" | "suspended" | "banned";
   avatar_url: string | null;
 };
@@ -43,6 +45,7 @@ function mapUser(row: UserRow): AppUser {
     profitScore: row.profit_score ?? 0,
     lastClaimAt: row.last_claim_at,
     nextClaimAt: row.next_claim_at,
+    addressCompleted: row.address_completed ?? false,
     status: row.status,
     avatarUrl: row.avatar_url || null
   };
@@ -150,7 +153,7 @@ async function clerkAuth(request?: Request): Promise<AppUser | null> {
 
   const { data: existing, error: selectError } = await supabase
     .from("users")
-    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, status, avatar_url")
+    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, address_completed, status, avatar_url")
     .eq("clerk_user_id", userId)
     .maybeSingle<UserRow>();
 
@@ -214,10 +217,11 @@ async function clerkAuth(request?: Request): Promise<AppUser | null> {
       coin_balance: 0,
       lifetime_profit: 0,
       profit_score: 0,
+      address_completed: false,
       status: "active",
       avatar_url: avatarUrl
     })
-    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, status, avatar_url")
+    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, address_completed, status, avatar_url")
     .single<UserRow>();
 
   if (insertError) {

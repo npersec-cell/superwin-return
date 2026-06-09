@@ -67,6 +67,8 @@ export default function NumberWarPage() {
   const [selectedSlot, setSelectedSlot] = useState<NumberSlot | null>(null);
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState("");
+  const [profitScore, setProfitScore] = useState<number | null>(null);
+  const [addressRequired, setAddressRequired] = useState(false);
 
   async function loadSlots() {
     try {
@@ -94,11 +96,25 @@ export default function NumberWarPage() {
     }
   }
 
+  async function loadUserInfo() {
+    try {
+      const res = await fetch("/api/me");
+      const data = await res.json();
+      if (data.ok) {
+        setProfitScore(data.data.profitScore);
+        if (!data.data.addressCompleted) {
+          setAddressRequired(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading user info:", error);
+    }
+  }
+
   useEffect(() => {
     async function init() {
       setLoading(true);
-      await loadSlots();
-      await loadMyWins();
+      await Promise.all([loadSlots(), loadMyWins(), loadUserInfo()]);
       setLoading(false);
     }
     init();
@@ -150,7 +166,11 @@ export default function NumberWarPage() {
       const data = await res.json();
       if (data.ok) {
         setMessage(`ซื้อเลข ${slot.slot_number} สำเร็จ!`);
+        setProfitScore(data.data.newProfitScore);
         await loadSlots();
+      } else if (data.error === "ADDRESS_REQUIRED") {
+        setAddressRequired(true);
+        setMessage("");
       } else {
         setMessage(`ผิดพลาด: ${data.error}`);
       }
@@ -196,6 +216,27 @@ export default function NumberWarPage() {
           ทายเลข 0-200 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ
         </p>
       </div>
+
+      {/* Profit Score Display */}
+      {profitScore !== null && (
+        <div
+          style={{
+            background: "rgba(14, 203, 129, 0.1)",
+            border: "1px solid var(--green)",
+            borderRadius: "8px",
+            padding: "10px 16px",
+            marginBottom: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ fontSize: "13px", color: "var(--muted)" }}>กระสุนเขียวคงเหลือ</span>
+          <span style={{ fontSize: "18px", fontWeight: "700", color: "var(--green)" }}>
+            {profitScore} <GreenBullet size={14} />
+          </span>
+        </div>
+      )}
 
       {/* Round Name */}
       {round && (
@@ -296,6 +337,48 @@ export default function NumberWarPage() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Address Wall */}
+      {addressRequired && (
+        <div
+          style={{
+            background: "rgba(239, 68, 68, 0.1)",
+            border: "1px solid #ef4444",
+            borderRadius: "12px",
+            padding: "20px",
+            marginBottom: "20px",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: "32px", marginBottom: "12px" }}>📦</div>
+          <h3 style={{ color: "#ef4444", marginBottom: "8px", fontSize: "16px" }}>
+            กรุณากรอกข้อมูลจัดส่งก่อนเล่น
+          </h3>
+          <p style={{ color: "var(--muted)", fontSize: "12px", marginBottom: "16px", lineHeight: "1.6" }}>
+            ระบบต้องมีที่อยู่จัดส่งสำหรับส่งรางวัลให้คุณ<br />
+            กรุณากรอกข้อมูลให้ครบถ้วน
+          </p>
+          <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
+            <button
+              className="button"
+              onClick={async () => {
+                await loadUserInfo();
+                if (profitScore !== null) setAddressRequired(false);
+              }}
+              style={{ height: "40px", borderRadius: "8px", padding: "0 16px" }}
+            >
+              ตรวจสอบอีกครั้ง
+            </button>
+            <button
+              className="button gold"
+              onClick={() => window.location.href = "/profile"}
+              style={{ height: "40px", borderRadius: "8px", padding: "0 24px" }}
+            >
+              ไปกรอกที่อยู่จัดส่ง
+            </button>
           </div>
         </div>
       )}

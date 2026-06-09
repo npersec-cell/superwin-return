@@ -1,17 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
-import { createSafeErrorResponse } from "@/lib/safe-error-handler";
+import { requireUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser(request);
+    const user = await requireUser(request);
 
-    if (!user) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-    }
-
-    return NextResponse.json({ ok: true, data: user });
+    return NextResponse.json({
+      ok: true,
+      data: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        role: user.role,
+        coinBalance: user.coinBalance,
+        lifetimeProfit: user.lifetimeProfit,
+        profitScore: user.profitScore,
+        lastClaimAt: user.lastClaimAt,
+        nextClaimAt: user.nextClaimAt,
+        status: user.status,
+        avatarUrl: user.avatarUrl,
+        addressCompleted: user.addressCompleted ?? false,
+      },
+    });
   } catch (error) {
-    return createSafeErrorResponse(error);
+    const message = error instanceof Error ? error.message : "Unauthorized";
+    const status = message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500;
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status }
+    );
   }
 }
