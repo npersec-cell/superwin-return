@@ -59,6 +59,21 @@ interface WinnerLog {
   created_at: string;
 }
 
+interface NwHistory {
+  id: string;
+  user_id: string;
+  round_id: string;
+  slot_number: number;
+  type: "buy" | "takeover" | "sold";
+  amount: number;
+  price: number;
+  profit: number;
+  opponent_id: string | null;
+  created_at: string;
+  round?: { id: string; name: string } | null;
+  opponent?: { id: string; display_name: string; email: string } | null;
+}
+
 function maskName(name: string): string {
   if (!name) return "";
   if (name === "You") return name;
@@ -80,6 +95,9 @@ export default function NumberWarPage() {
   const [addressRequired, setAddressRequired] = useState(false);
   const [addressCompleted, setAddressCompleted] = useState(false);
   const [recheckMessage, setRecheckMessage] = useState("");
+  const [history, setHistory] = useState<NwHistory[]>([]);
+  const [historyFilter, setHistoryFilter] = useState<"all" | "buy" | "takeover" | "sold">("all");
+  const [showHistory, setShowHistory] = useState(false);
 
   async function loadSlots() {
     try {
@@ -132,14 +150,32 @@ export default function NumberWarPage() {
     }
   }
 
+  async function loadHistory() {
+    try {
+      const typeParam = historyFilter !== "all" ? `?type=${historyFilter}` : "";
+      const data = await fetchJson<{ ok: boolean; data: NwHistory[] }>(`/api/number-war/history${typeParam}`);
+      if (data.ok) {
+        setHistory(data.data);
+      }
+    } catch (error) {
+      console.error("Error loading history:", error);
+    }
+  }
+
   useEffect(() => {
     async function init() {
       setLoading(true);
-      await Promise.all([loadSlots(), loadMyWins(), loadUserInfo()]);
+      await Promise.all([loadSlots(), loadMyWins(), loadUserInfo(), loadHistory()]);
       setLoading(false);
     }
     init();
   }, []);
+
+  useEffect(() => {
+    if (showHistory) {
+      loadHistory();
+    }
+  }, [showHistory, historyFilter]);
 
   // Countdown timer
   useEffect(() => {
@@ -231,11 +267,20 @@ export default function NumberWarPage() {
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "20px" }}>
       {/* Header */}
-      <div style={{ marginBottom: "20px" }}>
-        <h1 style={{ color: "var(--yellow)", marginBottom: "8px" }}>Number War</h1>
-        <p style={{ color: "var(--muted)", fontSize: "12px" }}>
-          ทายเลข 0-200 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ
-        </p>
+      <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <h1 style={{ color: "var(--yellow)", marginBottom: "8px" }}>Number War</h1>
+          <p style={{ color: "var(--muted)", fontSize: "12px" }}>
+            ทายเลข 0-200 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ
+          </p>
+        </div>
+        <button
+          className="button"
+          onClick={() => setShowHistory(true)}
+          style={{ height: "36px", borderRadius: "8px", padding: "0 16px", fontSize: "12px" }}
+        >
+          ประวัติ
+        </button>
       </div>
 
       {/* Profit Score Display */}
@@ -587,6 +632,113 @@ export default function NumberWarPage() {
             <button className="button" onClick={() => setSelectedSlot(null)} style={{ width: "100%" }}>
               ปิด
             </button>
+          </div>
+        </div>
+      )}
+      {/* History Modal */}
+      {showHistory && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.7)",
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+          }}
+          onClick={() => setShowHistory(false)}
+        >
+          <div
+            style={{
+              background: "#161b22",
+              border: "1px solid #2a2f35",
+              borderRadius: "12px",
+              maxWidth: "600px",
+              width: "100%",
+              maxHeight: "80vh",
+              overflow: "auto",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: "20px", borderBottom: "1px solid #2a2f35", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ fontSize: "16px", color: "var(--yellow)" }}>ประวัติ Number War</h2>
+              <button className="button" onClick={() => setShowHistory(false)} style={{ height: "32px", padding: "0 12px", fontSize: "12px" }}>
+                ปิด
+              </button>
+            </div>
+
+            {/* Filter Tabs */}
+            <div style={{ padding: "12px 20px", display: "flex", gap: "8px", borderBottom: "1px solid #2a2f35", overflowX: "auto" }}>
+              {(["all", "buy", "takeover", "sold"] as const).map((f) => (
+                <button
+                  key={f}
+                  className={historyFilter === f ? "button gold" : "button"}
+                  onClick={() => setHistoryFilter(f)}
+                  style={{ height: "32px", padding: "0 12px", fontSize: "12px", whiteSpace: "nowrap" }}
+                >
+                  {f === "all" ? "ทั้งหมด" : f === "buy" ? "ซื้อ" : f === "takeover" ? "แย่ง" : "ถูกแย่ง"}
+                </button>
+              ))}
+            </div>
+
+            {/* History List */}
+            <div style={{ padding: "16px 20px" }}>
+              {history.length === 0 ? (
+                <div style={{ textAlign: "center", color: "var(--muted)", padding: "20px" }}>ยังไม่มีประวัติ</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {history.map((h) => {
+                    const date = new Date(h.created_at);
+                    const dateStr = date.toLocaleDateString("th-TH", { day: "2-digit", month: "short" });
+                    const timeStr = date.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+                    const isPositive = h.amount > 0;
+                    const typeLabel = h.type === "buy" ? "ซื้อ" : h.type === "takeover" ? "แย่ง" : "ถูกแย่ง";
+                    const typeColor = h.type === "buy" ? "var(--info)" : h.type === "takeover" ? "var(--yellow)" : "var(--green)";
+                    return (
+                      <div
+                        key={h.id}
+                        style={{
+                          background: "#0d1013",
+                          border: "1px solid #2a2f35",
+                          borderRadius: "8px",
+                          padding: "12px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                            <span style={{ fontSize: "11px", color: "var(--muted)" }}>{dateStr} {timeStr}</span>
+                            <span style={{ fontSize: "11px", fontWeight: "600", color: typeColor, background: `${typeColor}20`, padding: "2px 8px", borderRadius: "4px" }}>
+                              {typeLabel}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: "13px", color: "var(--text)" }}>
+                            เลข {h.slot_number} · {h.round?.name || "-"}
+                            {h.opponent && (
+                              <span style={{ color: "var(--muted)", fontSize: "11px" }}>
+                                {" "}· {h.type === "sold" ? "โดน" : "จาก"} {maskName(h.opponent.display_name || h.opponent.email)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: "14px", fontWeight: "700", color: isPositive ? "var(--green)" : "var(--red)" }}>
+                            {isPositive ? "+" : ""}{h.amount} <GreenBullet size={10} />
+                          </div>
+                          {h.profit > 0 && (
+                            <div style={{ fontSize: "10px", color: "var(--green)" }}>กำไร +{h.profit}</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

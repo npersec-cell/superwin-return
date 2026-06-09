@@ -144,10 +144,14 @@ export async function POST(request: NextRequest) {
 
     if (deductError) throw deductError;
 
+    let oldOwnerPayout = 0;
+    let profit = 0;
+
     // 2. If takeover, pay previous owner
     if (isTakeover && slot.owner_id) {
-      const profit = price - slot.current_price; // profit from previous price
+      profit = price - slot.current_price;
       const payoutToOldOwner = slot.current_price + Math.floor(profit / 2);
+      oldOwnerPayout = payoutToOldOwner;
       const burnAmount = price - payoutToOldOwner;
 
       // Get old owner profit_score
@@ -176,6 +180,18 @@ export async function POST(request: NextRequest) {
           type: "number_war_takeover",
           read: false,
         });
+
+        // Log history for old owner (sold)
+        await supabase.from("number_war_history").insert({
+          user_id: slot.owner_id,
+          round_id: targetRoundId,
+          slot_number: slotNumber,
+          type: "sold",
+          amount: payoutToOldOwner,
+          price: slot.current_price,
+          profit: Math.floor(profit / 2),
+          opponent_id: userId,
+        });
       }
     }
 
@@ -191,6 +207,18 @@ export async function POST(request: NextRequest) {
       .eq("id", slot.id);
 
     if (updateError) throw updateError;
+
+    // 4. Log history for buyer
+    await supabase.from("number_war_history").insert({
+      user_id: userId,
+      round_id: targetRoundId,
+      slot_number: slotNumber,
+      type: isTakeover ? "takeover" : "buy",
+      amount: -price,
+      price: price,
+      profit: 0,
+      opponent_id: isTakeover ? slot.owner_id : null,
+    });
 
     return NextResponse.json({
       ok: true,
