@@ -36,9 +36,20 @@ interface NumberWarConfig {
   timeUntilOpen?: number;
 }
 
+interface WinnerLog {
+  id: string;
+  slot_number: number;
+  match_name: string | null;
+  winning_scores: number[] | null;
+  shipping_status: string;
+  tracking_number: string | null;
+  created_at: string;
+}
+
 export default function NumberWarPage() {
   const [slots, setSlots] = useState<NumberSlot[]>([]);
   const [config, setConfig] = useState<NumberWarConfig | null>(null);
+  const [myWins, setMyWins] = useState<WinnerLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<NumberSlot | null>(null);
   const [demoMode, setDemoMode] = useState(true);
@@ -68,10 +79,29 @@ export default function NumberWarPage() {
     }
   }
 
+  async function loadMyWins() {
+    try {
+      const token = localStorage.getItem("sb-token");
+      if (!token) return;
+      const res = await fetch("/api/number-war/my-wins", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setMyWins(data.data);
+      }
+    } catch (error) {
+      console.error("Error loading my wins:", error);
+    }
+  }
+
   useEffect(() => {
     async function init() {
       setLoading(true);
       await Promise.all([loadSlots(), loadConfig()]);
+      if (!demoMode) {
+        await loadMyWins();
+      }
       setLoading(false);
     }
     init();
@@ -199,6 +229,77 @@ export default function NumberWarPage() {
           </div>
           <div style={{ fontSize: "11px", color: "var(--muted)" }}>
             {countdown}
+          </div>
+        </div>
+      )}
+
+      {/* Winner Banner */}
+      {myWins.length > 0 && (
+        <div
+          style={{
+            background: "rgba(255, 225, 0, 0.1)",
+            border: "1px solid var(--yellow)",
+            borderRadius: "12px",
+            padding: "16px",
+            marginBottom: "16px",
+          }}
+        >
+          <h3 style={{ color: "var(--yellow)", marginBottom: "8px", fontSize: "14px" }}>
+            🎉 ยินดีด้วย! คุณเป็นผู้โชคดี!
+          </h3>
+          <div style={{ display: "grid", gap: "8px" }}>
+            {myWins.map((win) => (
+              <div
+                key={win.id}
+                style={{
+                  background: "var(--card)",
+                  border: "1px solid var(--hairline)",
+                  borderRadius: "8px",
+                  padding: "10px",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <span style={{ fontSize: "16px", fontWeight: "700", color: "var(--yellow)" }}>
+                    เลข {win.slot_number}
+                  </span>
+                  <span
+                    style={{
+                      padding: "2px 8px",
+                      borderRadius: "4px",
+                      fontSize: "10px",
+                      fontWeight: "600",
+                      background:
+                        win.shipping_status === "delivered"
+                          ? "rgba(14, 203, 129, 0.2)"
+                          : win.shipping_status === "shipped"
+                          ? "rgba(59, 130, 246, 0.2)"
+                          : "rgba(255, 225, 0, 0.1)",
+                      color:
+                        win.shipping_status === "delivered"
+                          ? "var(--green)"
+                          : win.shipping_status === "shipped"
+                          ? "var(--info)"
+                          : "var(--yellow)",
+                    }}
+                  >
+                    {win.shipping_status === "pending" && "⏳ รอดำเนินการ"}
+                    {win.shipping_status === "processing" && "🔧 กำลังเตรียม"}
+                    {win.shipping_status === "shipped" && "📦 จัดส่งแล้ว"}
+                    {win.shipping_status === "delivered" && "✅ ส่งถึงแล้ว"}
+                  </span>
+                </div>
+                {win.match_name && (
+                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>
+                    🏆 {win.match_name}
+                  </div>
+                )}
+                {win.tracking_number && (
+                  <div style={{ fontSize: "11px", color: "var(--info)" }}>
+                    📋 Tracking: {win.tracking_number}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}
