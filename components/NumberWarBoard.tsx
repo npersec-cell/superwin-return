@@ -126,10 +126,7 @@ export default function NumberWarBoard() {
 
   async function loadWinners() {
     try {
-      const token = localStorage.getItem("sb-token");
-      const response = await fetch("/api/admin/number-war/winners", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch("/api/admin/number-war/winners");
       const data = await response.json();
       if (data.ok) {
         setWinners(data.data);
@@ -207,12 +204,10 @@ export default function NumberWarBoard() {
     setMessage("");
 
     try {
-      const token = localStorage.getItem("sb-token");
       const response = await fetch("/api/admin/number-war/set-winner", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           winningScore: slotNumber,
@@ -241,12 +236,10 @@ export default function NumberWarBoard() {
 
   async function handleUpdateShipping(winnerId: string, status: string, trackingNumber?: string) {
     try {
-      const token = localStorage.getItem("sb-token");
       const response = await fetch("/api/admin/number-war/update-shipping", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           winnerId,
@@ -348,10 +341,9 @@ export default function NumberWarBoard() {
                 onClick={async () => {
                   setCreateLoading(true);
                   try {
-                    const token = localStorage.getItem("sb-token");
                     const res = await fetch("/api/number-war/rounds", {
                       method: "POST",
-                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                      headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ name: newRoundName.trim(), openAt: newRoundOpenAt, closeAt: newRoundCloseAt }),
                     });
                     const data = await res.json();

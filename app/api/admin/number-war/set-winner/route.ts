@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireAdmin } from "@/lib/auth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,38 +9,7 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify admin
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { ok: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.split(" ")[1];
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { ok: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    // Check if admin
-    const { data: adminUser, error: adminError } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (adminError || adminUser?.role !== "admin") {
-      return NextResponse.json(
-        { ok: false, error: "Forbidden: Admin only" },
-        { status: 403 }
-      );
-    }
+    const user = await requireAdmin(request);
 
     const body = await request.json();
     const { winningScore, roundId } = body;
@@ -204,9 +174,11 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error setting winner:", error);
+    const message = error instanceof Error ? error.message : "Failed to set winner";
+    const status = message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500;
     return NextResponse.json(
-      { ok: false, error: "Failed to set winner" },
-      { status: 500 }
+      { ok: false, error: message },
+      { status }
     );
   }
 }

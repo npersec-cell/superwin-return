@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireUser } from "@/lib/auth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,12 +19,15 @@ function getRoundStatus(round: { open_at: string | null; close_at: string | null
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, slotNumber, roundId } = body;
+    const authUser = await requireUser(request);
+    const userId = authUser.id;
 
-    if (!userId || slotNumber === undefined) {
+    const body = await request.json();
+    const { slotNumber, roundId } = body;
+
+    if (slotNumber === undefined) {
       return NextResponse.json(
-        { ok: false, error: "Missing userId or slotNumber" },
+        { ok: false, error: "Missing slotNumber" },
         { status: 400 }
       );
     }
@@ -124,9 +128,9 @@ export async function POST(request: NextRequest) {
     const price = isTakeover ? slot.current_price * 2 : slot.current_price;
 
     // Check user profit_score (กระสุนเขียว)
-    if (user.profit_score < price) {
+    if (authUser.profitScore < price) {
       return NextResponse.json(
-        { ok: false, error: "Insufficient profit_score", required: price, current: user.profit_score },
+        { ok: false, error: "Insufficient profit_score", required: price, current: authUser.profitScore },
         { status: 400 }
       );
     }
@@ -135,7 +139,7 @@ export async function POST(request: NextRequest) {
     // 1. Deduct profit_score from buyer
     const { error: deductError } = await supabase
       .from("users")
-      .update({ profit_score: user.profit_score - price })
+      .update({ profit_score: authUser.profitScore - price })
       .eq("id", userId);
 
     if (deductError) throw deductError;
@@ -195,7 +199,7 @@ export async function POST(request: NextRequest) {
         slotNumber,
         price,
         isTakeover,
-        newProfitScore: user.profit_score - price,
+        newProfitScore: authUser.profitScore - price,
       },
     });
   } catch (error) {

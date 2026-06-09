@@ -86,11 +86,7 @@ export default function NumberWarPage() {
 
   async function loadMyWins() {
     try {
-      const token = localStorage.getItem("sb-token");
-      if (!token) return;
-      const res = await fetch("/api/number-war/my-wins", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch("/api/number-war/my-wins");
       const data = await res.json();
       if (data.ok) {
         setMyWins(data.data);
@@ -158,10 +154,9 @@ export default function NumberWarPage() {
 
     // Real mode: call API
     try {
-      const token = localStorage.getItem("sb-token");
       const res = await fetch("/api/number-war/buy", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slotNumber: slot.slot_number }),
       });
 
