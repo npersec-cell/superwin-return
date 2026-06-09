@@ -206,13 +206,15 @@ export async function GET(request: NextRequest) {
     let pendingCheck: CheckResult;
     try {
       // Check for predictions stuck in 'open' status for more than 24 hours
+      // CORRECT logic: status='open' BUT closes_at was >24h ago (should have been closed automatically)
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       
       const { data: stuckPredictions, error: stuckError } = await supabase
         .from("predictions")
         .select("id, tournament_name, question, status, opens_at, closes_at, created_at")
         .eq("status", "open")
-        .lt("created_at", twentyFourHoursAgo);
+        .not("closes_at", "is", null)
+        .lt("closes_at", twentyFourHoursAgo);
 
       if (stuckError) {
         pendingCheck = {
