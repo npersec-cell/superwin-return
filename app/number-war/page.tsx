@@ -96,7 +96,7 @@ export default function NumberWarPage() {
   const [slots, setSlots] = useState<NumberSlot[]>([]);
   const [round, setRound] = useState<NwRound | null>(null);
   const [myWins, setMyWins] = useState<WinnerLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [slotsLoading, setSlotsLoading] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<NumberSlot | null>(null);
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState("");
@@ -186,9 +186,14 @@ export default function NumberWarPage() {
 
   useEffect(() => {
     async function init() {
-      setLoading(true);
-      await Promise.all([loadSlots(), loadMyWins(), loadUserInfo(), loadHistory(), loadInfo()]);
-      setLoading(false);
+      setSlotsLoading(true);
+      await loadSlots();
+      setSlotsLoading(false);
+      // Load other data in background
+      loadMyWins();
+      loadUserInfo();
+      loadHistory();
+      loadInfo();
     }
     init();
   }, []);
@@ -276,14 +281,6 @@ export default function NumberWarPage() {
       default:
         return { bg: "rgba(59, 130, 246, 0.1)", border: "var(--info)", text: "var(--info)" };
     }
-  }
-
-  if (loading) {
-    return (
-      <div style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
-        กำลังโหลด...
-      </div>
-    );
   }
 
   return (
@@ -617,17 +614,22 @@ export default function NumberWarPage() {
       </div>
 
       {/* Slot Grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
-          gap: "6px",
-          maxHeight: "600px",
-          overflowY: "auto",
-          padding: "4px",
-        }}
-      >
-        {slots.map((slot) => {
+      {slotsLoading ? (
+        <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--muted)" }}>
+          <div style={{ fontSize: "14px" }}>กำลังโหลดเลข...</div>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
+            gap: "6px",
+            maxHeight: "600px",
+            overflowY: "auto",
+            padding: "4px",
+          }}
+        >
+          {slots.map((slot) => {
           const status = getSlotStatus(slot);
           const colors = getStatusColor(status);
           const price = slot.owner_id ? slot.current_price * 2 : slot.current_price;
@@ -682,6 +684,7 @@ export default function NumberWarPage() {
           );
         })}
       </div>
+      )}
 
       {/* Selected Slot Detail */}
       {selectedSlot && (
