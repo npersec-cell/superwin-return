@@ -70,6 +70,7 @@ export default function NumberWarPage() {
   const [profitScore, setProfitScore] = useState<number | null>(null);
   const [addressRequired, setAddressRequired] = useState(false);
   const [addressCompleted, setAddressCompleted] = useState(false);
+  const [recheckMessage, setRecheckMessage] = useState("");
 
   async function loadSlots() {
     try {
@@ -103,8 +104,15 @@ export default function NumberWarPage() {
       const data = await res.json();
       if (data.ok) {
         setProfitScore(data.data.profitScore);
-        setAddressCompleted(data.data.addressCompleted ?? false);
-        setAddressRequired(!data.data.addressCompleted);
+        const completed = data.data.addressCompleted ?? false;
+        setAddressCompleted(completed);
+        setAddressRequired(!completed);
+        if (!completed) {
+          setRecheckMessage("ยังไม่พบข้อมูลจัดส่ง กรุณากรอกข้อมูลให้ครบถ้วนก่อน");
+          setTimeout(() => setRecheckMessage(""), 4000);
+        } else {
+          setRecheckMessage("");
+        }
       }
     } catch (error) {
       console.error("Error loading user info:", error);
@@ -380,6 +388,11 @@ export default function NumberWarPage() {
               ไปกรอกที่อยู่จัดส่ง
             </button>
           </div>
+          {recheckMessage && (
+            <div style={{ marginTop: "12px", padding: "8px 12px", background: "rgba(246, 70, 93, 0.1)", border: "1px solid #ef4444", borderRadius: "8px", color: "#ef4444", fontSize: "11px" }}>
+              {recheckMessage}
+            </div>
+          )}
         </div>
       )}
 
