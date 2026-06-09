@@ -54,18 +54,32 @@ export async function GET(request: NextRequest) {
     // Fetch slots for this round
     const { data: slots, error } = await supabase
       .from("number_slots")
-      .select(`
-        *,
-        owner:owner_id (id, display_name, email)
-      `)
+      .select("*")
       .eq("round_id", targetRoundId)
       .order("slot_number", { ascending: true });
 
     if (error) throw error;
 
+    // Fetch owner info for slots that have an owner
+    const ownerIds = [...new Set((slots || []).map((s) => s.owner_id).filter(Boolean))];
+    let userMap = new Map<string, { id: string; display_name: string; email: string }>();
+    if (ownerIds.length > 0) {
+      const { data: users } = await supabase
+        .from("users")
+        .select("id, display_name, email")
+        .in("id", ownerIds);
+      (users || []).forEach((u) => userMap.set(u.id, u));
+    }
+
+    // Enrich slots with owner data
+    const enrichedSlots = (slots || []).map((slot) => ({
+      ...slot,
+      owner: slot.owner_id ? userMap.get(slot.owner_id) || null : null,
+    }));
+
     return NextResponse.json({
       ok: true,
-      data: slots || [],
+      data: enrichedSlots,
       round: roundInfo
         ? {
             ...roundInfo,
