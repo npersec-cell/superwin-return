@@ -43,12 +43,18 @@ DECLARE
   config_close_at TIMESTAMPTZ;
 BEGIN
   -- Only create default round if there are existing slots without round_id
-  IF EXISTS (SELECT 1 FROM public.number_slots WHERE round_id IS NULL) THEN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'number_slots')
+     AND EXISTS (SELECT 1 FROM public.number_slots WHERE round_id IS NULL) THEN
     -- Get dates from number_war_config if available
-    SELECT open_at, close_at INTO config_open_at, config_close_at
-    FROM public.number_war_config
-    ORDER BY created_at
-    LIMIT 1;
+    BEGIN
+      SELECT open_at, close_at INTO config_open_at, config_close_at
+      FROM public.number_war_config
+      ORDER BY created_at
+      LIMIT 1;
+    EXCEPTION WHEN undefined_table THEN
+      config_open_at := NULL;
+      config_close_at := NULL;
+    END;
 
     INSERT INTO public.number_war_rounds (name, open_at, close_at, status)
     VALUES (
