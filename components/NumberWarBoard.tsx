@@ -68,14 +68,25 @@ interface WinnerLog {
   };
 }
 
-interface NumberWarConfig {
+interface NwTournament {
   id: string;
-  open_at: string;
-  close_at: string;
-  is_active: boolean;
-  status?: "open" | "closed" | "upcoming";
-  timeLeft?: number;
-  timeUntilOpen?: number;
+  tournamentName: string;
+  status: string;
+  numberWarEnabled: boolean | null;
+  numberWarOpenAt: string | null;
+  numberWarCloseAt: string | null;
+  numberWarWinnerSlot: number | null;
+  createdAt: string;
+}
+
+function getNwStatus(tournament: NwTournament): "upcoming" | "open" | "closed" {
+  const now = Date.now();
+  const open = tournament.numberWarOpenAt ? new Date(tournament.numberWarOpenAt).getTime() : null;
+  const close = tournament.numberWarCloseAt ? new Date(tournament.numberWarCloseAt).getTime() : null;
+  if (open && now < open) return "upcoming";
+  if (close && now > close) return "closed";
+  if (open && close && now >= open && now <= close) return "open";
+  return "closed";
 }
 
 export default function NumberWarBoard() {
@@ -89,6 +100,8 @@ export default function NumberWarBoard() {
   const [setWinnerLoading, setSetWinnerLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [activeView, setActiveView] = useState<"board" | "winners">("board");
+  const [tournaments, setTournaments] = useState<NwTournament[]>([]);
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
 
   async function loadSlots() {
     try {
@@ -116,14 +129,42 @@ export default function NumberWarBoard() {
     }
   }
 
+  async function loadTournaments() {
+    try {
+      const token = localStorage.getItem("sb-token");
+      const response = await fetch("/api/admin/predictions", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.ok) {
+        const nwList: NwTournament[] = (data.data || [])
+          .filter((p: NwTournament) => p.numberWarEnabled)
+          .sort((a: NwTournament, b: NwTournament) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setTournaments(nwList);
+      }
+    } catch (error) {
+      console.error("Error loading tournaments:", error);
+    }
+  }
+
   useEffect(() => {
     async function init() {
       setLoading(true);
-      await Promise.all([loadSlots(), loadWinners()]);
+      await Promise.all([loadSlots(), loadWinners(), loadTournaments()]);
       setLoading(false);
     }
     init();
   }, []);
+
+  // Auto-fill match name when tournament selected
+  useEffect(() => {
+    if (selectedTournamentId) {
+      const t = tournaments.find((x) => x.id === selectedTournamentId);
+      if (t) {
+        setMatchName(t.tournamentName);
+      }
+    }
+  }, [selectedTournamentId, tournaments]);
 
   // Calculate winning number when score changes
   useEffect(() => {
@@ -179,25 +220,27 @@ export default function NumberWarBoard() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           matchName: matchName.trim(),
-          winningScore: slotNumber 
+          winningScore: slotNumber,
+          tournamentId: selectedTournamentId || undefined,
         }),
       });
 
       const data = await response.json();
 
       if (data.ok) {
-        setMessage(`✅ ประกาศผลสำเร็จ! เลข ${slotNumber} ชนะรางวัลจาก "${matchName.trim()}"`);
+        setMessage(`ประกาศผลสำเร็จ! เลข ${slotNumber} ชนะรางวัลจาก "${matchName.trim()}"`);
         setMatchName("");
         setWinningScore("");
         setCalculatedNumber(null);
-        await loadWinners();
+        setSelectedTournamentId("");
+        await Promise.all([loadWinners(), loadTournaments()]);
       } else {
-        setMessage(`❌ ${data.error || "เกิดข้อผิดพลาด"}`);
+        setMessage(`ผิดพลาด: ${data.error || "เกิดข้อผิดพลาด"}`);
       }
     } catch (error) {
-      setMessage("❌ เกิดข้อผิดพลาดในการประกาศผล");
+      setMessage("เกิดข้อผิดพลาดในการประกาศผล");
     } finally {
       setSetWinnerLoading(false);
     }
@@ -260,10 +303,94 @@ export default function NumberWarBoard() {
     <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
       {/* Header */}
       <div style={{ marginBottom: "20px" }}>
-        <h2 style={{ color: "var(--yellow)", marginBottom: "8px" }}>🏆 PUBG Number War</h2>
+        <h2 style={{ color: "var(--yellow)", marginBottom: "8px" }}>Number War</h2>
         <p style={{ color: "var(--muted)", fontSize: "12px" }}>
           ระบบทายเลข 0-200 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง
         </p>
+      </div>
+
+      {/* Number War Rounds List */}
+      <div
+        style={{
+          background: "var(--card)",
+          border: "1px solid var(--hairline)",
+          borderRadius: "12px",
+          padding: "16px",
+          marginBottom: "20px",
+        }}
+      >
+        <h3 style={{ color: "var(--yellow)", marginBottom: "12px", fontSize: "14px" }}>
+          รายการแข่งขัน Number War
+        </h3>
+        {tournaments.length === 0 ? (
+          <div style={{ color: "var(--muted)", fontSize: "12px", textAlign: "center", padding: "20px" }}>
+            ยังไม่มีรายการแข่งขัน Number War
+            <br />
+            <span style={{ fontSize: "11px" }}>สร้างได้จากแท็บ "จัดการคำถาม" &rarr; เปิด Number War สำหรับทัวร์นี้</span>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: "8px" }}>
+            {tournaments.map((t) => {
+              const status = getNwStatus(t);
+              const statusLabel = status === "open" ? "เปิดรับซื้อ" : status === "upcoming" ? "เร็วๆ นี้" : "ปิดรับซื้อ";
+              const statusColor = status === "open" ? "var(--green)" : status === "upcoming" ? "var(--info)" : "var(--yellow)";
+              const isSelected = selectedTournamentId === t.id;
+              return (
+                <div
+                  key={t.id}
+                  onClick={() => {
+                    setSelectedTournamentId(isSelected ? "" : t.id);
+                    if (!isSelected) setMatchName(t.tournamentName);
+                  }}
+                  style={{
+                    background: isSelected ? "rgba(255, 225, 0, 0.08)" : "var(--bg)",
+                    border: `1px solid ${isSelected ? "var(--yellow)" : "var(--hairline)"}`,
+                    borderRadius: "8px",
+                    padding: "10px 12px",
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: "6px",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
+                      {t.tournamentName}
+                    </div>
+                    <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "2px" }}>
+                      {t.numberWarOpenAt && new Date(t.numberWarOpenAt).toLocaleString("th-TH")} -{" "}
+                      {t.numberWarCloseAt && new Date(t.numberWarCloseAt).toLocaleString("th-TH")}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: "600",
+                        padding: "2px 8px",
+                        borderRadius: "4px",
+                        background: `${statusColor}20`,
+                        color: statusColor,
+                      }}
+                    >
+                      {statusLabel}
+                    </span>
+                    {status === "closed" && !t.numberWarWinnerSlot && (
+                      <span style={{ fontSize: "10px", color: "#ef4444", fontWeight: "600" }}>ยังไม่ประกาศผล</span>
+                    )}
+                    {t.numberWarWinnerSlot !== null && (
+                      <span style={{ fontSize: "10px", color: "var(--green)", fontWeight: "600" }}>
+                        ชนะเลข {t.numberWarWinnerSlot}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* View Toggle */}
@@ -273,7 +400,7 @@ export default function NumberWarBoard() {
           onClick={() => setActiveView("board")}
           style={{ borderRadius: "8px" }}
         >
-          📋 กระดานเลข
+          กระดานเลข
         </button>
         <button
           className={`button ${activeView === "winners" ? "gold" : ""}`}
@@ -297,16 +424,42 @@ export default function NumberWarBoard() {
             }}
           >
             <h3 style={{ color: "var(--yellow)", marginBottom: "12px", fontSize: "14px" }}>
-              🎯 ประกาศผลรางวัล
+              ประกาศผลรางวัล
             </h3>
             <p style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "12px" }}>
-              กรอกชื่อการแข่งขันและคะแนนทีมชนะ (ระบบจะคำนวณเลขชนะอัตโนมัติจากผลรวมคะแนน)
+              เลือกรายการแข่งขันที่ปิดรับซื้อแล้ว แล้วกรอกเลขที่ชนะ (0-200)
             </p>
-            
+
+            {/* Tournament Select */}
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>
+                รายการแข่งขัน
+              </label>
+              <select
+                value={selectedTournamentId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setSelectedTournamentId(id);
+                  const t = tournaments.find((x) => x.id === id);
+                  if (t) setMatchName(t.tournamentName);
+                }}
+                style={{ width: "100%", height: "40px", background: "var(--bg)", color: "var(--text)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "0 10px" }}
+              >
+                <option value="">-- เลือกรายการแข่งขัน --</option>
+                {tournaments
+                  .filter((t) => getNwStatus(t) === "closed")
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.tournamentName} {t.numberWarWinnerSlot !== null ? `(ประกาศผลแล้ว: เลข ${t.numberWarWinnerSlot})` : "(ยังไม่ประกาศผล)"}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
             {/* Match Name */}
             <div style={{ marginBottom: "12px" }}>
               <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>
-                ชื่อการแข่งขัน
+                ชื่อการแข่งขัน (สำหรับแสดงผล)
               </label>
               <input
                 type="text"
@@ -334,7 +487,7 @@ export default function NumberWarBoard() {
               {calculatedNumber !== null && (
                 <div style={{ marginTop: "8px", padding: "8px 12px", background: "rgba(255, 225, 0, 0.1)", borderRadius: "6px", fontSize: "12px" }}>
                   <span style={{ color: "var(--yellow)", fontWeight: "700" }}>
-                    🎯 เลขชนะ: {calculatedNumber}
+                    เลขชนะ: {calculatedNumber}
                   </span>
                   <span style={{ color: "var(--muted)", marginLeft: "8px" }}>
                     (0-200)
@@ -359,8 +512,8 @@ export default function NumberWarBoard() {
                   padding: "8px 12px",
                   borderRadius: "6px",
                   fontSize: "12px",
-                  background: message.includes("✅") ? "rgba(14, 203, 129, 0.1)" : "rgba(240, 84, 84, 0.1)",
-                  color: message.includes("✅") ? "var(--green)" : "#ef4444",
+                  background: message.includes("สำเร็จ") ? "rgba(14, 203, 129, 0.1)" : "rgba(240, 84, 84, 0.1)",
+                  color: message.includes("สำเร็จ") ? "var(--green)" : "#ef4444",
                 }}
               >
                 {message}
@@ -554,7 +707,7 @@ export default function NumberWarBoard() {
             padding: "16px",
           }}
         >
-          <h3 style={{ color: "var(--yellow)", marginBottom: "16px" }}>🏆 รายชื่อผู้ชนะ</h3>
+          <h3 style={{ color: "var(--yellow)", marginBottom: "16px" }}>รายชื่อผู้ชนะ</h3>
           {winners.length === 0 ? (
             <div style={{ textAlign: "center", color: "var(--muted)", padding: "40px" }}>
               ยังไม่มีผู้ชนะ
@@ -600,17 +753,17 @@ export default function NumberWarBoard() {
                             : "var(--yellow)",
                       }}
                     >
-                      {winner.shipping_status === "pending" && "⏳ รอดำเนินการ"}
-                      {winner.shipping_status === "processing" && "🔧 กำลังเตรียม"}
-                      {winner.shipping_status === "shipped" && "📦 จัดส่งแล้ว"}
-                      {winner.shipping_status === "delivered" && "✅ ส่งถึงแล้ว"}
+                      {winner.shipping_status === "pending" && "รอดำเนินการ"}
+                      {winner.shipping_status === "processing" && "กำลังเตรียม"}
+                      {winner.shipping_status === "shipped" && "จัดส่งแล้ว"}
+                      {winner.shipping_status === "delivered" && "ส่งถึงแล้ว"}
                     </span>
                   </div>
 
                   {/* Match Info */}
                   {winner.match_name && (
                     <div style={{ fontSize: "11px", color: "var(--yellow)", marginBottom: "4px" }}>
-                      🏆 {winner.match_name}
+                      {winner.match_name}
                     </div>
                   )}
                   {winner.winning_score !== null && winner.winning_score !== undefined && (
@@ -621,9 +774,9 @@ export default function NumberWarBoard() {
 
                   {/* Shipping Info */}
                   <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "8px" }}>
-                    <div>👤 {winner.user?.shipping_name || "-"}</div>
-                    <div>📍 {winner.user?.shipping_address || "-"}</div>
-                    <div>📮 {winner.user?.shipping_zipcode || "-"} | 📞 {winner.user?.shipping_phone || "-"}</div>
+                    <div>{winner.user?.shipping_name || "-"}</div>
+                    <div>{winner.user?.shipping_address || "-"}</div>
+                    <div>{winner.user?.shipping_zipcode || "-"} | {winner.user?.shipping_phone || "-"}</div>
                   </div>
 
                   {/* Admin Actions */}
@@ -634,11 +787,11 @@ export default function NumberWarBoard() {
                         style={{ height: "28px", fontSize: "11px", padding: "0 12px" }}
                         onClick={() => handleUpdateShipping(winner.id, "processing")}
                       >
-                        🔧 เริ่มเตรียม
+                        เริ่มเตรียม
                       </button>
                     )}
                     {winner.shipping_status === "processing" && (
-                      <button
+                        <button
                         className="button"
                         style={{ height: "28px", fontSize: "11px", padding: "0 12px" }}
                         onClick={() => {
@@ -648,7 +801,7 @@ export default function NumberWarBoard() {
                           }
                         }}
                       >
-                        📦 จัดส่ง
+                        จัดส่ง
                       </button>
                     )}
                     {winner.shipping_status === "shipped" && (
@@ -657,14 +810,14 @@ export default function NumberWarBoard() {
                         style={{ height: "28px", fontSize: "11px", padding: "0 12px", background: "rgba(14, 203, 129, 0.1)", borderColor: "var(--green)", color: "var(--green)" }}
                         onClick={() => handleUpdateShipping(winner.id, "delivered")}
                       >
-                        ✅ ส่งถึงแล้ว
+                        ส่งถึงแล้ว
                       </button>
                     )}
                   </div>
 
                   {winner.tracking_number && (
                     <div style={{ marginTop: "6px", fontSize: "11px", color: "var(--info)" }}>
-                      📋 Tracking: {winner.tracking_number}
+                      Tracking: {winner.tracking_number}
                     </div>
                   )}
                 </div>

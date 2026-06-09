@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { matchName, winningScore } = body;
+    const { matchName, winningScore, tournamentId } = body;
 
     // Validate inputs
     if (!matchName || !matchName.trim()) {
@@ -66,6 +66,18 @@ export async function POST(request: NextRequest) {
         { ok: false, error: `เลขชนะที่คำนวณได้คือ ${slotNumber} ซึ่งไม่อยู่ในช่วง 0-200` },
         { status: 400 }
       );
+    }
+
+    // Update prediction winner slot if tournamentId provided
+    if (tournamentId) {
+      const { error: updateError } = await supabase
+        .from("predictions")
+        .update({ number_war_winner_slot: slotNumber })
+        .eq("id", tournamentId);
+
+      if (updateError) {
+        console.error("Error updating prediction winner slot:", updateError);
+      }
     }
 
     // Get the slot

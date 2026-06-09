@@ -22,6 +22,10 @@ type PredictionRow = {
   opens_at: string | null;
   closes_at: string | null;
   fee_rate: number;
+  number_war_enabled: boolean | null;
+  number_war_open_at: string | null;
+  number_war_close_at: string | null;
+  number_war_winner_slot: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -49,6 +53,10 @@ function mapPrediction(row: PredictionRow, options: OptionRow[]) {
     opensAt: row.opens_at,
     closesAt: row.closes_at,
     feeRate: row.fee_rate,
+    numberWarEnabled: row.number_war_enabled,
+    numberWarOpenAt: row.number_war_open_at,
+    numberWarCloseAt: row.number_war_close_at,
+    numberWarWinnerSlot: row.number_war_winner_slot,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     options: options
@@ -65,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     const { data: predictions, error: predictionError } = await supabase
       .from("predictions")
-      .select("id, tournament_name, question, status, opens_at, closes_at, fee_rate, created_at, updated_at")
+      .select("id, tournament_name, question, status, opens_at, closes_at, fee_rate, number_war_enabled, number_war_open_at, number_war_close_at, number_war_winner_slot, created_at, updated_at")
       .order("created_at", { ascending: false })
       .returns<PredictionRow[]>();
 
