@@ -108,6 +108,11 @@ export default function NumberWarBoard() {
   const [newRoundOpenAt, setNewRoundOpenAt] = useState("");
   const [newRoundCloseAt, setNewRoundCloseAt] = useState("");
   const [createLoading, setCreateLoading] = useState(false);
+  const [editingRoundId, setEditingRoundId] = useState<string>("");
+  const [editRoundName, setEditRoundName] = useState("");
+  const [editRoundOpenAt, setEditRoundOpenAt] = useState("");
+  const [editRoundCloseAt, setEditRoundCloseAt] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
 
   async function loadSlots(roundId?: string) {
     try {
@@ -383,57 +388,156 @@ export default function NumberWarBoard() {
               const statusLabel = status === "open" ? "เปิดรับซื้อ" : status === "upcoming" ? "เร็วๆ นี้" : status === "resolved" ? "ประกาศผลแล้ว" : "ปิดรับซื้อ";
               const statusColor = status === "open" ? "var(--green)" : status === "upcoming" ? "var(--info)" : status === "resolved" ? "var(--green)" : "var(--yellow)";
               const isSelected = boardRoundId === r.id;
+              const isEditing = editingRoundId === r.id;
               return (
-                <div
-                  key={r.id}
-                  onClick={() => {
-                    setBoardRoundId(isSelected ? "" : r.id);
-                    loadSlots(isSelected ? undefined : r.id);
-                  }}
-                  style={{
-                    background: isSelected ? "rgba(255, 225, 0, 0.08)" : "var(--bg)",
-                    border: `1px solid ${isSelected ? "var(--yellow)" : "var(--hairline)"}`,
-                    borderRadius: "8px",
-                    padding: "10px 12px",
-                    cursor: "pointer",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    gap: "6px",
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
-                      {r.name}
+                <div key={r.id}>
+                  <div
+                    onClick={() => {
+                      if (isEditing) return;
+                      setBoardRoundId(isSelected ? "" : r.id);
+                      loadSlots(isSelected ? undefined : r.id);
+                    }}
+                    style={{
+                      background: isSelected ? "rgba(255, 225, 0, 0.08)" : "var(--bg)",
+                      border: `1px solid ${isSelected ? "var(--yellow)" : "var(--hairline)"}`,
+                      borderRadius: "8px",
+                      padding: "10px 12px",
+                      cursor: isEditing ? "default" : "pointer",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: "6px",
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
+                        {r.name}
+                      </div>
+                      <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "2px" }}>
+                        {r.open_at && new Date(r.open_at).toLocaleString("th-TH")} -{" "}
+                        {r.close_at && new Date(r.close_at).toLocaleString("th-TH")}
+                      </div>
                     </div>
-                    <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "2px" }}>
-                      {r.open_at && new Date(r.open_at).toLocaleString("th-TH")} -{" "}
-                      {r.close_at && new Date(r.close_at).toLocaleString("th-TH")}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: "600",
+                          padding: "2px 8px",
+                          borderRadius: "4px",
+                          background: `${statusColor}20`,
+                          color: statusColor,
+                        }}
+                      >
+                        {statusLabel}
+                      </span>
+                      {status === "closed" && r.winner_slot === null && (
+                        <span style={{ fontSize: "10px", color: "#ef4444", fontWeight: "600" }}>ยังไม่ประกาศผล</span>
+                      )}
+                      {r.winner_slot !== null && (
+                        <span style={{ fontSize: "10px", color: "var(--green)", fontWeight: "600" }}>
+                          ชนะเลข {r.winner_slot}
+                        </span>
+                      )}
+                      {status !== "resolved" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingRoundId(isEditing ? "" : r.id);
+                            setEditRoundName(r.name);
+                            setEditRoundOpenAt(r.open_at ? new Date(r.open_at).toISOString().slice(0, 16) : "");
+                            setEditRoundCloseAt(r.close_at ? new Date(r.close_at).toISOString().slice(0, 16) : "");
+                          }}
+                          style={{
+                            fontSize: "10px",
+                            padding: "2px 8px",
+                            borderRadius: "4px",
+                            background: "var(--card)",
+                            border: "1px solid var(--hairline)",
+                            color: "var(--muted)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          แก้ไข
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span
+                  {isEditing && (
+                    <div
                       style={{
-                        fontSize: "10px",
-                        fontWeight: "600",
-                        padding: "2px 8px",
-                        borderRadius: "4px",
-                        background: `${statusColor}20`,
-                        color: statusColor,
+                        background: "var(--card)",
+                        border: "1px solid var(--hairline)",
+                        borderTop: "none",
+                        borderRadius: "0 0 8px 8px",
+                        padding: "10px 12px",
+                        display: "grid",
+                        gap: "8px",
                       }}
                     >
-                      {statusLabel}
-                    </span>
-                    {status === "closed" && r.winner_slot === null && (
-                      <span style={{ fontSize: "10px", color: "#ef4444", fontWeight: "600" }}>ยังไม่ประกาศผล</span>
-                    )}
-                    {r.winner_slot !== null && (
-                      <span style={{ fontSize: "10px", color: "var(--green)", fontWeight: "600" }}>
-                        ชนะเลข {r.winner_slot}
-                      </span>
-                    )}
-                  </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                        <div>
+                          <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>เปิดรับซื้อ</label>
+                          <input
+                            type="datetime-local"
+                            value={editRoundOpenAt}
+                            onChange={(e) => setEditRoundOpenAt(e.target.value)}
+                            style={{ width: "100%", height: "34px", background: "var(--bg)", color: "var(--text)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "0 8px", fontSize: "12px" }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>ปิดรับซื้อ</label>
+                          <input
+                            type="datetime-local"
+                            value={editRoundCloseAt}
+                            onChange={(e) => setEditRoundCloseAt(e.target.value)}
+                            style={{ width: "100%", height: "34px", background: "var(--bg)", color: "var(--text)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "0 8px", fontSize: "12px" }}
+                          />
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                        <button
+                          onClick={() => setEditingRoundId("")}
+                          style={{ fontSize: "11px", padding: "4px 12px", borderRadius: "6px", background: "transparent", border: "1px solid var(--hairline)", color: "var(--muted)", cursor: "pointer" }}
+                        >
+                          ยกเลิก
+                        </button>
+                        <button
+                          onClick={async () => {
+                            setEditLoading(true);
+                            try {
+                              const res = await fetch("/api/admin/number-war/update-round", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  roundId: r.id,
+                                  name: editRoundName,
+                                  openAt: editRoundOpenAt || null,
+                                  closeAt: editRoundCloseAt || null,
+                                }),
+                              });
+                              const data = await res.json();
+                              if (data.ok) {
+                                setEditingRoundId("");
+                                await loadRounds();
+                              } else {
+                                alert(data.error || "แก้ไขไม่สำเร็จ");
+                              }
+                            } catch (e) {
+                              alert("เกิดข้อผิดพลาด");
+                            } finally {
+                              setEditLoading(false);
+                            }
+                          }}
+                          disabled={editLoading}
+                          style={{ fontSize: "11px", padding: "4px 12px", borderRadius: "6px", background: "var(--yellow)", color: "#000", border: "none", cursor: "pointer", fontWeight: "600" }}
+                        >
+                          {editLoading ? "กำลังบันทึก..." : "บันทึก"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
