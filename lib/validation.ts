@@ -116,6 +116,9 @@ export const createPredictionBodySchema = z.object({
     .array(z.string().min(1, "Option label cannot be empty"))
     .min(2, "At least 2 options are required")
     .max(20, "Maximum 20 options allowed"),
+  numberWarEnabled: z.boolean().optional().default(false),
+  numberWarOpenAt: z.string().optional().nullable(),
+  numberWarCloseAt: z.string().optional().nullable(),
 });
 
 /** Admin update prediction body (PATCH /api/admin/predictions/:id) */
@@ -148,6 +151,9 @@ export const updatePredictionBodySchema = z.object({
       })
     )
     .optional(),
+  numberWarEnabled: z.boolean().optional(),
+  numberWarOpenAt: z.string().optional().nullable(),
+  numberWarCloseAt: z.string().optional().nullable(),
 });
 
 /** Admin user role update body (POST /api/admin/users/make-admin, /api/admin/users/remove-admin) */

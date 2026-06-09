@@ -42,6 +42,9 @@ export async function PATCH(request: NextRequest, context: Params) {
     if (body.closesAt !== undefined && body.closesAt) update.closes_at = parseBkkDateTime(body.closesAt);
     if (body.feeRate !== undefined) update.fee_rate = body.feeRate;
     if (body.status !== undefined) update.status = body.status;
+    if (body.numberWarEnabled !== undefined) update.number_war_enabled = body.numberWarEnabled;
+    if (body.numberWarOpenAt !== undefined) update.number_war_open_at = body.numberWarOpenAt ? parseBkkDateTime(body.numberWarOpenAt) : null;
+    if (body.numberWarCloseAt !== undefined) update.number_war_close_at = body.numberWarCloseAt ? parseBkkDateTime(body.numberWarCloseAt) : null;
 
     const supabase = createSupabaseAdminClient();
     

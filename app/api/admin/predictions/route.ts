@@ -128,9 +128,12 @@ export async function POST(request: NextRequest) {
         opens_at: opensAt,
         closes_at: closesAt,
         fee_rate: body.feeRate,
-        created_by: admin.id
+        created_by: admin.id,
+        number_war_enabled: body.numberWarEnabled,
+        number_war_open_at: body.numberWarOpenAt ? (parseBkkDateTime(body.numberWarOpenAt) || null) : null,
+        number_war_close_at: body.numberWarCloseAt ? (parseBkkDateTime(body.numberWarCloseAt) || null) : null,
       })
-      .select("id, tournament_name, question, status, opens_at, closes_at, fee_rate, created_at, updated_at")
+      .select("id, tournament_name, question, status, opens_at, closes_at, fee_rate, number_war_enabled, number_war_open_at, number_war_close_at, created_at, updated_at")
       .single<PredictionRow>();
 
     if (predictionError) throw new Error(predictionError.message);

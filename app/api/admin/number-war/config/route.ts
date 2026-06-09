@@ -42,7 +42,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { openAt, closeAt, isActive } = body;
+    const { tournamentId, openAt, closeAt, enabled } = body;
+
+    if (!tournamentId) {
+      return NextResponse.json(
+        { ok: false, error: "กรุณาระบุ Tournament" },
+        { status: 400 }
+      );
+    }
 
     // Validate dates
     if (!openAt || !closeAt) {
@@ -69,64 +76,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get existing config
-    const { data: existing } = await supabase
-      .from("number_war_config")
-      .select("id")
-      .order("created_at", { ascending: false })
-      .limit(1)
+    // Update tournament
+    const { data: tournament, error: updateError } = await supabase
+      .from("predictions")
+      .update({
+        number_war_enabled: enabled ?? true,
+        number_war_open_at: openDate.toISOString(),
+        number_war_close_at: closeDate.toISOString(),
+      })
+      .eq("id", tournamentId)
+      .select()
       .single();
 
-    let result;
-    if (existing) {
-      // Update existing
-      const { data, error } = await supabase
-        .from("number_war_config")
-        .update({
-          open_at: openDate.toISOString(),
-          close_at: closeDate.toISOString(),
-          is_active: isActive ?? true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      result = data;
-    } else {
-      // Create new
-      const { data, error } = await supabase
-        .from("number_war_config")
-        .insert({
-          open_at: openDate.toISOString(),
-          close_at: closeDate.toISOString(),
-          is_active: isActive ?? true,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      result = data;
-    }
+    if (updateError) throw updateError;
 
     // Log admin action
     await supabase.from("audit_logs").insert({
       admin_id: user.id,
       action: "update_number_war_config",
-      target_type: "number_war_config",
-      target_id: result.id,
+      target_type: "predictions",
+      target_id: tournamentId,
       metadata: {
-        open_at: openDate.toISOString(),
-        close_at: closeDate.toISOString(),
-        is_active: isActive ?? true,
+        tournament_name: tournament?.tournament_name,
+        number_war_open_at: openDate.toISOString(),
+        number_war_close_at: closeDate.toISOString(),
+        number_war_enabled: enabled ?? true,
       },
     });
 
     return NextResponse.json({
       ok: true,
       message: "อัปเดตการตั้งค่าสำเร็จ",
-      data: result,
+      data: tournament,
     });
   } catch (error) {
     console.error("Error updating config:", error);
