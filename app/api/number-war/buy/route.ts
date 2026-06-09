@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     // Check if user has completed address
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("coin_balance, address_completed, shipping_name, shipping_address, shipping_zipcode, shipping_phone")
+      .select("profit_score, address_completed, shipping_name, shipping_address, shipping_zipcode, shipping_phone")
       .eq("id", userId)
       .single();
 
@@ -68,19 +68,19 @@ export async function POST(request: NextRequest) {
     const isTakeover = !!slot.owner_id;
     const price = isTakeover ? slot.current_price * 2 : slot.current_price;
 
-    // Check user balance
-    if (user.coin_balance < price) {
+    // Check user profit_score (กระสุนเขียว)
+    if (user.profit_score < price) {
       return NextResponse.json(
-        { ok: false, error: "Insufficient coins", required: price, current: user.coin_balance },
+        { ok: false, error: "Insufficient profit_score", required: price, current: user.profit_score },
         { status: 400 }
       );
     }
 
     // Start transaction
-    // 1. Deduct coins from buyer
+    // 1. Deduct profit_score from buyer
     const { error: deductError } = await supabase
       .from("users")
-      .update({ coin_balance: user.coin_balance - price })
+      .update({ profit_score: user.profit_score - price })
       .eq("id", userId);
 
     if (deductError) throw deductError;
@@ -91,10 +91,10 @@ export async function POST(request: NextRequest) {
       const payoutToOldOwner = slot.current_price + Math.floor(profit / 2);
       const burnAmount = price - payoutToOldOwner;
 
-      // Get old owner balance
+      // Get old owner profit_score
       const { data: oldOwner, error: oldOwnerError } = await supabase
         .from("users")
-        .select("coin_balance")
+        .select("profit_score")
         .eq("id", slot.owner_id)
         .single();
 
@@ -104,36 +104,16 @@ export async function POST(request: NextRequest) {
       if (oldOwner) {
         const { error: payError } = await supabase
           .from("users")
-          .update({ coin_balance: oldOwner.coin_balance + payoutToOldOwner })
+          .update({ profit_score: oldOwner.profit_score + payoutToOldOwner })
           .eq("id", slot.owner_id);
 
         if (payError) throw payError;
-
-        // Add to coin_ledger for old owner (credit)
-        await supabase.from("coin_ledger").insert({
-          user_id: slot.owner_id,
-          amount: payoutToOldOwner,
-          type: "credit",
-          balance_after: oldOwner.coin_balance + payoutToOldOwner,
-          description: `ถูกแย่งเลข ${slotNumber} (ได้รับ ${payoutToOldOwner} coins)`,
-        });
-
-        // Add burn record
-        if (burnAmount > 0) {
-          await supabase.from("coin_ledger").insert({
-            user_id: slot.owner_id,
-            amount: -burnAmount,
-            type: "burn",
-            balance_after: oldOwner.coin_balance + payoutToOldOwner,
-            description: `Burn จากการแย่งเลข ${slotNumber}`,
-          });
-        }
 
         // Create notification for old owner
         await supabase.from("notifications").insert({
           user_id: slot.owner_id,
           title: "ถูกแย่งเลข!",
-          message: `คุณถูกแย่งเลข ${slotNumber} ไปแล้ว! ได้รับ ${payoutToOldOwner} coins คืน`,
+          message: `คุณถูกแย่งเลข ${slotNumber} ไปแล้ว! ได้รับ ${payoutToOldOwner} กระสุนเขียวคืน`,
           type: "number_war_takeover",
           read: false,
         });
@@ -153,15 +133,6 @@ export async function POST(request: NextRequest) {
 
     if (updateError) throw updateError;
 
-    // 4. Add to buyer's coin_ledger
-    await supabase.from("coin_ledger").insert({
-      user_id: userId,
-      amount: -price,
-      type: "predict",
-      balance_after: user.coin_balance - price,
-      description: isTakeover ? `แย่งเลข ${slotNumber} (${price} coins)` : `ซื้อเลข ${slotNumber} (${price} coins)`,
-    });
-
     return NextResponse.json({
       ok: true,
       message: isTakeover ? `แย่งเลข ${slotNumber} สำเร็จ!` : `ซื้อเลข ${slotNumber} สำเร็จ!`,
@@ -169,7 +140,7 @@ export async function POST(request: NextRequest) {
         slotNumber,
         price,
         isTakeover,
-        newBalance: user.coin_balance - price,
+        newProfitScore: user.profit_score - price,
       },
     });
   } catch (error) {

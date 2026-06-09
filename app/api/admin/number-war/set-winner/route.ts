@@ -42,11 +42,29 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { slotNumber } = body;
+    const { matchName, winningScores } = body;
 
-    if (slotNumber === undefined || slotNumber < 0 || slotNumber > 200) {
+    // Validate inputs
+    if (!matchName || !matchName.trim()) {
       return NextResponse.json(
-        { ok: false, error: "Invalid slot number (0-200)" },
+        { ok: false, error: "กรุณากรอกชื่อการแข่งขัน" },
+        { status: 400 }
+      );
+    }
+
+    if (!winningScores || !Array.isArray(winningScores) || winningScores.length === 0) {
+      return NextResponse.json(
+        { ok: false, error: "กรุณากรอกคะแนนทีมชนะอย่างน้อย 1 คะแนน" },
+        { status: 400 }
+      );
+    }
+
+    // Calculate winning number = sum of all winning scores
+    const slotNumber = winningScores.reduce((sum, score) => sum + Number(score), 0);
+
+    if (slotNumber < 0 || slotNumber > 200) {
+      return NextResponse.json(
+        { ok: false, error: `เลขชนะที่คำนวณได้คือ ${slotNumber} ซึ่งไม่อยู่ในช่วง 0-200` },
         { status: 400 }
       );
     }
@@ -67,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     if (!slot.owner_id) {
       return NextResponse.json(
-        { ok: false, error: "No owner for this slot" },
+        { ok: false, error: `เลข ${slotNumber} ยังไม่มีเจ้าของ!` },
         { status: 400 }
       );
     }
@@ -82,12 +100,14 @@ export async function POST(request: NextRequest) {
 
     if (winnerCheckError) throw winnerCheckError;
 
-    // Create winner log
+    // Create winner log with match info
     const { data: winnerLog, error: winnerError } = await supabase
       .from("winners_log")
       .insert({
         user_id: slot.owner_id,
         slot_number: slotNumber,
+        match_name: matchName.trim(),
+        winning_scores: winningScores.map(Number),
         shipping_status: "pending",
       })
       .select()
@@ -107,8 +127,8 @@ export async function POST(request: NextRequest) {
     // Create notification for winner
     await supabase.from("notifications").insert({
       user_id: slot.owner_id,
-      title: "🎉 ยินดีด้วย! คุณชนะรางวัล!",
-      message: `เลข ${slotNumber} ของคุณชนะรางวัล! ของรางวัลกำลังเตรียมจัดส่งไปยังที่อยู่ของคุณ`,
+      title: "🎉 ยินดีด้วย! คุณชนะรางวัล Number War!",
+      message: `เลข ${slotNumber} ของคุณชนะรางวัลจากการแข่งขัน "${matchName.trim()}"! ของรางวัลกำลังเตรียมจัดส่ง`,
       type: "number_war_winner",
       read: false,
     });
@@ -121,6 +141,8 @@ export async function POST(request: NextRequest) {
       target_id: slot.id,
       metadata: {
         slot_number: slotNumber,
+        match_name: matchName.trim(),
+        winning_scores: winningScores.map(Number),
         winner_id: slot.owner_id,
         winner_name: winnerUser?.display_name || "Unknown",
         winner_address: {
@@ -134,7 +156,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      message: `ประกาศผลสำเร็จ! เลข ${slotNumber} ชนะรางวัล`,
+      message: `ประกาศผลสำเร็จ! เลข ${slotNumber} ชนะรางวัลจาก "${matchName.trim()}"`,
       data: {
         winner: {
           id: slot.owner_id,
@@ -148,6 +170,8 @@ export async function POST(request: NextRequest) {
           },
         },
         winnerLog: winnerLog,
+        calculatedNumber: slotNumber,
+        winningScores: winningScores.map(Number),
       },
     });
   } catch (error) {

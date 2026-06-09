@@ -39,6 +39,8 @@ interface WinnerLog {
   id: string;
   user_id: string;
   slot_number: number;
+  match_name: string | null;
+  winning_scores: number[] | null;
   shipping_status: string;
   tracking_number: string | null;
   admin_notes: string | null;
@@ -59,7 +61,9 @@ export default function NumberWarBoard() {
   const [winners, setWinners] = useState<WinnerLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<NumberSlot | null>(null);
-  const [winnerNumber, setWinnerNumber] = useState("");
+  const [matchName, setMatchName] = useState("");
+  const [winningScores, setWinningScores] = useState("");
+  const [calculatedNumber, setCalculatedNumber] = useState<number | null>(null);
   const [setWinnerLoading, setSetWinnerLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [activeView, setActiveView] = useState<"board" | "winners">("board");
@@ -99,21 +103,51 @@ export default function NumberWarBoard() {
     init();
   }, []);
 
+  // Calculate winning number when scores change
+  useEffect(() => {
+    if (!winningScores.trim()) {
+      setCalculatedNumber(null);
+      return;
+    }
+    const scores = winningScores.split(/[,\s]+/).filter(s => s.trim() !== "").map(Number);
+    const validScores = scores.filter(s => !isNaN(s));
+    if (validScores.length > 0) {
+      const sum = validScores.reduce((a, b) => a + b, 0);
+      setCalculatedNumber(sum);
+    } else {
+      setCalculatedNumber(null);
+    }
+  }, [winningScores]);
+
   async function handleSetWinner() {
-    if (!winnerNumber || isNaN(Number(winnerNumber))) {
-      setMessage("กรุณากรอกเลขที่ถูกต้อง (0-200)");
+    if (!matchName.trim()) {
+      setMessage("กรุณากรอกชื่อการแข่งขัน");
       return;
     }
 
-    const num = Number(winnerNumber);
-    if (num < 0 || num > 200) {
-      setMessage("เลขต้องอยู่ระหว่าง 0-200");
+    if (!winningScores.trim()) {
+      setMessage("กรุณากรอกคะแนนทีมชนะ");
       return;
     }
 
-    const slot = slots.find((s) => s.slot_number === num);
+    const scores = winningScores.split(/[,\s]+/).filter(s => s.trim() !== "").map(Number);
+    const validScores = scores.filter(s => !isNaN(s));
+    
+    if (validScores.length === 0) {
+      setMessage("กรุณากรอกคะแนนที่ถูกต้อง");
+      return;
+    }
+
+    const slotNumber = validScores.reduce((a, b) => a + b, 0);
+
+    if (slotNumber < 0 || slotNumber > 200) {
+      setMessage(`เลขชนะที่คำนวณได้คือ ${slotNumber} ซึ่งไม่อยู่ในช่วง 0-200`);
+      return;
+    }
+
+    const slot = slots.find((s) => s.slot_number === slotNumber);
     if (!slot?.owner_id) {
-      setMessage(`เลข ${num} ยังไม่มีเจ้าของ!`);
+      setMessage(`เลข ${slotNumber} ยังไม่มีเจ้าของ!`);
       return;
     }
 
@@ -128,14 +162,19 @@ export default function NumberWarBoard() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ slotNumber: num }),
+        body: JSON.stringify({ 
+          matchName: matchName.trim(),
+          winningScores: validScores 
+        }),
       });
 
       const data = await response.json();
 
       if (data.ok) {
-        setMessage(`✅ ประกาศผลสำเร็จ! เลข ${num} ชนะรางวัล`);
-        setWinnerNumber("");
+        setMessage(`✅ ประกาศผลสำเร็จ! เลข ${slotNumber} ชนะรางวัลจาก "${matchName.trim()}"`);
+        setMatchName("");
+        setWinningScores("");
+        setCalculatedNumber(null);
         await loadWinners();
       } else {
         setMessage(`❌ ${data.error || "เกิดข้อผิดพลาด"}`);
@@ -206,7 +245,7 @@ export default function NumberWarBoard() {
       <div style={{ marginBottom: "20px" }}>
         <h2 style={{ color: "var(--yellow)", marginBottom: "8px" }}>🏆 PUBG Number War</h2>
         <p style={{ color: "var(--muted)", fontSize: "12px" }}>
-          ระบบทายเลข 0-200 | ซื้อครั้งแรก 10 coins | แย่งซื้อ x2 ทุกครั้ง
+          ระบบทายเลข 0-200 | ซื้อครั้งแรก 10 กระสุนเขียว | แย่งซื้อ x2 ทุกครั้ง
         </p>
       </div>
 
@@ -244,32 +283,56 @@ export default function NumberWarBoard() {
               🎯 ประกาศผลรางวัล
             </h3>
             <p style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "12px" }}>
-              กรอกคะแนนทีมชนะ (จะกลายเป็นเลขที่ชนะอัตโนมัติ)
+              กรอกชื่อการแข่งขันและคะแนนทีมชนะ (ระบบจะคำนวณเลขชนะอัตโนมัติจากผลรวมคะแนน)
             </p>
-            <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>
-                  คะแนนทีมชนะ (0-200)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="200"
-                  value={winnerNumber}
-                  onChange={(e) => setWinnerNumber(e.target.value)}
-                  placeholder="เช่น 42 (คะแนนรวมทีมชนะ)"
-                  style={{ width: "100%", height: "40px" }}
-                />
-              </div>
-              <button
-                className="button gold"
-                onClick={handleSetWinner}
-                disabled={setWinnerLoading}
-                style={{ height: "40px", minWidth: "120px" }}
-              >
-                {setWinnerLoading ? "กำลังประกาศ..." : "ประกาศผลรางวัล"}
-              </button>
+            
+            {/* Match Name */}
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>
+                ชื่อการแข่งขัน
+              </label>
+              <input
+                type="text"
+                value={matchName}
+                onChange={(e) => setMatchName(e.target.value)}
+                placeholder="เช่น PUBG Tournament Round 3"
+                style={{ width: "100%", height: "40px" }}
+              />
             </div>
+
+            {/* Winning Scores */}
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>
+                คะแนนทีมชนะ (คั่นด้วยเว้นวรรคหรือจุลภาค)
+              </label>
+              <input
+                type="text"
+                value={winningScores}
+                onChange={(e) => setWinningScores(e.target.value)}
+                placeholder="เช่น 18, 22, 15"
+                style={{ width: "100%", height: "40px" }}
+              />
+              {calculatedNumber !== null && (
+                <div style={{ marginTop: "8px", padding: "8px 12px", background: "rgba(255, 225, 0, 0.1)", borderRadius: "6px", fontSize: "12px" }}>
+                  <span style={{ color: "var(--yellow)", fontWeight: "700" }}>
+                    🎯 เลขชนะที่คำนวณได้: {calculatedNumber}
+                  </span>
+                  <span style={{ color: "var(--muted)", marginLeft: "8px" }}>
+                    (0-200)
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <button
+              className="button gold"
+              onClick={handleSetWinner}
+              disabled={setWinnerLoading || calculatedNumber === null}
+              style={{ height: "40px", width: "100%" }}
+            >
+              {setWinnerLoading ? "กำลังประกาศ..." : "ประกาศผลรางวัล"}
+            </button>
+
             {message && (
               <div
                 style={{
@@ -350,7 +413,7 @@ export default function NumberWarBoard() {
                     {slot.slot_number}
                   </div>
                   <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>
-                    {slot.current_price} coins
+                    {slot.current_price} กระสุนเขียว
                   </div>
                   {slot.owner_id && (
                     <div
@@ -422,7 +485,7 @@ export default function NumberWarBoard() {
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ color: "var(--muted)" }}>ราคาปัจจุบัน:</span>
                     <span style={{ color: "var(--yellow)", fontWeight: "700" }}>
-                      {selectedSlot.current_price} coins
+                      {selectedSlot.current_price} กระสุนเขียว
                     </span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -524,6 +587,18 @@ export default function NumberWarBoard() {
                       {winner.shipping_status === "delivered" && "✅ ส่งถึงแล้ว"}
                     </span>
                   </div>
+
+                  {/* Match Info */}
+                  {winner.match_name && (
+                    <div style={{ fontSize: "11px", color: "var(--yellow)", marginBottom: "4px" }}>
+                      🏆 {winner.match_name}
+                    </div>
+                  )}
+                  {winner.winning_scores && winner.winning_scores.length > 0 && (
+                    <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "8px" }}>
+                      คะแนนทีมชนะ: {winner.winning_scores.join(" + ")} = {winner.slot_number}
+                    </div>
+                  )}
 
                   {/* Shipping Info */}
                   <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "8px" }}>
