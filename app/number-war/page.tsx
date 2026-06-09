@@ -62,8 +62,10 @@ interface WinnerLog {
 function maskName(name: string): string {
   if (!name) return "";
   if (name === "You") return name;
-  if (name.length <= 2) return name + "xx";
-  return name.slice(0, -2) + "xx";
+  // Use only the local part for emails
+  const local = name.includes("@") ? name.split("@")[0] : name;
+  if (local.length <= 2) return local + "xx";
+  return local.slice(0, -2) + "xx";
 }
 
 export default function NumberWarPage() {
