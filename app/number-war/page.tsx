@@ -74,6 +74,13 @@ interface NwHistory {
   opponent?: { id: string; display_name: string; email: string } | null;
 }
 
+interface NwInfo {
+  id: string | null;
+  title: string;
+  content: string;
+  updated_at: string | null;
+}
+
 function maskName(name: string): string {
   if (!name) return "";
   if (name === "You") return name;
@@ -98,6 +105,8 @@ export default function NumberWarPage() {
   const [history, setHistory] = useState<NwHistory[]>([]);
   const [historyFilter, setHistoryFilter] = useState<"all" | "buy" | "takeover" | "sold">("all");
   const [showHistory, setShowHistory] = useState(false);
+  const [info, setInfo] = useState<NwInfo | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
 
   async function loadSlots() {
     try {
@@ -162,10 +171,21 @@ export default function NumberWarPage() {
     }
   }
 
+  async function loadInfo() {
+    try {
+      const data = await fetchJson<{ ok: boolean; data: NwInfo }>("/api/number-war/info");
+      if (data.ok) {
+        setInfo(data.data);
+      }
+    } catch (error) {
+      console.error("Error loading info:", error);
+    }
+  }
+
   useEffect(() => {
     async function init() {
       setLoading(true);
-      await Promise.all([loadSlots(), loadMyWins(), loadUserInfo(), loadHistory()]);
+      await Promise.all([loadSlots(), loadMyWins(), loadUserInfo(), loadHistory(), loadInfo()]);
       setLoading(false);
     }
     init();
@@ -274,13 +294,29 @@ export default function NumberWarPage() {
             ทายเลข 0-200 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ
           </p>
         </div>
-        <button
-          className="button"
-          onClick={() => setShowHistory(true)}
-          style={{ height: "36px", borderRadius: "8px", padding: "0 16px", fontSize: "12px" }}
-        >
-          ประวัติ
-        </button>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button
+            className="button"
+            onClick={() => window.location.href = "/"}
+            style={{ height: "36px", borderRadius: "8px", padding: "0 16px", fontSize: "12px" }}
+          >
+            กลับ
+          </button>
+          <button
+            className="button"
+            onClick={() => setShowInfo((v) => !v)}
+            style={{ height: "36px", borderRadius: "8px", padding: "0 16px", fontSize: "12px" }}
+          >
+            วิธีเล่น {showInfo ? "▲" : "▼"}
+          </button>
+          <button
+            className="button"
+            onClick={() => setShowHistory(true)}
+            style={{ height: "36px", borderRadius: "8px", padding: "0 16px", fontSize: "12px" }}
+          >
+            ประวัติ
+          </button>
+        </div>
       </div>
 
       {/* Profit Score Display */}
@@ -332,6 +368,33 @@ export default function NumberWarPage() {
           </div>
           <div style={{ fontSize: "11px", color: "var(--muted)" }}>
             {countdown}
+          </div>
+        </div>
+      )}
+
+      {/* Info Section */}
+      {showInfo && info && (
+        <div
+          style={{
+            background: "var(--card)",
+            border: "1px solid var(--hairline)",
+            borderRadius: "12px",
+            padding: "16px",
+            marginBottom: "16px",
+          }}
+        >
+          <h3 style={{ color: "var(--yellow)", marginBottom: "10px", fontSize: "14px" }}>
+            {info.title}
+          </h3>
+          <div
+            style={{
+              color: "var(--text)",
+              fontSize: "12px",
+              lineHeight: "1.7",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {info.content}
           </div>
         </div>
       )}

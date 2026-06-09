@@ -127,6 +127,14 @@ export async function POST(request: NextRequest) {
     const isTakeover = !!slot.owner_id;
     const price = isTakeover ? slot.current_price * 2 : slot.current_price;
 
+    // Rule: Cannot buy your own slot
+    if (isTakeover && slot.owner_id === userId) {
+      return NextResponse.json(
+        { ok: false, error: "คุณเป็นเจ้าของเลขนี้อยู่แล้ว ไม่สามารถซื้อซ้ำได้" },
+        { status: 400 }
+      );
+    }
+
     // Check user profit_score (กระสุนเขียว)
     if (authUser.profitScore < price) {
       return NextResponse.json(

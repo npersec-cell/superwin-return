@@ -133,6 +133,12 @@ export default function NumberWarBoard() {
   const [editRoundCloseAt, setEditRoundCloseAt] = useState("");
   const [editLoading, setEditLoading] = useState(false);
 
+  // Info editor state
+  const [infoContent, setInfoContent] = useState("");
+  const [infoTitle, setInfoTitle] = useState("");
+  const [infoLoading, setInfoLoading] = useState(false);
+  const [infoEditing, setInfoEditing] = useState(false);
+
   async function loadSlots(roundId?: string) {
     try {
       const url = roundId ? `/api/number-war/slots?roundId=${roundId}` : "/api/number-war/slots";
@@ -172,10 +178,44 @@ export default function NumberWarBoard() {
     }
   }
 
+  async function loadInfo() {
+    try {
+      const data = await fetchJson<{ ok: boolean; data: { title: string; content: string } }>("/api/number-war/info");
+      if (data.ok) {
+        setInfoTitle(data.data.title);
+        setInfoContent(data.data.content);
+      }
+    } catch (error) {
+      console.error("Error loading info:", error);
+    }
+  }
+
+  async function saveInfo() {
+    setInfoLoading(true);
+    try {
+      const res = await fetch("/api/number-war/info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: infoTitle, content: infoContent }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setInfoEditing(false);
+        alert("บันทึกข้อมูลสำเร็จ");
+      } else {
+        alert(data.error || "บันทึกไม่สำเร็จ");
+      }
+    } catch (e) {
+      alert("เกิดข้อผิดพลาด");
+    } finally {
+      setInfoLoading(false);
+    }
+  }
+
   useEffect(() => {
     async function init() {
       setLoading(true);
-      await Promise.all([loadSlots(), loadWinners(), loadRounds()]);
+      await Promise.all([loadSlots(), loadWinners(), loadRounds(), loadInfo()]);
       setLoading(false);
     }
     init();
@@ -317,6 +357,70 @@ export default function NumberWarBoard() {
         <p style={{ color: "var(--muted)", fontSize: "12px" }}>
           ระบบทายเลข 0-200 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง
         </p>
+      </div>
+
+      {/* Info Editor */}
+      <div
+        style={{
+          background: "var(--card)",
+          border: "1px solid var(--hairline)",
+          borderRadius: "12px",
+          padding: "16px",
+          marginBottom: "20px",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+          <h3 style={{ color: "var(--yellow)", fontSize: "14px" }}>ข้อมูล / วิธีเล่น (แสดงหน้าผู้เล่น)</h3>
+          <button
+            className="button"
+            style={{ height: "28px", fontSize: "11px", padding: "0 12px" }}
+            onClick={() => setInfoEditing((v) => !v)}
+          >
+            {infoEditing ? "ปิด" : "แก้ไข"}
+          </button>
+        </div>
+
+        {infoEditing ? (
+          <div style={{ display: "grid", gap: "8px" }}>
+            <div>
+              <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>หัวข้อ</label>
+              <input
+                type="text"
+                value={infoTitle}
+                onChange={(e) => setInfoTitle(e.target.value)}
+                style={{ width: "100%", height: "36px", background: "var(--bg)", color: "var(--text)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "0 8px", fontSize: "12px" }}
+              />
+            </div>
+            <div>
+              <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>เนื้อหา (รองรับการขึ้นบรรทัดใหม่)</label>
+              <textarea
+                value={infoContent}
+                onChange={(e) => setInfoContent(e.target.value)}
+                rows={8}
+                style={{ width: "100%", background: "var(--bg)", color: "var(--text)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "8px", fontSize: "12px", resize: "vertical" }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setInfoEditing(false)}
+                style={{ fontSize: "11px", padding: "4px 12px", borderRadius: "6px", background: "transparent", border: "1px solid var(--hairline)", color: "var(--muted)", cursor: "pointer" }}
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={saveInfo}
+                disabled={infoLoading}
+                style={{ fontSize: "11px", padding: "4px 12px", borderRadius: "6px", background: "var(--yellow)", color: "#000", border: "none", cursor: "pointer", fontWeight: "600" }}
+              >
+                {infoLoading ? "กำลังบันทึก..." : "บันทึก"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ color: "var(--muted)", fontSize: "12px", whiteSpace: "pre-wrap", lineHeight: "1.6" }}>
+            {infoContent || "ยังไม่มีข้อมูล"}
+          </div>
+        )}
       </div>
 
       {/* Number War Rounds List */}
@@ -495,6 +599,15 @@ export default function NumberWarBoard() {
                         gap: "8px",
                       }}
                     >
+                      <div>
+                        <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>ชื่อรายการแข่งขัน</label>
+                        <input
+                          type="text"
+                          value={editRoundName}
+                          onChange={(e) => setEditRoundName(e.target.value)}
+                          style={{ width: "100%", height: "34px", background: "var(--bg)", color: "var(--text)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "0 8px", fontSize: "12px" }}
+                        />
+                      </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                         <div>
                           <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>เปิดรับซื้อ</label>
