@@ -65,8 +65,6 @@ export default function NumberWarPage() {
   const [myWins, setMyWins] = useState<WinnerLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<NumberSlot | null>(null);
-  const [demoMode, setDemoMode] = useState(true);
-  const [demoProfitScore, setDemoProfitScore] = useState(1000);
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState("");
 
@@ -100,9 +98,7 @@ export default function NumberWarPage() {
     async function init() {
       setLoading(true);
       await loadSlots();
-      if (!demoMode) {
-        await loadMyWins();
-      }
+      await loadMyWins();
       setLoading(false);
     }
     init();
@@ -144,15 +140,6 @@ export default function NumberWarPage() {
   }, [round]);
 
   async function handleBuy(slot: NumberSlot) {
-    if (demoMode) {
-      // Demo mode: just show message, don't actually buy
-      const price = slot.owner_id ? slot.current_price * 2 : slot.current_price;
-      setMessage(`Demo Mode: จะซื้อเลข ${slot.slot_number} ราคา ${price} <GreenBullet /> (กดซื้อจริงจะหัก <GreenBullet /> และบันทึกเจ้าของ)`);
-      setTimeout(() => setMessage(""), 3000);
-      return;
-    }
-
-    // Real mode: call API
     try {
       const res = await fetch("/api/number-war/buy", {
         method: "POST",
@@ -312,38 +299,6 @@ export default function NumberWarPage() {
           </div>
         </div>
       )}
-
-      {/* Demo Mode Toggle */}
-      <div
-        style={{
-          background: "var(--card)",
-          border: "1px solid var(--hairline)",
-          borderRadius: "12px",
-          padding: "16px",
-          marginBottom: "20px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div>
-          <div style={{ fontSize: "14px", fontWeight: "600", color: "var(--text)", marginBottom: "4px" }}>
-            {demoMode ? "โหมดทดลองเล่น" : "โหมดจริง"}
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--muted)" }}>
-            {demoMode
-              ? "ทดลองเล่นแบบไม่บันทึกข้อมูล (Demo <GreenBullet />: " + demoProfitScore + ")"
-              : "เล่นจริง หัก <GreenBullet /> จริง"}
-          </div>
-        </div>
-        <button
-          className={`button ${demoMode ? "" : "gold"}`}
-          onClick={() => setDemoMode(!demoMode)}
-          style={{ height: "36px", borderRadius: "8px" }}
-        >
-          {demoMode ? "เปิดโหมดจริง" : "กลับสู่โหมดทดลอง"}
-        </button>
-      </div>
 
       {/* Message */}
       {message && (
@@ -511,12 +466,10 @@ export default function NumberWarPage() {
                 handleBuy(selectedSlot);
                 setSelectedSlot(null);
               }}
-              disabled={!demoMode && round?.computedStatus !== "open"}
-              style={{ width: "100%", marginBottom: "8px", opacity: !demoMode && round?.computedStatus !== "open" ? 0.5 : 1 }}
+              disabled={round?.computedStatus !== "open"}
+              style={{ width: "100%", marginBottom: "8px", opacity: round?.computedStatus !== "open" ? 0.5 : 1 }}
             >
-              {demoMode
-                ? "ทดลองซื้อ"
-                : round?.computedStatus === "open"
+              {round?.computedStatus === "open"
                 ? "ซื้อเลขนี้"
                 : round?.computedStatus === "upcoming"
                 ? "ยังไม่เปิด"
