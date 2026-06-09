@@ -243,10 +243,13 @@ export default function NumberWarBoard() {
             <h3 style={{ color: "var(--yellow)", marginBottom: "12px", fontSize: "14px" }}>
               🎯 ประกาศผลรางวัล
             </h3>
+            <p style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "12px" }}>
+              กรอกคะแนนทีมชนะ (จะกลายเป็นเลขที่ชนะอัตโนมัติ)
+            </p>
             <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
               <div style={{ flex: 1 }}>
                 <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>
-                  เลขที่ชนะ (0-200)
+                  คะแนนทีมชนะ (0-200)
                 </label>
                 <input
                   type="number"
@@ -254,7 +257,7 @@ export default function NumberWarBoard() {
                   max="200"
                   value={winnerNumber}
                   onChange={(e) => setWinnerNumber(e.target.value)}
-                  placeholder="กรอกเลขที่ชนะ"
+                  placeholder="เช่น 42 (คะแนนรวมทีมชนะ)"
                   style={{ width: "100%", height: "40px" }}
                 />
               </div>
@@ -264,7 +267,7 @@ export default function NumberWarBoard() {
                 disabled={setWinnerLoading}
                 style={{ height: "40px", minWidth: "120px" }}
               >
-                {setWinnerLoading ? "กำลังประกาศ..." : "ประกาศผล"}
+                {setWinnerLoading ? "กำลังประกาศ..." : "ประกาศผลรางวัล"}
               </button>
             </div>
             {message && (
