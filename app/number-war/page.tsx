@@ -361,7 +361,9 @@ export default function NumberWarPage() {
             display: "flex",
             gap: "16px",
             alignItems: "center",
+            justifyContent: "center",
             flexWrap: "wrap",
+            textAlign: "center",
           }}
         >
           {round.prize_image_url && (
@@ -379,7 +381,7 @@ export default function NumberWarPage() {
               />
             </div>
           )}
-          <div style={{ flex: 1, minWidth: "200px" }}>
+          <div style={{ flex: "0 1 auto", minWidth: "200px" }}>
             <div style={{ color: "var(--yellow)", fontSize: "11px", fontWeight: "600", marginBottom: "4px", textTransform: "uppercase" }}>
               ของรางวัล
             </div>
