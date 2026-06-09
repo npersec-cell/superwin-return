@@ -50,6 +50,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check Number War is open
+    const { data: config, error: configError } = await supabase
+      .from("number_war_config")
+      .select("open_at, close_at, is_active")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!configError && config) {
+      const now = new Date();
+      const openAt = config.open_at ? new Date(config.open_at) : null;
+      const closeAt = config.close_at ? new Date(config.close_at) : null;
+
+      if (!config.is_active) {
+        return NextResponse.json(
+          { ok: false, error: "Number War ปิดให้บริการชั่วคราว" },
+          { status: 403 }
+        );
+      }
+
+      if (openAt && now < openAt) {
+        return NextResponse.json(
+          { ok: false, error: `Number War จะเปิดรับซื้อในวันที่ ${openAt.toLocaleString("th-TH")}` },
+          { status: 403 }
+        );
+      }
+
+      if (closeAt && now > closeAt) {
+        return NextResponse.json(
+          { ok: false, error: "Number War ปิดรับซื้อแล้ว" },
+          { status: 403 }
+        );
+      }
+    }
+
     // Get slot info
     const { data: slot, error: slotError } = await supabase
       .from("number_slots")

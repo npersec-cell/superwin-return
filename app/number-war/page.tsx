@@ -26,13 +26,25 @@ interface NumberSlot {
   } | null;
 }
 
+interface NumberWarConfig {
+  id: string;
+  open_at: string;
+  close_at: string;
+  is_active: boolean;
+  status?: "open" | "closed" | "upcoming";
+  timeLeft?: number;
+  timeUntilOpen?: number;
+}
+
 export default function NumberWarPage() {
   const [slots, setSlots] = useState<NumberSlot[]>([]);
+  const [config, setConfig] = useState<NumberWarConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<NumberSlot | null>(null);
   const [demoMode, setDemoMode] = useState(true);
   const [demoProfitScore, setDemoProfitScore] = useState(1000);
   const [message, setMessage] = useState("");
+  const [countdown, setCountdown] = useState("");
 
   async function loadSlots() {
     try {
@@ -45,14 +57,59 @@ export default function NumberWarPage() {
     }
   }
 
+  async function loadConfig() {
+    try {
+      const data = await fetchJson<{ ok: boolean; data: NumberWarConfig }>("/api/number-war/config");
+      if (data.ok) {
+        setConfig(data.data);
+      }
+    } catch (error) {
+      console.error("Error loading config:", error);
+    }
+  }
+
   useEffect(() => {
     async function init() {
       setLoading(true);
-      await loadSlots();
+      await Promise.all([loadSlots(), loadConfig()]);
       setLoading(false);
     }
     init();
   }, []);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!config) return;
+    
+    const interval = setInterval(() => {
+      const now = Date.now();
+      if (config.status === "open" && config.close_at) {
+        const remaining = new Date(config.close_at).getTime() - now;
+        if (remaining > 0) {
+          const hours = Math.floor(remaining / (1000 * 60 * 60));
+          const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+          setCountdown(`⏳ เหลือเวลา: ${hours}ชม ${minutes}น ${seconds}วิ`);
+        } else {
+          setCountdown("⛔ ปิดรับซื้อแล้ว");
+        }
+      } else if (config.status === "upcoming" && config.open_at) {
+        const remaining = new Date(config.open_at).getTime() - now;
+        if (remaining > 0) {
+          const hours = Math.floor(remaining / (1000 * 60 * 60));
+          const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+          setCountdown(`🔒 เปิดในอีก: ${hours}ชม ${minutes}น ${seconds}วิ`);
+        } else {
+          setCountdown("");
+        }
+      } else {
+        setCountdown("⛔ ปิดรับซื้อแล้ว");
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [config]);
 
   async function handleBuy(slot: NumberSlot) {
     if (demoMode) {
@@ -120,6 +177,31 @@ export default function NumberWarPage() {
           ทายเลข 0-200 | ซื้อครั้งแรก 10 <span style={{ color: '#0ecb81', fontSize: '10px' }}>●</span> | แย่งซื้อ x2 ทุกครั้ง | ชนะตามคะแนนทีม
         </p>
       </div>
+
+      {/* Status Banner */}
+      {config && (
+        <div
+          style={{
+            background: config.status === "open" ? "rgba(14, 203, 129, 0.1)" : config.status === "upcoming" ? "rgba(255, 225, 0, 0.1)" : "rgba(240, 84, 84, 0.1)",
+            border: `1px solid ${config.status === "open" ? "var(--green)" : config.status === "upcoming" ? "var(--yellow)" : "#ef4444"}`,
+            borderRadius: "8px",
+            padding: "10px 16px",
+            marginBottom: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ fontSize: "12px", fontWeight: "600", color: config.status === "open" ? "var(--green)" : config.status === "upcoming" ? "var(--yellow)" : "#ef4444" }}>
+            {config.status === "open" && "🟢 เปิดรับซื้อ"}
+            {config.status === "upcoming" && "🔒 ยังไม่เปิด"}
+            {config.status === "closed" && "⛔ ปิดรับซื้อแล้ว"}
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--muted)" }}>
+            {countdown}
+          </div>
+        </div>
+      )}
 
       {/* Demo Mode Toggle */}
       <div
@@ -319,9 +401,16 @@ export default function NumberWarPage() {
                 handleBuy(selectedSlot);
                 setSelectedSlot(null);
               }}
-              style={{ width: "100%", marginBottom: "8px" }}
+              disabled={!demoMode && config?.status !== "open"}
+              style={{ width: "100%", marginBottom: "8px", opacity: !demoMode && config?.status !== "open" ? 0.5 : 1 }}
             >
-              {demoMode ? "🎮 ทดลองซื้อ" : "💰 ซื้อเลขนี้"}
+              {demoMode
+                ? "🎮 ทดลองซื้อ"
+                : config?.status === "open"
+                ? "💰 ซื้อเลขนี้"
+                : config?.status === "upcoming"
+                ? "🔒 ยังไม่เปิด"
+                : "⛔ ปิดรับซื้อ"}
             </button>
             <button className="button" onClick={() => setSelectedSlot(null)} style={{ width: "100%" }}>
               ปิด

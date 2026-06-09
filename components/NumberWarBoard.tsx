@@ -56,9 +56,20 @@ interface WinnerLog {
   };
 }
 
+interface NumberWarConfig {
+  id: string;
+  open_at: string;
+  close_at: string;
+  is_active: boolean;
+  status?: "open" | "closed" | "upcoming";
+  timeLeft?: number;
+  timeUntilOpen?: number;
+}
+
 export default function NumberWarBoard() {
   const [slots, setSlots] = useState<NumberSlot[]>([]);
   const [winners, setWinners] = useState<WinnerLog[]>([]);
+  const [config, setConfig] = useState<NumberWarConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<NumberSlot | null>(null);
   const [matchName, setMatchName] = useState("");
@@ -66,7 +77,9 @@ export default function NumberWarBoard() {
   const [calculatedNumber, setCalculatedNumber] = useState<number | null>(null);
   const [setWinnerLoading, setSetWinnerLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [activeView, setActiveView] = useState<"board" | "winners">("board");
+  const [activeView, setActiveView] = useState<"board" | "winners" | "config">("board");
+  const [configForm, setConfigForm] = useState({ openAt: "", closeAt: "" });
+  const [configLoading, setConfigLoading] = useState(false);
 
   async function loadSlots() {
     try {
@@ -76,6 +89,23 @@ export default function NumberWarBoard() {
       }
     } catch (error) {
       console.error("Error loading slots:", error);
+    }
+  }
+
+  async function loadConfig() {
+    try {
+      const data = await fetchJson<{ ok: boolean; data: NumberWarConfig }>("/api/number-war/config");
+      if (data.ok) {
+        setConfig(data.data);
+        if (data.data.open_at) {
+          setConfigForm({
+            openAt: new Date(data.data.open_at).toISOString().slice(0, 16),
+            closeAt: new Date(data.data.close_at).toISOString().slice(0, 16),
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error loading config:", error);
     }
   }
 
@@ -97,11 +127,46 @@ export default function NumberWarBoard() {
   useEffect(() => {
     async function init() {
       setLoading(true);
-      await Promise.all([loadSlots(), loadWinners()]);
+      await Promise.all([loadSlots(), loadWinners(), loadConfig()]);
       setLoading(false);
     }
     init();
   }, []);
+
+  // Countdown timer
+  const [countdown, setCountdown] = useState("");
+  useEffect(() => {
+    if (!config) return;
+    
+    const interval = setInterval(() => {
+      const now = Date.now();
+      if (config.status === "open" && config.timeLeft) {
+        const remaining = config.close_at ? new Date(config.close_at).getTime() - now : 0;
+        if (remaining > 0) {
+          const hours = Math.floor(remaining / (1000 * 60 * 60));
+          const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+          setCountdown(`⏳ เหลือเวลา: ${hours}ชม ${minutes}น ${seconds}วิ`);
+        } else {
+          setCountdown("⛔ ปิดรับซื้อแล้ว");
+        }
+      } else if (config.status === "upcoming" && config.timeUntilOpen) {
+        const remaining = config.open_at ? new Date(config.open_at).getTime() - now : 0;
+        if (remaining > 0) {
+          const hours = Math.floor(remaining / (1000 * 60 * 60));
+          const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+          setCountdown(`🔒 เปิดในอีก: ${hours}ชม ${minutes}น ${seconds}วิ`);
+        } else {
+          setCountdown("");
+        }
+      } else {
+        setCountdown("⛔ ปิดรับซื้อแล้ว");
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [config]);
 
   // Calculate winning number when scores change
   useEffect(() => {
@@ -186,6 +251,53 @@ export default function NumberWarBoard() {
     }
   }
 
+  async function handleUpdateConfig() {
+    if (!configForm.openAt || !configForm.closeAt) {
+      setMessage("กรุณากรอกวันเปิดและวันปิด");
+      return;
+    }
+
+    const openDate = new Date(configForm.openAt);
+    const closeDate = new Date(configForm.closeAt);
+
+    if (closeDate <= openDate) {
+      setMessage("วันปิดต้องอยู่หลังวันเปิด");
+      return;
+    }
+
+    setConfigLoading(true);
+    setMessage("");
+
+    try {
+      const token = localStorage.getItem("sb-token");
+      const response = await fetch("/api/admin/number-war/config", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          openAt: configForm.openAt,
+          closeAt: configForm.closeAt,
+          isActive: true,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        setMessage("✅ อัปเดตการตั้งค่าสำเร็จ");
+        await loadConfig();
+      } else {
+        setMessage(`❌ ${data.error || "เกิดข้อผิดพลาด"}`);
+      }
+    } catch (error) {
+      setMessage("❌ เกิดข้อผิดพลาดในการบันทึก");
+    } finally {
+      setConfigLoading(false);
+    }
+  }
+
   async function handleUpdateShipping(winnerId: string, status: string, trackingNumber?: string) {
     try {
       const token = localStorage.getItem("sb-token");
@@ -250,7 +362,7 @@ export default function NumberWarBoard() {
       </div>
 
       {/* View Toggle */}
-      <div style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
+      <div style={{ display: "flex", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
         <button
           className={`button ${activeView === "board" ? "gold" : ""}`}
           onClick={() => setActiveView("board")}
@@ -265,7 +377,39 @@ export default function NumberWarBoard() {
         >
           🏆 ผู้ชนะ ({winners.length})
         </button>
+        <button
+          className={`button ${activeView === "config" ? "gold" : ""}`}
+          onClick={() => setActiveView("config")}
+          style={{ borderRadius: "8px" }}
+        >
+          ⚙️ ตั้งค่า
+        </button>
       </div>
+
+      {/* Status Banner */}
+      {config && (
+        <div
+          style={{
+            background: config.status === "open" ? "rgba(14, 203, 129, 0.1)" : config.status === "upcoming" ? "rgba(255, 225, 0, 0.1)" : "rgba(240, 84, 84, 0.1)",
+            border: `1px solid ${config.status === "open" ? "var(--green)" : config.status === "upcoming" ? "var(--yellow)" : "#ef4444"}`,
+            borderRadius: "8px",
+            padding: "10px 16px",
+            marginBottom: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ fontSize: "12px", fontWeight: "600", color: config.status === "open" ? "var(--green)" : config.status === "upcoming" ? "var(--yellow)" : "#ef4444" }}>
+            {config.status === "open" && "🟢 เปิดรับซื้อ"}
+            {config.status === "upcoming" && "🔒 ยังไม่เปิด"}
+            {config.status === "closed" && "⛔ ปิดรับซื้อแล้ว"}
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--muted)" }}>
+            {countdown}
+          </div>
+        </div>
+      )}
 
       {activeView === "board" && (
         <>
@@ -650,6 +794,88 @@ export default function NumberWarBoard() {
                   )}
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeView === "config" && (
+        <div
+          style={{
+            background: "var(--card)",
+            border: "1px solid var(--hairline)",
+            borderRadius: "12px",
+            padding: "16px",
+          }}
+        >
+          <h3 style={{ color: "var(--yellow)", marginBottom: "16px" }}>⚙️ ตั้งค่า Number War</h3>
+
+          {config && (
+            <div style={{ marginBottom: "16px", padding: "12px", background: "var(--bg)", borderRadius: "8px" }}>
+              <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                <span style={{ color: "var(--muted)" }}>สถานะ: </span>
+                <span style={{ color: config.status === "open" ? "var(--green)" : config.status === "upcoming" ? "var(--yellow)" : "#ef4444", fontWeight: "600" }}>
+                  {config.status === "open" && "🟢 เปิดรับซื้อ"}
+                  {config.status === "upcoming" && "🔒 ยังไม่เปิด"}
+                  {config.status === "closed" && "⛔ ปิดรับซื้อแล้ว"}
+                </span>
+              </div>
+              <div style={{ fontSize: "12px", marginBottom: "4px" }}>
+                <span style={{ color: "var(--muted)" }}>เปิด: </span>
+                <span>{config.open_at ? new Date(config.open_at).toLocaleString("th-TH") : "-"}</span>
+              </div>
+              <div style={{ fontSize: "12px" }}>
+                <span style={{ color: "var(--muted)" }}>ปิด: </span>
+                <span>{config.close_at ? new Date(config.close_at).toLocaleString("th-TH") : "-"}</span>
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginBottom: "12px" }}>
+            <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>
+              วันเวลาเปิดรับซื้อ
+            </label>
+            <input
+              type="datetime-local"
+              value={configForm.openAt}
+              onChange={(e) => setConfigForm({ ...configForm, openAt: e.target.value })}
+              style={{ width: "100%", height: "40px" }}
+            />
+          </div>
+
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>
+              วันเวลาปิดรับซื้อ
+            </label>
+            <input
+              type="datetime-local"
+              value={configForm.closeAt}
+              onChange={(e) => setConfigForm({ ...configForm, closeAt: e.target.value })}
+              style={{ width: "100%", height: "40px" }}
+            />
+          </div>
+
+          <button
+            className="button gold"
+            onClick={handleUpdateConfig}
+            disabled={configLoading}
+            style={{ height: "40px", width: "100%" }}
+          >
+            {configLoading ? "กำลังบันทึก..." : "💾 บันทึกการตั้งค่า"}
+          </button>
+
+          {message && (
+            <div
+              style={{
+                marginTop: "10px",
+                padding: "8px 12px",
+                borderRadius: "6px",
+                fontSize: "12px",
+                background: message.includes("✅") ? "rgba(14, 203, 129, 0.1)" : "rgba(240, 84, 84, 0.1)",
+                color: message.includes("✅") ? "var(--green)" : "#ef4444",
+              }}
+            >
+              {message}
             </div>
           )}
         </div>
