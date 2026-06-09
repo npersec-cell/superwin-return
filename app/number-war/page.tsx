@@ -76,6 +76,7 @@ export default function NumberWarPage() {
     try {
       const data = await fetchJson<{ ok: boolean; data: NumberSlot[]; round: NwRound | null }>("/api/number-war/slots");
       if (data.ok) {
+        console.log("Slots loaded:", data.data.slice(0, 5));
         setSlots(data.data);
         if (data.round) {
           setRound(data.round);
@@ -109,9 +110,12 @@ export default function NumberWarPage() {
         setAddressRequired(!completed);
         if (!completed) {
           setRecheckMessage("ยังไม่พบข้อมูลจัดส่ง กรุณากรอกข้อมูลให้ครบถ้วนก่อน");
-          setTimeout(() => setRecheckMessage(""), 4000);
         } else {
-          setRecheckMessage("");
+          setRecheckMessage("✅ ข้อมูลจัดส่งครบถ้วนแล้ว");
+          setTimeout(() => {
+            setRecheckMessage("");
+            setAddressRequired(false);
+          }, 2000);
         }
       }
     } catch (error) {
@@ -389,7 +393,7 @@ export default function NumberWarPage() {
             </button>
           </div>
           {recheckMessage && (
-            <div style={{ marginTop: "12px", padding: "8px 12px", background: "rgba(246, 70, 93, 0.1)", border: "1px solid #ef4444", borderRadius: "8px", color: "#ef4444", fontSize: "11px" }}>
+            <div style={{ marginTop: "12px", padding: "8px 12px", background: recheckMessage.includes("✅") ? "rgba(14, 203, 129, 0.1)" : "rgba(246, 70, 93, 0.1)", border: `1px solid ${recheckMessage.includes("✅") ? "var(--green)" : "#ef4444"}`, borderRadius: "8px", color: recheckMessage.includes("✅") ? "var(--green)" : "#ef4444", fontSize: "11px" }}>
               {recheckMessage}
             </div>
           )}
@@ -486,7 +490,7 @@ export default function NumberWarPage() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {slot.owner?.display_name || "Unknown"}
+                  {slot.owner?.display_name || slot.owner?.email || "Unknown"}
                 </div>
               )}
               {slot.total_takeovers > 0 && (
@@ -552,7 +556,7 @@ export default function NumberWarPage() {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--muted)" }}>เจ้าของปัจจุบัน:</span>
-                <span>{selectedSlot.owner_id ? selectedSlot.owner?.display_name || "Unknown" : "ยังไม่มีเจ้าของ"}</span>
+                <span>{selectedSlot.owner_id ? selectedSlot.owner?.display_name || selectedSlot.owner?.email || "Unknown" : "ยังไม่มีเจ้าของ"}</span>
               </div>
             </div>
 
