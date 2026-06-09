@@ -42,15 +42,31 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { matchName, winningScore, roundId } = body;
+    const { winningScore, roundId } = body;
 
-    // Validate inputs
-    if (!matchName || !matchName.trim()) {
+    // Validate roundId
+    if (!roundId) {
       return NextResponse.json(
-        { ok: false, error: "กรุณากรอกชื่อการแข่งขัน" },
+        { ok: false, error: "กรุณาเลือกรายการแข่งขัน" },
         { status: 400 }
       );
     }
+
+    // Look up round name
+    const { data: round, error: roundError } = await supabase
+      .from("number_war_rounds")
+      .select("name")
+      .eq("id", roundId)
+      .single();
+
+    if (roundError || !round) {
+      return NextResponse.json(
+        { ok: false, error: "ไม่พบรายการแข่งขัน" },
+        { status: 404 }
+      );
+    }
+
+    const matchName = round.name;
 
     if (winningScore === undefined || winningScore === null || isNaN(Number(winningScore))) {
       return NextResponse.json(
@@ -64,14 +80,6 @@ export async function POST(request: NextRequest) {
     if (slotNumber < 0 || slotNumber > 200) {
       return NextResponse.json(
         { ok: false, error: `เลขชนะที่คำนวณได้คือ ${slotNumber} ซึ่งไม่อยู่ในช่วง 0-200` },
-        { status: 400 }
-      );
-    }
-
-    // Validate roundId
-    if (!roundId) {
-      return NextResponse.json(
-        { ok: false, error: "กรุณาเลือกรายการแข่งขัน" },
         { status: 400 }
       );
     }

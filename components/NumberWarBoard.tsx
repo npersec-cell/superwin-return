@@ -95,7 +95,6 @@ export default function NumberWarBoard() {
   const [winners, setWinners] = useState<WinnerLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<NumberSlot | null>(null);
-  const [matchName, setMatchName] = useState("");
   const [winningScore, setWinningScore] = useState("");
   const [calculatedNumber, setCalculatedNumber] = useState<number | null>(null);
   const [setWinnerLoading, setSetWinnerLoading] = useState(false);
@@ -161,16 +160,6 @@ export default function NumberWarBoard() {
     init();
   }, []);
 
-  // Auto-fill match name when round selected
-  useEffect(() => {
-    if (selectedRoundId) {
-      const r = rounds.find((x) => x.id === selectedRoundId);
-      if (r) {
-        setMatchName(r.name);
-      }
-    }
-  }, [selectedRoundId, rounds]);
-
   // Calculate winning number when score changes
   useEffect(() => {
     if (!winningScore.trim()) {
@@ -186,8 +175,8 @@ export default function NumberWarBoard() {
   }, [winningScore]);
 
   async function handleSetWinner() {
-    if (!matchName.trim()) {
-      setMessage("กรุณากรอกชื่อการแข่งขัน");
+    if (!selectedRoundId) {
+      setMessage("กรุณาเลือกรายการแข่งขัน");
       return;
     }
 
@@ -226,17 +215,16 @@ export default function NumberWarBoard() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          matchName: matchName.trim(),
           winningScore: slotNumber,
-          roundId: selectedRoundId || undefined,
+          roundId: selectedRoundId,
         }),
       });
 
       const data = await response.json();
 
       if (data.ok) {
-        setMessage(`ประกาศผลสำเร็จ! เลข ${slotNumber} ชนะรางวัลจาก "${matchName.trim()}"`);
-        setMatchName("");
+        const roundName = rounds.find((r) => r.id === selectedRoundId)?.name || "";
+        setMessage(`ประกาศผลสำเร็จ! เลข ${slotNumber} ชนะรางวัลจาก "${roundName}"`);
         setWinningScore("");
         setCalculatedNumber(null);
         setSelectedRoundId("");
@@ -505,12 +493,7 @@ export default function NumberWarBoard() {
               </label>
               <select
                 value={selectedRoundId}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  setSelectedRoundId(id);
-                  const r = rounds.find((x) => x.id === id);
-                  if (r) setMatchName(r.name);
-                }}
+                onChange={(e) => setSelectedRoundId(e.target.value)}
                 style={{ width: "100%", height: "40px", background: "var(--bg)", color: "var(--text)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "0 10px" }}
               >
                 <option value="">-- เลือกรายการแข่งขัน --</option>
@@ -522,20 +505,6 @@ export default function NumberWarBoard() {
                     </option>
                   ))}
               </select>
-            </div>
-
-            {/* Match Name */}
-            <div style={{ marginBottom: "12px" }}>
-              <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>
-                ชื่อการแข่งขัน (สำหรับแสดงผล)
-              </label>
-              <input
-                type="text"
-                value={matchName}
-                onChange={(e) => setMatchName(e.target.value)}
-                placeholder="เช่น PUBG Tournament Round 3"
-                style={{ width: "100%", height: "40px" }}
-              />
             </div>
 
             {/* Winning Score */}
