@@ -69,6 +69,7 @@ export default function NumberWarPage() {
   const [countdown, setCountdown] = useState("");
   const [profitScore, setProfitScore] = useState<number | null>(null);
   const [addressRequired, setAddressRequired] = useState(false);
+  const [addressCompleted, setAddressCompleted] = useState(false);
 
   async function loadSlots() {
     try {
@@ -102,9 +103,8 @@ export default function NumberWarPage() {
       const data = await res.json();
       if (data.ok) {
         setProfitScore(data.data.profitScore);
-        if (!data.data.addressCompleted) {
-          setAddressRequired(true);
-        }
+        setAddressCompleted(data.data.addressCompleted ?? false);
+        setAddressRequired(!data.data.addressCompleted);
       }
     } catch (error) {
       console.error("Error loading user info:", error);
@@ -366,7 +366,7 @@ export default function NumberWarPage() {
               className="button"
               onClick={async () => {
                 await loadUserInfo();
-                if (profitScore !== null) setAddressRequired(false);
+                if (addressCompleted) setAddressRequired(false);
               }}
               style={{ height: "40px", borderRadius: "8px", padding: "0 16px" }}
             >

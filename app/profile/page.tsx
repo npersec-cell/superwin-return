@@ -1,0 +1,304 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+interface UserInfo {
+  id: string;
+  email: string;
+  displayName: string | null;
+  profitScore: number;
+  addressCompleted: boolean;
+  shippingName?: string;
+  shippingAddress?: string;
+  shippingZipcode?: string;
+  shippingPhone?: string;
+}
+
+export default function ProfilePage() {
+  const router = useRouter();
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const [form, setForm] = useState({
+    shippingName: "",
+    shippingAddress: "",
+    shippingZipcode: "",
+    shippingPhone: "",
+  });
+
+  async function loadUser() {
+    try {
+      const res = await fetch("/api/me");
+      const data = await res.json();
+      if (data.ok) {
+        setUser(data.data);
+        setForm({
+          shippingName: data.data.shippingName || "",
+          shippingAddress: data.data.shippingAddress || "",
+          shippingZipcode: data.data.shippingZipcode || "",
+          shippingPhone: data.data.shippingPhone || "",
+        });
+      }
+    } catch (err) {
+      console.error("Error loading user:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+
+    if (!form.shippingName.trim() || !form.shippingAddress.trim() || !form.shippingZipcode.trim() || !form.shippingPhone.trim()) {
+      setError("กรุณากรอกข้อมูลให้ครบทุกช่อง");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/me/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shippingName: form.shippingName,
+          shippingAddress: form.shippingAddress,
+          shippingZipcode: form.shippingZipcode,
+          shippingPhone: form.shippingPhone,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setMessage("บันทึกข้อมูลสำเร็จ!");
+        setUser((prev) => prev ? { ...prev, addressCompleted: data.data.addressCompleted } : null);
+        setTimeout(() => {
+          router.push("/number-war");
+        }, 1500);
+      } else {
+        setError(data.error || "ไม่สามารถบันทึกข้อมูลได้");
+      }
+    } catch (err) {
+      setError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="page">
+        <div className="app" style={{ textAlign: "center", padding: "40px" }}>
+          <div style={{ color: "var(--muted)" }}>กำลังโหลด...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page">
+      <div className="app" style={{ maxWidth: "480px" }}>
+        {/* Header */}
+        <div className="topbar" style={{ marginBottom: "12px" }}>
+          <div className="brand">
+            <img src="https://superwinhub.app/ammo-556-icon.webp" alt="" className="logo" />
+            <div className="brand-text">
+              <div style={{ fontWeight: 700, fontSize: "13px", color: "var(--yellow)" }}>ข้อมูลจัดส่ง</div>
+              <div style={{ fontSize: "10px", color: "var(--muted)" }}>กรอกข้อมูลให้ครบถ้วนเพื่อรับรางวัล</div>
+            </div>
+          </div>
+          <button className="button" onClick={() => router.push("/number-war")} style={{ height: "34px", padding: "0 14px", fontSize: "11px" }}>
+            กลับ
+          </button>
+        </div>
+
+        {/* User Info */}
+        {user && (
+          <div className="panel" style={{ padding: "14px", marginBottom: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+              <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: "var(--yellow-soft)", display: "grid", placeItems: "center", fontSize: "16px" }}>
+                👤
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: "12px" }}>{user.displayName || user.email}</div>
+                <div style={{ fontSize: "10px", color: "var(--muted)" }}>{user.email}</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px" }}>
+              <span style={{ color: "var(--muted)" }}>กระสุนเขียวคงเหลือ:</span>
+              <span style={{ color: "var(--green)", fontWeight: 700 }}>{user.profitScore}</span>
+              <img src="https://superwinhub.app/ammo-556-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
+            </div>
+          </div>
+        )}
+
+        {/* Address Status */}
+        <div
+          className="panel"
+          style={{
+            padding: "14px",
+            marginBottom: "12px",
+            background: user?.addressCompleted ? "rgba(14, 203, 129, 0.08)" : "rgba(239, 68, 68, 0.08)",
+            borderColor: user?.addressCompleted ? "var(--green)" : "var(--red)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ fontSize: "20px" }}>{user?.addressCompleted ? "✅" : "⚠️"}</div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: "12px", color: user?.addressCompleted ? "var(--green)" : "var(--red)" }}>
+                {user?.addressCompleted ? "ข้อมูลจัดส่งครบถ้วน" : "ยังไม่มีข้อมูลจัดส่ง"}
+              </div>
+              <div style={{ fontSize: "10px", color: "var(--muted)" }}>
+                {user?.addressCompleted
+                  ? "คุณสามารถเล่น Number War และรับรางวัลได้"
+                  : "กรุณากรอกข้อมูลด้านล่างให้ครบถ้วน"}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="panel" style={{ padding: "16px" }}>
+          <div style={{ display: "grid", gap: "14px" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "11px", fontWeight: 600, marginBottom: "6px", color: "var(--text)" }}>
+                ชื่อ-นามสกุล ผู้รับ <span style={{ color: "var(--red)" }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={form.shippingName}
+                onChange={(e) => setForm((f) => ({ ...f, shippingName: e.target.value }))}
+                placeholder="ชื่อ นามสกุล"
+                style={{
+                  width: "100%",
+                  height: "40px",
+                  background: "var(--bg)",
+                  border: "1px solid var(--hairline)",
+                  borderRadius: "8px",
+                  padding: "0 12px",
+                  color: "var(--text)",
+                  fontSize: "12px",
+                  outline: "none",
+                }}
+                required
+              />
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontSize: "11px", fontWeight: 600, marginBottom: "6px", color: "var(--text)" }}>
+                ที่อยู่จัดส่ง <span style={{ color: "var(--red)" }}>*</span>
+              </label>
+              <textarea
+                value={form.shippingAddress}
+                onChange={(e) => setForm((f) => ({ ...f, shippingAddress: e.target.value }))}
+                placeholder="บ้านเลขที่ หมู่บ้าน/อาคาร ซอย ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด"
+                rows={3}
+                style={{
+                  width: "100%",
+                  background: "var(--bg)",
+                  border: "1px solid var(--hairline)",
+                  borderRadius: "8px",
+                  padding: "10px 12px",
+                  color: "var(--text)",
+                  fontSize: "12px",
+                  outline: "none",
+                  resize: "vertical",
+                  fontFamily: "inherit",
+                }}
+                required
+              />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 600, marginBottom: "6px", color: "var(--text)" }}>
+                  รหัสไปรษณีย์ <span style={{ color: "var(--red)" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.shippingZipcode}
+                  onChange={(e) => setForm((f) => ({ ...f, shippingZipcode: e.target.value }))}
+                  placeholder="10110"
+                  maxLength={10}
+                  style={{
+                    width: "100%",
+                    height: "40px",
+                    background: "var(--bg)",
+                    border: "1px solid var(--hairline)",
+                    borderRadius: "8px",
+                    padding: "0 12px",
+                    color: "var(--text)",
+                    fontSize: "12px",
+                    outline: "none",
+                  }}
+                  required
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 600, marginBottom: "6px", color: "var(--text)" }}>
+                  เบอร์โทรศัพท์ <span style={{ color: "var(--red)" }}>*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={form.shippingPhone}
+                  onChange={(e) => setForm((f) => ({ ...f, shippingPhone: e.target.value }))}
+                  placeholder="081-234-5678"
+                  maxLength={20}
+                  style={{
+                    width: "100%",
+                    height: "40px",
+                    background: "var(--bg)",
+                    border: "1px solid var(--hairline)",
+                    borderRadius: "8px",
+                    padding: "0 12px",
+                    color: "var(--text)",
+                    fontSize: "12px",
+                    outline: "none",
+                  }}
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          {error && (
+            <div style={{ marginTop: "12px", padding: "10px", background: "rgba(246, 70, 93, 0.1)", border: "1px solid var(--red)", borderRadius: "8px", color: "var(--red)", fontSize: "11px" }}>
+              {error}
+            </div>
+          )}
+
+          {message && (
+            <div style={{ marginTop: "12px", padding: "10px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", borderRadius: "8px", color: "var(--green)", fontSize: "11px" }}>
+              {message}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            className="button gold"
+            disabled={saving}
+            style={{
+              width: "100%",
+              height: "44px",
+              marginTop: "16px",
+              borderRadius: "8px",
+              fontSize: "13px",
+              fontWeight: 700,
+              opacity: saving ? 0.6 : 1,
+            }}
+          >
+            {saving ? "กำลังบันทึก..." : "บันทึกข้อมูลจัดส่ง"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
