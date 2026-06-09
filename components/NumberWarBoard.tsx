@@ -90,6 +90,25 @@ function getRoundStatus(round: { open_at: string | null; close_at: string | null
   return "closed";
 }
 
+// Convert datetime-local string (browser local) to UTC ISO string assuming Bangkok time (+7)
+function toBangkokIso(dt: string): string {
+  if (!dt) return "";
+  // Append Bangkok offset and convert to UTC ISO
+  return new Date(dt + ":00+07:00").toISOString();
+}
+
+// Convert UTC ISO string to datetime-local format (YYYY-MM-DDTHH:mm) for Bangkok time
+function toDatetimeLocal(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  // Format as Bangkok time manually to avoid timezone issues
+  const bangkokOffset = 7 * 60; // minutes
+  const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+  const bangkokTime = new Date(utc + bangkokOffset * 60000);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${bangkokTime.getFullYear()}-${pad(bangkokTime.getMonth() + 1)}-${pad(bangkokTime.getDate())}T${pad(bangkokTime.getHours())}:${pad(bangkokTime.getMinutes())}`;
+}
+
 export default function NumberWarBoard() {
   const [slots, setSlots] = useState<NumberSlot[]>([]);
   const [winners, setWinners] = useState<WinnerLog[]>([]);
@@ -349,7 +368,7 @@ export default function NumberWarBoard() {
                     const res = await fetch("/api/number-war/rounds", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ name: newRoundName.trim(), openAt: newRoundOpenAt, closeAt: newRoundCloseAt }),
+                      body: JSON.stringify({ name: newRoundName.trim(), openAt: toBangkokIso(newRoundOpenAt), closeAt: toBangkokIso(newRoundCloseAt) }),
                     });
                     const data = await res.json();
                     if (data.ok) {
@@ -446,8 +465,8 @@ export default function NumberWarBoard() {
                             e.stopPropagation();
                             setEditingRoundId(isEditing ? "" : r.id);
                             setEditRoundName(r.name);
-                            setEditRoundOpenAt(r.open_at ? new Date(r.open_at).toISOString().slice(0, 16) : "");
-                            setEditRoundCloseAt(r.close_at ? new Date(r.close_at).toISOString().slice(0, 16) : "");
+                            setEditRoundOpenAt(toDatetimeLocal(r.open_at || ""));
+                            setEditRoundCloseAt(toDatetimeLocal(r.close_at || ""));
                           }}
                           style={{
                             fontSize: "10px",
@@ -513,8 +532,8 @@ export default function NumberWarBoard() {
                                 body: JSON.stringify({
                                   roundId: r.id,
                                   name: editRoundName,
-                                  openAt: editRoundOpenAt || null,
-                                  closeAt: editRoundCloseAt || null,
+                                  openAt: editRoundOpenAt ? toBangkokIso(editRoundOpenAt) : null,
+                                  closeAt: editRoundCloseAt ? toBangkokIso(editRoundCloseAt) : null,
                                 }),
                               });
                               const data = await res.json();
