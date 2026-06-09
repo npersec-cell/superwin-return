@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         await supabase.from("notifications").insert({
           user_id: slot.owner_id,
           title: "ถูกแย่งเลข!",
-          message: `คุณถูกแย่งเลข ${slotNumber} ไปแล้ว! ได้รับ ${payoutToOldOwner} กระสุนเขียวคืน`,
+          message: `คุณถูกแย่งเลข ${slotNumber} ไปแล้ว! ได้รับ ${payoutToOldOwner} ● คืน`,
           type: "number_war_takeover",
           read: false,
         });

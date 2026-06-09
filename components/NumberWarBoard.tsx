@@ -245,7 +245,7 @@ export default function NumberWarBoard() {
       <div style={{ marginBottom: "20px" }}>
         <h2 style={{ color: "var(--yellow)", marginBottom: "8px" }}>🏆 PUBG Number War</h2>
         <p style={{ color: "var(--muted)", fontSize: "12px" }}>
-          ระบบทายเลข 0-200 | ซื้อครั้งแรก 10 กระสุนเขียว | แย่งซื้อ x2 ทุกครั้ง
+          ระบบทายเลข 0-200 | ซื้อครั้งแรก 10 <span style={{ color: '#0ecb81', fontSize: '10px' }}>●</span> | แย่งซื้อ x2 ทุกครั้ง
         </p>
       </div>
 
@@ -413,7 +413,7 @@ export default function NumberWarBoard() {
                     {slot.slot_number}
                   </div>
                   <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>
-                    {slot.current_price} กระสุนเขียว
+                    {slot.current_price} <span style={{ color: '#0ecb81', fontSize: '10px' }}>●</span>
                   </div>
                   {slot.owner_id && (
                     <div
@@ -485,7 +485,7 @@ export default function NumberWarBoard() {
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ color: "var(--muted)" }}>ราคาปัจจุบัน:</span>
                     <span style={{ color: "var(--yellow)", fontWeight: "700" }}>
-                      {selectedSlot.current_price} กระสุนเขียว
+                      {selectedSlot.current_price} <span style={{ color: '#0ecb81', fontSize: '10px' }}>●</span>
                     </span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>

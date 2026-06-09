@@ -58,7 +58,7 @@ export default function NumberWarPage() {
     if (demoMode) {
       // Demo mode: just show message, don't actually buy
       const price = slot.owner_id ? slot.current_price * 2 : slot.current_price;
-      setMessage(`🎮 Demo Mode: จะซื้อเลข ${slot.slot_number} ราคา ${price} กระสุนเขียว (กดซื้อจริงจะหักกระสุนเขียวและบันทึกเจ้าของ)`);
+      setMessage(`🎮 Demo Mode: จะซื้อเลข ${slot.slot_number} ราคา ${price} ● (กดซื้อจริงจะหัก ● และบันทึกเจ้าของ)`);
       setTimeout(() => setMessage(""), 3000);
       return;
     }
@@ -117,7 +117,7 @@ export default function NumberWarPage() {
       <div style={{ marginBottom: "20px" }}>
         <h1 style={{ color: "var(--yellow)", marginBottom: "8px" }}>🏆 PUBG Number War</h1>
         <p style={{ color: "var(--muted)", fontSize: "12px" }}>
-          ทายเลข 0-200 | ซื้อครั้งแรก 10 กระสุนเขียว | แย่งซื้อ x2 ทุกครั้ง | ชนะตามคะแนนทีม
+          ทายเลข 0-200 | ซื้อครั้งแรก 10 <span style={{ color: '#0ecb81', fontSize: '10px' }}>●</span> | แย่งซื้อ x2 ทุกครั้ง | ชนะตามคะแนนทีม
         </p>
       </div>
 
@@ -140,8 +140,8 @@ export default function NumberWarPage() {
           </div>
           <div style={{ fontSize: "11px", color: "var(--muted)" }}>
             {demoMode
-              ? "ทดลองเล่นแบบไม่บันทึกข้อมูล (Demo กระสุนเขียว: " + demoProfitScore + ")"
-              : "เล่นจริง หักกระสุนเขียวจริง"}
+              ? "ทดลองเล่นแบบไม่บันทึกข้อมูล (Demo ●: " + demoProfitScore + ")"
+              : "เล่นจริง หัก ● จริง"}
           </div>
         </div>
         <button
@@ -231,7 +231,7 @@ export default function NumberWarPage() {
               }}
             >
               <div style={{ fontSize: "16px", fontWeight: "700", color: colors.text }}>{slot.slot_number}</div>
-              <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>{price} กระสุนเขียว</div>
+              <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>{price} <span style={{ color: '#0ecb81', fontSize: '10px' }}>●</span></div>
               {slot.owner_id && (
                 <div
                   style={{
@@ -300,7 +300,7 @@ export default function NumberWarPage() {
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--muted)" }}>ราคาซื้อ:</span>
                 <span style={{ color: "var(--yellow)", fontWeight: "700" }}>
-                  {selectedSlot.owner_id ? selectedSlot.current_price * 2 : selectedSlot.current_price} กระสุนเขียว
+                  {selectedSlot.owner_id ? selectedSlot.current_price * 2 : selectedSlot.current_price} <span style={{ color: '#0ecb81', fontSize: '10px' }}>●</span>
                 </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
