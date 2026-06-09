@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       const status = getRoundStatus(round);
       if (status === "upcoming") {
         return NextResponse.json(
-          { ok: false, error: `รายการนี้ยังไม่เปิดรับซื้อ (เปิด ${new Date(round.open_at!).toLocaleString("th-TH")})` },
+          { ok: false, error: `รายการนี้ยังไม่เปิดรับซื้อ (เปิด ${new Date(round.open_at!).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })})` },
           { status: 403 }
         );
       }

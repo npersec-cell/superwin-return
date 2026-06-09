@@ -415,8 +415,8 @@ export default function NumberWarBoard() {
                         {r.name}
                       </div>
                       <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "2px" }}>
-                        {r.open_at && new Date(r.open_at).toLocaleString("th-TH")} -{" "}
-                        {r.close_at && new Date(r.close_at).toLocaleString("th-TH")}
+                        {r.open_at && new Date(r.open_at).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })} -{" "}
+                        {r.close_at && new Date(r.close_at).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}
                       </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -814,7 +814,7 @@ export default function NumberWarBoard() {
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ color: "var(--muted)" }}>อัปเดตล่าสุด:</span>
                     <span style={{ fontSize: "12px" }}>
-                      {new Date(selectedSlot.updated_at).toLocaleString("th-TH")}
+                      {new Date(selectedSlot.updated_at).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}
                     </span>
                   </div>
                 </div>
