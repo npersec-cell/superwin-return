@@ -135,7 +135,7 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-          <button className="button" onClick={() => router.push("/number-war")} style={{ height: "34px", padding: "0 14px", fontSize: "11px" }}>
+          <button className="button" onClick={() => router.push("/")} style={{ height: "34px", padding: "0 14px", fontSize: "11px" }}>
             กลับ
           </button>
         </div>
