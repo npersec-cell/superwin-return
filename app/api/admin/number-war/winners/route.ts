@@ -41,12 +41,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all winners with user info
+    // Get all winners with user info and round info
     const { data: winners, error } = await supabase
       .from("winners_log")
       .select(`
         *,
-        user:user_id (id, display_name, email, shipping_name, shipping_address, shipping_zipcode, shipping_phone)
+        user:user_id (id, display_name, email, shipping_name, shipping_address, shipping_zipcode, shipping_phone),
+        round:round_id (id, name)
       `)
       .order("created_at", { ascending: false });
 

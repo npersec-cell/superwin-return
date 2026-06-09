@@ -6,10 +6,20 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+function getRoundStatus(round: { open_at: string | null; close_at: string | null }): "upcoming" | "open" | "closed" {
+  const now = Date.now();
+  const open = round.open_at ? new Date(round.open_at).getTime() : null;
+  const close = round.close_at ? new Date(round.close_at).getTime() : null;
+  if (open && now < open) return "upcoming";
+  if (close && now > close) return "closed";
+  if (open && close && now >= open && now <= close) return "open";
+  return "closed";
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, slotNumber } = body;
+    const { userId, slotNumber, roundId } = body;
 
     if (!userId || slotNumber === undefined) {
       return NextResponse.json(
@@ -35,8 +45,8 @@ export async function POST(request: NextRequest) {
     // Address Wall - block if address not completed
     if (!user.address_completed) {
       return NextResponse.json(
-        { 
-          ok: false, 
+        {
+          ok: false,
           error: "ADDRESS_REQUIRED",
           message: "กรุณากรอกข้อมูลจัดส่งก่อนเริ่มเล่น",
           requiredFields: {
@@ -50,46 +60,55 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check Number War is open (from active tournament)
-    const { data: tournament, error: tournamentError } = await supabase
-      .from("predictions")
-      .select("number_war_enabled, number_war_open_at, number_war_close_at")
-      .eq("number_war_enabled", true)
-      .order("created_at", { ascending: false })
-      .limit(1)
+    // Find active round
+    let targetRoundId = roundId;
+    if (!targetRoundId) {
+      const { data: rounds } = await supabase
+        .from("number_war_rounds")
+        .select("id, open_at, close_at")
+        .order("created_at", { ascending: false });
+
+      const activeRound = (rounds || []).find((r) => getRoundStatus(r) === "open");
+      if (activeRound) {
+        targetRoundId = activeRound.id;
+      }
+    }
+
+    if (!targetRoundId) {
+      return NextResponse.json(
+        { ok: false, error: "ไม่มีรายการแข่งขัน Number War ที่เปิดรับซื้ออยู่" },
+        { status: 403 }
+      );
+    }
+
+    // Verify round is open
+    const { data: round } = await supabase
+      .from("number_war_rounds")
+      .select("open_at, close_at")
+      .eq("id", targetRoundId)
       .single();
 
-    if (!tournamentError && tournament) {
-      const now = new Date();
-      const openAt = tournament.number_war_open_at ? new Date(tournament.number_war_open_at) : null;
-      const closeAt = tournament.number_war_close_at ? new Date(tournament.number_war_close_at) : null;
-
-      if (!tournament.number_war_enabled) {
+    if (round) {
+      const status = getRoundStatus(round);
+      if (status === "upcoming") {
         return NextResponse.json(
-          { ok: false, error: "Number War ปิดให้บริการชั่วคราว" },
+          { ok: false, error: `รายการนี้ยังไม่เปิดรับซื้อ (เปิด ${new Date(round.open_at!).toLocaleString("th-TH")})` },
           { status: 403 }
         );
       }
-
-      if (openAt && now < openAt) {
+      if (status === "closed") {
         return NextResponse.json(
-          { ok: false, error: `Number War จะเปิดรับซื้อในวันที่ ${openAt.toLocaleString("th-TH")}` },
-          { status: 403 }
-        );
-      }
-
-      if (closeAt && now > closeAt) {
-        return NextResponse.json(
-          { ok: false, error: "Number War ปิดรับซื้อแล้ว" },
+          { ok: false, error: "รายการนี้ปิดรับซื้อแล้ว" },
           { status: 403 }
         );
       }
     }
 
-    // Get slot info
+    // Get slot info for this round
     const { data: slot, error: slotError } = await supabase
       .from("number_slots")
       .select("*")
+      .eq("round_id", targetRoundId)
       .eq("slot_number", slotNumber)
       .single();
 

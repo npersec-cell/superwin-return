@@ -27,10 +27,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get user's wins
+    // Get user's wins with round info
     const { data: wins, error } = await supabase
       .from("winners_log")
-      .select("*")
+      .select("*, round:round_id (id, name)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 

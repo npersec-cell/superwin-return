@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { matchName, winningScore, tournamentId } = body;
+    const { matchName, winningScore, roundId } = body;
 
     // Validate inputs
     if (!matchName || !matchName.trim()) {
@@ -68,22 +68,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update prediction winner slot if tournamentId provided
-    if (tournamentId) {
-      const { error: updateError } = await supabase
-        .from("predictions")
-        .update({ number_war_winner_slot: slotNumber })
-        .eq("id", tournamentId);
-
-      if (updateError) {
-        console.error("Error updating prediction winner slot:", updateError);
-      }
+    // Validate roundId
+    if (!roundId) {
+      return NextResponse.json(
+        { ok: false, error: "กรุณาเลือกรายการแข่งขัน" },
+        { status: 400 }
+      );
     }
 
-    // Get the slot
+    // Update round winner slot
+    const { error: updateError } = await supabase
+      .from("number_war_rounds")
+      .update({ winner_slot: slotNumber, status: "resolved" })
+      .eq("id", roundId);
+
+    if (updateError) {
+      console.error("Error updating round winner slot:", updateError);
+    }
+
+    // Get the slot from this round
     const { data: slot, error: slotError } = await supabase
       .from("number_slots")
       .select("*, owner:owner_id(id, display_name, email)")
+      .eq("round_id", roundId)
       .eq("slot_number", slotNumber)
       .single();
 
@@ -119,6 +126,7 @@ export async function POST(request: NextRequest) {
         slot_number: slotNumber,
         match_name: matchName.trim(),
         winning_score: slotNumber,
+        round_id: roundId,
         shipping_status: "pending",
       })
       .select()
@@ -138,7 +146,7 @@ export async function POST(request: NextRequest) {
     // Create notification for winner
     await supabase.from("notifications").insert({
       user_id: slot.owner_id,
-      title: "🎉 ยินดีด้วย! คุณชนะรางวัล Number War!",
+      title: "ยินดีด้วย! คุณชนะรางวัล Number War!",
       message: `เลข ${slotNumber} ของคุณชนะรางวัลจากการแข่งขัน "${matchName.trim()}"! ของรางวัลกำลังเตรียมจัดส่ง`,
       type: "number_war_winner",
       read: false,
@@ -151,6 +159,7 @@ export async function POST(request: NextRequest) {
       target_type: "number_slot",
       target_id: slot.id,
       metadata: {
+        round_id: roundId,
         slot_number: slotNumber,
         match_name: matchName.trim(),
         winning_score: slotNumber,

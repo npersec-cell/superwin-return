@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 
 function GreenBullet({ size = 10 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ display: "inline-block", verticalAlign: "middle", marginLeft: "2px" }}>
-      <ellipse cx="12" cy="12" rx="10" ry="6" fill="#0ecb81" />
-      <ellipse cx="12" cy="12" rx="7" ry="3.5" fill="#1a3d2e" opacity="0.3" />
-      <ellipse cx="10" cy="10" rx="3" ry="1.5" fill="#ffffff" opacity="0.4" />
-    </svg>
+    <img
+      src="https://superwinhub.app/ammo-556-icon.webp"
+      alt=""
+      width={size}
+      height={size}
+      style={{ display: "inline-block", verticalAlign: "middle", marginLeft: "2px" }}
+    />
   );
 }
 
@@ -36,14 +38,15 @@ interface NumberSlot {
   } | null;
 }
 
-interface NumberWarConfig {
+interface NwRound {
   id: string;
-  open_at: string;
-  close_at: string;
-  is_active: boolean;
-  status?: "open" | "closed" | "upcoming";
-  timeLeft?: number;
-  timeUntilOpen?: number;
+  name: string;
+  open_at: string | null;
+  close_at: string | null;
+  winner_slot: number | null;
+  status: string;
+  computedStatus?: "upcoming" | "open" | "closed" | "resolved";
+  created_at: string;
 }
 
 interface WinnerLog {
@@ -58,7 +61,7 @@ interface WinnerLog {
 
 export default function NumberWarPage() {
   const [slots, setSlots] = useState<NumberSlot[]>([]);
-  const [config, setConfig] = useState<NumberWarConfig | null>(null);
+  const [round, setRound] = useState<NwRound | null>(null);
   const [myWins, setMyWins] = useState<WinnerLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<NumberSlot | null>(null);
@@ -69,23 +72,15 @@ export default function NumberWarPage() {
 
   async function loadSlots() {
     try {
-      const data = await fetchJson<{ ok: boolean; data: NumberSlot[] }>("/api/number-war/slots");
+      const data = await fetchJson<{ ok: boolean; data: NumberSlot[]; round: NwRound | null }>("/api/number-war/slots");
       if (data.ok) {
         setSlots(data.data);
+        if (data.round) {
+          setRound(data.round);
+        }
       }
     } catch (error) {
       console.error("Error loading slots:", error);
-    }
-  }
-
-  async function loadConfig() {
-    try {
-      const data = await fetchJson<{ ok: boolean; data: NumberWarConfig }>("/api/number-war/config");
-      if (data.ok) {
-        setConfig(data.data);
-      }
-    } catch (error) {
-      console.error("Error loading config:", error);
     }
   }
 
@@ -108,7 +103,7 @@ export default function NumberWarPage() {
   useEffect(() => {
     async function init() {
       setLoading(true);
-      await Promise.all([loadSlots(), loadConfig()]);
+      await loadSlots();
       if (!demoMode) {
         await loadMyWins();
       }
@@ -119,64 +114,66 @@ export default function NumberWarPage() {
 
   // Countdown timer
   useEffect(() => {
-    if (!config) return;
-    
+    if (!round) return;
+
     const interval = setInterval(() => {
       const now = Date.now();
-      if (config.status === "open" && config.close_at) {
-        const remaining = new Date(config.close_at).getTime() - now;
+      const status = round.computedStatus || round.status;
+      if (status === "open" && round.close_at) {
+        const remaining = new Date(round.close_at).getTime() - now;
         if (remaining > 0) {
           const hours = Math.floor(remaining / (1000 * 60 * 60));
           const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
           const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-          setCountdown(`⏳ เหลือเวลา: ${hours}ชม ${minutes}น ${seconds}วิ`);
+          setCountdown(`เหลือเวลา: ${hours}ชม ${minutes}น ${seconds}วิ`);
         } else {
-          setCountdown("⛔ ปิดรับซื้อแล้ว");
+          setCountdown("ปิดรับซื้อแล้ว");
         }
-      } else if (config.status === "upcoming" && config.open_at) {
-        const remaining = new Date(config.open_at).getTime() - now;
+      } else if (status === "upcoming" && round.open_at) {
+        const remaining = new Date(round.open_at).getTime() - now;
         if (remaining > 0) {
           const hours = Math.floor(remaining / (1000 * 60 * 60));
           const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
           const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-          setCountdown(`🔒 เปิดในอีก: ${hours}ชม ${minutes}น ${seconds}วิ`);
+          setCountdown(`เปิดในอีก: ${hours}ชม ${minutes}น ${seconds}วิ`);
         } else {
           setCountdown("");
         }
       } else {
-        setCountdown("⛔ ปิดรับซื้อแล้ว");
+        setCountdown("ปิดรับซื้อแล้ว");
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [config]);
+  }, [round]);
 
   async function handleBuy(slot: NumberSlot) {
     if (demoMode) {
       // Demo mode: just show message, don't actually buy
       const price = slot.owner_id ? slot.current_price * 2 : slot.current_price;
-      setMessage(`🎮 Demo Mode: จะซื้อเลข ${slot.slot_number} ราคา ${price} <GreenBullet /> (กดซื้อจริงจะหัก <GreenBullet /> และบันทึกเจ้าของ)`);
+      setMessage(`Demo Mode: จะซื้อเลข ${slot.slot_number} ราคา ${price} <GreenBullet /> (กดซื้อจริงจะหัก <GreenBullet /> และบันทึกเจ้าของ)`);
       setTimeout(() => setMessage(""), 3000);
       return;
     }
 
     // Real mode: call API
     try {
+      const token = localStorage.getItem("sb-token");
       const res = await fetch("/api/number-war/buy", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ slotNumber: slot.slot_number }),
       });
 
       const data = await res.json();
       if (data.ok) {
-        setMessage(`✅ ซื้อเลข ${slot.slot_number} สำเร็จ!`);
+        setMessage(`ซื้อเลข ${slot.slot_number} สำเร็จ!`);
         await loadSlots();
       } else {
-        setMessage(`❌ ${data.error}`);
+        setMessage(`ผิดพลาด: ${data.error}`);
       }
     } catch (error) {
-      setMessage("❌ เกิดข้อผิดพลาด");
+      setMessage("เกิดข้อผิดพลาด");
     }
   }
 
@@ -212,18 +209,25 @@ export default function NumberWarPage() {
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "20px" }}>
       {/* Header */}
       <div style={{ marginBottom: "20px" }}>
-        <h1 style={{ color: "var(--yellow)", marginBottom: "8px" }}>🏆 PUBG Number War</h1>
+        <h1 style={{ color: "var(--yellow)", marginBottom: "8px" }}>Number War</h1>
         <p style={{ color: "var(--muted)", fontSize: "12px" }}>
-          ทายเลข 0-200 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง | ชนะตามคะแนนทีม
+          ทายเลข 0-200 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ
         </p>
       </div>
 
+      {/* Round Name */}
+      {round && (
+        <div style={{ fontSize: "14px", fontWeight: "600", color: "var(--text)", marginBottom: "8px" }}>
+          {round.name}
+        </div>
+      )}
+
       {/* Status Banner */}
-      {config && (
+      {round && (
         <div
           style={{
-            background: config.status === "open" ? "rgba(14, 203, 129, 0.1)" : config.status === "upcoming" ? "rgba(255, 225, 0, 0.1)" : "rgba(240, 84, 84, 0.1)",
-            border: `1px solid ${config.status === "open" ? "var(--green)" : config.status === "upcoming" ? "var(--yellow)" : "#ef4444"}`,
+            background: round.computedStatus === "open" ? "rgba(14, 203, 129, 0.1)" : round.computedStatus === "upcoming" ? "rgba(255, 225, 0, 0.1)" : "rgba(240, 84, 84, 0.1)",
+            border: `1px solid ${round.computedStatus === "open" ? "var(--green)" : round.computedStatus === "upcoming" ? "var(--yellow)" : "#ef4444"}`,
             borderRadius: "8px",
             padding: "10px 16px",
             marginBottom: "16px",
@@ -232,10 +236,10 @@ export default function NumberWarPage() {
             alignItems: "center",
           }}
         >
-          <div style={{ fontSize: "12px", fontWeight: "600", color: config.status === "open" ? "var(--green)" : config.status === "upcoming" ? "var(--yellow)" : "#ef4444" }}>
-            {config.status === "open" && "🟢 เปิดรับซื้อ"}
-            {config.status === "upcoming" && "🔒 ยังไม่เปิด"}
-            {config.status === "closed" && "⛔ ปิดรับซื้อแล้ว"}
+          <div style={{ fontSize: "12px", fontWeight: "600", color: round.computedStatus === "open" ? "var(--green)" : round.computedStatus === "upcoming" ? "var(--yellow)" : "#ef4444" }}>
+            {round.computedStatus === "open" && "เปิดรับซื้อ"}
+            {round.computedStatus === "upcoming" && "ยังไม่เปิด"}
+            {(round.computedStatus === "closed" || round.computedStatus === "resolved") && "ปิดรับซื้อแล้ว"}
           </div>
           <div style={{ fontSize: "11px", color: "var(--muted)" }}>
             {countdown}
@@ -255,7 +259,7 @@ export default function NumberWarPage() {
           }}
         >
           <h3 style={{ color: "var(--yellow)", marginBottom: "8px", fontSize: "14px" }}>
-            🎉 ยินดีด้วย! คุณเป็นผู้โชคดี!
+            ยินดีด้วย! คุณเป็นผู้โชคดี!
           </h3>
           <div style={{ display: "grid", gap: "8px" }}>
             {myWins.map((win) => (
@@ -292,20 +296,20 @@ export default function NumberWarPage() {
                           : "var(--yellow)",
                     }}
                   >
-                    {win.shipping_status === "pending" && "⏳ รอดำเนินการ"}
-                    {win.shipping_status === "processing" && "🔧 กำลังเตรียม"}
-                    {win.shipping_status === "shipped" && "📦 จัดส่งแล้ว"}
-                    {win.shipping_status === "delivered" && "✅ ส่งถึงแล้ว"}
+                    {win.shipping_status === "pending" && "รอดำเนินการ"}
+                    {win.shipping_status === "processing" && "กำลังเตรียม"}
+                    {win.shipping_status === "shipped" && "จัดส่งแล้ว"}
+                    {win.shipping_status === "delivered" && "ส่งถึงแล้ว"}
                   </span>
                 </div>
                 {win.match_name && (
                   <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "2px" }}>
-                    🏆 {win.match_name}
+                    {win.match_name}
                   </div>
                 )}
                 {win.tracking_number && (
                   <div style={{ fontSize: "11px", color: "var(--info)" }}>
-                    📋 Tracking: {win.tracking_number}
+                    Tracking: {win.tracking_number}
                   </div>
                 )}
               </div>
@@ -329,7 +333,7 @@ export default function NumberWarPage() {
       >
         <div>
           <div style={{ fontSize: "14px", fontWeight: "600", color: "var(--text)", marginBottom: "4px" }}>
-            {demoMode ? "🎮 โหมดทดลองเล่น" : "💰 โหมดจริง"}
+            {demoMode ? "โหมดทดลองเล่น" : "โหมดจริง"}
           </div>
           <div style={{ fontSize: "11px", color: "var(--muted)" }}>
             {demoMode
@@ -354,8 +358,8 @@ export default function NumberWarPage() {
             borderRadius: "8px",
             marginBottom: "20px",
             fontSize: "12px",
-            background: message.includes("✅") ? "rgba(14, 203, 129, 0.1)" : "rgba(255, 225, 0, 0.1)",
-            color: message.includes("✅") ? "var(--green)" : "var(--yellow)",
+          background: message.includes("สำเร็จ") ? "rgba(14, 203, 129, 0.1)" : "rgba(255, 225, 0, 0.1)",
+          color: message.includes("สำเร็จ") ? "var(--green)" : "var(--yellow)",
           }}
         >
           {message}
@@ -512,16 +516,16 @@ export default function NumberWarPage() {
                 handleBuy(selectedSlot);
                 setSelectedSlot(null);
               }}
-              disabled={!demoMode && config?.status !== "open"}
-              style={{ width: "100%", marginBottom: "8px", opacity: !demoMode && config?.status !== "open" ? 0.5 : 1 }}
+              disabled={!demoMode && round?.computedStatus !== "open"}
+              style={{ width: "100%", marginBottom: "8px", opacity: !demoMode && round?.computedStatus !== "open" ? 0.5 : 1 }}
             >
               {demoMode
-                ? "🎮 ทดลองซื้อ"
-                : config?.status === "open"
-                ? "💰 ซื้อเลขนี้"
-                : config?.status === "upcoming"
-                ? "🔒 ยังไม่เปิด"
-                : "⛔ ปิดรับซื้อ"}
+                ? "ทดลองซื้อ"
+                : round?.computedStatus === "open"
+                ? "ซื้อเลขนี้"
+                : round?.computedStatus === "upcoming"
+                ? "ยังไม่เปิด"
+                : "ปิดรับซื้อ"}
             </button>
             <button className="button" onClick={() => setSelectedSlot(null)} style={{ width: "100%" }}>
               ปิด

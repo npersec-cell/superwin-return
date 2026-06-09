@@ -68,21 +68,22 @@ interface WinnerLog {
   };
 }
 
-interface NwTournament {
+interface NwRound {
   id: string;
-  tournamentName: string;
+  name: string;
   status: string;
-  numberWarEnabled: boolean | null;
-  numberWarOpenAt: string | null;
-  numberWarCloseAt: string | null;
-  numberWarWinnerSlot: number | null;
-  createdAt: string;
+  open_at: string | null;
+  close_at: string | null;
+  winner_slot: number | null;
+  computedStatus?: "upcoming" | "open" | "closed" | "resolved";
+  created_at: string;
 }
 
-function getNwStatus(tournament: NwTournament): "upcoming" | "open" | "closed" {
+function getRoundStatus(round: { open_at: string | null; close_at: string | null; winner_slot: number | null }): "upcoming" | "open" | "closed" | "resolved" {
   const now = Date.now();
-  const open = tournament.numberWarOpenAt ? new Date(tournament.numberWarOpenAt).getTime() : null;
-  const close = tournament.numberWarCloseAt ? new Date(tournament.numberWarCloseAt).getTime() : null;
+  const open = round.open_at ? new Date(round.open_at).getTime() : null;
+  const close = round.close_at ? new Date(round.close_at).getTime() : null;
+  if (round.winner_slot !== null && round.winner_slot !== undefined) return "resolved";
   if (open && now < open) return "upcoming";
   if (close && now > close) return "closed";
   if (open && close && now >= open && now <= close) return "open";
@@ -100,14 +101,24 @@ export default function NumberWarBoard() {
   const [setWinnerLoading, setSetWinnerLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [activeView, setActiveView] = useState<"board" | "winners">("board");
-  const [tournaments, setTournaments] = useState<NwTournament[]>([]);
-  const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
+  const [rounds, setRounds] = useState<NwRound[]>([]);
+  const [selectedRoundId, setSelectedRoundId] = useState<string>("");
+  const [boardRoundId, setBoardRoundId] = useState<string>("");
+  const [createFormOpen, setCreateFormOpen] = useState(false);
+  const [newRoundName, setNewRoundName] = useState("");
+  const [newRoundOpenAt, setNewRoundOpenAt] = useState("");
+  const [newRoundCloseAt, setNewRoundCloseAt] = useState("");
+  const [createLoading, setCreateLoading] = useState(false);
 
-  async function loadSlots() {
+  async function loadSlots(roundId?: string) {
     try {
-      const data = await fetchJson<{ ok: boolean; data: NumberSlot[] }>("/api/number-war/slots");
+      const url = roundId ? `/api/number-war/slots?roundId=${roundId}` : "/api/number-war/slots";
+      const data = await fetchJson<{ ok: boolean; data: NumberSlot[]; round: NwRound | null }>(url);
       if (data.ok) {
         setSlots(data.data);
+        if (data.round) {
+          setBoardRoundId(data.round.id);
+        }
       }
     } catch (error) {
       console.error("Error loading slots:", error);
@@ -129,42 +140,36 @@ export default function NumberWarBoard() {
     }
   }
 
-  async function loadTournaments() {
+  async function loadRounds() {
     try {
-      const token = localStorage.getItem("sb-token");
-      const response = await fetch("/api/admin/predictions", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
+      const data = await fetchJson<{ ok: boolean; data: NwRound[] }>("/api/number-war/rounds");
       if (data.ok) {
-        const nwList: NwTournament[] = (data.data || [])
-          .filter((p: NwTournament) => p.numberWarEnabled)
-          .sort((a: NwTournament, b: NwTournament) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setTournaments(nwList);
+        const enriched = data.data.map((r) => ({ ...r, computedStatus: getRoundStatus(r) }));
+        setRounds(enriched);
       }
     } catch (error) {
-      console.error("Error loading tournaments:", error);
+      console.error("Error loading rounds:", error);
     }
   }
 
   useEffect(() => {
     async function init() {
       setLoading(true);
-      await Promise.all([loadSlots(), loadWinners(), loadTournaments()]);
+      await Promise.all([loadSlots(), loadWinners(), loadRounds()]);
       setLoading(false);
     }
     init();
   }, []);
 
-  // Auto-fill match name when tournament selected
+  // Auto-fill match name when round selected
   useEffect(() => {
-    if (selectedTournamentId) {
-      const t = tournaments.find((x) => x.id === selectedTournamentId);
-      if (t) {
-        setMatchName(t.tournamentName);
+    if (selectedRoundId) {
+      const r = rounds.find((x) => x.id === selectedRoundId);
+      if (r) {
+        setMatchName(r.name);
       }
     }
-  }, [selectedTournamentId, tournaments]);
+  }, [selectedRoundId, rounds]);
 
   // Calculate winning number when score changes
   useEffect(() => {
@@ -223,7 +228,7 @@ export default function NumberWarBoard() {
         body: JSON.stringify({
           matchName: matchName.trim(),
           winningScore: slotNumber,
-          tournamentId: selectedTournamentId || undefined,
+          roundId: selectedRoundId || undefined,
         }),
       });
 
@@ -234,8 +239,8 @@ export default function NumberWarBoard() {
         setMatchName("");
         setWinningScore("");
         setCalculatedNumber(null);
-        setSelectedTournamentId("");
-        await Promise.all([loadWinners(), loadTournaments()]);
+        setSelectedRoundId("");
+        await Promise.all([loadWinners(), loadRounds()]);
       } else {
         setMessage(`ผิดพลาด: ${data.error || "เกิดข้อผิดพลาด"}`);
       }
@@ -319,28 +324,91 @@ export default function NumberWarBoard() {
           marginBottom: "20px",
         }}
       >
-        <h3 style={{ color: "var(--yellow)", marginBottom: "12px", fontSize: "14px" }}>
-          รายการแข่งขัน Number War
-        </h3>
-        {tournaments.length === 0 ? (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+          <h3 style={{ color: "var(--yellow)", fontSize: "14px" }}>
+            รายการแข่งขัน Number War
+          </h3>
+          <button
+            className="button"
+            style={{ height: "28px", fontSize: "11px", padding: "0 12px" }}
+            onClick={() => setCreateFormOpen((v) => !v)}
+          >
+            {createFormOpen ? "ปิด" : "+ สร้างรายการใหม่"}
+          </button>
+        </div>
+
+        {createFormOpen && (
+          <div style={{ background: "var(--bg)", borderRadius: "8px", padding: "12px", marginBottom: "12px" }}>
+            <div style={{ display: "grid", gap: "8px" }}>
+              <div>
+                <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>ชื่อรายการแข่งขัน</label>
+                <input type="text" value={newRoundName} onChange={(e) => setNewRoundName(e.target.value)} placeholder="เช่น PUBG Tournament Round 3" style={{ width: "100%", height: "36px" }} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                <div>
+                  <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>เปิดรับซื้อ</label>
+                  <input type="datetime-local" value={newRoundOpenAt} onChange={(e) => setNewRoundOpenAt(e.target.value)} style={{ width: "100%", height: "36px" }} />
+                </div>
+                <div>
+                  <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>ปิดรับซื้อ</label>
+                  <input type="datetime-local" value={newRoundCloseAt} onChange={(e) => setNewRoundCloseAt(e.target.value)} style={{ width: "100%", height: "36px" }} />
+                </div>
+              </div>
+              <button
+                className="button primary"
+                disabled={createLoading || !newRoundName.trim() || !newRoundOpenAt || !newRoundCloseAt}
+                onClick={async () => {
+                  setCreateLoading(true);
+                  try {
+                    const token = localStorage.getItem("sb-token");
+                    const res = await fetch("/api/number-war/rounds", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ name: newRoundName.trim(), openAt: newRoundOpenAt, closeAt: newRoundCloseAt }),
+                    });
+                    const data = await res.json();
+                    if (data.ok) {
+                      setNewRoundName("");
+                      setNewRoundOpenAt("");
+                      setNewRoundCloseAt("");
+                      setCreateFormOpen(false);
+                      await loadRounds();
+                    } else {
+                      alert(data.error || "สร้างไม่สำเร็จ");
+                    }
+                  } catch (e) {
+                    alert("เกิดข้อผิดพลาด");
+                  } finally {
+                    setCreateLoading(false);
+                  }
+                }}
+                style={{ height: "36px" }}
+              >
+                {createLoading ? "กำลังสร้าง..." : "สร้างรายการ"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {rounds.length === 0 ? (
           <div style={{ color: "var(--muted)", fontSize: "12px", textAlign: "center", padding: "20px" }}>
             ยังไม่มีรายการแข่งขัน Number War
             <br />
-            <span style={{ fontSize: "11px" }}>สร้างได้จากแท็บ "จัดการคำถาม" &rarr; เปิด Number War สำหรับทัวร์นี้</span>
+            <span style={{ fontSize: "11px" }}>กด "สร้างรายการใหม่" เพื่อเริ่มต้น</span>
           </div>
         ) : (
           <div style={{ display: "grid", gap: "8px" }}>
-            {tournaments.map((t) => {
-              const status = getNwStatus(t);
-              const statusLabel = status === "open" ? "เปิดรับซื้อ" : status === "upcoming" ? "เร็วๆ นี้" : "ปิดรับซื้อ";
-              const statusColor = status === "open" ? "var(--green)" : status === "upcoming" ? "var(--info)" : "var(--yellow)";
-              const isSelected = selectedTournamentId === t.id;
+            {rounds.map((r) => {
+              const status = r.computedStatus || getRoundStatus(r);
+              const statusLabel = status === "open" ? "เปิดรับซื้อ" : status === "upcoming" ? "เร็วๆ นี้" : status === "resolved" ? "ประกาศผลแล้ว" : "ปิดรับซื้อ";
+              const statusColor = status === "open" ? "var(--green)" : status === "upcoming" ? "var(--info)" : status === "resolved" ? "var(--green)" : "var(--yellow)";
+              const isSelected = boardRoundId === r.id;
               return (
                 <div
-                  key={t.id}
+                  key={r.id}
                   onClick={() => {
-                    setSelectedTournamentId(isSelected ? "" : t.id);
-                    if (!isSelected) setMatchName(t.tournamentName);
+                    setBoardRoundId(isSelected ? "" : r.id);
+                    loadSlots(isSelected ? undefined : r.id);
                   }}
                   style={{
                     background: isSelected ? "rgba(255, 225, 0, 0.08)" : "var(--bg)",
@@ -357,11 +425,11 @@ export default function NumberWarBoard() {
                 >
                   <div>
                     <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
-                      {t.tournamentName}
+                      {r.name}
                     </div>
                     <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "2px" }}>
-                      {t.numberWarOpenAt && new Date(t.numberWarOpenAt).toLocaleString("th-TH")} -{" "}
-                      {t.numberWarCloseAt && new Date(t.numberWarCloseAt).toLocaleString("th-TH")}
+                      {r.open_at && new Date(r.open_at).toLocaleString("th-TH")} -{" "}
+                      {r.close_at && new Date(r.close_at).toLocaleString("th-TH")}
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -377,12 +445,12 @@ export default function NumberWarBoard() {
                     >
                       {statusLabel}
                     </span>
-                    {status === "closed" && !t.numberWarWinnerSlot && (
+                    {status === "closed" && r.winner_slot === null && (
                       <span style={{ fontSize: "10px", color: "#ef4444", fontWeight: "600" }}>ยังไม่ประกาศผล</span>
                     )}
-                    {t.numberWarWinnerSlot !== null && (
+                    {r.winner_slot !== null && (
                       <span style={{ fontSize: "10px", color: "var(--green)", fontWeight: "600" }}>
-                        ชนะเลข {t.numberWarWinnerSlot}
+                        ชนะเลข {r.winner_slot}
                       </span>
                     )}
                   </div>
@@ -430,27 +498,27 @@ export default function NumberWarBoard() {
               เลือกรายการแข่งขันที่ปิดรับซื้อแล้ว แล้วกรอกเลขที่ชนะ (0-200)
             </p>
 
-            {/* Tournament Select */}
+            {/* Round Select */}
             <div style={{ marginBottom: "12px" }}>
               <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>
                 รายการแข่งขัน
               </label>
               <select
-                value={selectedTournamentId}
+                value={selectedRoundId}
                 onChange={(e) => {
                   const id = e.target.value;
-                  setSelectedTournamentId(id);
-                  const t = tournaments.find((x) => x.id === id);
-                  if (t) setMatchName(t.tournamentName);
+                  setSelectedRoundId(id);
+                  const r = rounds.find((x) => x.id === id);
+                  if (r) setMatchName(r.name);
                 }}
                 style={{ width: "100%", height: "40px", background: "var(--bg)", color: "var(--text)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "0 10px" }}
               >
                 <option value="">-- เลือกรายการแข่งขัน --</option>
-                {tournaments
-                  .filter((t) => getNwStatus(t) === "closed")
-                  .map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.tournamentName} {t.numberWarWinnerSlot !== null ? `(ประกาศผลแล้ว: เลข ${t.numberWarWinnerSlot})` : "(ยังไม่ประกาศผล)"}
+                {rounds
+                  .filter((r) => (r.computedStatus || getRoundStatus(r)) === "closed")
+                  .map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} {r.winner_slot !== null ? `(ประกาศผลแล้ว: เลข ${r.winner_slot})` : "(ยังไม่ประกาศผล)"}
                     </option>
                   ))}
               </select>

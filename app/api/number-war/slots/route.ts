@@ -6,43 +6,67 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET() {
+function getRoundStatus(round: { open_at: string | null; close_at: string | null }): "upcoming" | "open" | "closed" {
+  const now = Date.now();
+  const open = round.open_at ? new Date(round.open_at).getTime() : null;
+  const close = round.close_at ? new Date(round.close_at).getTime() : null;
+  if (open && now < open) return "upcoming";
+  if (close && now > close) return "closed";
+  if (open && close && now >= open && now <= close) return "open";
+  return "closed";
+}
+
+export async function GET(request: NextRequest) {
   try {
-    // Initialize slots if they don't exist
-    const { data: existingSlots, error: countError } = await supabase
-      .from("number_slots")
-      .select("id")
-      .limit(1);
+    const { searchParams } = new URL(request.url);
+    const roundId = searchParams.get("roundId");
 
-    if (countError) throw countError;
+    let targetRoundId = roundId;
 
-    // If no slots exist, create them (0-200)
-    if (!existingSlots || existingSlots.length === 0) {
-      const slots = Array.from({ length: 201 }, (_, i) => ({
-        slot_number: i,
-        current_price: 10,
-        total_takeovers: 0,
-      }));
+    // If no roundId specified, find the active (open) round
+    if (!targetRoundId) {
+      const { data: rounds } = await supabase
+        .from("number_war_rounds")
+        .select("id, open_at, close_at")
+        .order("created_at", { ascending: false });
 
-      const { error: insertError } = await supabase
-        .from("number_slots")
-        .insert(slots);
-
-      if (insertError) throw insertError;
+      const activeRound = (rounds || []).find((r) => getRoundStatus(r) === "open");
+      if (activeRound) {
+        targetRoundId = activeRound.id;
+      } else if (rounds && rounds.length > 0) {
+        // Fallback to most recent round
+        targetRoundId = rounds[0].id;
+      }
     }
 
-    // Fetch all slots with owner info
+    if (!targetRoundId) {
+      return NextResponse.json({ ok: true, data: [], round: null });
+    }
+
+    // Fetch round info
+    const { data: roundInfo } = await supabase
+      .from("number_war_rounds")
+      .select("id, name, open_at, close_at, winner_slot, status, created_at")
+      .eq("id", targetRoundId)
+      .single();
+
+    // Fetch slots for this round
     const { data: slots, error } = await supabase
       .from("number_slots")
       .select(`
         *,
         owner:owner_id (id, display_name, email)
       `)
+      .eq("round_id", targetRoundId)
       .order("slot_number", { ascending: true });
 
     if (error) throw error;
 
-    return NextResponse.json({ ok: true, data: slots });
+    return NextResponse.json({
+      ok: true,
+      data: slots || [],
+      round: roundInfo || null,
+    });
   } catch (error) {
     console.error("Error fetching number slots:", error);
     return NextResponse.json(
