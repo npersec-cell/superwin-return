@@ -59,6 +59,13 @@ interface WinnerLog {
   created_at: string;
 }
 
+function maskName(name: string): string {
+  if (!name) return "";
+  if (name === "You") return name;
+  if (name.length <= 2) return name + "xx";
+  return name.slice(0, -2) + "xx";
+}
+
 export default function NumberWarPage() {
   const [slots, setSlots] = useState<NumberSlot[]>([]);
   const [round, setRound] = useState<NwRound | null>(null);
@@ -490,7 +497,7 @@ export default function NumberWarPage() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {slot.owner?.display_name || slot.owner?.email || "Unknown"}
+                  {maskName(slot.owner?.display_name || slot.owner?.email || "Unknown")}
                 </div>
               )}
               {slot.total_takeovers > 0 && (
@@ -556,7 +563,7 @@ export default function NumberWarPage() {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--muted)" }}>เจ้าของปัจจุบัน:</span>
-                <span>{selectedSlot.owner_id ? selectedSlot.owner?.display_name || selectedSlot.owner?.email || "Unknown" : "ยังไม่มีเจ้าของ"}</span>
+                <span>{selectedSlot.owner_id ? maskName(selectedSlot.owner?.display_name || selectedSlot.owner?.email || "Unknown") : "ยังไม่มีเจ้าของ"}</span>
               </div>
             </div>
 
