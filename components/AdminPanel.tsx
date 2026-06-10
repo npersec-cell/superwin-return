@@ -1951,58 +1951,85 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     {!(settings.tournaments && settings.tournaments.length > 0) ? (
                       <div className="reward-line"><span>ไม่มีรายชื่อทัวร์นาเมนต์ในขณะนี้</span></div>
                     ) : (
-                      (settings.tournaments || []).map((t, idx) => {
-                        const tInfo = getTournamentInfo(t);
-                        const tName = tInfo.name;
-                        const tLogo = tInfo.logoUrl;
-                        const tArchived = tInfo.archived;
+                      (() => {
+                        const all = (settings.tournaments || []).map((t, i) => ({ ...getTournamentInfo(t), originalIndex: i }));
+                        const active = all.filter((t) => !t.archived);
+                        const archived = all.filter((t) => t.archived);
                         return (
-                          <div key={tName} className="reward-line" style={{ padding: "8px 0", borderBottom: "1px solid var(--hairline-soft)", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "8px", alignItems: "center", opacity: tArchived ? 0.5 : 1 }}>
-                            {/* Move up/down buttons */}
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-                              <button className="button" type="button" disabled={idx <= 0} onClick={() => {
-                                const arr = [...(settings.tournaments || [])];
-                                if (idx > 0) {
-                                  [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
-                                  setSettings(current => ({ ...current, tournaments: arr }));
-                                }
-                              }} style={{ width: "20px", height: "18px", padding: 0, fontSize: "8px", background: "transparent" }}>▲</button>
-                              <button className="button" type="button" disabled={idx >= (settings.tournaments || []).length - 1} onClick={() => {
-                                const arr = [...(settings.tournaments || [])];
-                                if (idx >= 0 && idx < arr.length - 1) {
-                                  [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
-                                  setSettings(current => ({ ...current, tournaments: arr }));
-                                }
-                              }} style={{ width: "20px", height: "18px", padding: 0, fontSize: "8px", background: "transparent" }}>▼</button>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                              {tLogo ? (
-                                <img src={tLogo} alt="" style={{ width: "20px", height: "20px", borderRadius: "4px", objectFit: "contain", background: "transparent" }} />
-                              ) : (
-                                <span style={{ fontSize: "12px" }}>🏆</span>
-                              )}
-                              <span style={{ textDecoration: tArchived ? "line-through" : "none" }}>{tName}</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                              <label style={{ cursor: "pointer" }}>
-                                <span className="button gold" style={{ height: "24px", fontSize: "10px", padding: "0 8px", display: "inline-flex", alignItems: "center" }}>
-                                  🖼️ {tLogo ? "เปลี่ยนโลโก้" : "อัปภาพโลโก้"}
-                                </span>
-                                <input 
-                                  type="file" 
-                                  accept="image/*" 
-                                  onChange={(event) => updateTournamentLogo(tName, event.target.files?.[0])} 
-                                  style={{ display: "none" }} 
-                                />
-                              </label>
-                              <button className="button" type="button" disabled={loading} onClick={() => toggleArchiveTournament(tName)} style={{ height: "24px", fontSize: "10px", padding: "0 8px" }}>
-                                {tArchived ? "แสดง" : "ซ่อน"}
-                              </button>
-                              <button className="button" type="button" disabled={loading} onClick={() => removeTournament(tName)} style={{ height: "24px", fontSize: "10px", padding: "0 8px" }}>ลบ</button>
-                            </div>
-                          </div>
+                          <>
+                            {/* Active tournaments */}
+                            {active.map((tInfo, idx) => {
+                              const tName = tInfo.name;
+                              const tLogo = tInfo.logoUrl;
+                              const realIdx = tInfo.originalIndex;
+                              return (
+                                <div key={tName} className="reward-line" style={{ padding: "8px 0", borderBottom: "1px solid var(--hairline-soft)", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "8px", alignItems: "center" }}>
+                                  {/* Move up/down buttons */}
+                                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+                                    <button className="button" type="button" disabled={idx <= 0} onClick={() => {
+                                      const arr = [...(settings.tournaments || [])];
+                                      if (realIdx > 0) {
+                                        [arr[realIdx - 1], arr[realIdx]] = [arr[realIdx], arr[realIdx - 1]];
+                                        setSettings(current => ({ ...current, tournaments: arr }));
+                                      }
+                                    }} style={{ width: "20px", height: "18px", padding: 0, fontSize: "8px", background: "transparent" }}>▲</button>
+                                    <button className="button" type="button" disabled={idx >= active.length - 1} onClick={() => {
+                                      const arr = [...(settings.tournaments || [])];
+                                      if (realIdx >= 0 && realIdx < arr.length - 1) {
+                                        [arr[realIdx], arr[realIdx + 1]] = [arr[realIdx + 1], arr[realIdx]];
+                                        setSettings(current => ({ ...current, tournaments: arr }));
+                                      }
+                                    }} style={{ width: "20px", height: "18px", padding: 0, fontSize: "8px", background: "transparent" }}>▼</button>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    {tLogo ? (
+                                      <img src={tLogo} alt="" style={{ width: "20px", height: "20px", borderRadius: "4px", objectFit: "contain", background: "transparent" }} />
+                                    ) : (
+                                      <span style={{ fontSize: "12px" }}>🏆</span>
+                                    )}
+                                    <span>{tName}</span>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <label style={{ cursor: "pointer" }}>
+                                      <span className="button gold" style={{ height: "24px", fontSize: "10px", padding: "0 8px", display: "inline-flex", alignItems: "center" }}>
+                                        🖼️ {tLogo ? "เปลี่ยนโลโก้" : "อัปภาพโลโก้"}
+                                      </span>
+                                      <input 
+                                        type="file" 
+                                        accept="image/*" 
+                                        onChange={(event) => updateTournamentLogo(tName, event.target.files?.[0])} 
+                                        style={{ display: "none" }} 
+                                      />
+                                    </label>
+                                    <button className="button" type="button" disabled={loading} onClick={() => toggleArchiveTournament(tName)} style={{ height: "24px", fontSize: "10px", padding: "0 8px" }}>ซ่อน</button>
+                                    <button className="button" type="button" disabled={loading} onClick={() => removeTournament(tName)} style={{ height: "24px", fontSize: "10px", padding: "0 8px" }}>ลบ</button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {/* Archived tournaments (compact) */}
+                            {archived.length > 0 && (
+                              <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px dashed var(--hairline)" }}>
+                                <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", marginBottom: "6px", paddingLeft: "4px" }}>
+                                  ทัวร์นาเมนต์ที่ซ่อน ({archived.length})
+                                </div>
+                                {archived.map((tInfo) => {
+                                  const tName = tInfo.name;
+                                  return (
+                                    <div key={tName} className="reward-line" style={{ padding: "4px 0", borderBottom: "1px solid var(--hairline-soft)", display: "grid", gridTemplateColumns: "1fr auto", gap: "8px", alignItems: "center", opacity: 0.5 }}>
+                                      <span style={{ fontSize: "12px", textDecoration: "line-through" }}>{tName}</span>
+                                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                        <button className="button" type="button" disabled={loading} onClick={() => toggleArchiveTournament(tName)} style={{ height: "20px", fontSize: "10px", padding: "0 6px" }}>แสดง</button>
+                                        <button className="button" type="button" disabled={loading} onClick={() => removeTournament(tName)} style={{ height: "20px", fontSize: "10px", padding: "0 6px" }}>ลบ</button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </>
                         );
-                      })
+                      })()
                     )}
                     {(settings.tournaments || []).length > 1 && (
                       <button className="button gold" type="button" disabled={loading} onClick={async () => {
