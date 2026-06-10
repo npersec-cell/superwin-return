@@ -6,11 +6,14 @@
 ---
 
 ## ⚠️ สรุปภาพรวม
-พบประเด็น **CRITICAL 2 รายการ** ที่ต้องแก้ไขด่วนก่อนเปิดใช้งานจริง  
-พบประเด็น **HIGH 1 รายการ** ที่ควรแก้ไขในระยะสั้น  
+พบประเด็น **CRITICAL 2 รายการ** (✅ แก้ไขแล้วใน SQL)  
+พบประเด็น **HIGH 1 รายการ** (✅ แก้ไขแล้วใน `20260610_fix_lifetime_profit_clamp.sql`)  
 ระบบหลัก (Prediction Loop + Number War Economics) ทำงานถูกต้องตามที่ออกแบบไว้
 
-**หมายเหตุ:** ประเด็นเรื่อง Insurance Refund + `profit_score` ตรวจสอบแล้ว → **ถูกต้องตาม spec** (แพ้ไม่ได้ profit_score, ประกันแค่คืนกระสุนส้ม 50% เท่านั้น)
+**หมายเหตุ:** 
+- ประเด็นเรื่อง Insurance Refund + `profit_score` ตรวจสอบแล้ว → **ถูกต้องตาม spec** (แพ้ไม่ได้ profit_score, ประกันแค่คืนกระสุนส้ม 50% เท่านั้น)
+- `lifetime_profit` แก้ไขแล้ว → อนุญาตติดลบได้ (real P&L)
+- `profit_score` เพิ่ม protection → `GREATEST(0, ...)` + CHECK constraint ป้องกันติดลบ
 
 ---
 
@@ -53,9 +56,9 @@ CREATE POLICY "number_war_history_insert_system"
 
 ---
 
-## 🔶 HIGH (ควรแก้ในระยะสั้น)
+## 🔶 HIGH (แก้ไขแล้ว ✅)
 
-### 3. [HIGH] `place_prediction_atomic` - `lifetime_profit` ไม่ติดลบทำให้สถิติบิดเบือน
+### 3. [HIGH] `place_prediction_atomic` - `lifetime_profit` ไม่ติดลบ (✅ แก้ไขแล้ว)
 **ไฟล์:** `supabase/migrations/20250607_place_prediction_atomic_v2.sql` (บรรทัด 111)  
 **ปัญหา:**
 ```sql
@@ -130,16 +133,17 @@ v_lifetime_profit_after := GREATEST(0, v_user.lifetime_profit - p_amount);
 
 | ลำดับ | ประเด็น | ความรุนแรง | สถานะ | ผู้รับผิดชอบ | ไฟล์ที่ต้องแก้ |
 |-------|---------|-----------|--------|-------------|---------------|
-| 1 | แก้ `number_slots` RLS UPDATE | 🔴 CRITICAL | ✅ แก้ใน SQL แล้ว | Dev/DBA | `20260610_critical_rls_fix.sql` |
-| 2 | แก้ `number_war_history` RLS INSERT | 🔴 CRITICAL | ✅ แก้ใน SQL แล้ว | Dev/DBA | `20260610_critical_rls_fix.sql` |
-| 3 | แก้ `lifetime_profit` ไม่ติดลบ | 🟠 HIGH | ⏳ รอแก้ | Dev | `20250607_place_prediction_atomic_v2.sql` |
+| 1 | แก้ `number_slots` RLS UPDATE | 🔴 CRITICAL | ✅ แก้ใน SQL แล้ว รอรัน | Dev/DBA | `20260610_critical_rls_fix.sql` |
+| 2 | แก้ `number_war_history` RLS INSERT | 🔴 CRITICAL | ✅ แก้ใน SQL แล้ว รอรัน | Dev/DBA | `20260610_critical_rls_fix.sql` |
+| 3 | แก้ `lifetime_profit` ไม่ติดลบ | 🟠 HIGH | ✅ แก้ใน `20260610_fix_lifetime_profit_clamp.sql` แล้ว | Dev/DBA | รอรัน migration |
 | 4 | ปรับ `/api/admin/number-war/config` auth | 🟡 MEDIUM | ⏳ รอแก้ | Dev | `app/api/admin/number-war/config/route.ts` |
-| 5 | เพิ่ม UNIQUE บน winners_log | 🟡 MEDIUM | ✅ แก้ใน SQL แล้ว | Dev/DBA | `20260610_critical_rls_fix.sql` |
+| 5 | เพิ่ม UNIQUE บน winners_log | 🟡 MEDIUM | ✅ แก้ใน SQL แล้ว รอรัน | Dev/DBA | `20260610_critical_rls_fix.sql` |
 
 **หมายเหตุ:**
-- ✅ = แก้ไขแล้วใน migration file (`20260610_critical_rls_fix.sql`) รอรันบน Supabase Dashboard
+- ✅ = แก้ไขแล้วใน migration file รอรันบน Supabase Dashboard
 - ⏳ = ยังไม่ได้แก้ ต้องพิจารณาต่อไป
 - ประเด็นที่ 3 (Insurance Refund + profit_score) ตรวจสอบแล้ว → **ถูกต้องตาม spec** ไม่ต้องแก้
+- **เพิ่มเติม:** ใส่ `profit_score` protection (`GREATEST(0, ...)` + CHECK constraint) ใน migration เดียวกันแล้ว
 
 ---
 
