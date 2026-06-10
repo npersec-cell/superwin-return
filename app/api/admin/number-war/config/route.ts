@@ -1,45 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { requireAdmin } from "@/lib/auth";
+import { createSupabaseAdminClient } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify admin
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { ok: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.split(" ")[1];
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { ok: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    // Check if admin
-    const { data: adminUser, error: adminError } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (adminError || adminUser?.role !== "admin") {
-      return NextResponse.json(
-        { ok: false, error: "Forbidden: Admin only" },
-        { status: 403 }
-      );
-    }
+    // Verify admin (standard pattern)
+    const admin = await requireAdmin(request);
+    const supabase = createSupabaseAdminClient();
 
     const body = await request.json();
     const { tournamentId, openAt, closeAt, enabled } = body;
@@ -92,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     // Log admin action
     await supabase.from("audit_logs").insert({
-      admin_id: user.id,
+      admin_id: admin.id,
       action: "update_number_war_config",
       target_type: "predictions",
       target_id: tournamentId,
