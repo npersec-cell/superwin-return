@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import NotificationBell from "./NotificationBell";
 import AdminHealthCheck from "./AdminHealthCheck";
-import NumberWarBoard from "./NumberWarBoard";
 
 type AdminPrediction = {
   id: string;
@@ -193,9 +192,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [opensAt, setOpensAt] = useState(toDateTimeLocal(new Date()));
   const [closesAt, setClosesAt] = useState(toDateTimeLocal(new Date(Date.now() + 24 * 60 * 60 * 1000)));
   const [feeRate, setFeeRate] = useState("0.03");
-  const [numberWarEnabled, setNumberWarEnabled] = useState(false);
-  const [numberWarOpenAt, setNumberWarOpenAt] = useState("");
-  const [numberWarCloseAt, setNumberWarCloseAt] = useState("");
   const [optionInput, setOptionInput] = useState("");
   const [adminEmailInput, setAdminEmailInput] = useState("");
   const [newTournamentInput, setNewTournamentInput] = useState("");
@@ -224,7 +220,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   
   // แท็บเมนูหลังบ้าน
-  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "shop" | "dashboard" | "reports" | "users" | "health" | "numberwar">("dashboard");
+  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "shop" | "dashboard" | "reports" | "users" | "health">("dashboard");
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [userSort, setUserSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
@@ -544,7 +540,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       const data = await requestJson<AdminPrediction>("/api/admin/predictions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tournamentName, question: fullQuestion, opensAt, closesAt, feeRate: Number(feeRate), status: "open", options, numberWarEnabled, numberWarOpenAt, numberWarCloseAt })
+        body: JSON.stringify({ tournamentName, question: fullQuestion, opensAt, closesAt, feeRate: Number(feeRate), status: "open", options })
       });
       // Auto-sort: insert new prediction ID into predictionOrder by closesAt
       const currentOrder = settings.predictionOrder || [];
@@ -564,9 +560,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       setQuestion("");
       setRound("");
       setDraftOptions([]);
-      setNumberWarEnabled(false);
-      setNumberWarOpenAt("");
-      setNumberWarCloseAt("");
       await loadPredictions();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "สร้างคำถามไม่สำเร็จ");
@@ -1205,7 +1198,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "running" ? "active" : ""}`} onClick={() => setActiveTab("running")} style={{ borderRadius: "999px" }}>จัดการคำถาม</button>
           <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => setActiveTab("settings")} style={{ borderRadius: "999px" }}>ตั้งค่าหน้าเว็บ</button>
           <button className={`button ${activeTab === "shop" ? "active" : ""}`} onClick={() => setActiveTab("shop")} style={{ borderRadius: "999px" }}>Shop</button>
-          <button className={`button ${activeTab === "numberwar" ? "active" : ""}`} onClick={() => setActiveTab("numberwar")} style={{ borderRadius: "999px" }}>Number War</button>
           <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>แอดมิน ({admins.length})</button>
           <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>แจ้งปัญหา ({reports.length})</button>
           <button className={`button ${activeTab === "users" ? "active" : ""}`} onClick={() => setActiveTab("users")} style={{ borderRadius: "999px" }}>จัดการผู้ใช้ ({users.length})</button>
@@ -1491,34 +1483,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>Status (สถานะแรกเริ่ม)</span>
                     <span className="pill gold" style={{ height: "34px", justifyContent: "center" }}>สร้างแล้วเปิดทันที</span>
                   </div>
-                </div>
-
-                {/* Number War Settings */}
-                <div className="admin-box" style={{ marginTop: "6px", border: "1px solid var(--hairline)", borderRadius: "8px", padding: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                    <input
-                      type="checkbox"
-                      id="numberWarEnabled"
-                      checked={numberWarEnabled}
-                      onChange={(e) => setNumberWarEnabled(e.target.checked)}
-                      style={{ width: "16px", height: "16px" }}
-                    />
-                    <label htmlFor="numberWarEnabled" style={{ fontSize: "12px", fontWeight: "600", color: "var(--yellow)", cursor: "pointer" }}>
-                      เปิด Number War สำหรับทัวร์นี้
-                    </label>
-                  </div>
-                  {numberWarEnabled && (
-                    <div className="filter-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                      <div style={{ display: "grid", gap: "4px" }}>
-                        <span className="meta" style={{ fontSize: "11px", color: "var(--green)" }}>Number War เปิดรับซื้อ</span>
-                        <label className="pill" style={{ display: "grid", gridTemplateColumns: "auto 1fr", height: "34px", padding: "0 10px" }}>เปิด <input type="datetime-local" value={numberWarOpenAt} onChange={(event) => setNumberWarOpenAt(event.target.value)} style={{ border: 0, padding: 0, height: "100%", background: "transparent", color: "var(--text)" }} /></label>
-                      </div>
-                      <div style={{ display: "grid", gap: "4px" }}>
-                        <span className="meta" style={{ fontSize: "11px", color: "var(--green)" }}>Number War ปิดรับซื้อ</span>
-                        <label className="pill" style={{ display: "grid", gridTemplateColumns: "auto 1fr", height: "34px", padding: "0 10px" }}>ปิด <input type="datetime-local" value={numberWarCloseAt} onChange={(event) => setNumberWarCloseAt(event.target.value)} style={{ border: 0, padding: 0, height: "100%", background: "transparent", color: "var(--text)" }} /></label>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 <div className="admin-box" style={{ marginTop: "6px" }}>
@@ -2178,12 +2142,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
                 )}
               </section>
-            </section>
-          )}
-
-          {activeTab === "numberwar" && (
-            <section className="panel" style={{ width: "100%", maxWidth: "1000px", margin: "0 auto" }}>
-              <NumberWarBoard />
             </section>
           )}
 
