@@ -55,6 +55,7 @@ type DashboardPrediction = {
 type TournamentItem = {
   name: string;
   logoUrl: string;
+  archived?: boolean;
 };
 
 type SiteSettings = {
@@ -165,6 +166,11 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
     throw new Error(`API ${url}: ${payload.error || "คำสั่งไม่สำเร็จ"}`);
   }
   return payload.data;
+}
+
+function getTournamentInfo(t: string | TournamentItem) {
+  if (typeof t === "string") return { name: t, logoUrl: "", archived: false };
+  return { name: t.name, logoUrl: t.logoUrl || "", archived: t.archived || false };
 }
 
 export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
@@ -631,6 +637,35 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       setMessage(`ลบทัวร์นาเมนต์ ${name} สำเร็จ`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "ลบทัวร์นาเมนต์ไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function toggleArchiveTournament(name: string) {
+    setLoading(true);
+    setMessage("");
+    try {
+      const nextTournaments = (settings.tournaments || []).map((t) => {
+        const tName = typeof t === "string" ? t : t.name;
+        if (tName === name) {
+          if (typeof t === "string") {
+            return { name: t, logoUrl: "", archived: true };
+          }
+          return { ...t, archived: !t.archived };
+        }
+        return t;
+      });
+      const data = await requestJson<SiteSettings>("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tournaments: nextTournaments })
+      });
+      setSettings(data);
+      const info = getTournamentInfo(nextTournaments.find((t) => getTournamentInfo(t).name === name) || name);
+      setMessage(info.archived ? `ซ่อนทัวร์นาเมนต์ ${name} สำเร็จ` : `แสดงทัวร์นาเมนต์ ${name} สำเร็จ`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "อัปเดตสถานะทัวร์นาเมนต์ไม่สำเร็จ");
     } finally {
       setLoading(false);
     }
@@ -1187,9 +1222,18 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>เลือกทัวร์นาเมนต์เพื่อวิเคราะห์สถิติทั้งหมด</span>
                     <select className="button" value={selectedDashboardTournament} onChange={(e) => setSelectedDashboardTournament(e.target.value)} style={{ width: "100%", height: "38px" }}>
                       <option value="">-- เลือกทัวร์นาเมนต์ --</option>
-                      {Array.from(new Set(dashboardData.map((d) => d.tournamentName))).map((tour) => (
-                        <option key={tour} value={tour}>{tour}</option>
-                      ))}
+                      {Array.from(new Set(dashboardData.map((d) => d.tournamentName)))
+                        .filter((tour) => {
+                          const activeTournaments = new Set(
+                            (settings.tournaments || [])
+                              .filter((t) => !getTournamentInfo(t).archived)
+                              .map((t) => getTournamentInfo(t).name)
+                          );
+                          return activeTournaments.has(tour);
+                        })
+                        .map((tour) => (
+                          <option key={tour} value={tour}>{tour}</option>
+                        ))}
                     </select>
                   </div>
 
@@ -1305,8 +1349,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         <option value="">-- กรุณาเพิ่มชื่อทัวร์นาเมนต์ก่อน --</option>
                       )}
                       {(settings.tournaments || [])
+                        .filter((t) => !getTournamentInfo(t).archived)
                         .map((t) => {
-                          const name = typeof t === "string" ? t : t.name;
+                          const name = getTournamentInfo(t).name;
                           // Find latest question createdAt for this tournament
                           const latestQuestion = dashboardData
                             .filter((d) => d.tournamentName === name)
@@ -1643,10 +1688,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     style={{ width: "100%", height: "38px" }}
                   >
                     <option value="">-- เลือกทัวร์นาเมนต์ --</option>
-                    {settings.tournaments?.map((t) => {
-                      const name = typeof t === "string" ? t : t.name;
-                      return <option key={name} value={name}>{name}</option>;
-                    })}
+                    {settings.tournaments
+                      ?.filter((t) => !getTournamentInfo(t).archived)
+                      .map((t) => {
+                        const name = getTournamentInfo(t).name;
+                        return <option key={name} value={name}>{name}</option>;
+                      })}
                   </select>
                 </div>
                 
@@ -1905,10 +1952,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       <div className="reward-line"><span>ไม่มีรายชื่อทัวร์นาเมนต์ในขณะนี้</span></div>
                     ) : (
                       (settings.tournaments || []).map((t, idx) => {
-                        const tName = typeof t === "string" ? t : t.name;
-                        const tLogo = typeof t === "string" ? "" : t.logoUrl;
+                        const tInfo = getTournamentInfo(t);
+                        const tName = tInfo.name;
+                        const tLogo = tInfo.logoUrl;
+                        const tArchived = tInfo.archived;
                         return (
-                          <div key={tName} className="reward-line" style={{ padding: "8px 0", borderBottom: "1px solid var(--hairline-soft)", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "8px", alignItems: "center" }}>
+                          <div key={tName} className="reward-line" style={{ padding: "8px 0", borderBottom: "1px solid var(--hairline-soft)", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "8px", alignItems: "center", opacity: tArchived ? 0.5 : 1 }}>
                             {/* Move up/down buttons */}
                             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
                               <button className="button" type="button" disabled={idx <= 0} onClick={() => {
@@ -1932,7 +1981,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                               ) : (
                                 <span style={{ fontSize: "12px" }}>🏆</span>
                               )}
-                              <span>{tName}</span>
+                              <span style={{ textDecoration: tArchived ? "line-through" : "none" }}>{tName}</span>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                               <label style={{ cursor: "pointer" }}>
@@ -1946,6 +1995,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   style={{ display: "none" }} 
                                 />
                               </label>
+                              <button className="button" type="button" disabled={loading} onClick={() => toggleArchiveTournament(tName)} style={{ height: "24px", fontSize: "10px", padding: "0 8px" }}>
+                                {tArchived ? "แสดง" : "ซ่อน"}
+                              </button>
                               <button className="button" type="button" disabled={loading} onClick={() => removeTournament(tName)} style={{ height: "24px", fontSize: "10px", padding: "0 8px" }}>ลบ</button>
                             </div>
                           </div>

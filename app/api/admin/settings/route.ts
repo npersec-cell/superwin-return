@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 type TournamentItem = {
   name: string;
   logoUrl: string;
+  archived?: boolean;
 };
 
 type SiteSettings = {
