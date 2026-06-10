@@ -288,7 +288,7 @@ export default function NumberWarPage() {
       {/* Header */}
       <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <h1 style={{ color: "var(--yellow)", marginBottom: "8px" }}>Number War</h1>
+          <h1 style={{ color: "var(--yellow)", marginBottom: "8px" }}>NUMBER WAR - คำถามรางวัลพิเศษ</h1>
           <p style={{ color: "var(--muted)", fontSize: "12px" }}>
             ทายเลข 0-200 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ
           </p>
