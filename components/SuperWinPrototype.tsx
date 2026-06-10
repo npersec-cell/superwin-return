@@ -1018,7 +1018,6 @@ export default function SuperWinPrototype() {
                 </button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                 <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory("All"); }}>History</button>
-                <Link className="button gold" href="/number-war" style={{ fontSize: "11px", padding: "0 10px", height: "32px", display: "flex", alignItems: "center" }}>Number War</Link>
                 {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
                 <Link className="button" href="/profile" style={{ fontSize: "11px", padding: "0 10px", height: "32px", display: "flex", alignItems: "center" }}>Profile</Link>
                 <UserButton showName={false} />
