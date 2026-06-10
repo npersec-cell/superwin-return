@@ -13,36 +13,53 @@ export async function POST(request: NextRequest) {
       shippingAddress,
       shippingZipcode,
       shippingPhone,
+      displayName,
     } = body;
 
-    // Validate required fields
-    if (!shippingName || !shippingAddress || !shippingZipcode || !shippingPhone) {
+    // Validate required fields (only if shipping fields are provided)
+    const hasShippingFields = shippingName !== undefined || shippingAddress !== undefined || shippingZipcode !== undefined || shippingPhone !== undefined;
+    if (hasShippingFields && (!shippingName || !shippingAddress || !shippingZipcode || !shippingPhone)) {
       return NextResponse.json(
         { ok: false, error: "กรุณากรอกข้อมูลให้ครบทุกช่อง" },
         { status: 400 }
       );
     }
 
+    // Validate display name length
+    if (displayName !== undefined && displayName !== null && displayName.length > 8) {
+      return NextResponse.json(
+        { ok: false, error: "ชื่อเล่นต้องไม่เกิน 8 ตัวอักษร" },
+        { status: 400 }
+      );
+    }
+
     const supabase = createSupabaseAdminClient();
 
-    // Determine if address is fully completed
-    const addressCompleted = Boolean(
-      shippingName.trim() &&
-      shippingAddress.trim() &&
-      shippingZipcode.trim() &&
-      shippingPhone.trim()
-    );
+    const updateData: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (hasShippingFields) {
+      const addressCompleted = Boolean(
+        shippingName?.trim() &&
+        shippingAddress?.trim() &&
+        shippingZipcode?.trim() &&
+        shippingPhone?.trim()
+      );
+      updateData.shipping_name = shippingName.trim();
+      updateData.shipping_address = shippingAddress.trim();
+      updateData.shipping_zipcode = shippingZipcode.trim();
+      updateData.shipping_phone = shippingPhone.trim();
+      updateData.address_completed = addressCompleted;
+    }
+
+    if (displayName !== undefined) {
+      updateData.display_name = displayName ? displayName.trim().slice(0, 8) : null;
+    }
 
     const { error } = await supabase
       .from("users")
-      .update({
-        shipping_name: shippingName.trim(),
-        shipping_address: shippingAddress.trim(),
-        shipping_zipcode: shippingZipcode.trim(),
-        shipping_phone: shippingPhone.trim(),
-        address_completed: addressCompleted,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq("id", userId);
 
     if (error) {
@@ -57,7 +74,9 @@ export async function POST(request: NextRequest) {
       ok: true,
       message: "บันทึกข้อมูลสำเร็จ",
       data: {
-        addressCompleted,
+        addressCompleted: hasShippingFields
+          ? Boolean(shippingName?.trim() && shippingAddress?.trim() && shippingZipcode?.trim() && shippingPhone?.trim())
+          : undefined,
       },
     });
   } catch (error) {

@@ -137,6 +137,7 @@ function getRankInfo(profitScore: number) {
 
 type UserProfileStats = {
   name: string;
+  displayName?: string | null;
   profitScore: number;
   allTimeProfit: number;
   winRate: number;
@@ -303,6 +304,7 @@ const defaultSettings: SiteSettings = {
 type LeaderboardRow = {
   id?: string;
   name: string;
+  displayName?: string | null;
   profit: number;
   profitScore: number;
   isReal?: boolean;
@@ -1342,7 +1344,7 @@ export default function SuperWinPrototype() {
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap"
                         }}>
-                          {maskName(row.name)}
+                          {row.displayName || maskName(row.name)}
                         </span>
                         <span style={{ display: "flex", alignItems: "center", gap: "3px", color: "var(--muted)", fontSize: "10px", fontWeight: 500, flexShrink: 0 }}>
                           <img src={getRankInfo(row.profitScore).icon} alt="" width={18} height={18} style={{ objectFit: "contain" }} />
@@ -1533,7 +1535,7 @@ function ProfileModal({
     <section ref={modalRef} className="modal" aria-label="User Profile" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card" style={{ maxWidth: "480px" }}>
         <div className="modal-head">
-          <h3>🎮 {maskName(profile.name)}'s Profile</h3>
+          <h3>🎮 {profile.displayName || maskName(profile.name)}'s Profile</h3>
           <button className="button" onClick={onClose}>Close</button>
         </div>
         <div className="modal-body" style={{ gap: "12px", minHeight: "180px" }}>

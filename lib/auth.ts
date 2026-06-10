@@ -147,7 +147,6 @@ async function clerkAuth(request?: Request): Promise<AppUser | null> {
     throw new Error("Signed-in Clerk user has no email address");
   }
 
-  const displayName = getDisplayName(clerkUser);
   const avatarUrl = clerkUser?.imageUrl || null;
   const supabase = createSupabaseAdminClient();
 
@@ -163,21 +162,21 @@ async function clerkAuth(request?: Request): Promise<AppUser | null> {
 
   if (existing) {
     // Update user info if changed
-    const shouldUpdate = 
-      existing.email !== email || 
-      existing.display_name !== displayName || 
+    // NOTE: We intentionally do NOT sync display_name from Clerk anymore
+    // so users can manually set their public display name via profile page.
+    const shouldUpdate =
+      existing.email !== email ||
       existing.avatar_url !== avatarUrl;
-    
+
     let userRow = existing;
-    
+
     if (shouldUpdate) {
       const { data: updated, error: updateError } = await supabase
         .from("users")
-        .update({ 
-          email, 
-          display_name: displayName, 
-          avatar_url: avatarUrl, 
-          updated_at: new Date().toISOString() 
+        .update({
+          email,
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString()
         })
         .eq("id", existing.id)
         .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, address_completed, status, avatar_url")
@@ -207,12 +206,14 @@ async function clerkAuth(request?: Request): Promise<AppUser | null> {
   }
 
   // Create new user
+  // NOTE: display_name is intentionally left null so users can set their
+  // public name manually via profile page. Default display uses censored email.
   const { data: created, error: insertError } = await supabase
     .from("users")
     .insert({
       clerk_user_id: userId,
       email,
-      display_name: displayName,
+      display_name: null,
       role: "user",
       coin_balance: 0,
       lifetime_profit: 0,

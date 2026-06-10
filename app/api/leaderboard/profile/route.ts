@@ -155,7 +155,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       data: {
-        name: user.email.split("@")[0],
+        name: user.display_name || user.email.split("@")[0],
+        displayName: user.display_name || null,
         profitScore: profitScore,
         allTimeProfit: user.lifetime_profit || 0,
         winRate,

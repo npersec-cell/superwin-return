@@ -61,6 +61,7 @@ export async function GET() {
         return {
           id: u.id,
           name: u.display_name || u.email.split("@")[0],
+          displayName: u.display_name || null,
           profit: u.lifetime_profit || 0,
           profitScore: profitScore || 0,
           avatarUrl: u.avatar_url || null,

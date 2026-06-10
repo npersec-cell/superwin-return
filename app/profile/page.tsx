@@ -29,7 +29,11 @@ export default function ProfilePage() {
     shippingAddress: "",
     shippingZipcode: "",
     shippingPhone: "",
+    displayName: "",
   });
+  const [dnMessage, setDnMessage] = useState("");
+  const [dnError, setDnError] = useState("");
+  const [dnSaving, setDnSaving] = useState(false);
 
   async function loadUser() {
     try {
@@ -37,12 +41,14 @@ export default function ProfilePage() {
       const data = await res.json();
       if (data.ok) {
         setUser(data.data);
-        setForm({
+        setForm((f) => ({
+          ...f,
           shippingName: data.data.shippingName || "",
           shippingAddress: data.data.shippingAddress || "",
           shippingZipcode: data.data.shippingZipcode || "",
           shippingPhone: data.data.shippingPhone || "",
-        });
+          displayName: data.data.displayName || "",
+        }));
         // ถ้ายังไม่เคยกรอก ที่อยู่ → เปิดโหมดแก้ไขให้เลย
         if (!data.data.addressCompleted) {
           setIsEditing(true);
@@ -107,6 +113,37 @@ export default function ProfilePage() {
     setError("");
   }
 
+  async function saveDisplayName() {
+    setDnError("");
+    setDnMessage("");
+
+    const raw = form.displayName.trim();
+    if (raw.length > 8) {
+      setDnError("ชื่อเล่นต้องไม่เกิน 8 ตัวอักษร");
+      return;
+    }
+
+    setDnSaving(true);
+    try {
+      const res = await fetch("/api/me/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayName: raw || null }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setDnMessage("บันทึกชื่อเล่นสำเร็จ!");
+        setUser((prev) => prev ? { ...prev, displayName: raw || null } : null);
+      } else {
+        setDnError(data.error || "ไม่สามารถบันทึกชื่อเล่นได้");
+      }
+    } catch {
+      setDnError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setDnSaving(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="page">
@@ -159,6 +196,57 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        {/* Display Name Editor */}
+        <div className="panel" style={{ padding: "14px", marginBottom: "12px" }}>
+          <div style={{ fontSize: "11px", fontWeight: 600, marginBottom: "8px", color: "var(--text)" }}>
+            ชื่อที่แสดงบนเว็บ (ชื่อเล่น) <span style={{ color: "var(--muted)", fontWeight: 400 }}>· ไม่เกิน 8 ตัวอักษร</span>
+          </div>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <input
+              type="text"
+              value={form.displayName}
+              onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
+              placeholder="ตั้งชื่อเล่น"
+              maxLength={8}
+              style={{
+                flex: 1,
+                height: "38px",
+                background: "var(--bg)",
+                border: "1px solid var(--hairline)",
+                borderRadius: "8px",
+                padding: "0 12px",
+                color: "var(--text)",
+                fontSize: "12px",
+                outline: "none",
+              }}
+            />
+            <button
+              type="button"
+              className="button gold"
+              onClick={saveDisplayName}
+              disabled={dnSaving}
+              style={{ height: "38px", padding: "0 16px", fontSize: "12px", fontWeight: 600, borderRadius: "8px", opacity: dnSaving ? 0.6 : 1 }}
+            >
+              {dnSaving ? "กำลังบันทึก..." : "บันทึก"}
+            </button>
+          </div>
+          {form.displayName.length > 0 && (
+            <div style={{ marginTop: "6px", fontSize: "10px", color: "var(--muted)" }}>
+              ตัวอย่างที่จะแสดง: <span style={{ color: "var(--yellow)", fontWeight: 600 }}>{form.displayName}</span>
+            </div>
+          )}
+          {dnError && (
+            <div style={{ marginTop: "8px", padding: "8px", background: "rgba(246, 70, 93, 0.1)", border: "1px solid var(--red)", borderRadius: "6px", color: "var(--red)", fontSize: "11px" }}>
+              {dnError}
+            </div>
+          )}
+          {dnMessage && (
+            <div style={{ marginTop: "8px", padding: "8px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", borderRadius: "6px", color: "var(--green)", fontSize: "11px" }}>
+              {dnMessage}
+            </div>
+          )}
+        </div>
 
         {/* Address Status */}
         <div

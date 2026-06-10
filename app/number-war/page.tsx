@@ -98,6 +98,13 @@ function maskName(name: string): string {
   return local.slice(0, -2) + "xx";
 }
 
+function getPublicName(user: { display_name?: string | null; email?: string } | null | undefined): string {
+  if (!user) return "Unknown";
+  if (user.display_name) return user.display_name;
+  const local = user.email?.includes("@") ? user.email.split("@")[0] : (user.email || "");
+  return maskName(local);
+}
+
 export default function NumberWarPage() {
   const [slots, setSlots] = useState<NumberSlot[]>([]);
   const [round, setRound] = useState<NwRound | null>(null);
@@ -685,7 +692,7 @@ export default function NumberWarPage() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {maskName(slot.owner?.display_name || slot.owner?.email || "Unknown")}
+                  {getPublicName(slot.owner)}
                 </div>
               )}
               {slot.total_takeovers > 0 && (
@@ -752,7 +759,7 @@ export default function NumberWarPage() {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--muted)" }}>เจ้าของปัจจุบัน:</span>
-                <span>{selectedSlot.owner_id ? maskName(selectedSlot.owner?.display_name || selectedSlot.owner?.email || "Unknown") : "ยังไม่มีเจ้าของ"}</span>
+                <span>{selectedSlot.owner_id ? getPublicName(selectedSlot.owner) : "ยังไม่มีเจ้าของ"}</span>
               </div>
             </div>
 
@@ -862,7 +869,7 @@ export default function NumberWarPage() {
                             เลข {getSlotDisplay(h.slot_number)} · {h.round?.name || "-"}
                             {h.opponent && (
                               <span style={{ color: "var(--muted)", fontSize: "11px" }}>
-                                {" "}· {h.type === "sold" ? "โดน" : "จาก"} {maskName(h.opponent.display_name || h.opponent.email)}
+                                {" "}· {h.type === "sold" ? "โดน" : "จาก"} {getPublicName(h.opponent)}
                               </span>
                             )}
                           </div>
