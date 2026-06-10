@@ -29,6 +29,23 @@ function getSlotDisplay(slotNumber: number): string {
   return String(slotNumber + 100);
 }
 
+function scoreToSlot(score: number): number | null {
+  if (score < 0) return null;
+  if (score < 100) return 0;
+  if (score === 100 || score === 300) return null; // edge cases not covered by slots
+  if (score >= 101 && score <= 299) return score - 100;
+  if (score > 300) return 200;
+  return null;
+}
+
+function getScoreValidationError(score: number): string | null {
+  if (isNaN(score)) return "กรุณากรอกตัวเลข";
+  if (score < 0) return "คะแนนต้องไม่ติดลบ";
+  if (score === 100) return "คะแนน 100 ไม่อยู่ในช่วงที่กำหนด (ใช้ ต่ำกว่า 100 หรือ 101 ขึ้นไป)";
+  if (score === 300) return "คะแนน 300 ไม่อยู่ในช่วงที่กำหนด (ใช้ 299 หรือ มากกว่า 300)";
+  return null;
+}
+
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
   if (!res.ok) {
@@ -275,7 +292,7 @@ export default function NumberWarBoard() {
     init();
   }, []);
 
-  // Calculate winning number when score changes
+  // Calculate winning slot when score changes
   useEffect(() => {
     if (!winningScore.trim()) {
       setCalculatedNumber(null);
@@ -283,7 +300,8 @@ export default function NumberWarBoard() {
     }
     const score = Number(winningScore.trim());
     if (!isNaN(score)) {
-      setCalculatedNumber(score);
+      const slot = scoreToSlot(score);
+      setCalculatedNumber(slot);
     } else {
       setCalculatedNumber(null);
     }
@@ -300,15 +318,27 @@ export default function NumberWarBoard() {
       return;
     }
 
-    const slotNumber = Number(winningScore.trim());
+    const score = Number(winningScore.trim());
     
-    if (isNaN(slotNumber)) {
+    if (isNaN(score)) {
       setMessage("กรุณากรอกตัวเลขที่ถูกต้อง");
       return;
     }
 
+    const validationError = getScoreValidationError(score);
+    if (validationError) {
+      setMessage(validationError);
+      return;
+    }
+
+    const slotNumber = scoreToSlot(score);
+    if (slotNumber === null) {
+      setMessage("คะแนนไม่อยู่ในช่วงที่กำหนด");
+      return;
+    }
+
     if (slotNumber < 0 || slotNumber > 200) {
-      setMessage(`คะแนนชนะ ${slotNumber} ไม่อยู่ในช่วงที่กำหนด`);
+      setMessage(`คะแนนชนะ ${score} ไม่อยู่ในช่วงที่กำหนด`);
       return;
     }
 
@@ -328,7 +358,7 @@ export default function NumberWarBoard() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          winningScore: slotNumber,
+          winningScore: score,
           roundId: selectedRoundId,
         }),
       });
@@ -337,7 +367,7 @@ export default function NumberWarBoard() {
 
       if (data.ok) {
         const roundName = rounds.find((r) => r.id === selectedRoundId)?.name || "";
-        setMessage(`ประกาศผลสำเร็จ! เลข ${slotNumber} ชนะรางวัลจาก "${roundName}"`);
+        setMessage(`ประกาศผลสำเร็จ! คะแนน ${score} → ${getSlotDisplay(slotNumber)} ชนะรางวัลจาก "${roundName}"`);
         setWinningScore("");
         setCalculatedNumber(null);
         setSelectedRoundId("");
@@ -729,7 +759,7 @@ export default function NumberWarBoard() {
                       )}
                       {r.winner_slot !== null && (
                         <span style={{ fontSize: "10px", color: "var(--green)", fontWeight: "600" }}>
-                          ชนะเลข {r.winner_slot}
+                          ชนะ {getSlotDisplay(r.winner_slot)}
                         </span>
                       )}
                       {status !== "resolved" && (
@@ -963,7 +993,7 @@ export default function NumberWarBoard() {
                   .filter((r) => (r.computedStatus || getRoundStatus(r)) === "closed")
                   .map((r) => (
                     <option key={r.id} value={r.id}>
-                      {r.name} {r.winner_slot !== null ? `(ประกาศผลแล้ว: เลข ${r.winner_slot})` : "(ยังไม่ประกาศผล)"}
+                      {r.name} {r.winner_slot !== null ? `(ประกาศผลแล้ว: ${getSlotDisplay(r.winner_slot)})` : "(ยังไม่ประกาศผล)"}
                     </option>
                   ))}
               </select>
@@ -972,25 +1002,28 @@ export default function NumberWarBoard() {
             {/* Winning Score */}
             <div style={{ marginBottom: "12px" }}>
               <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>
-                คะแนนที่ชนะ
+                คะแนนจริงจากการแข่งขัน
               </label>
               <input
                 type="number"
                 value={winningScore}
                 onChange={(e) => setWinningScore(e.target.value)}
-                placeholder="เช่น 55"
-                min="0"
-                max="200"
+                placeholder="เช่น 39, 150, 320"
                 style={{ width: "100%", height: "40px" }}
               />
               {calculatedNumber !== null && (
                 <div style={{ marginTop: "8px", padding: "8px 12px", background: "rgba(255, 225, 0, 0.1)", borderRadius: "6px", fontSize: "12px" }}>
                   <span style={{ color: "var(--yellow)", fontWeight: "700" }}>
-                    คะแนนชนะ: {calculatedNumber}
+                    → ช่องที่ชนะ: {getSlotDisplay(calculatedNumber)}
                   </span>
                   <span style={{ color: "var(--muted)", marginLeft: "8px" }}>
-                    ({getSlotDisplay(calculatedNumber)})
+                    (slot {calculatedNumber})
                   </span>
+                </div>
+              )}
+              {calculatedNumber === null && winningScore.trim() !== "" && (
+                <div style={{ marginTop: "8px", padding: "8px 12px", background: "rgba(240, 84, 84, 0.15)", borderRadius: "6px", fontSize: "12px", color: "#ef4444" }}>
+                  {getScoreValidationError(Number(winningScore.trim())) || "คะแนนไม่อยู่ในช่วงที่กำหนด"}
                 </div>
               )}
             </div>
@@ -1267,7 +1300,7 @@ export default function NumberWarBoard() {
                   )}
                   {winner.winning_score !== null && winner.winning_score !== undefined && (
                     <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "8px" }}>
-                      เลขที่ชนะ: {winner.winning_score}
+                      คะแนนชนะ: {winner.winning_score} ({getSlotDisplay(winner.slot_number)})
                     </div>
                   )}
 

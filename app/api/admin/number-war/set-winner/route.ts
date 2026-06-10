@@ -7,6 +7,15 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+function scoreToSlot(score: number): number | null {
+  if (score < 0) return null;
+  if (score < 100) return 0;
+  if (score === 100 || score === 300) return null;
+  if (score >= 101 && score <= 299) return score - 100;
+  if (score > 300) return 200;
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAdmin(request);
@@ -45,11 +54,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const slotNumber = Number(winningScore);
+    const rawScore = Number(winningScore);
 
-    if (slotNumber < 0 || slotNumber > 200) {
+    if (isNaN(rawScore) || rawScore < 0) {
       return NextResponse.json(
-        { ok: false, error: `คะแนนชนะ ${slotNumber} ไม่อยู่ในช่วงที่กำหนด` },
+        { ok: false, error: "กรุณากรอกคะแนนที่ถูกต้อง" },
+        { status: 400 }
+      );
+    }
+
+    if (rawScore === 100 || rawScore === 300) {
+      return NextResponse.json(
+        { ok: false, error: `คะแนน ${rawScore} ไม่อยู่ในช่วงที่กำหนด (ใช้ ต่ำกว่า 100, 101-299, หรือ มากกว่า 300)` },
+        { status: 400 }
+      );
+    }
+
+    const slotNumber = scoreToSlot(rawScore);
+
+    if (slotNumber === null || slotNumber < 0 || slotNumber > 200) {
+      return NextResponse.json(
+        { ok: false, error: `คะแนน ${rawScore} ไม่อยู่ในช่วงที่กำหนด` },
         { status: 400 }
       );
     }
@@ -80,8 +105,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (!slot.owner_id) {
+      const slotDisplay = slotNumber === 0 ? "ต่ำกว่า 100" : slotNumber === 200 ? "มากกว่า 300" : String(slotNumber + 100);
       return NextResponse.json(
-        { ok: false, error: `ช่อง ${slotNumber} ยังไม่มีเจ้าของ!` },
+        { ok: false, error: `${slotDisplay} (slot ${slotNumber}) ยังไม่มีเจ้าของ!` },
         { status: 400 }
       );
     }
@@ -103,7 +129,7 @@ export async function POST(request: NextRequest) {
         user_id: slot.owner_id,
         slot_number: slotNumber,
         match_name: matchName.trim(),
-        winning_score: slotNumber,
+        winning_score: rawScore,
         round_id: roundId,
         shipping_status: "pending",
       })
@@ -122,10 +148,11 @@ export async function POST(request: NextRequest) {
     if (userError) throw userError;
 
     // Create notification for winner
+    const slotDisplay = slotNumber === 0 ? "ต่ำกว่า 100" : slotNumber === 200 ? "มากกว่า 300" : String(slotNumber + 100);
     await supabase.from("notifications").insert({
       user_id: slot.owner_id,
       title: "ยินดีด้วย! คุณชนะรางวัล Number War!",
-      message: `เลข ${slotNumber} ของคุณชนะรางวัลจากการแข่งขัน "${matchName.trim()}"! ของรางวัลกำลังเตรียมจัดส่ง`,
+      message: `${slotDisplay} ของคุณชนะรางวัลจากการแข่งขัน "${matchName.trim()}"! ของรางวัลกำลังเตรียมจัดส่ง`,
       type: "number_war_winner",
       read: false,
     });
@@ -140,7 +167,7 @@ export async function POST(request: NextRequest) {
         round_id: roundId,
         slot_number: slotNumber,
         match_name: matchName.trim(),
-        winning_score: slotNumber,
+        winning_score: rawScore,
         winner_id: slot.owner_id,
         winner_name: winnerUser?.display_name || "Unknown",
         winner_address: {
@@ -154,7 +181,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      message: `ประกาศผลสำเร็จ! เลข ${slotNumber} ชนะรางวัลจาก "${matchName.trim()}"`,
+      message: `ประกาศผลสำเร็จ! คะแนน ${rawScore} → ${slotDisplay} ชนะรางวัลจาก "${matchName.trim()}"`,
       data: {
         winner: {
           id: slot.owner_id,
@@ -169,7 +196,7 @@ export async function POST(request: NextRequest) {
         },
         winnerLog: winnerLog,
         calculatedNumber: slotNumber,
-        winningScore: winningScore,
+        winningScore: rawScore,
       },
     });
   } catch (error) {

@@ -527,6 +527,11 @@ export default function NumberWarPage() {
                     {win.match_name}
                   </div>
                 )}
+                {win.winning_score !== null && win.winning_score !== undefined && (
+                  <div style={{ fontSize: "11px", color: "var(--yellow)", marginBottom: "2px" }}>
+                    คะแนนชนะ: {win.winning_score}
+                  </div>
+                )}
                 {win.tracking_number && (
                   <div style={{ fontSize: "11px", color: "var(--info)" }}>
                     Tracking: {win.tracking_number}
