@@ -486,25 +486,28 @@ export default function NumberWarBoard() {
                       <input type="file" accept="image/*" onChange={(e) => setNewPrizeImageFile(e.target.files?.[0] || null)} style={{ fontSize: "11px", color: "var(--muted)", flex: 1 }} />
                       <button
                         onClick={async () => {
-                          if (!newPrizeImageFile) return;
-                          setNewPrizeImageLoading(true);
-                          try {
-                            const formData = new FormData();
-                            formData.append("file", newPrizeImageFile);
-                            const res = await fetch("/api/upload", { method: "POST", body: formData });
-                            const data = await res.json();
-                            if (data.ok) {
-                              setNewPrizeImageUrl(data.url);
-                              setNewPrizeImageFile(null);
-                              alert("อัปโหลดรูปสำเร็จ");
-                            } else {
-                              alert(data.error || "อัปโหลดไม่สำเร็จ");
-                            }
-                          } catch (e) {
-                            alert("เกิดข้อผิดพลาดในการอัปโหลด");
-                          } finally {
-                            setNewPrizeImageLoading(false);
-                          }
+                                  if (!newPrizeImageFile) return;
+                                  setNewPrizeImageLoading(true);
+                                  try {
+                                    const formData = new FormData();
+                                    formData.append("file", newPrizeImageFile);
+                                    if (newPrizeImageUrl) {
+                                      formData.append("oldImageUrl", newPrizeImageUrl);
+                                    }
+                                    const res = await fetch("/api/upload", { method: "POST", body: formData });
+                                    const data = await res.json();
+                                    if (data.ok) {
+                                      setNewPrizeImageUrl(data.url);
+                                      setNewPrizeImageFile(null);
+                                      alert("อัปโหลดรูปสำเร็จ");
+                                    } else {
+                                      alert(data.error || "อัปโหลดไม่สำเร็จ");
+                                    }
+                                  } catch (e) {
+                                    alert("เกิดข้อผิดพลาดในการอัปโหลด");
+                                  } finally {
+                                    setNewPrizeImageLoading(false);
+                                  }
                         }}
                         disabled={!newPrizeImageFile || newPrizeImageLoading}
                         style={{ height: "34px", padding: "0 12px", fontSize: "11px", background: "var(--yellow)", color: "#000", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600" }}
@@ -728,6 +731,9 @@ export default function NumberWarBoard() {
                                   try {
                                     const formData = new FormData();
                                     formData.append("file", editPrizeImageFile);
+                                    if (r.prize_image_url) {
+                                      formData.append("oldImageUrl", r.prize_image_url);
+                                    }
                                     const res = await fetch("/api/upload", { method: "POST", body: formData });
                                     const data = await res.json();
                                     if (data.ok) {

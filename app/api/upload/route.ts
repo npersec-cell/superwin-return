@@ -6,6 +6,20 @@ import { NextRequest, NextResponse } from "next/server";
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+function extractStoragePath(oldImageUrl: string): string | null {
+  try {
+    const url = new URL(oldImageUrl);
+    // path like: /storage/v1/object/public/prize-images/prizes/filename.jpg
+    const pathParts = url.pathname.split("/prize-images/");
+    if (pathParts.length > 1) {
+      return pathParts[1]; // "prizes/filename.jpg"
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Require admin
@@ -13,6 +27,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
+    const oldImageUrl = formData.get("oldImageUrl") as string | null;
 
     if (!file) {
       return NextResponse.json(
@@ -38,6 +53,20 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createSupabaseAdminClient();
+
+    // Delete old image if provided
+    if (oldImageUrl) {
+      const oldPath = extractStoragePath(oldImageUrl);
+      if (oldPath) {
+        const { error: deleteError } = await supabase.storage
+          .from("prize-images")
+          .remove([oldPath]);
+        if (deleteError) {
+          console.error("Failed to delete old image:", deleteError);
+          // Continue anyway - don't block upload if delete fails
+        }
+      }
+    }
 
     // Ensure bucket exists
     const { data: buckets } = await supabase.storage.listBuckets();
