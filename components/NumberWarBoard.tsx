@@ -155,6 +155,11 @@ export default function NumberWarBoard() {
   const [infoLoading, setInfoLoading] = useState(false);
   const [infoEditing, setInfoEditing] = useState(false);
 
+  // Description editor state
+  const [nwDescription, setNwDescription] = useState("");
+  const [descEditing, setDescEditing] = useState(false);
+  const [descLoading, setDescLoading] = useState(false);
+
   async function loadSlots(roundId?: string) {
     try {
       const url = roundId ? `/api/number-war/slots?roundId=${roundId}` : "/api/number-war/slots";
@@ -228,10 +233,43 @@ export default function NumberWarBoard() {
     }
   }
 
+  async function loadDescription() {
+    try {
+      const data = await fetchJson<{ ok: boolean; data: { numberWarDescription?: string } }>("/api/settings");
+      if (data.ok) {
+        setNwDescription(data.data.numberWarDescription || "ต่ำกว่า 100 · 101-299 · มากกว่า 300 | ซื้อครั้งแรก 10 | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ");
+      }
+    } catch (error) {
+      console.error("Error loading description:", error);
+    }
+  }
+
+  async function saveDescription() {
+    setDescLoading(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ numberWarDescription: nwDescription }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setDescEditing(false);
+        alert("บันทึกข้อความสำเร็จ");
+      } else {
+        alert(data.error || "บันทึกไม่สำเร็จ");
+      }
+    } catch (e) {
+      alert("เกิดข้อผิดพลาด");
+    } finally {
+      setDescLoading(false);
+    }
+  }
+
   useEffect(() => {
     async function init() {
       setLoading(true);
-      await Promise.all([loadSlots(), loadWinners(), loadRounds(), loadInfo()]);
+      await Promise.all([loadSlots(), loadWinners(), loadRounds(), loadInfo(), loadDescription()]);
       setLoading(false);
     }
     init();
@@ -435,6 +473,61 @@ export default function NumberWarBoard() {
         ) : (
           <div style={{ color: "var(--muted)", fontSize: "12px", whiteSpace: "pre-wrap", lineHeight: "1.6" }}>
             {infoContent || "ยังไม่มีข้อมูล"}
+          </div>
+        )}
+      </div>
+
+      {/* Description Editor */}
+      <div
+        style={{
+          background: "var(--card)",
+          border: "1px solid var(--hairline)",
+          borderRadius: "12px",
+          padding: "16px",
+          marginBottom: "20px",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+          <h3 style={{ color: "var(--yellow)", fontSize: "14px" }}>ข้อความแสดงใต้ชื่อ (แสดงหน้าผู้เล่น)</h3>
+          <button
+            className="button"
+            style={{ height: "28px", fontSize: "11px", padding: "0 12px" }}
+            onClick={() => setDescEditing((v) => !v)}
+          >
+            {descEditing ? "ปิด" : "แก้ไข"}
+          </button>
+        </div>
+
+        {descEditing ? (
+          <div style={{ display: "grid", gap: "8px" }}>
+            <div>
+              <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>ข้อความ</label>
+              <input
+                type="text"
+                value={nwDescription}
+                onChange={(e) => setNwDescription(e.target.value)}
+                style={{ width: "100%", height: "36px", background: "var(--bg)", color: "var(--text)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "0 8px", fontSize: "12px" }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setDescEditing(false)}
+                style={{ fontSize: "11px", padding: "4px 12px", borderRadius: "6px", background: "transparent", border: "1px solid var(--hairline)", color: "var(--muted)", cursor: "pointer" }}
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={saveDescription}
+                disabled={descLoading}
+                style={{ fontSize: "11px", padding: "4px 12px", borderRadius: "6px", background: "var(--yellow)", color: "#000", border: "none", cursor: "pointer", fontWeight: "600" }}
+              >
+                {descLoading ? "กำลังบันทึก..." : "บันทึก"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ color: "var(--muted)", fontSize: "12px" }}>
+            {nwDescription || "ยังไม่มีข้อความ"}
           </div>
         )}
       </div>

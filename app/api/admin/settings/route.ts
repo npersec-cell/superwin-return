@@ -26,6 +26,7 @@ type SiteSettings = {
   savedRounds: string[];
   predictionOrder?: string[];
   announcement?: string;
+  numberWarDescription?: string;
 };
 
 const fallback: SiteSettings = {
@@ -53,6 +54,7 @@ const fallback: SiteSettings = {
     "รอบ 8 ทีม",
     "รอบชิงชนะเลิศ"
   ],
+  numberWarDescription: "ต่ำกว่า 100 · 101-299 · มากกว่า 300 | ซื้อครั้งแรก 10 | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ",
   announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the All time Top 10!"
 };
 
@@ -125,6 +127,7 @@ export async function PATCH(request: NextRequest) {
       savedQuestions: body.savedQuestions !== undefined ? body.savedQuestions : (current.savedQuestions || fallback.savedQuestions),
       savedRounds: body.savedRounds !== undefined ? body.savedRounds : (current.savedRounds || fallback.savedRounds),
       predictionOrder: body.predictionOrder !== undefined ? body.predictionOrder : (current.predictionOrder || fallback.predictionOrder),
+      numberWarDescription: body.numberWarDescription !== undefined ? body.numberWarDescription : (current.numberWarDescription || fallback.numberWarDescription),
       announcement: body.announcement !== undefined ? body.announcement : (current.announcement || fallback.announcement)
     };
 

@@ -24,6 +24,7 @@ const fallbackSettings = {
     "Which team will get the Chicken Dinner?",
     "Who will get the most kills in this match?"
   ],
+  numberWarDescription: "ต่ำกว่า 100 · 101-299 · มากกว่า 300 | ซื้อครั้งแรก 10 | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ",
   announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the All time Top 10!"
 };
 

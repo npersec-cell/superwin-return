@@ -115,6 +115,7 @@ export default function NumberWarPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [info, setInfo] = useState<NwInfo | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [nwDescription, setNwDescription] = useState("ต่ำกว่า 100 · 101-299 · มากกว่า 300 | ซื้อครั้งแรก 10 | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ");
 
   async function loadSlots() {
     try {
@@ -190,6 +191,17 @@ export default function NumberWarPage() {
     }
   }
 
+  async function loadSettings() {
+    try {
+      const data = await fetchJson<{ ok: boolean; data: { numberWarDescription?: string } }>("/api/settings");
+      if (data.ok && data.data.numberWarDescription) {
+        setNwDescription(data.data.numberWarDescription);
+      }
+    } catch (error) {
+      console.error("Error loading settings:", error);
+    }
+  }
+
   useEffect(() => {
     async function init() {
       setSlotsLoading(true);
@@ -200,6 +212,7 @@ export default function NumberWarPage() {
       loadUserInfo();
       loadHistory();
       loadInfo();
+      loadSettings();
     }
     init();
   }, []);
@@ -296,7 +309,7 @@ export default function NumberWarPage() {
         <div>
           <h1 style={{ color: "var(--yellow)", marginBottom: "8px" }}>NUMBER WAR - คำถามรางวัลพิเศษ</h1>
           <p style={{ color: "var(--muted)", fontSize: "12px" }}>
-            ต่ำกว่า 100 · 101-299 · มากกว่า 300 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ
+            {nwDescription}
           </p>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
