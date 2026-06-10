@@ -358,6 +358,33 @@ export default function NumberWarPage() {
         </div>
       )}
 
+      {/* Info Section */}
+      {showInfo && info && (
+        <div
+          style={{
+            background: "var(--card)",
+            border: "1px solid var(--hairline)",
+            borderRadius: "12px",
+            padding: "16px",
+            marginBottom: "16px",
+          }}
+        >
+          <h3 style={{ color: "var(--yellow)", marginBottom: "10px", fontSize: "14px" }}>
+            {info.title}
+          </h3>
+          <div
+            style={{
+              color: "var(--text)",
+              fontSize: "12px",
+              lineHeight: "1.7",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {info.content}
+          </div>
+        </div>
+      )}
+
       {/* Round Name */}
       {round && (
         <div style={{ fontSize: "14px", fontWeight: "600", color: "var(--text)", marginBottom: "8px" }}>
@@ -436,33 +463,6 @@ export default function NumberWarPage() {
           </div>
           <div style={{ fontSize: "11px", color: "var(--muted)" }}>
             {countdown}
-          </div>
-        </div>
-      )}
-
-      {/* Info Section */}
-      {showInfo && info && (
-        <div
-          style={{
-            background: "var(--card)",
-            border: "1px solid var(--hairline)",
-            borderRadius: "12px",
-            padding: "16px",
-            marginBottom: "16px",
-          }}
-        >
-          <h3 style={{ color: "var(--yellow)", marginBottom: "10px", fontSize: "14px" }}>
-            {info.title}
-          </h3>
-          <div
-            style={{
-              color: "var(--text)",
-              fontSize: "12px",
-              lineHeight: "1.7",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {info.content}
           </div>
         </div>
       )}
