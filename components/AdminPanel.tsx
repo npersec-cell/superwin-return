@@ -60,14 +60,7 @@ type TournamentItem = {
 type SiteSettings = {
   info: {
     howToPlay: string;
-    reward: string;
     questionTime: string;
-  };
-  reward: {
-    name: string;
-    winnerBy: string;
-    month: string;
-    approved: boolean;
   };
   tournaments: (string | TournamentItem)[];
   savedQuestions: string[];
@@ -118,14 +111,7 @@ function statusLabel(status: string) {
 const defaultSettings: SiteSettings = {
   info: {
     howToPlay: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล",
-    reward: "เล่นได้ตลอดเวลาไม่มีจบ สะสมกำไรสุทธิเพื่อขึ้นอันดับ All time Top 10 และแลกของรางวัลผ่าน Shop (เร็วๆ นี้)",
     questionTime: "แต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
-  },
-  reward: {
-    name: "Shop",
-    winnerBy: "All time Profit",
-    month: "Continuous",
-    approved: false
   },
   tournaments: [{ name: "Super League", logoUrl: "" }],
   savedQuestions: [
@@ -221,7 +207,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   
   // แท็บเมนูหลังบ้าน
-  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "shop" | "dashboard" | "reports" | "users" | "health" | "numberwar">("dashboard");
+  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "health" | "numberwar">("dashboard");
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [userSort, setUserSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
@@ -1028,24 +1014,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }
   }
 
-  async function saveSettings() {
-    setLoading(true);
-    setMessage("");
-    try {
-      const data = await requestJson<SiteSettings>("/api/admin/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reward: settings.reward })
-      });
-      setSettings(data);
-      setMessage("บันทึกการตั้งค่า Shop สำเร็จ");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "บันทึกการตั้งค่าไม่สำเร็จ");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function removeAdmin(email: string) {
     const confirmed = window.confirm(`ถอดสิทธิ์แอดมินของ ${email}?`);
     if (!confirmed) return;
@@ -1198,7 +1166,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "questions" ? "active" : ""}`} onClick={() => setActiveTab("questions")} style={{ borderRadius: "999px" }}>สร้างคำถามใหม่</button>
           <button className={`button ${activeTab === "running" ? "active" : ""}`} onClick={() => setActiveTab("running")} style={{ borderRadius: "999px" }}>จัดการคำถาม</button>
           <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => setActiveTab("settings")} style={{ borderRadius: "999px" }}>ตั้งค่าหน้าเว็บ</button>
-          <button className={`button ${activeTab === "shop" ? "active" : ""}`} onClick={() => setActiveTab("shop")} style={{ borderRadius: "999px" }}>Shop</button>
           <button className={`button ${activeTab === "numberwar" ? "active" : ""}`} onClick={() => setActiveTab("numberwar")} style={{ borderRadius: "999px" }}>Number War</button>
           <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>แอดมิน ({admins.length})</button>
           <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>แจ้งปัญหา ({reports.length})</button>
@@ -1900,10 +1867,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     <textarea rows={3} value={settings.info.howToPlay} onChange={(event) => setSettings((current) => ({ ...current, info: { ...current.info, howToPlay: event.target.value } }))} placeholder="How to Play" />
                   </div>
                   <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>Reward (การแจกรางวัล)</span>
-                    <textarea rows={3} value={settings.info.reward} onChange={(event) => setSettings((current) => ({ ...current, info: { ...current.info, reward: event.target.value } }))} placeholder="Reward" />
-                  </div>
-                  <div style={{ display: "grid", gap: "4px" }}>
                     <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>Question Time (เวลากับการทาย)</span>
                     <textarea rows={3} value={settings.info.questionTime} onChange={(event) => setSettings((current) => ({ ...current, info: { ...current.info, questionTime: event.target.value } }))} placeholder="Question Time" />
                   </div>
@@ -2013,26 +1976,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       </button>
                     )}
                   </div>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {activeTab === "shop" && (
-            <section className="panel" style={{ width: "100%", maxWidth: "600px", display: "grid", gap: "16px", margin: "0 auto" }}>
-              <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
-                  <h2>🛒 ตั้งค่าหน้า Shop</h2>
-                </div>
-                <div className="modal-body" style={{ padding: "12px 0 0 0", display: "grid", gap: "10px" }}>
-                  <span className="meta" style={{ textTransform: "none", color: "var(--muted)", lineHeight: "1.4" }}>
-                    *ระบบ Shop จะเปิดให้บริการเร็วๆ นี้ สามารถแก้ไขข้อความที่แสดงในหน้าเว็บได้ที่นี่
-                  </span>
-                  <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ข้อความแสดงในหน้า Shop (หน้าบ้าน)</span>
-                    <input value={settings.reward.name} onChange={(event) => setSettings((current) => ({ ...current, reward: { ...current.reward, name: event.target.value } }))} placeholder='เช่น บริการเร็วๆ นี้' style={{ height: "34px" }} />
-                  </div>
-                  <button className="button primary" disabled={loading} type="button" onClick={saveSettings} style={{ marginTop: "4px", width: "100%", height: "34px", fontWeight: "bold" }}>💾 บันทึกการตั้งค่า Shop</button>
                 </div>
               </div>
             </section>

@@ -7,14 +7,7 @@ export const dynamic = "force-dynamic";
 const fallbackSettings = {
   info: {
     howToPlay: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล",
-    reward: "เล่นได้ตลอดเวลาไม่มีจบ สะสมกำไรสุทธิเพื่อขึ้นอันดับ All time Top 10 และแลกของรางวัลผ่าน Shop (เร็วๆ นี้)",
     questionTime: "แต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
-  },
-  reward: {
-    name: "Shop",
-    winnerBy: "All time Profit",
-    month: "Continuous",
-    approved: false
   },
   tournaments: [
     { name: "Super League", logoUrl: "" }

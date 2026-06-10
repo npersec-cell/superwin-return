@@ -12,14 +12,7 @@ type TournamentItem = {
 type SiteSettings = {
   info: {
     howToPlay: string;
-    reward: string;
     questionTime: string;
-  };
-  reward: {
-    name: string;
-    winnerBy: string;
-    month: string;
-    approved: boolean;
   };
   tournaments: (string | TournamentItem)[];
   savedQuestions: string[];
@@ -32,14 +25,7 @@ type SiteSettings = {
 const fallback: SiteSettings = {
   info: {
     howToPlay: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล",
-    reward: "เล่นได้ตลอดเวลาไม่มีจบ สะสมกำไรสุทธิเพื่อขึ้นอันดับ All time Top 10 และแลกของรางวัลผ่าน Shop (เร็วๆ นี้)",
     questionTime: "แต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
-  },
-  reward: {
-    name: "Shop",
-    winnerBy: "All time Profit",
-    month: "Continuous",
-    approved: false
   },
   tournaments: [
     { name: "Super League", logoUrl: "" }
@@ -122,7 +108,6 @@ export async function PATCH(request: NextRequest) {
     // 使用fallback作为基础，确保缺失的字段有默认值
     const next: SiteSettings = {
       info: { ...fallback.info, ...current.info, ...(body.info || {}) },
-      reward: { ...fallback.reward, ...current.reward, ...(body.reward || {}) },
       tournaments: body.tournaments !== undefined ? body.tournaments : (current.tournaments || fallback.tournaments),
       savedQuestions: body.savedQuestions !== undefined ? body.savedQuestions : (current.savedQuestions || fallback.savedQuestions),
       savedRounds: body.savedRounds !== undefined ? body.savedRounds : (current.savedRounds || fallback.savedRounds),

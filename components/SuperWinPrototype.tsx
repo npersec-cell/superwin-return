@@ -106,13 +106,7 @@ type ApiPredictResponse = {
 type SiteSettings = {
   info: {
     howToPlay: string;
-    reward: string;
     questionTime: string;
-  };
-  reward: {
-    name: string;
-    winnerBy: string;
-    month: string;
   };
   tournaments: (string | { name: string; logoUrl: string })[];
   savedQuestions: string[];
@@ -284,13 +278,7 @@ const demoQuestions: Question[] = [
 const defaultSettings: SiteSettings = {
   info: {
     howToPlay: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล",
-    reward: "เล่นได้ตลอดเวลาไม่มีจบ สะสมกำไรสุทธิเพื่อขึ้นอันดับ All time Top 10 และแลกของรางวัลผ่าน Shop (เร็วๆ นี้)",
     questionTime: "แต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
-  },
-  reward: {
-    name: "Shop",
-    winnerBy: "Rank",
-    month: "Continuous"
   },
   tournaments: [{ name: "Super League", logoUrl: "" }],
   savedQuestions: [
@@ -1030,6 +1018,7 @@ export default function SuperWinPrototype() {
                 </button>
                 <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                 <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory("All"); }}>History</button>
+                <Link className="button gold" href="/number-war" style={{ fontSize: "11px", padding: "0 10px", height: "32px", display: "flex", alignItems: "center" }}>Number War</Link>
                 {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
                 <Link className="button" href="/profile" style={{ fontSize: "11px", padding: "0 10px", height: "32px", display: "flex", alignItems: "center" }}>Profile</Link>
                 <UserButton showName={false} />
@@ -1357,10 +1346,22 @@ export default function SuperWinPrototype() {
                 })}
               </div>
             </section>
-            <section className="panel">
-              <div className="panel-head"><h3>Shop</h3><span className="micro">Coming soon</span></div>
-              <div style={{ padding: "18px 16px", textAlign: "center", color: "var(--muted)" }}>
-                บริการเร็วๆ นี้
+            <section className="panel" style={{ border: "1px solid var(--yellow)", background: "linear-gradient(135deg, rgba(255,225,0,0.06) 0%, var(--card) 60%)" }}>
+              <div className="panel-head">
+                <h3 style={{ color: "var(--yellow)" }}>NUMBER WAR</h3>
+                <span className="micro" style={{ color: "var(--yellow)", opacity: 0.8 }}>คำถามรางวัลพิเศษ</span>
+              </div>
+              <div style={{ padding: "14px 16px", display: "grid", gap: "10px" }}>
+                <p style={{ fontSize: "12px", color: "var(--text)", lineHeight: 1.5, margin: 0 }}>
+                  ทายคะแนนจริงจากการแข่งขัน ชนะรับรางวัลพิเศษ!
+                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--muted)" }}>
+                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--green)", display: "inline-block" }} />
+                  ต่ำกว่า 100 · 101-299 · มากกว่า 300
+                </div>
+                <Link href="/number-war" className="button gold" style={{ width: "100%", height: "36px", fontSize: "12px", fontWeight: 700, borderRadius: "8px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
+                  เข้าร่วมเลย →
+                </Link>
               </div>
             </section>
 
@@ -1512,7 +1513,6 @@ function InfoModal({ settings, onClose }: { settings: SiteSettings; onClose: () 
         <div className="modal-head"><h3>Info</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body">
           <div className="info-block"><h4>How to Play</h4><p style={{ whiteSpace: "pre-line" }}>{settings.info.howToPlay}</p></div>
-          <div className="info-block"><h4>Reward</h4><p style={{ whiteSpace: "pre-line" }}>{settings.info.reward}</p></div>
           <div className="info-block"><h4>Question Time</h4><p style={{ whiteSpace: "pre-line" }}>{settings.info.questionTime}</p></div>
         </div>
       </div>
