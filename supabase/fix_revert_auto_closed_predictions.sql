@@ -18,8 +18,8 @@ SELECT
 FROM predictions
 WHERE 
   status = 'closed'
-  AND closes_at > NOW() - INTERVAL '2 hours'  -- closed very recently
-  AND updated_at > NOW() - INTERVAL '2 hours'
+  AND closes_at > NOW() - INTERVAL '24 hours'  -- closed within last 24 hours
+  AND updated_at > NOW() - INTERVAL '24 hours'
 ORDER BY updated_at DESC;
 
 -- Step 2: REVERT (run only after verifying the IDs above)

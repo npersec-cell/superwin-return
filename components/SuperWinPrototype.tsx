@@ -1353,11 +1353,11 @@ export default function SuperWinPrototype() {
               </div>
               <div style={{ padding: "14px 16px", display: "grid", gap: "10px" }}>
                 <p style={{ fontSize: "12px", color: "var(--text)", lineHeight: 1.5, margin: 0 }}>
-                  ทายคะแนนจริงจากการแข่งขัน ชนะรับรางวัลพิเศษ!
+                  ทายคะแนนจริงจากการแข่งขัน ลุ้นของรางวัลสุดพิเศษ!
                 </p>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--muted)" }}>
                   <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--green)", display: "inline-block" }} />
-                  ต่ำกว่า 100 · 101-299 · มากกว่า 300
+                  เริ่มต้นใช้เพียง 10
                 </div>
                 <Link href="/number-war" className="button gold" style={{ width: "100%", height: "36px", fontSize: "12px", fontWeight: 700, borderRadius: "8px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
                   เข้าร่วมเลย →
