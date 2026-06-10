@@ -206,6 +206,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editTemplateInput, setEditTemplateInput] = useState("");
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
+  const [showArchived, setShowArchived] = useState(false);
   const [topUsers, setTopUsers] = useState<Array<{ id: string; email: string; displayName: string; lifetimeProfit?: number }>>([]);
   const [editClosesAt, setEditClosesAt] = useState<Record<string, string>>({});
   const [editQuestions, setEditQuestions] = useState<Record<string, string>>({});
@@ -2007,24 +2008,47 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                 </div>
                               );
                             })}
-                            {/* Archived tournaments (compact) */}
+                            {/* Archived tournaments (compact, collapsible) */}
                             {archived.length > 0 && (
                               <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px dashed var(--hairline)" }}>
-                                <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", marginBottom: "6px", paddingLeft: "4px" }}>
-                                  ทัวร์นาเมนต์ที่ซ่อน ({archived.length})
-                                </div>
-                                {archived.map((tInfo) => {
-                                  const tName = tInfo.name;
-                                  return (
-                                    <div key={tName} className="reward-line" style={{ padding: "4px 0", borderBottom: "1px solid var(--hairline-soft)", display: "grid", gridTemplateColumns: "1fr auto", gap: "8px", alignItems: "center", opacity: 0.5 }}>
-                                      <span style={{ fontSize: "12px", textDecoration: "line-through" }}>{tName}</span>
-                                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                        <button className="button" type="button" disabled={loading} onClick={() => toggleArchiveTournament(tName)} style={{ height: "20px", fontSize: "10px", padding: "0 6px" }}>แสดง</button>
-                                        <button className="button" type="button" disabled={loading} onClick={() => removeTournament(tName)} style={{ height: "20px", fontSize: "10px", padding: "0 6px" }}>ลบ</button>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                                <button
+                                  type="button"
+                                  onClick={() => setShowArchived((v) => !v)}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                    width: "100%",
+                                    background: "transparent",
+                                    border: "none",
+                                    color: "var(--muted)",
+                                    fontSize: "10px",
+                                    padding: "4px",
+                                    cursor: "pointer",
+                                    textAlign: "left"
+                                  }}
+                                >
+                                  <span style={{ fontSize: "10px", display: "inline-block", width: "12px" }}>
+                                    {showArchived ? "▼" : "▶"}
+                                  </span>
+                                  <span>ทัวร์นาเมนต์ที่ซ่อน ({archived.length})</span>
+                                </button>
+                                {showArchived && (
+                                  <div style={{ marginTop: "4px" }}>
+                                    {archived.map((tInfo) => {
+                                      const tName = tInfo.name;
+                                      return (
+                                        <div key={tName} className="reward-line" style={{ padding: "4px 0", borderBottom: "1px solid var(--hairline-soft)", display: "grid", gridTemplateColumns: "1fr auto", gap: "8px", alignItems: "center", opacity: 0.5 }}>
+                                          <span style={{ fontSize: "12px", textDecoration: "line-through" }}>{tName}</span>
+                                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                            <button className="button" type="button" disabled={loading} onClick={() => toggleArchiveTournament(tName)} style={{ height: "20px", fontSize: "10px", padding: "0 6px" }}>แสดง</button>
+                                            <button className="button" type="button" disabled={loading} onClick={() => removeTournament(tName)} style={{ height: "20px", fontSize: "10px", padding: "0 6px" }}>ลบ</button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </>
