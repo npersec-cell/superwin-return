@@ -72,9 +72,9 @@ v_lifetime_profit_after := GREATEST(0, v_user.lifetime_profit - p_amount);
 
 ---
 
-## 🔷 MEDIUM (พิจารณาแก้ไข)
+## 🔷 MEDIUM (แก้ไขแล้ว ✅)
 
-### 4. [MEDIUM] Admin API `/api/admin/number-war/config` ใช้ Auth Pattern ที่ไม่สอดคล้องกัน
+### 4. [MEDIUM] Admin API `/api/admin/number-war/config` ใช้ Auth Pattern ที่ไม่สอดคล้องกัน (✅ แก้ไขแล้ว)
 **ไฟล์:** `app/api/admin/number-war/config/route.ts`  
 **ปัญหา:** ใช้ `supabase.auth.getUser(token)` แทน `requireAdmin()` มาตรฐานที่ใช้ในไฟล์อื่น ทำให้มีช่องโหว่ถ้า token หมดอายุหรือถูกปลอมแปลง
 
@@ -136,12 +136,11 @@ v_lifetime_profit_after := GREATEST(0, v_user.lifetime_profit - p_amount);
 | 1 | แก้ `number_slots` RLS UPDATE | 🔴 CRITICAL | ✅ แก้ใน SQL แล้ว รอรัน | Dev/DBA | `20260610_critical_rls_fix.sql` |
 | 2 | แก้ `number_war_history` RLS INSERT | 🔴 CRITICAL | ✅ แก้ใน SQL แล้ว รอรัน | Dev/DBA | `20260610_critical_rls_fix.sql` |
 | 3 | แก้ `lifetime_profit` ไม่ติดลบ | 🟠 HIGH | ✅ แก้ใน `20260610_fix_lifetime_profit_clamp.sql` แล้ว | Dev/DBA | รอรัน migration |
-| 4 | ปรับ `/api/admin/number-war/config` auth | 🟡 MEDIUM | ⏳ รอแก้ | Dev | `app/api/admin/number-war/config/route.ts` |
+| 4 | ปรับ `/api/admin/number-war/config` auth | 🟡 MEDIUM | ✅ แก้แล้ว (`9f86472`) | Dev | - |
 | 5 | เพิ่ม UNIQUE บน winners_log | 🟡 MEDIUM | ✅ แก้ใน SQL แล้ว รอรัน | Dev/DBA | `20260610_critical_rls_fix.sql` |
 
 **หมายเหตุ:**
-- ✅ = แก้ไขแล้วใน migration file รอรันบน Supabase Dashboard
-- ⏳ = ยังไม่ได้แก้ ต้องพิจารณาต่อไป
+- ✅ = แก้ไขแล้ว รอรันบน Supabase Dashboard
 - ประเด็นที่ 3 (Insurance Refund + profit_score) ตรวจสอบแล้ว → **ถูกต้องตาม spec** ไม่ต้องแก้
 - **เพิ่มเติม:** ใส่ `profit_score` protection (`GREATEST(0, ...)` + CHECK constraint) ใน migration เดียวกันแล้ว
 
