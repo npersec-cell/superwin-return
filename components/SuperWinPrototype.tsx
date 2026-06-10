@@ -1356,8 +1356,8 @@ export default function SuperWinPrototype() {
                   ทายคะแนนจริงจากการแข่งขัน ลุ้นของรางวัลสุดพิเศษ!
                 </p>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--muted)" }}>
-                  <img src="/ammo-556-icon.webp" alt="coin" style={{ width: "14px", height: "14px", objectFit: "contain", display: "inline-block" }} />
                   เริ่มต้นใช้เพียง 10
+                  <img src="/ammo-556-icon.webp" alt="coin" style={{ width: "14px", height: "14px", objectFit: "contain", display: "inline-block" }} />
                 </div>
                 <Link href="/number-war" className="button gold" style={{ width: "100%", height: "36px", fontSize: "12px", fontWeight: 700, borderRadius: "8px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
                   เข้าร่วมเลย →
