@@ -7,8 +7,10 @@
 
 ## ⚠️ สรุปภาพรวม
 พบประเด็น **CRITICAL 2 รายการ** ที่ต้องแก้ไขด่วนก่อนเปิดใช้งานจริง  
-พบประเด็น **HIGH 2 รายการ** ที่ควรแก้ไขในระยะสั้น  
+พบประเด็น **HIGH 1 รายการ** ที่ควรแก้ไขในระยะสั้น  
 ระบบหลัก (Prediction Loop + Number War Economics) ทำงานถูกต้องตามที่ออกแบบไว้
+
+**หมายเหตุ:** ประเด็นเรื่อง Insurance Refund + `profit_score` ตรวจสอบแล้ว → **ถูกต้องตาม spec** (แพ้ไม่ได้ profit_score, ประกันแค่คืนกระสุนส้ม 50% เท่านั้น)
 
 ---
 
@@ -53,28 +55,7 @@ CREATE POLICY "number_war_history_insert_system"
 
 ## 🔶 HIGH (ควรแก้ในระยะสั้น)
 
-### 3. [HIGH] `resolve_prediction_atomic` - Insurance Refund ไม่ได้เพิ่ม `profit_score`
-**ไฟล์:** `supabase/migrations/20250606_atomic_resolve.sql` (บรรทัด 162-169)  
-**ปัญหา:** เมื่อผู้เล่นที่ซื้อ insurance แพ้พนัน ระบบคืน 50% ของเงินเดิมพันให้ `coin_balance` และเพิ่ม `lifetime_profit` แต่ **ไม่ได้เพิ่ม `profit_score`**
-
-```sql
-UPDATE users
-SET
-  coin_balance = coin_balance + v_insurance_refund,
-  lifetime_profit = lifetime_profit + v_insurance_refund,
-  updated_at = p_resolved_at
-WHERE id = v_entry.user_id;
-```
-
-**คำถามทางธุรกิจ:** Insurance refund ควรได้รับ `profit_score` หรือไม่?  
-- ถ้า profit_score มาจาก "กำไรจากการทายผล" → ไม่ควรได้ (เพราะยังขาดทุน 50%)
-- ถ้า profit_score มาจาก "กระสุนเขียวรวม" → ควรได้
-
-**ปัจจุบันตาม spec ของคุณ:** `profit_score` เพิ่มเฉพาะจากการทายผลที่ชนะ ดังนั้นอาจ **ถูกต้องแล้ว** แต่ต้องยืนยัน
-
----
-
-### 4. [HIGH] `place_prediction_atomic` - `lifetime_profit` ไม่ติดลบทำให้สถิติบิดเบือน
+### 3. [HIGH] `place_prediction_atomic` - `lifetime_profit` ไม่ติดลบทำให้สถิติบิดเบือน
 **ไฟล์:** `supabase/migrations/20250607_place_prediction_atomic_v2.sql` (บรรทัด 111)  
 **ปัญหา:**
 ```sql
@@ -90,7 +71,7 @@ v_lifetime_profit_after := GREATEST(0, v_user.lifetime_profit - p_amount);
 
 ## 🔷 MEDIUM (พิจารณาแก้ไข)
 
-### 5. [MEDIUM] Admin API `/api/admin/number-war/config` ใช้ Auth Pattern ที่ไม่สอดคล้องกัน
+### 4. [MEDIUM] Admin API `/api/admin/number-war/config` ใช้ Auth Pattern ที่ไม่สอดคล้องกัน
 **ไฟล์:** `app/api/admin/number-war/config/route.ts`  
 **ปัญหา:** ใช้ `supabase.auth.getUser(token)` แทน `requireAdmin()` มาตรฐานที่ใช้ในไฟล์อื่น ทำให้มีช่องโหว่ถ้า token หมดอายุหรือถูกปลอมแปลง
 
@@ -98,7 +79,7 @@ v_lifetime_profit_after := GREATEST(0, v_user.lifetime_profit - p_amount);
 
 ---
 
-### 6. [MEDIUM] `winners_log` ไม่มี Unique Constraint ป้องกันการประกาศผลซ้ำ
+### 5. [MEDIUM] `winners_log` ไม่มี Unique Constraint ป้องกันการประกาศผลซ้ำ
 **ไฟล์:** `supabase/migrations/20260609_number_war_complete.sql`  
 **ปัญหา:** ตาราง `winners_log` ไม่มี `UNIQUE(round_id, slot_number)` ทำให้ admin อาจกด "ประกาศผล" ซ้ำสำหรับรายการเดียวกันได้
 
@@ -147,14 +128,18 @@ v_lifetime_profit_after := GREATEST(0, v_user.lifetime_profit - p_amount);
 
 ## 📋 Action Items (เรียงตามความสำคัญ)
 
-| ลำดับ | ประเด็น | ความรุนแรง | ผู้รับผิดชอบ | ไฟล์ที่ต้องแก้ |
-|-------|---------|-----------|-------------|---------------|
-| 1 | แก้ `number_slots` RLS UPDATE | 🔴 CRITICAL | Dev | `20260609_number_war_complete.sql` |
-| 2 | แก้ `number_war_history` RLS INSERT | 🔴 CRITICAL | Dev | `20260609_add_number_war_history.sql` |
-| 3 | ยืนยัน insurance refund → profit_score | 🟠 HIGH | PO/BA | ไม่ต้องแก้ถ้าถูกต้อง |
-| 4 | แก้ `lifetime_profit` ไม่ติดลบ | 🟠 HIGH | Dev | `20250607_place_prediction_atomic_v2.sql` |
-| 5 | ปรับ `/api/admin/number-war/config` | 🟡 MEDIUM | Dev | `app/api/admin/number-war/config/route.ts` |
-| 6 | เพิ่ม UNIQUE บน winners_log | 🟡 MEDIUM | Dev | `20260609_number_war_complete.sql` |
+| ลำดับ | ประเด็น | ความรุนแรง | สถานะ | ผู้รับผิดชอบ | ไฟล์ที่ต้องแก้ |
+|-------|---------|-----------|--------|-------------|---------------|
+| 1 | แก้ `number_slots` RLS UPDATE | 🔴 CRITICAL | ✅ แก้ใน SQL แล้ว | Dev/DBA | `20260610_critical_rls_fix.sql` |
+| 2 | แก้ `number_war_history` RLS INSERT | 🔴 CRITICAL | ✅ แก้ใน SQL แล้ว | Dev/DBA | `20260610_critical_rls_fix.sql` |
+| 3 | แก้ `lifetime_profit` ไม่ติดลบ | 🟠 HIGH | ⏳ รอแก้ | Dev | `20250607_place_prediction_atomic_v2.sql` |
+| 4 | ปรับ `/api/admin/number-war/config` auth | 🟡 MEDIUM | ⏳ รอแก้ | Dev | `app/api/admin/number-war/config/route.ts` |
+| 5 | เพิ่ม UNIQUE บน winners_log | 🟡 MEDIUM | ✅ แก้ใน SQL แล้ว | Dev/DBA | `20260610_critical_rls_fix.sql` |
+
+**หมายเหตุ:**
+- ✅ = แก้ไขแล้วใน migration file (`20260610_critical_rls_fix.sql`) รอรันบน Supabase Dashboard
+- ⏳ = ยังไม่ได้แก้ ต้องพิจารณาต่อไป
+- ประเด็นที่ 3 (Insurance Refund + profit_score) ตรวจสอบแล้ว → **ถูกต้องตาม spec** ไม่ต้องแก้
 
 ---
 
