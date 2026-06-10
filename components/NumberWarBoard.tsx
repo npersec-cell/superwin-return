@@ -23,6 +23,12 @@ async function fetchJson<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+function getSlotDisplay(slotNumber: number): string {
+  if (slotNumber === 0) return "ต่ำกว่า 100";
+  if (slotNumber === 200) return "มากกว่า 300";
+  return String(slotNumber + 100);
+}
+
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
   if (!res.ok) {
@@ -264,13 +270,13 @@ export default function NumberWarBoard() {
     }
 
     if (slotNumber < 0 || slotNumber > 200) {
-      setMessage(`เลขชนะที่คำนวณได้คือ ${slotNumber} ซึ่งไม่อยู่ในช่วง 0-200`);
+      setMessage(`คะแนนชนะ ${slotNumber} ไม่อยู่ในช่วงที่กำหนด`);
       return;
     }
 
     const slot = slots.find((s) => s.slot_number === slotNumber);
     if (!slot?.owner_id) {
-      setMessage(`เลข ${slotNumber} ยังไม่มีเจ้าของ!`);
+      setMessage(`ช่อง ${getSlotDisplay(slotNumber)} ยังไม่มีเจ้าของ!`);
       return;
     }
 
@@ -365,7 +371,7 @@ export default function NumberWarBoard() {
       <div style={{ marginBottom: "20px" }}>
         <h2 style={{ color: "var(--yellow)", marginBottom: "8px" }}>Number War</h2>
         <p style={{ color: "var(--muted)", fontSize: "12px" }}>
-          ระบบทายเลข 0-200 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง
+          ต่ำกว่า 100 · 101-299 · มากกว่า 300 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง
         </p>
       </div>
 
@@ -846,7 +852,7 @@ export default function NumberWarBoard() {
               ประกาศผลรางวัล
             </h3>
             <p style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "12px" }}>
-              เลือกรายการแข่งขันที่ปิดรับซื้อแล้ว แล้วกรอกเลขที่ชนะ (0-200)
+              เลือกรายการแข่งขันที่ปิดรับซื้อแล้ว แล้วกรอกคะแนนที่ชนะ
             </p>
 
             {/* Round Select */}
@@ -873,7 +879,7 @@ export default function NumberWarBoard() {
             {/* Winning Score */}
             <div style={{ marginBottom: "12px" }}>
               <label style={{ color: "var(--muted)", fontSize: "11px", display: "block", marginBottom: "4px" }}>
-                เลขที่ชนะ (0-200)
+                คะแนนที่ชนะ
               </label>
               <input
                 type="number"
@@ -887,10 +893,10 @@ export default function NumberWarBoard() {
               {calculatedNumber !== null && (
                 <div style={{ marginTop: "8px", padding: "8px 12px", background: "rgba(255, 225, 0, 0.1)", borderRadius: "6px", fontSize: "12px" }}>
                   <span style={{ color: "var(--yellow)", fontWeight: "700" }}>
-                    เลขชนะ: {calculatedNumber}
+                    คะแนนชนะ: {calculatedNumber}
                   </span>
                   <span style={{ color: "var(--muted)", marginLeft: "8px" }}>
-                    (0-200)
+                    ({getSlotDisplay(calculatedNumber)})
                   </span>
                 </div>
               )}
@@ -982,7 +988,7 @@ export default function NumberWarBoard() {
                   }}
                 >
                   <div style={{ fontSize: "16px", fontWeight: "700", color: colors.text }}>
-                    {slot.slot_number}
+                    {getSlotDisplay(slot.slot_number)}
                   </div>
                   <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>
                     {slot.current_price} <GreenBullet />
@@ -1051,7 +1057,7 @@ export default function NumberWarBoard() {
                 onClick={(e) => e.stopPropagation()}
               >
                 <h3 style={{ color: "var(--yellow)", marginBottom: "16px" }}>
-                  เลข {selectedSlot.slot_number}
+                  เลข {getSlotDisplay(selectedSlot.slot_number)}
                 </h3>
                 <div style={{ display: "grid", gap: "8px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -1127,7 +1133,7 @@ export default function NumberWarBoard() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                     <div>
                       <span style={{ fontSize: "18px", fontWeight: "700", color: "var(--yellow)" }}>
-                        เลข {winner.slot_number}
+                        เลข {getSlotDisplay(winner.slot_number)}
                       </span>
                       <span style={{ marginLeft: "8px", fontSize: "12px", color: "var(--muted)" }}>
                         {winner.user?.display_name || "Unknown"}

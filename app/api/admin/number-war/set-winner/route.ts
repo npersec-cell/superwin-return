@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     if (winningScore === undefined || winningScore === null || isNaN(Number(winningScore))) {
       return NextResponse.json(
-        { ok: false, error: "กรุณากรอกเลขที่ชนะ (0-200)" },
+        { ok: false, error: "กรุณากรอกคะแนนที่ชนะ" },
         { status: 400 }
       );
     }
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     if (slotNumber < 0 || slotNumber > 200) {
       return NextResponse.json(
-        { ok: false, error: `เลขชนะที่คำนวณได้คือ ${slotNumber} ซึ่งไม่อยู่ในช่วง 0-200` },
+        { ok: false, error: `คะแนนชนะ ${slotNumber} ไม่อยู่ในช่วงที่กำหนด` },
         { status: 400 }
       );
     }
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     if (!slot.owner_id) {
       return NextResponse.json(
-        { ok: false, error: `เลข ${slotNumber} ยังไม่มีเจ้าของ!` },
+        { ok: false, error: `ช่อง ${slotNumber} ยังไม่มีเจ้าของ!` },
         { status: 400 }
       );
     }

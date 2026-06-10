@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: roundError?.message || "Failed to create round" }, { status: 500 });
     }
 
-    // Create 201 slots (0-200) for this round
+    // Create 201 slots (display: ต่ำกว่า 100, 101-299, มากกว่า 300)
     const slotRows = Array.from({ length: 201 }, (_, i) => ({
       slot_number: i,
       round_id: round.id,

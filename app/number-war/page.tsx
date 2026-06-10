@@ -23,6 +23,12 @@ async function fetchJson<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+function getSlotDisplay(slotNumber: number): string {
+  if (slotNumber === 0) return "ต่ำกว่า 100";
+  if (slotNumber === 200) return "มากกว่า 300";
+  return String(slotNumber + 100);
+}
+
 interface NumberSlot {
   id: string;
   slot_number: number;
@@ -249,7 +255,7 @@ export default function NumberWarPage() {
 
       const data = await res.json();
       if (data.ok) {
-        setMessage(`ซื้อเลข ${slot.slot_number} สำเร็จ!`);
+        setMessage(`ซื้อ ${getSlotDisplay(slot.slot_number)} สำเร็จ!`);
         setProfitScore(data.data.newProfitScore);
         await loadSlots();
       } else if (data.error === "ADDRESS_REQUIRED") {
@@ -290,7 +296,7 @@ export default function NumberWarPage() {
         <div>
           <h1 style={{ color: "var(--yellow)", marginBottom: "8px" }}>NUMBER WAR - คำถามรางวัลพิเศษ</h1>
           <p style={{ color: "var(--muted)", fontSize: "12px" }}>
-            ทายเลข 0-200 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ
+            ต่ำกว่า 100 · 101-299 · มากกว่า 300 | ซื้อครั้งแรก 10 <GreenBullet /> | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ
           </p>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
@@ -475,7 +481,7 @@ export default function NumberWarPage() {
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
                   <span style={{ fontSize: "16px", fontWeight: "700", color: "var(--yellow)" }}>
-                    เลข {win.slot_number}
+                    เลข {getSlotDisplay(win.slot_number)}
                   </span>
                   <span
                     style={{
@@ -648,7 +654,7 @@ export default function NumberWarPage() {
                 position: "relative",
               }}
             >
-              <div style={{ fontSize: "16px", fontWeight: "700", color: colors.text }}>{slot.slot_number}</div>
+              <div style={{ fontSize: "16px", fontWeight: "700", color: colors.text }}>{getSlotDisplay(slot.slot_number)}</div>
               <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>{price} <GreenBullet /></div>
               {slot.owner_id && (
                 <div
@@ -714,7 +720,7 @@ export default function NumberWarPage() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ color: "var(--yellow)", marginBottom: "16px" }}>เลข {selectedSlot.slot_number}</h3>
+            <h3 style={{ color: "var(--yellow)", marginBottom: "16px" }}>เลข {getSlotDisplay(selectedSlot.slot_number)}</h3>
             <div style={{ display: "grid", gap: "8px", marginBottom: "16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--muted)" }}>ราคาซื้อ:</span>
@@ -835,7 +841,7 @@ export default function NumberWarPage() {
                             </span>
                           </div>
                           <div style={{ fontSize: "13px", color: "var(--text)" }}>
-                            เลข {h.slot_number} · {h.round?.name || "-"}
+                            เลข {getSlotDisplay(h.slot_number)} · {h.round?.name || "-"}
                             {h.opponent && (
                               <span style={{ color: "var(--muted)", fontSize: "11px" }}>
                                 {" "}· {h.type === "sold" ? "โดน" : "จาก"} {maskName(h.opponent.display_name || h.opponent.email)}
