@@ -135,10 +135,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check user profit_score (กระสุนเขียว)
-    if (authUser.profitScore < price) {
+    // Check user profit_score (กระสุนเขียว) - use DB value, not authUser
+    const currentProfitScore = user.profit_score ?? 0;
+    if (currentProfitScore < price) {
       return NextResponse.json(
-        { ok: false, error: "Insufficient profit_score", required: price, current: authUser.profitScore },
+        { ok: false, error: "Insufficient profit_score", required: price, current: currentProfitScore },
         { status: 400 }
       );
     }
@@ -147,7 +148,7 @@ export async function POST(request: NextRequest) {
     // 1. Deduct profit_score from buyer
     const { error: deductError } = await supabase
       .from("users")
-      .update({ profit_score: authUser.profitScore - price })
+      .update({ profit_score: currentProfitScore - price })
       .eq("id", userId);
 
     if (deductError) throw deductError;
@@ -243,7 +244,7 @@ export async function POST(request: NextRequest) {
         slotNumber,
         price,
         isTakeover,
-        newProfitScore: authUser.profitScore - price,
+        newProfitScore: currentProfitScore - price,
       },
     });
   } catch (error) {
