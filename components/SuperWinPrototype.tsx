@@ -1105,6 +1105,7 @@ export default function SuperWinPrototype() {
                     const isActive = activeQuestion === question.id;
                     const lockedOptionName = getLockedOptionName(question);
                     const isLocked = lockedOptionName !== null;
+                    const lockedOption = question.options.find((o) => o.name === lockedOptionName) || option;
                     return (
                       <div key={question.id} className={`question ${isActive ? "active" : ""} ${userEntryCount ? "running" : ""} ${isLocked ? "locked" : ""}`} style={{ gap: "6px" }} onClick={(event) => {
                         if ((event.target as HTMLElement).closest("button, input, .dropdown, .dropdown-new")) return;
@@ -1142,8 +1143,8 @@ export default function SuperWinPrototype() {
                           <div className="question-compact-row">
                             <div className="compact-team" onClick={(event) => { event.stopPropagation(); setActiveQuestion(question.id); }}>
                               <span className="compact-label">{isLocked ? "Locked:" : "Pick:"}</span>
-                              <span className="compact-name">{option.name}</span>
-                              <span className="compact-returns">~{option.returns}%</span>
+                              <span className="compact-name">{isLocked ? lockedOption.name : option.name}</span>
+                              <span className="compact-returns">~{isLocked ? lockedOption.returns : option.returns}%</span>
                             </div>
                             <button className="compact-predict-btn" disabled={predictingIds.has(question.id)} onClick={(event) => { event.stopPropagation(); setActiveQuestion(question.id); }}>
                               {predictingIds.has(question.id) ? "Placing..." : isLocked ? "Top Up" : "Predict"}
@@ -1163,8 +1164,8 @@ export default function SuperWinPrototype() {
                             {/* Team picker */}
                             {isLocked ? (
                               <button className="team-picker locked" disabled={predictingIds.has(question.id)} onClick={(event) => { event.stopPropagation(); /* locked — no action */ }}>
-                                <span className="team-name">{option.name}</span>
-                                <span className="team-returns">~{option.returns}%</span>
+                                <span className="team-name">{lockedOption.name}</span>
+                                <span className="team-returns">~{lockedOption.returns}%</span>
                                 <span className="locked-badge">Locked</span>
                               </button>
                             ) : (
