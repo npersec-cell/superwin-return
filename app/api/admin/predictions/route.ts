@@ -91,9 +91,25 @@ export async function GET(request: NextRequest) {
 
     if (optionError) throw new Error(optionError.message);
 
+    // Fetch running entry counts for all predictions
+    const { data: entryCounts, error: entryError } = ids.length
+      ? await supabase
+          .from("prediction_entries")
+          .select("prediction_id, status")
+          .in("prediction_id", ids)
+          .eq("status", "running")
+      : { data: [] as { prediction_id: string; status: string }[], error: null };
+
+    if (entryError) throw new Error(entryError.message);
+
+    const countMap = new Map<string, number>();
+    for (const entry of entryCounts || []) {
+      countMap.set(entry.prediction_id, (countMap.get(entry.prediction_id) || 0) + 1);
+    }
+
     return NextResponse.json({
       ok: true,
-      data: (predictions || []).map((row) => mapPrediction(row, options || []))
+      data: (predictions || []).map((row) => ({ ...mapPrediction(row, options || []), entryCount: countMap.get(row.id) || 0 }))
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load admin predictions";

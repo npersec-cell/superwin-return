@@ -15,6 +15,7 @@ type AdminPrediction = {
   closesAt: string | null;
   feeRate: number;
   createdAt: string;
+  entryCount: number;
   options: { id: string; label: string; sortOrder: number }[];
 };
 
@@ -1145,7 +1146,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       setPredictions((current) => current.map((row) => row.id === item.id ? { ...row, status: "canceled" } : row));
       await loadPredictions();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "คืนเหรียญไม่สำเร็จ");
+      const msg = error instanceof Error ? error.message : "คืนเหรียญไม่สำเร็จ";
+      if (msg.includes("No running entries")) {
+        setMessage("ไม่มีรายการทายผลที่ต้องคืนเหรียญ (อาจไม่มีผู้เล่นทาย หรือถูกคืนไปแล้ว)");
+      } else {
+        setMessage(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -1153,6 +1159,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   function renderPredictionControls(item: AdminPrediction) {
     const disabled = loading || item.status === "resolved" || item.status === "canceled";
+    const hasEntries = (item.entryCount || 0) > 0;
     return (
       <div className="admin-actions">
         {item.status !== "open" && item.status !== "resolved" && item.status !== "canceled" && (
@@ -1168,7 +1175,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
               {item.options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
             </select>
             <button className="button primary" disabled={disabled} onClick={() => resolvePrediction(item)}>สรุปผล</button>
-            <button className="button" disabled={disabled} onClick={() => refundPrediction(item)}>ยกเลิก + คืนเหรียญ</button>
+            <button className="button" disabled={disabled || !hasEntries} onClick={() => refundPrediction(item)}>ยกเลิก + คืนเหรียญ</button>
           </>
         )}
         {(item.status === "resolved" || item.status === "canceled") && (
