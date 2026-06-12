@@ -84,16 +84,33 @@ export async function DELETE(request: NextRequest, context: Params) {
     const { id } = await Promise.resolve(context.params);
     const supabase = createSupabaseAdminClient();
 
-    // 1. ตรวจสอบสถานะก่อนลบ
+    // 1. ตรวจสอบสถานะและรายการทายผลก่อนลบ
     const { data: prediction, error: findError } = await supabase
       .from("predictions")
-      .select("status")
+      .select("status, question, tournament_name")
       .eq("id", id)
       .single();
 
     if (findError) throw new Error(findError.message);
+
+    // ถ้ายังไม่สรุปผล/ยกเลิก ต้องตรวจสอบว่ามีคนทายหรือไม่
     if (prediction.status !== "resolved" && prediction.status !== "canceled") {
-      throw new Error("ลบได้เฉพาะคำถามที่ทำการสรุปผล (Resolved) หรือยกเลิก (Canceled) แล้วเท่านั้น");
+      const { count, error: countError } = await supabase
+        .from("prediction_entries")
+        .select("*", { count: "exact", head: true })
+        .eq("prediction_id", id);
+
+      if (countError) throw new Error(countError.message);
+
+      if (count && count > 0) {
+        throw new Error("ลบได้เฉพาะคำถามที่ทำการสรุปผล (Resolved) หรือยกเลิก (Canceled) แล้วเท่านั้น เนื่องจากมีผู้เล่นทายผลอยู่");
+      }
+
+      // ไม่มีคนทาย → ลบ entries ที่เป็น canceled/refunded (ถ้ามี) ก่อนลบคำถาม
+      await supabase
+        .from("prediction_entries")
+        .delete()
+        .eq("prediction_id", id);
     }
 
     // 2. ลบตัวเลือกคำตอบ (prediction_options) — entries จะถูก set option_id = null อัตโนมัติ
@@ -104,18 +121,12 @@ export async function DELETE(request: NextRequest, context: Params) {
       .eq("prediction_id", id);
 
     // 2.5 ลบ coin_ledger ที่เกี่ยวข้องกับคำถามนี้ (match จาก question ใน detail)
-    const { data: predictionData } = await supabase
-      .from("predictions")
-      .select("question, tournament_name")
-      .eq("id", id)
-      .single();
-    
-    if (predictionData) {
+    if (prediction) {
       // ลบ coin_ledger ที่ detail มี Question: {question} อยู่ (match เฉพาะคำถามนี้ ไม่ใช่ทั้งทัวร์นาเมนต์)
       const { error: ledgerDelError } = await supabase
         .from("coin_ledger")
         .delete()
-        .ilike("detail", `%Question: ${predictionData.question}%`);
+        .ilike("detail", `%Question: ${prediction.question}%`);
       if (ledgerDelError) console.error("Failed to delete ledger:", ledgerDelError.message);
     }
 
