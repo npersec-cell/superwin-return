@@ -1175,7 +1175,13 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
               {item.options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
             </select>
             <button className="button primary" disabled={disabled} onClick={() => resolvePrediction(item)}>สรุปผล</button>
-            <button className="button" disabled={disabled || !hasEntries} onClick={() => refundPrediction(item)}>ยกเลิก + คืนเหรียญ</button>
+            {hasEntries ? (
+              <button className="button" disabled={disabled || !hasEntries} onClick={() => refundPrediction(item)}>ยกเลิก + คืนเหรียญ</button>
+            ) : (
+              <button className="button" type="button" disabled={loading} onClick={() => deletePrediction(item.id)} style={{ color: "#ff4d4f", borderColor: "#ff4d4f", background: "transparent" }}>
+                🗑️ ลบคำถามถาวร
+              </button>
+            )}
           </>
         )}
         {(item.status === "resolved" || item.status === "canceled") && (
