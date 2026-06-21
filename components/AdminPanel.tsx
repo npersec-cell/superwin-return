@@ -212,6 +212,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [editQuestions, setEditQuestions] = useState<Record<string, string>>({});
   const [editOptionsInputs, setEditOptionsInputs] = useState<Record<string, Record<string, string>>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTournamentNames, setEditTournamentNames] = useState<Record<string, string>>({});
   
   // แท็บเมนูหลังบ้าน
   const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "health" | "numberwar">("dashboard");
@@ -1003,7 +1004,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   async function savePredictionEdits(id: string) {
     const newTime = editClosesAt[id];
     const newQuestion = editQuestions[id];
-    
+    const newTournament = editTournamentNames[id];
+
     const updatedOptionsMap = editOptionsInputs[id] || {};
     const updatedOptionsList = Object.entries(updatedOptionsMap).map(([optId, label]) => ({
       id: optId,
@@ -1016,7 +1018,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       await requestJson<{ ok: boolean }>(`/api/admin/predictions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
+          ...(newTournament !== undefined && { tournamentName: newTournament }),
           closesAt: newTime,
           question: newQuestion,
           options: updatedOptionsList
@@ -1363,7 +1366,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     <select className="button" value={tournamentName} onChange={(event) => setTournamentName(event.target.value)} style={{ width: "100%", height: "34px", textAlign: "left" }}>
                       <option value="">-- เลือกทัวร์นาเมนต์ --</option>
                       {(settings.tournaments || [])
-                        .filter((t) => !getTournamentInfo(t).archived)
                         .map((t) => {
                           const name = getTournamentInfo(t).name;
                           // Find latest question createdAt for this tournament
@@ -1741,7 +1743,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                     setEditingId(item.id);
                                     setEditClosesAt((current) => ({ ...current, [item.id]: toDateTimeLocal(new Date(item.closesAt || "")) }));
                                     setEditQuestions((current) => ({ ...current, [item.id]: item.question }));
-                                    
+                                    setEditTournamentNames((current) => ({ ...current, [item.id]: item.tournamentName }));
+
                                     const initialOpts: Record<string, string> = {};
                                     item.options.forEach(o => {
                                       initialOpts[o.id] = o.label;
@@ -1767,6 +1770,23 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             {/* กล่องแก้ไขคำถาม & คำตอบ สไลด์เปิดแบบฟอร์มครบชุด */}
                             {editingId === item.id && (
                               <div style={{ display: "grid", gap: "10px", marginTop: "10px", marginBottom: "10px", background: "rgba(255,225,0,0.03)", padding: "12px", borderRadius: "8px", border: "1px solid var(--hairline)", width: "100%", textAlign: "left" }}>
+                                <div style={{ display: "grid", gap: "4px" }}>
+                                  <span className="meta" style={{ fontSize: "10px", color: "var(--yellow)" }}>🔄 ย้ายทัวร์นาเมนต์:</span>
+                                  <select
+                                    value={editTournamentNames[item.id] || item.tournamentName}
+                                    onChange={(e) => setEditTournamentNames((current) => ({ ...current, [item.id]: e.target.value }))}
+                                    style={{ height: "30px", fontSize: "11px", padding: "0 8px", background: "var(--card)", width: "100%", color: editTournamentNames[item.id] !== item.tournamentName ? "var(--yellow)" : "var(--text)" }}
+                                  >
+                                    {(settings.tournaments || []).map((t) => {
+                                      const info = getTournamentInfo(t);
+                                      return <option key={info.name} value={info.name}>{info.archived ? `📦 ${info.name}` : info.name}</option>;
+                                    })}
+                                  </select>
+                                  {editTournamentNames[item.id] && editTournamentNames[item.id] !== item.tournamentName && (
+                                    <span className="meta" style={{ fontSize: "9px", color: "var(--yellow)" }}>⚠️ จะย้ายจาก "{item.tournamentName}" → "{editTournamentNames[item.id]}"</span>
+                                  )}
+                                </div>
+
                                 <div style={{ display: "grid", gap: "4px" }}>
                                   <span className="meta" style={{ fontSize: "10px", color: "var(--yellow)" }}>แก้ไขข้อความคำถาม:</span>
                                   <input 
