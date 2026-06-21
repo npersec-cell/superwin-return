@@ -17,7 +17,9 @@ function extractQuestion(detail: string | null, prefix: string): string {
   const start = detail.indexOf(prefix);
   if (start === -1) return "";
   const afterPrefix = detail.slice(start + prefix.length);
-  const end = afterPrefix.indexOf(" · ");
+  // coin_ledger.detail ใช้ " . " (dot-space-dot) เป็น delimiter
+  // รองรับทั้ง " . " และ " · " ไว้เผื่อ format เก่า
+  const end = afterPrefix.indexOf(" . ") !== -1 ? afterPrefix.indexOf(" . ") : afterPrefix.indexOf(" · ");
   return end === -1 ? afterPrefix.trim() : afterPrefix.slice(0, end).trim();
 }
 
