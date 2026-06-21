@@ -70,48 +70,76 @@ export async function GET(request: NextRequest) {
     const allLedgerRows = ledgerRes.data || [];
 
     // ใช้ ledger ทั้งหมด — ไม่กรองตาม predictions table อีกต่อไป
-    // เพราะ exact string match ทำให้คำถามใหม่/ทัวร์ใหม่/คำถามที่ถูก edit โดนกรองตก
-    // ถ้ามี predict + payout pair = เป็น settled prediction ที่ถูกต้อง
     const ledgerRows = allLedgerRows;
 
     const predictRows = ledgerRows.filter((r) => r.type === "predict");
     const payoutRows = ledgerRows.filter((r) => r.type === "payout");
 
-    // นับเฉพาะ prediction ที่ถูกสรุปผลแล้ว (มี payout ตรงกัน)
-    const settledPredictRows = predictRows.filter((predict) => {
-      const question = extractQuestion(predict.detail, "Question: ");
-      return payoutRows.some((p) => {
-        const payoutQuestion = extractQuestion(p.detail, "Question: ");
-        return payoutQuestion === question && new Date(p.created_at) >= new Date(predict.created_at);
-      });
-    });
+    // ── Match predict↔payout คู่กันด้วย question text + time window ──
+    interface SettledPrediction {
+      predict: LedgerRow;
+      payout: LedgerRow | null;
+      isWon: boolean;
+    }
+    const settledPredictions: SettledPrediction[] = [];
 
-    // นับเฉพาะ payout ที่ amount > 0 (ชนะจริงๆ) — ผู้แพ้ก็ได้ payout row แต่ amount = 0
-    const totalSettled = settledPredictRows.length;
-    const wonCount = payoutRows.filter((r) => r.amount > 0).length;
-    const lostCount = totalSettled - wonCount;
+    const usedPayoutIds = new Set<string>();
+
+    // Strategy 1: ลอง match ด้วย question text + time proximity (predict ต้องมาก่อน payout)
+    for (const predict of predictRows) {
+      const qText = extractQuestion(predict.detail, "Question: ");
+
+      // หา payout ที่ match question เดียวกัน และเกิดหลัง predict และยังไม่ถูกใช้
+      const match = payoutRows.find((p) => {
+        if (usedPayoutIds.has(p.id)) return false;
+        const pq = extractQuestion(p.detail, "Question: ");
+        // match ถ้า question ตรงกัน หรือ ถ้าทั้งคู่ไม่มี question text (fallback)
+        const textMatch = qText && pq ? qText === pq : (!qText && !pq);
+        return textMatch && new Date(p.created_at) >= new Date(predict.created_at);
+      });
+
+      if (match) {
+        usedPayoutIds.add(match.id);
+        settledPredictions.push({
+          predict,
+          payout: match,
+          isWon: match.amount > 0,
+        });
+      }
+      // ถ้าไม่ match payout → ยัง open อยู่ ไม่นับเป็น settled
+    }
+
+    const totalSettled = settledPredictions.length;
+
+    // นับ win/loss จาก settled set เดียวกัน — ไม่ cross-set!
+    let wonCount = 0;
+    let lostCount = 0;
+    for (const sp of settledPredictions) {
+      if (sp.isWon) wonCount++;
+      else lostCount++;
+    }
+
     const winRate = totalSettled > 0 ? Math.round((wonCount / totalSettled) * 100) : 0;
 
-    const totalCoinsBet = settledPredictRows.reduce((acc, r) => acc + Math.abs(r.amount), 0);
-    const totalCoinsWon = payoutRows.filter((r) => r.amount > 0).reduce((acc, r) => acc + r.amount, 0);
+    const totalCoinsBet = settledPredictions.reduce((acc, sp) => acc + Math.abs(sp.predict.amount), 0);
+    const totalCoinsWon = settledPredictions
+      .filter((sp) => sp.isWon)
+      .reduce((acc, sp) => acc + (sp.payout?.amount || 0), 0);
     const avgBetSize = totalSettled > 0 ? Math.round(totalCoinsBet / totalSettled) : 0;
 
-    // สร้างประวัติจาก settled predict rows โดยหา payout ที่ match ตาม question
-    const history = settledPredictRows.slice(0, 5).map((predict) => {
+    // สร้างประวัติจาก settled predictions (เรียงใหม่ตาม payout date desc)
+    const sortedByDate = [...settledPredictions].sort((a, b) => {
+      const dateA = new Date(a.payout?.created_at || a.predict.created_at).getTime();
+      const dateB = new Date(b.payout?.created_at || b.predict.created_at).getTime();
+      return dateB - dateA; // newest first
+    });
+
+    const history = sortedByDate.slice(0, 5).map(({ predict, payout, isWon }) => {
       const tournament = extractQuestion(predict.detail, "Tournament: ");
       const question = extractQuestion(predict.detail, "Question: ");
 
-      // หา payout ที่ question ตรงกัน และเกิดขึ้นหลัง predict
-      const payout = payoutRows.find((p) => {
-        const payoutQuestion = extractQuestion(p.detail, "Question: ");
-        return payoutQuestion === question && new Date(p.created_at) >= new Date(predict.created_at);
-      });
-
       const pickSegment = predict.detail?.split(" · ").find((part) => part.startsWith("Pick: "));
       const pickText = pickSegment ? pickSegment.replace("Pick: ", "").trim() : "Unknown";
-
-      // ชนะจริงๆ ต้องมี payout และ amount > 0
-      const isWon = payout && payout.amount > 0;
 
       return {
         id: predict.id,
@@ -119,9 +147,9 @@ export async function GET(request: NextRequest) {
         question,
         pick: pickText,
         amount: Math.abs(predict.amount),
-        payout: payout ? payout.amount : 0,
+        payout: payout?.amount || 0,
         status: isWon ? "won" : ("lost" as "won" | "lost"),
-        date: new Date(payout ? payout.created_at : predict.created_at).toLocaleDateString("en-GB", {
+        date: new Date(payout?.created_at || predict.created_at).toLocaleDateString("en-GB", {
           day: "numeric",
           month: "short"
         })
