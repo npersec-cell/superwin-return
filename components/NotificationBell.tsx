@@ -210,7 +210,7 @@ export default function NotificationBell() {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="dropdown">
+        <div className={`dropdown ${isOpen ? "open" : ""}`}>
           <div className="dropdown-header">
             <h3>การแจ้งเตือน</h3>
             {unreadCount > 0 && (
