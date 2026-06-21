@@ -354,20 +354,32 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   // การแบ่งหน้าสำหรับคำถามที่หมดเวลา รอคำตอบ
   const [pendingPage, setPendingPage] = useState(1);
   const pendingPageSize = 5;
-  const pendingTotalPages = Math.max(1, Math.ceil(pendingPredictions.length / pendingPageSize));
+  const filteredPendingPredictions = useMemo(() => {
+    if (!runningTournamentFilter) return pendingPredictions;
+    return pendingPredictions.filter(p => p.tournamentName === runningTournamentFilter);
+  }, [pendingPredictions, runningTournamentFilter]);
+  const pendingTotalPages = Math.max(1, Math.ceil(filteredPendingPredictions.length / pendingPageSize));
   const currentPending = useMemo(() => {
     const start = (pendingPage - 1) * pendingPageSize;
-    return pendingPredictions.slice(start, start + pendingPageSize);
-  }, [pendingPredictions, pendingPage]);
+    return filteredPendingPredictions.slice(start, start + pendingPageSize);
+  }, [filteredPendingPredictions, pendingPage]);
+
+  useEffect(() => { setPendingPage(1); }, [runningTournamentFilter]);
 
   // การแบ่งหน้าสำหรับคำถามที่สรุปผลแล้ว
   const [resolvedPage, setResolvedPage] = useState(1);
   const resolvedPageSize = 5;
-  const resolvedTotalPages = Math.max(1, Math.ceil(resolvedPredictions.length / resolvedPageSize));
+  const filteredResolvedPredictions = useMemo(() => {
+    if (!runningTournamentFilter) return resolvedPredictions;
+    return resolvedPredictions.filter(p => p.tournamentName === runningTournamentFilter);
+  }, [resolvedPredictions, runningTournamentFilter]);
+  const resolvedTotalPages = Math.max(1, Math.ceil(filteredResolvedPredictions.length / resolvedPageSize));
   const currentResolved = useMemo(() => {
     const start = (resolvedPage - 1) * resolvedPageSize;
-    return resolvedPredictions.slice(start, start + resolvedPageSize);
-  }, [resolvedPredictions, resolvedPage]);
+    return filteredResolvedPredictions.slice(start, start + resolvedPageSize);
+  }, [filteredResolvedPredictions, resolvedPage]);
+
+  useEffect(() => { setResolvedPage(1); }, [runningTournamentFilter]);
 
   // การแบ่งหน้าสำหรับคำถามทั้งหมด
   const [allPage, setAllPage] = useState(1);
@@ -2196,7 +2208,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
               </section>
 
               <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h3>คำถามที่หมดเวลา รอคำตอบ</h3><span className="micro">{pendingPredictions.length} รายการ</span></div>
+                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h3>คำถามที่หมดเวลา รอคำตอบ</h3><span className="micro">{filteredPendingPredictions.length} รายการ</span></div>
                 <div className="leaderboard-body" style={{ gap: "10px", padding: "12px 0 0 0" }}>
                   {currentPending.length ? currentPending.map((item) => (
                     <div key={item.id} className="question closed" style={{ padding: "12px" }}>
@@ -2219,7 +2231,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
               </section>
 
               <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h3>คำถามที่สรุปผลแล้ว</h3><span className="micro">{resolvedPredictions.length} รายการ</span></div>
+                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h3>คำถามที่สรุปผลแล้ว</h3><span className="micro">{filteredResolvedPredictions.length} รายการ</span></div>
                 <div className="leaderboard-body" style={{ gap: "10px", padding: "12px 0 0 0" }}>
                   {currentResolved.length ? currentResolved.map((item) => (
                     <div key={item.id} className="question resolved" style={{ padding: "12px", display: "grid", gridTemplateColumns: "auto 1fr", gap: "12px", alignItems: "center" }}>
