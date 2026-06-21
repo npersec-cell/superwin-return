@@ -117,6 +117,10 @@ export default function NotificationList({
 
   const deleteNotifications = async (ids: string[]) => {
     if (!confirm(`Delete ${ids.length} notification(s)?`)) return;
+    // Optimistic UI: remove immediately from local state
+    setNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
+    setSelectedIds((prev) => prev.filter((id) => !ids.includes(id)));
+    // Send delete request in background
     try {
       const res = await fetch("/api/notifications", {
         method: "DELETE",
@@ -124,12 +128,23 @@ export default function NotificationList({
         body: JSON.stringify({ notificationIds: ids }),
       });
       const data = await res.json();
-      if (data.ok) {
-        setNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
-        setSelectedIds([]);
+      if (!data.ok) {
+        // Rollback on failure (re-fetch to restore correct state)
+        console.error("Delete failed, re-fetching notifications");
+        const reloadRes = await fetch(`/api/notifications?page=1&limit=20`);
+        const reloadData = await reloadRes.json();
+        if (reloadData.ok) {
+          setNotifications(reloadData.data || []);
+        }
       }
     } catch (error) {
       console.error("Failed to delete notifications:", error);
+      // Rollback on error
+      const reloadRes = await fetch(`/api/notifications?page=1&limit=20`);
+      const reloadData = await reloadRes.json();
+      if (reloadData.ok) {
+        setNotifications(reloadData.data || []);
+      }
     }
   };
 
