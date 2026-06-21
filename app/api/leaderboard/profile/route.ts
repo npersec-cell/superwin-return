@@ -87,11 +87,16 @@ export async function GET(request: NextRequest) {
       .in("status", ["won", "lost", "refunded"])
       .order("created_at", { ascending: false });
 
-    // Build map: prediction_id → { option_id, amount, status } for quick lookup
+    // Build maps from prediction_entries for accurate win/loss + pick text
+    // Map 1: entry.id → full data (used by ref_id lookup — coin_ledger.ref_id stores entry.id)
+    const entryById = new Map<string, { option_id: string | null; amount: number; status: string; prediction_id: string }>();
+    // Map 2: prediction_id → data (legacy fallback for pick text)
     const entryByPredictionId = new Map<string, { option_id: string | null; amount: number; status: string }>();
     if (entriesRes.data) {
       for (const e of entriesRes.data) {
-        // Only store first entry per prediction (user can only bet once per prediction usually)
+        // Map 1: always store by entry id
+        entryById.set(e.id, { option_id: e.option_id, amount: e.amount, status: e.status, prediction_id: e.prediction_id });
+        // Map 2: only first per prediction
         if (!entryByPredictionId.has(e.prediction_id)) {
           entryByPredictionId.set(e.prediction_id, { option_id: e.option_id, amount: e.amount, status: e.status });
         }
@@ -154,7 +159,7 @@ export async function GET(request: NextRequest) {
         // Fallback to payout amount if entry not found (old data without ref_id)
         let determinedIsWon: boolean;
         const entryStatus = predict.ref_id
-          ? entryByPredictionId.get(predict.ref_id)?.status
+          ? entryById.get(predict.ref_id)?.status
           : undefined;
         if (entryStatus === "won") {
           determinedIsWon = true;
@@ -209,12 +214,13 @@ export async function GET(request: NextRequest) {
       let pickText = "";
 
       // Method 1: ref_id lookup (most accurate)
+      // predict.ref_id = prediction_entries.id → use entryById map
       if (predict.ref_id) {
-        const entry = entryByPredictionId.get(predict.ref_id);
+        const entry = entryById.get(predict.ref_id);
         if (entry?.option_id) {
           pickText = optionsMap.get(entry.option_id) || "";
         }
-        // If ref_id doesn't match directly as prediction_id, try finding by amount+time
+        // If ref_id doesn't match, try finding by amount+time as fallback
         if (!pickText) {
           for (const [predId, e] of entryByPredictionId) {
             if (e.amount === Math.abs(predict.amount) && e.option_id) {
