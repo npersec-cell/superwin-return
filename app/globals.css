@@ -303,6 +303,7 @@ input { width: 100%; min-width: 0; }
   .panel { overflow: visible; }
   .side { display: grid; }
   .stats { grid-template-columns: repeat(2, 1fr); }
+  .stat { padding: 10px 6px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   .stat + .stat { border-left: 0; }
   .stat:nth-child(2n) { border-left: 1px solid var(--hairline); }
   .stat:nth-child(n + 3) { border-top: 1px solid var(--hairline); }
@@ -349,7 +350,7 @@ input { width: 100%; min-width: 0; }
   
   /* Stats: Single column on very small screens */
   .stats { grid-template-columns: 1fr 1fr; gap: 0; }
-  .stat { padding: 8px 6px; }
+  .stat { padding: 8px 6px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   .stat .label { font-size: 7.5px; }
   .stat .value { font-size: 14px; }
   
@@ -476,7 +477,7 @@ input { width: 100%; min-width: 0; }
   }
   
   .stats { grid-template-columns: 1fr; } /* Single column */
-  .stat { padding: 6px 8px; }
+  .stat { padding: 8px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   
   .question-card-title { font-size: 10px; }
   .compact-name { font-size: 9.5px; }
