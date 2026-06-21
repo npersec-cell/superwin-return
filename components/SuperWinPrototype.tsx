@@ -1633,7 +1633,7 @@ function ProfileModal({
                                 borderRadius: "4px",
                                 fontWeight: "bold"
                               }}>
-                                {isPositive ? `${net}` : `${net}`}
+                                {isPositive ? `+${net}` : `${net}`}
                               </span>
                             );
                           })()}
