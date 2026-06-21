@@ -213,7 +213,64 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [editOptionsInputs, setEditOptionsInputs] = useState<Record<string, Record<string, string>>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTournamentNames, setEditTournamentNames] = useState<Record<string, string>>({});
-  
+
+  // ── Payout breakdown for resolved predictions ──
+  interface PayoutParticipant {
+    userId: string;
+    userName: string;
+    optionId: string | null;
+    optionLabel: string;
+    betAmount: number;
+    status: string;
+    payoutAmount: number;
+    insuranceCost: number;
+    hasInsurance: boolean;
+  }
+  interface PayoutSummary {
+    totalPool: number;
+    feeRate: number;
+    feeTaken: number;
+    distributablePool: number;
+    totalDistributed: number;
+    totalInsuranceRefunded: number;
+    winnersCount: number;
+    losersCount: number;
+    entryCount: number;
+    verificationOk: boolean;
+    roundingDifference: number;
+  }
+  interface PayoutData {
+    prediction: { id: string; question: string; tournamentName: string; winningOptionLabel: string | null };
+    summary: PayoutSummary;
+    participants: PayoutParticipant[];
+  }
+  const [expandedPayoutId, setExpandedPayoutId] = useState<string | null>(null);
+  const [payoutDetails, setPayoutDetails] = useState<Record<string, PayoutData>>({});
+  const [payoutLoading, setPayoutLoading] = useState<Record<string, boolean>>({});
+
+  async function togglePayoutDetails(predictionId: string) {
+    if (expandedPayoutId === predictionId) {
+      setExpandedPayoutId(null);
+      return;
+    }
+    setExpandedPayoutId(predictionId);
+    if (payoutDetails[predictionId]) return; // already loaded
+    setPayoutLoading((prev) => ({ ...prev, [predictionId]: true }));
+    try {
+      const res = await fetch(`/api/admin/predictions/${predictionId}/payouts`);
+      const payload = await res.json();
+      if (res.ok && payload.ok && payload.data) {
+        setPayoutDetails((prev) => ({ ...prev, [predictionId]: payload.data }));
+      } else {
+        console.error("[Payouts]", payload.error);
+      }
+    } catch (err) {
+      console.error("[Payouts] fetch error", err);
+    } finally {
+      setPayoutLoading((prev) => ({ ...prev, [predictionId]: false }));
+    }
+  }
+
   // แท็บเมนูหลังบ้าน
   const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "health" | "numberwar">("dashboard");
   const [users, setUsers] = useState<any[]>([]);
@@ -1199,6 +1256,190 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     );
   }
 
+  function renderPayoutBreakdown(item: AdminPrediction) {
+    if (item.status !== "resolved") return null;
+    const data = payoutDetails[item.id];
+    const isLoading = payoutLoading[item.id];
+    const isExpanded = expandedPayoutId === item.id;
+
+    return (
+      <div style={{ marginTop: "8px" }}>
+        <button
+          className="button"
+          type="button"
+          onClick={() => togglePayoutDetails(item.id)}
+          style={{
+            width: "100%",
+            height: "28px",
+            fontSize: "10px",
+            background: isExpanded ? "rgba(255,225,0,0.08)" : "transparent",
+            border: "1px solid var(--hairline)",
+            borderRadius: "6px",
+            color: "var(--yellow)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "4px"
+          }}
+        >
+          {isExpanded ? "▼" : "▶"} 📊 รายการจ่ายเงิน ({item.entryCount || 0} คน)
+        </button>
+
+        {isExpanded && (
+          <div style={{
+            marginTop: "8px",
+            padding: "12px",
+            background: "var(--bg)",
+            border: "1px solid var(--hairline)",
+            borderRadius: "8px",
+            display: "grid",
+            gap: "10px"
+          }}>
+            {isLoading && (
+              <div style={{ textAlign: "center", color: "var(--muted)", fontSize: "11px", padding: "12px" }}>กำลังโหลด...</div>
+            )}
+
+            {!isLoading && !data && (
+              <div style={{ textAlign: "center", color: "var(--muted)", fontSize: "11px", padding: "8px" }}>ไม่สามารถโหลดข้อมูลได้</div>
+            )}
+
+            {!isLoading && data && (
+              <>
+                {/* ── Summary Bar ── */}
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                  gap: "8px",
+                  padding: "10px",
+                  background: "rgba(255,255,255,0.02)",
+                  borderRadius: "6px",
+                  border: "1px solid var(--hairline)"
+                }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>Pool ทั้งหมด</div>
+                    <strong style={{ fontSize: "13px", color: "var(--yellow)" }}>{data.summary.totalPool.toLocaleString()}</strong>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>ค่าธรรมเนียม ({Math.round(data.summary.feeRate * 100)}%)</div>
+                    <strong style={{ fontSize: "13px", color: "var(--red)" }}>-{data.summary.feeTaken.toLocaleString()}</strong>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>จ่ายจริง</div>
+                    <strong style={{ fontSize: "13px", color: "var(--green)" }}>{data.summary.totalDistributed.toLocaleString()}</strong>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>ต่าง (FLOOR)</div>
+                    <strong style={{ fontSize: "11px", color: data.summary.roundingDifference === 0 ? "var(--green)" : "var(--yellow)" }}>
+                      {data.summary.roundingDifference === 0 ? "0 ✅" : `${data.summary.roundingDifference > 0 ? "+" : ""}${data.summary.roundingDifference}`}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* ── Verification ── */}
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "8px 12px",
+                  background: data.summary.verificationOk ? "rgba(14,203,129,0.06)" : "rgba(240,84,84,0.06)",
+                  border: `1px solid ${data.summary.verificationOk ? "rgba(14,203,129,0.3)" : "rgba(240,84,84,0.3)"}`,
+                  borderRadius: "6px",
+                  fontSize: "11px"
+                }}>
+                  <span style={{ fontSize: "16px" }}>{data.summary.verificationOk ? "✅" : "⚠️"}</span>
+                  <span style={{ color: data.summary.verificationOk ? "var(--green)" : "var(--red)", fontWeight: "bold" }}>
+                    {data.summary.verificationOk
+                      ? `แจกจ่ายถูกต้อง — จ่ายทั้งหมด ${data.summary.totalDistributed.toLocaleString()} เหรียญ จาก pool ${data.summary.totalPool.toLocaleString()} (${Math.round(data.summary.feeRate * 100)}% fee = ${data.summary.feeTaken.toLocaleString()})`
+                      : `⚠️ ต่าง ${Math.abs(data.summary.roundingDifference)} เหรียญ — ตรวจสอบอีกครั้ง`
+                    }
+                  </span>
+                </div>
+
+                {/* ── Participant List ── */}
+                <div style={{ fontSize: "10px", color: "var(--muted)", fontWeight: "bold" }}>
+                  ▸ รายชื่อผู้เข้าร่วม ({data.participants.length} คน) — ชนะ {data.summary.winnersCount} · แพ้ {data.summary.losersCount}
+                </div>
+                <div style={{
+                  display: "grid",
+                  gap: "4px",
+                  maxHeight: "200px",
+                  overflowY: "auto"
+                }}>
+                  {/* Header */}
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 80px 120px 70px 70px",
+                    gap: "6px",
+                    padding: "4px 8px",
+                    fontSize: "9px",
+                    color: "var(--muted)",
+                    fontWeight: "bold",
+                    borderBottom: "1px solid var(--hairline)"
+                  }}>
+                    <span>ผู้ใช้</span>
+                    <span>เลือก</span>
+                    <span>ตัวเลือก</span>
+                    <span style={{ textAlign: "right" }}>เดิมพัน</span>
+                    <span style={{ textAlign: "right" }}>ผลลัพธ์</span>
+                  </div>
+
+                  {/* Rows - sort by won first, then by amount desc */}
+                  {[...data.participants]
+                    .sort((a, b) => {
+                      if (a.status === "won" && b.status !== "won") return -1;
+                      if (a.status !== "won" && b.status === "won") return 1;
+                      return b.betAmount - a.betAmount;
+                    })
+                    .map((p) => (
+                    <div key={p.userId} style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 80px 120px 70px 70px",
+                      gap: "6px",
+                      padding: "5px 8px",
+                      fontSize: "10px",
+                      background: p.status === "won" ? "rgba(14,203,129,0.04)" : "transparent",
+                      borderRadius: "4px",
+                      alignItems: "center",
+                      borderBottom: "1px solid rgba(255,255,255,0.03)"
+                    }}>
+                      <span style={{ fontWeight: "500", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {p.userName}
+                        {p.hasInsurance && <span title="มีประกัน">🛡️</span>}
+                      </span>
+                      <span className="meta" style={{ fontSize: "9px", color: p.optionLabel === data.prediction.winningOptionLabel ? "var(--green)" : "var(--muted)" }}>
+                        {p.optionLabel === data.prediction.winningOptionLabel ? "✅" : ""} {p.optionLabel}
+                      </span>
+                      <span className="meta">{p.status === "won" ? "ชนะ" : p.hasInsurance && p.insuranceCost > 0 ? "แพ้+คืนประกัน" : "แพ้"}</span>
+                      <span style={{ textAlign: "right" }}>{p.betAmount.toLocaleString()}</span>
+                      <span style={{
+                        textAlign: "right",
+                        fontWeight: "bold",
+                        color: p.payoutAmount > p.betAmount ? "var(--green)" :
+                               p.payoutAmount > 0 ? "var(--text-strong)" : "var(--red)"
+                      }}>
+                        {p.status === "won"
+                          ? `+${p.payoutAmount.toLocaleString()}`
+                          : p.hasInsurance && p.insuranceCost > 0
+                            ? `+${p.insuranceCost.toLocaleString()}`
+                            : `-${p.betAmount}`
+                        }
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {data.prediction.winningOptionLabel && (
+                  <div className="meta" style={{ fontSize: "9px", textAlign: "center", paddingTop: "4px" }}>
+                    คำตอบที่ชนะ: <strong style={{ color: "var(--green)" }}>{data.prediction.winningOptionLabel}</strong>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <main className="page admin-page" style={{ padding: "10px 16px" }}>
       <div className="app admin-app" style={{ maxWidth: "1000px" }}>
@@ -1921,6 +2162,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             )}
                           </div>
                           {renderPredictionControls(item)}
+                          {renderPayoutBreakdown(item)}
                         </div>
                       </div>
                     );
@@ -1947,6 +2189,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         <span className="meta">{item.tournamentName} · ปิดเมื่อ {displayDate(item.closesAt)} UTC+7 · {item.options.length} คำตอบ</span>
                       </div>
                       {renderPredictionControls(item)}
+                      {renderPayoutBreakdown(item)}
                     </div>
                   )) : <div className="question"><strong>ไม่มีคำถามที่หมดเวลาและค้างรอคำตอบในขณะนี้</strong></div>}
                 </div>
@@ -1970,9 +2213,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         <span className="meta">{item.tournamentName} · {statusLabel(item.status)} · ปิด {displayDate(item.closesAt)} UTC+7 · {item.options.length} คำตอบ</span>
                       </div>
                       {renderPredictionControls(item)}
+                      {renderPayoutBreakdown(item)}
                     </div>
                   )) : <div className="question"><strong>ไม่มีประวัติคำถาม</strong></div>}
-                </div>
                 {allTotalPages > 1 && (
                   <div className="history-footer" style={{ marginTop: "16px" }}>
                     <button className="button" disabled={allPage <= 1} onClick={() => setAllPage(allPage - 1)}>ก่อนหน้า</button>
