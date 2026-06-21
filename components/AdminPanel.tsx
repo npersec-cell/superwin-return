@@ -558,6 +558,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       setQuestion("");
       setRound("");
       setDraftOptions([]);
+      setTournamentName("");
       await loadPredictions();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "สร้างคำถามไม่สำเร็จ");
@@ -1363,29 +1364,50 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     </button>
                   </span>
                   {!showQuickTournament ? (
-                    <select className="button" value={tournamentName} onChange={(event) => setTournamentName(event.target.value)} style={{ width: "100%", height: "34px", textAlign: "left" }}>
-                      <option value="">-- เลือกทัวร์นาเมนต์ --</option>
+                    <select
+                      className="button"
+                      value={tournamentName}
+                      onChange={(event) => setTournamentName(event.target.value)}
+                      style={{
+                        width: "100%",
+                        height: "38px",
+                        textAlign: "left",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        border: tournamentName.trim()
+                          ? "2px solid var(--green)"
+                          : "2px dashed var(--red)",
+                        background: tournamentName.trim()
+                          ? "rgba(14, 203, 129, 0.08)"
+                          : "rgba(255, 60, 60, 0.06)",
+                        color: tournamentName.trim()
+                          ? "var(--green)"
+                          : "var(--muted)",
+                      }}
+                    >
+                      <option value="">⚠️ -- ต้องเลือกทัวร์นาเมนต์ก่อน --</option>
                       {(settings.tournaments || [])
                         .map((t) => {
                           const name = getTournamentInfo(t).name;
+                          const info = getTournamentInfo(t);
                           // Find latest question createdAt for this tournament
                           const latestQuestion = dashboardData
                             .filter((d) => d.tournamentName === name)
                             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-                          return { name, latestCreatedAt: latestQuestion ? latestQuestion.createdAt : null };
+                          return { name, latestCreatedAt: latestQuestion ? latestQuestion.createdAt : null, archived: info.archived };
                         })
                         .sort((a, b) => {
-                          // Sort by latest question date descending (most recent first)
                           if (a.latestCreatedAt && b.latestCreatedAt) {
                             return new Date(b.latestCreatedAt).getTime() - new Date(a.latestCreatedAt).getTime();
                           }
-                          // Put tournaments with questions above those without
                           if (a.latestCreatedAt && !b.latestCreatedAt) return -1;
                           if (!a.latestCreatedAt && b.latestCreatedAt) return 1;
                           return 0;
                         })
                         .map((t) => (
-                          <option key={t.name} value={t.name}>{t.name}</option>
+                          <option key={t.name} value={t.name}>
+                            {t.archived ? "📦 " : ""}{t.name}{t.latestCreatedAt ? " ★" : ""}
+                          </option>
                         ))}
                     </select>
                   ) : (
@@ -1661,6 +1683,41 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
 
                 </div>
+
+                {/* Tournament Confirmation Banner */}
+                {tournamentName.trim() ? (
+                  <div style={{
+                    marginTop: "12px",
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    background: "rgba(14, 203, 129, 0.1)",
+                    border: "1px solid var(--green)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}>
+                    <span style={{ fontSize: "16px" }}>✅</span>
+                    <span style={{ fontSize: "12px", color: "var(--text)" }}>
+                      คำถามนี้จะถูกสร้างภายใต้: <strong style={{ color: "var(--green)", fontSize: "13px" }}>{tournamentName}</strong>
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{
+                    marginTop: "12px",
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    background: "rgba(255, 60, 60, 0.08)",
+                    border: "1px dashed var(--red)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}>
+                    <span style={{ fontSize: "16px" }}>⚠️</span>
+                    <span style={{ fontSize: "12px", color: "var(--red)" }}>
+                      ยังไม่ได้เลือกทัวร์นาเมนต์ — ปุ่มสร้างจะปิดใช้งาน
+                    </span>
+                  </div>
+                )}
 
                 <button
                   className="button primary"
