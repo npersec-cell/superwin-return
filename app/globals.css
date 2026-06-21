@@ -174,15 +174,14 @@ input { width: 100%; min-width: 0; }
 .modal {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
   background: rgba(13, 16, 19, 0.88);
   z-index: 10;
 }
-.modal.open { display: flex; }
-.modal.open .modal-card {
+.modal .modal-card {
   animation: softIn 240ms ease-out both;
   -webkit-animation: softIn 240ms ease-out both;
   animation-delay: 1ms;

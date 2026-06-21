@@ -1461,7 +1461,7 @@ function RunningModal({ running, runningPage, runningPageSize, setRunningPage, o
   const start = (runningPage - 1) * runningPageSize;
   const rows = running.slice(start, start + runningPageSize);
   return (
-    <section className="modal open" aria-label="Running predictions" onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="modal" aria-label="Running predictions" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card">
         <div className="modal-head"><h3>Running Predictions</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body">
@@ -1500,7 +1500,7 @@ function RunningModal({ running, runningPage, runningPageSize, setRunningPage, o
 
 function InfoModal({ settings, onClose }: { settings: SiteSettings; onClose: () => void }) {
   return (
-    <section className="modal open" aria-label="Game information" onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="modal" aria-label="Game information" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card">
         <div className="modal-head"><h3>Info</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body">
@@ -1520,7 +1520,7 @@ function ProfileModal({
   onClose: () => void;
 }) {
   return (
-    <section className="modal open" aria-label="User Profile" onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="modal" aria-label="User Profile" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card" style={{ maxWidth: "480px" }}>
         <div className="modal-head">
           <h3>🎮 {profile.displayName || maskName(profile.name)}'s Profile</h3>
@@ -1640,7 +1640,7 @@ function HistoryModal({
   const rows = filtered.slice(start, start + historyPageSize);
 
   return (
-    <section className="modal open" aria-label="Coin history" onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="modal" aria-label="Coin history" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card history-modal-card">
         <div className="modal-head"><h3>Coin History</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body history-modal-body">
