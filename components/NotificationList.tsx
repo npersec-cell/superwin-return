@@ -151,10 +151,6 @@ export default function NotificationList({
     if (!notification.isRead) {
       markAsRead([notification.id]);
     }
-    // Navigate if metadata has prediction_id
-    if (notification.metadata?.prediction_id) {
-      window.location.href = `/?prediction=${notification.metadata.prediction_id}`;
-    }
   };
 
   return (
