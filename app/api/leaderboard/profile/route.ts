@@ -9,6 +9,7 @@ type LedgerRow = {
   type: string;
   amount: number;
   detail: string | null;
+  ref_id: string | null;
   created_at: string;
 };
 
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
         .single(),
       supabase
         .from("coin_ledger")
-        .select("id, type, amount, detail, created_at")
+        .select("id, type, amount, detail, ref_id, created_at")
         .eq("user_id", userId)
         .in("type", ["predict", "payout"])
         .order("created_at", { ascending: false })
@@ -76,6 +77,44 @@ export async function GET(request: NextRequest) {
     }
     
     const profitScore = calculatedProfitScore ?? 0;
+
+    // ── ดึง prediction_entries เพื่อได้ pick text ที่แม่นยำ ──
+    // coin_ledger.detail ไม่เก็บ "Pick:" field → ต้องดึงจาก prediction_options
+    const entriesRes = await supabase
+      .from("prediction_entries")
+      .select("id, prediction_id, option_id, amount, status, payout_amount, created_at")
+      .eq("user_id", userId)
+      .in("status", ["won", "lost", "refunded"])
+      .order("created_at", { ascending: false });
+
+    // Build map: prediction_id → { option_id } for quick lookup
+    const entryByPredictionId = new Map<string, { option_id: string | null; amount: number }>();
+    if (entriesRes.data) {
+      for (const e of entriesRes.data) {
+        // Only store first entry per prediction (user can only bet once per prediction usually)
+        if (!entryByPredictionId.has(e.prediction_id)) {
+          entryByPredictionId.set(e.prediction_id, { option_id: e.option_id, amount: e.amount });
+        }
+      }
+    }
+
+    // Batch fetch all unique option_ids to get their text labels
+    const allOptionIds = [...new Set(
+      [...entryByPredictionId.values()].map(e => e.option_id).filter(Boolean)
+    )] as string[];
+
+    const optionsMap = new Map<string, string>(); // option_id → option text
+    if (allOptionIds.length > 0) {
+      const optsRes = await supabase
+        .from("prediction_options")
+        .select("id, label")
+        .in("id", allOptionIds);
+      if (optsRes.data) {
+        for (const o of optsRes.data) {
+          optionsMap.set(o.id, o.label);
+        }
+      }
+    }
 
     const allLedgerRows = ledgerRes.data || [];
 
@@ -148,16 +187,35 @@ export async function GET(request: NextRequest) {
       const tournament = extractQuestion(predict.detail, "Tournament: ");
       const question = extractQuestion(predict.detail, "Question: ");
 
-      // Pick text: try all known delimiters (ledger detail has inconsistent formats)
+      // ── Pick text: ลำดับความสำคัญ (จากแม่นยำ → fallback) ──
+      // 1. ref_id → prediction_entries.option_id → prediction_options.label (แม่นที่สุด)
+      // 2. coin_ledger.detail "Pick:" field (format เก่า)
       let pickText = "";
-      if (predict.detail) {
-        // Split by any known delimiter
+
+      // Method 1: ref_id lookup (most accurate)
+      if (predict.ref_id) {
+        const entry = entryByPredictionId.get(predict.ref_id);
+        if (entry?.option_id) {
+          pickText = optionsMap.get(entry.option_id) || "";
+        }
+        // If ref_id doesn't match directly as prediction_id, try finding by amount+time
+        if (!pickText) {
+          for (const [predId, e] of entryByPredictionId) {
+            if (e.amount === Math.abs(predict.amount) && e.option_id) {
+              const optLabel = optionsMap.get(e.option_id);
+              if (optLabel) { pickText = optLabel; break; }
+            }
+          }
+        }
+      }
+
+      // Method 2: fallback — parse from detail string
+      if (!pickText && predict.detail) {
         const pickParts = predict.detail.split(/ \. | · |\. /g);
         const foundPick = pickParts.find((part) => /^Pick\s*:/i.test(part));
         if (foundPick) {
           pickText = foundPick.replace(/^Pick\s*:\s*/i, "").trim();
         } else {
-          // Fallback: regex on raw detail for edge cases
           const pickMatch = predict.detail.match(/[Pp]ick\s*[：:]\s*(.+?)(?:\s*[.·]\s|$)/);
           pickText = pickMatch?.[1]?.trim() || "";
         }

@@ -1616,21 +1616,24 @@ function ProfileModal({
                           </span>
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <span className="pill" style={{ 
-                            fontSize: "9px", 
-                            height: "18px", 
-                            padding: "0 6px", 
-                            background: h.status === "won" ? "rgba(14, 203, 129, 0.12)" : "rgba(240, 84, 84, 0.12)", 
-                            color: h.status === "won" ? "var(--green)" : "var(--red)",
-                            borderColor: h.status === "won" ? "rgba(14, 203, 129, 0.4)" : "rgba(240, 84, 84, 0.4)",
-                            borderRadius: "4px",
-                            fontWeight: "bold"
-                          }}>
-                            {(() => {
-                              const net = h.status === "won" ? h.payout - h.amount : -h.amount;
-                              return net >= 0 ? `+${net}` : `${net}`;
-                            })()}
-                          </span>
+                          {(() => {
+                            const net = h.status === "won" ? h.payout - h.amount : -h.amount;
+                            const isPositive = net >= 0;
+                            return (
+                              <span className="pill" style={{
+                                fontSize: "9px",
+                                height: "18px",
+                                padding: "0 6px",
+                                background: isPositive ? "rgba(14, 203, 129, 0.12)" : "rgba(240, 84, 84, 0.12)",
+                                color: isPositive ? "var(--green)" : "var(--red)",
+                                borderColor: isPositive ? "rgba(14, 203, 129, 0.4)" : "rgba(240, 84, 84, 0.4)",
+                                borderRadius: "4px",
+                                fontWeight: "bold"
+                              }}>
+                                {isPositive ? `+${net}` : `${net}`}
+                              </span>
+                            );
+                          })()}
                           <span className="meta" style={{ display: "block", fontSize: "8px", marginTop: "2px" }}>
                             {h.date}
                           </span>
