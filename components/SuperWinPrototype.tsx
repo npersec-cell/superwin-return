@@ -358,7 +358,6 @@ export default function SuperWinPrototype() {
   const [questionDeadlines, setQuestionDeadlines] = useState<Record<string, number>>({});
   const [claimLabel, setClaimLabel] = useState("Ready");
   const [openModal, setOpenModal] = useState<"history" | "running" | "info" | "claimResult" | null>(null);
-  const [showInfoInline, setShowInfoInline] = useState(false);
   const [claimResult, setClaimResult] = useState<number>(0);
   const [claimFlash, setClaimFlash] = useState(false);
   const claimFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1025,7 +1024,7 @@ export default function SuperWinPrototype() {
                 <NotificationBell />
               </>
             )}
-            <button className="button gold" onClick={() => setShowInfoInline(!showInfoInline)}>Info</button>
+            <button className="button gold" onClick={() => setOpenModal("info")}>Info</button>
           </div>
         </header>
 
@@ -1049,31 +1048,6 @@ export default function SuperWinPrototype() {
               <div className="announcement-marquee" ref={marqueeRef}>
                 {settings.announcement}
               </div>
-            </div>
-          </div>
-        )}
-
-        {showInfoInline && settingsLoaded && (
-          <div style={{
-            background: "var(--card)",
-            border: "1px solid var(--hairline)",
-            borderRadius: "8px",
-            padding: "12px",
-            marginBottom: "10px",
-            display: "grid",
-            gap: "10px",
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-strong)" }}>Info</h3>
-              <button className="button" onClick={() => setShowInfoInline(false)}>Close</button>
-            </div>
-            <div>
-              <h4 style={{ fontSize: "12px", fontWeight: 600, color: "var(--yellow)", marginBottom: "4px" }}>How to Play</h4>
-              <p style={{ fontSize: "11px", whiteSpace: "pre-line", color: "var(--text)" }}>{settings.info.howToPlay}</p>
-            </div>
-            <div>
-              <h4 style={{ fontSize: "12px", fontWeight: 600, color: "var(--yellow)", marginBottom: "4px" }}>Question Time</h4>
-              <p style={{ fontSize: "11px", whiteSpace: "pre-line", color: "var(--text)" }}>{settings.info.questionTime}</p>
             </div>
           </div>
         )}
@@ -1460,6 +1434,7 @@ export default function SuperWinPrototype() {
       </div>
 
       {openModal === "running" && <RunningModal running={running} runningPage={runningPage} runningPageSize={runningPageSize} setRunningPage={(page) => { setRunningPage(page); }} onClose={() => setOpenModal(null)} />}
+      {openModal === "info" && <InfoModal settings={settings} onClose={() => setOpenModal(null)} />}
       {openModal === "claimResult" && (
         <section className="modal" aria-label="Reload result" onClick={(event) => event.target === event.currentTarget && setOpenModal(null)}>
           <div className="modal-card" style={{ maxWidth: 360, textAlign: "center", padding: "32px 24px" }}>
