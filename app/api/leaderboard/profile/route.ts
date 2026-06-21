@@ -87,13 +87,13 @@ export async function GET(request: NextRequest) {
       .in("status", ["won", "lost", "refunded"])
       .order("created_at", { ascending: false });
 
-    // Build map: prediction_id → { option_id } for quick lookup
-    const entryByPredictionId = new Map<string, { option_id: string | null; amount: number }>();
+    // Build map: prediction_id → { option_id, amount, status } for quick lookup
+    const entryByPredictionId = new Map<string, { option_id: string | null; amount: number; status: string }>();
     if (entriesRes.data) {
       for (const e of entriesRes.data) {
         // Only store first entry per prediction (user can only bet once per prediction usually)
         if (!entryByPredictionId.has(e.prediction_id)) {
-          entryByPredictionId.set(e.prediction_id, { option_id: e.option_id, amount: e.amount });
+          entryByPredictionId.set(e.prediction_id, { option_id: e.option_id, amount: e.amount, status: e.status });
         }
       }
     }
@@ -149,10 +149,26 @@ export async function GET(request: NextRequest) {
 
       if (match) {
         usedPayoutIds.add(match.id);
+
+        // Determine won/lost from prediction_entries.status (authoritative source)
+        // Fallback to payout amount if entry not found (old data without ref_id)
+        let determinedIsWon: boolean;
+        const entryStatus = predict.ref_id
+          ? entryByPredictionId.get(predict.ref_id)?.status
+          : undefined;
+        if (entryStatus === "won") {
+          determinedIsWon = true;
+        } else if (entryStatus === "lost" || entryStatus === "refunded") {
+          determinedIsWon = false;
+        } else {
+          // Fallback for old entries without prediction_entries linkage
+          determinedIsWon = match.amount > 0;
+        }
+
         settledPredictions.push({
           predict,
           payout: match,
-          isWon: match.amount > 0,
+          isWon: determinedIsWon,
         });
       }
       // ถ้าไม่ match payout → ยัง open อยู่ ไม่นับเป็น settled
