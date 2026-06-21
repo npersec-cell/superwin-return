@@ -131,6 +131,7 @@ export async function PATCH(request: NextRequest) {
 
 /**
  * DELETE /api/notifications
+ * Body: { notificationIds?: string[] }   -- delete specific IDs (batch)
  * Query params:
  * - all: boolean (delete all notifications)
  * - olderThan: ISO date string (delete notifications older than date)
@@ -140,6 +141,30 @@ export async function DELETE(request: NextRequest) {
     const user = await requireUser(request);
     const supabase = createSupabaseAdminClient();
 
+    // Try body first (batch delete by IDs)
+    let body: Record<string, unknown> = {};
+    try {
+      body = await request.json();
+    } catch {
+      // no body, fall through to query params
+    }
+
+    if (Array.isArray(body.notificationIds) && body.notificationIds.length > 0) {
+      const { error, count } = await supabase
+        .from("notifications")
+        .delete()
+        .eq("user_id", user.id)
+        .in("id", body.notificationIds as string[]);
+
+      if (error) throw new Error(error.message);
+
+      return NextResponse.json({
+        ok: true,
+        message: `Deleted ${count || 0} notifications`,
+      });
+    }
+
+    // Fallback: query params (all or olderThan)
     const { searchParams } = new URL(request.url);
     const all = searchParams.get("all") === "true";
     const olderThan = searchParams.get("olderThan");
@@ -151,7 +176,7 @@ export async function DELETE(request: NextRequest) {
 
     if (!all && !olderThan) {
       return NextResponse.json(
-        { ok: false, error: "Must specify 'all=true' or 'olderThan' date" },
+        { ok: false, error: "Must specify notificationIds in body, or 'all=true' / 'olderThan' in query" },
         { status: 400 }
       );
     }

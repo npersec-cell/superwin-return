@@ -19,7 +19,7 @@ interface NotificationsPageProps {
   };
 }
 
-async function getNotifications(page: number = 1): Promise<{
+async function getNotifications(page: number = 1, userId: string): Promise<{
   notifications: Notification[];
   unreadCount: number;
   pagination: { page: number; limit: number; total: number; totalPages: number };
@@ -34,6 +34,7 @@ async function getNotifications(page: number = 1): Promise<{
   const { data, error, count } = await supabase
     .from("notifications")
     .select("*", { count: "exact" })
+    .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .range(from, to);
 
@@ -50,6 +51,7 @@ async function getNotifications(page: number = 1): Promise<{
   const { count: unreadCount } = await supabase
     .from("notifications")
     .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
     .eq("is_read", false);
 
   const notifications: Notification[] = (data || []).map((notif: any) => ({
@@ -80,7 +82,7 @@ export default async function NotificationsPage({
   try {
     const user = await requireUser();
     const page = parseInt(searchParams.page || "1") || 1;
-    const { notifications, unreadCount, pagination } = await getNotifications(page);
+    const { notifications, unreadCount, pagination } = await getNotifications(page, user.id);
 
     return (
       <main className="page">

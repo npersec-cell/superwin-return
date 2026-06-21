@@ -118,12 +118,16 @@ export default function NotificationList({
   const deleteNotifications = async (ids: string[]) => {
     if (!confirm(`Delete ${ids.length} notification(s)?`)) return;
     try {
-      // Delete one by one (or implement batch delete API)
-      for (const id of ids) {
-        await fetch(`/api/notifications?id=${id}`, { method: "DELETE" });
+      const res = await fetch("/api/notifications", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationIds: ids }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
+        setSelectedIds([]);
       }
-      setNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
-      setSelectedIds([]);
     } catch (error) {
       console.error("Failed to delete notifications:", error);
     }
