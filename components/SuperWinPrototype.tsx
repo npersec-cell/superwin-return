@@ -373,6 +373,9 @@ export default function SuperWinPrototype() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
+  // Auto-refresh profile data while modal is open
+  const profileRefreshRef = useRef<NodeJS.Timeout | null>(null);
+
   const marqueeRef = useRef<HTMLDivElement | null>(null);
   const marqueeContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -613,6 +616,11 @@ export default function SuperWinPrototype() {
     return () => window.clearInterval(timer);
   }, []);
 
+  // Cleanup profile refresh interval on component unmount
+  useEffect(() => {
+    return () => { if (profileRefreshRef.current) clearInterval(profileRefreshRef.current); };
+  }, []);
+
   const leaderboard = useMemo(() => {
     let rows = [...leaderboardRows];
     if (isSignedIn && currentUserId) {
@@ -683,6 +691,9 @@ export default function SuperWinPrototype() {
   }
 
   async function handleOpenProfile(userId: string, userName: string) {
+    // Clear any existing refresh interval
+    if (profileRefreshRef.current) { clearInterval(profileRefreshRef.current); profileRefreshRef.current = null; }
+
     // show modal immediately with loading state
     setSelectedProfile({
       name: userName,
@@ -698,20 +709,32 @@ export default function SuperWinPrototype() {
       history: [],
     });
     setProfileLoading(true);
-    try {
-      const response = await fetch(`/api/leaderboard/profile?userId=${userId}`);
-      const payload = await response.json();
-      if (response.ok && payload.ok && payload.data) {
-        setSelectedProfile({ ...payload.data, loading: false });
-      } else {
-        // if fetch fails, remove loading flag
+
+    async function fetchProfile() {
+      try {
+        const response = await fetch(`/api/leaderboard/profile?userId=${userId}&_t=${Date.now()}`);
+        const payload = await response.json();
+        if (response.ok && payload.ok && payload.data) {
+          setSelectedProfile({ ...payload.data, loading: false });
+        } else {
+          setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
+        }
+      } catch {
         setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
+      } finally {
+        setProfileLoading(false);
       }
-    } catch {
-      setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
-    } finally {
-      setProfileLoading(false);
     }
+
+    await fetchProfile();
+
+    // Auto-refresh every 15 seconds while modal is open
+    profileRefreshRef.current = setInterval(fetchProfile, 15000);
+  }
+
+  function closeProfile() {
+    if (profileRefreshRef.current) { clearInterval(profileRefreshRef.current); profileRefreshRef.current = null; }
+    setSelectedProfile(null);
   }
 
   async function syncUserData() {
@@ -1461,7 +1484,7 @@ export default function SuperWinPrototype() {
       )}
       {openModal === "history" && <HistoryModal history={history} historyFilter={historyFilter} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} setHistoryPage={(page) => { setHistoryPage(page); }} setHistoryFilter={(value) => { setHistoryFilter(value); loadHistory(value); }} onClose={() => setOpenModal(null)} />}
       {selectedProfile && (
-        <ProfileModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
+        <ProfileModal profile={selectedProfile} onClose={closeProfile} />
       )}
     </main>
   );
