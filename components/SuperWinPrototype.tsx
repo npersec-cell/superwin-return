@@ -500,7 +500,11 @@ export default function SuperWinPrototype() {
       loadOpenPredictions().catch(() => undefined);
     }, 10000);
 
-    return () => clearInterval(interval);
+    const lbInterval = setInterval(() => {
+      loadLeaderboard().catch(() => undefined);
+    }, 30000); // Refresh Top 10 every 30s
+
+    return () => { clearInterval(interval); clearInterval(lbInterval); };
   }, []);
 
   useEffect(() => {
@@ -680,7 +684,7 @@ export default function SuperWinPrototype() {
 
   async function loadLeaderboard() {
     try {
-      const response = await fetch("/api/leaderboard");
+      const response = await fetch(`/api/leaderboard?_t=${Date.now()}`);
       const payload = await response.json();
       if (response.ok && payload.ok && payload.data) {
         setLeaderboardRows(payload.data);

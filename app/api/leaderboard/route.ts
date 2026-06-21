@@ -24,6 +24,12 @@ export async function GET() {
         data: cacheEntry.value,
         cached: true,
         expires_at: cacheEntry.expires_at,
+      }, {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+          "Pragma": "no-cache",
+          "Expires": "0"
+        }
       });
     }
 
@@ -90,6 +96,12 @@ export async function GET() {
       data: sorted,
       cached: false,
       expires_at: expiresAt,
+    }, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      }
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Load leaderboard failed";
