@@ -1617,7 +1617,10 @@ function ProfileModal({
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           {(() => {
-                            const net = h.status === "won" ? h.payout - h.amount : -h.amount;
+                            // ใช้ net จาก API ถ้ามี (คำนวณจาก DB แล้ว), ถ้าไม่มี fallback คำนวณเอง
+                            const net = (h as any).net !== undefined
+                              ? (h as any).net
+                              : (h.status === "won" ? h.payout - h.amount : -h.amount);
                             const isPositive = net >= 0;
                             return (
                               <span className="pill" style={{
@@ -1630,7 +1633,7 @@ function ProfileModal({
                                 borderRadius: "4px",
                                 fontWeight: "bold"
                               }}>
-                                {isPositive ? `+${net}` : `${net}`}
+                                {isPositive ? `${net}` : `${net}`}
                               </span>
                             );
                           })()}

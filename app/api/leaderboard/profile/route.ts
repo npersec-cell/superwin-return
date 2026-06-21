@@ -4,34 +4,6 @@ import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 export const dynamic = "force-dynamic";
 
-type LedgerRow = {
-  id: string;
-  type: string;
-  amount: number;
-  detail: string | null;
-  ref_id: string | null;
-  created_at: string;
-};
-
-function extractQuestion(detail: string | null, prefix: string): string {
-  if (!detail) return "";
-  const start = detail.indexOf(prefix);
-  if (start === -1) return "";
-  const afterPrefix = detail.slice(start + prefix.length);
-  // coin_ledger.detail มีหลาย delimiter จาก SQL migrations คนละเวอร์ชั่น:
-  //   " . " (period+space) - resolve atomic v1
-  //   " · " (middle dot+space) - place prediction v2
-  //   ". " (period only) - lifetime profit fix v3
-  const dotSpaceIdx = afterPrefix.indexOf(" . ");
-  const middleDotIdx = afterPrefix.indexOf(" · ");
-  const periodOnlyIdx = afterPrefix.indexOf(". ");
-  let end = -1;
-  if (dotSpaceIdx !== -1) end = dotSpaceIdx;
-  else if (middleDotIdx !== -1) end = middleDotIdx;
-  else if (periodOnlyIdx !== -1 && periodOnlyIdx > 0) end = periodOnlyIdx;
-  return end === -1 ? afterPrefix.trim() : afterPrefix.slice(0, end).trim();
-}
-
 export async function GET(request: NextRequest) {
   try {
     const supabase = createSupabaseAdminClient();
@@ -42,223 +14,139 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "userId is required" }, { status: 400 });
     }
 
-    // ดึง coin_ledger สำหรับคำนวณประวัติการทาย
-    const [userRes, ledgerRes] = await Promise.all([
-      supabase
-        .from("users")
-        .select("display_name, email, lifetime_profit")
-        .eq("id", userId)
-        .single(),
-      supabase
-        .from("coin_ledger")
-        .select("id, type, amount, detail, ref_id, created_at")
-        .eq("user_id", userId)
-        .in("type", ["predict", "payout"])
-        .order("created_at", { ascending: false })
-        .returns<LedgerRow[]>(),
-    ]);
+    // ── ดึง user info ──
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("display_name, email, lifetime_profit")
+      .eq("id", userId)
+      .single();
 
-    if (userRes.error || !userRes.data) {
+    if (userError || !user) {
       return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
     }
 
-    if (ledgerRes.error) {
-      return NextResponse.json({ ok: false, error: ledgerRes.error.message }, { status: 500 });
-    }
-
-    const user = userRes.data;
-
-    // Calculate real-time profit_score
+    // ── คำนวณ profit_score แบบ real-time ──
     const { data: calculatedProfitScore, error: profitError } = await supabase
       .rpc('calculate_user_profit_score', { p_user_id: userId });
-    
+
+    const profitScore = calculatedProfitScore ?? 0;
     if (profitError) {
       console.error('[Profile] Error calculating profit_score:', profitError);
     }
-    
-    const profitScore = calculatedProfitScore ?? 0;
 
-    // ── ดึง prediction_entries เพื่อได้ pick text ที่แม่นยำ ──
-    // coin_ledger.detail ไม่เก็บ "Pick:" field → ต้องดึงจาก prediction_options
-    const entriesRes = await supabase
+    // ════════════════════════════════════════════════
+    // SOURCE OF TRUTH: prediction_entries table
+    // (ไม่ match text จาก ledger อีก — ใช้ DB relation โดยตรง)
+    // ════════════════════════════════════════════════
+
+    // ดึงทุก entries ของ user ที่ settle แล้ว (won / lost / refunded)
+    const { data: entries, error: entriesError } = await supabase
       .from("prediction_entries")
-      .select("id, prediction_id, option_id, amount, status, payout_amount, created_at")
+      .select(`
+        id,
+        prediction_id,
+        option_id,
+        amount,
+        payout_amount,
+        status,
+        created_at,
+        predictions (
+          id,
+          question,
+          tournament_name,
+          resolved_at
+        )
+      `)
       .eq("user_id", userId)
       .in("status", ["won", "lost", "refunded"])
       .order("created_at", { ascending: false });
 
-    // Build maps from prediction_entries for accurate win/loss + pick text
-    // Map 1: entry.id → full data (used by ref_id lookup — coin_ledger.ref_id stores entry.id)
-    const entryById = new Map<string, { option_id: string | null; amount: number; status: string; prediction_id: string }>();
-    // Map 2: prediction_id → data (legacy fallback for pick text)
-    const entryByPredictionId = new Map<string, { option_id: string | null; amount: number; status: string }>();
-    if (entriesRes.data) {
-      for (const e of entriesRes.data) {
-        // Map 1: always store by entry id
-        entryById.set(e.id, { option_id: e.option_id, amount: e.amount, status: e.status, prediction_id: e.prediction_id });
-        // Map 2: only first per prediction
-        if (!entryByPredictionId.has(e.prediction_id)) {
-          entryByPredictionId.set(e.prediction_id, { option_id: e.option_id, amount: e.amount, status: e.status });
+    if (entriesError) {
+      console.error("[Profile] Error fetching prediction_entries:", entriesError);
+      return NextResponse.json({
+        ok: true,
+        data: {
+          name: user.display_name || user.email.split("@")[0],
+          displayName: user.display_name || null,
+          profitScore,
+          allTimeProfit: user.lifetime_profit || 0,
+          winRate: 0,
+          wonCount: 0,
+          lostCount: 0,
+          totalSettled: 0,
+          badge: "Rookie",
+          badgeDesc: "New predictor in the arena.",
+          history: []
         }
-      }
+      });
     }
 
-    // Batch fetch all unique option_ids to get their text labels
-    const allOptionIds = [...new Set(
-      [...entryByPredictionId.values()].map(e => e.option_id).filter(Boolean)
+    // ── นับ win/loss จาก entries โดยตรง (authoritative) ──
+    let wonCount = 0;
+    let lostCount = 0;
+    for (const e of entries || []) {
+      if (e.status === "won") wonCount++;
+      else lostCount++; // lost OR refunded นับเป็น lost
+    }
+    const totalSettled = (entries || []).length;
+    const winRate = totalSettled > 0 ? Math.round((wonCount / totalSettled) * 100) : 0;
+
+    // ── Batch fetch option labels ──
+    const optionIds = [...new Set(
+      (entries || []).map((e: any) => e.option_id).filter(Boolean)
     )] as string[];
 
-    const optionsMap = new Map<string, string>(); // option_id → option text
-    if (allOptionIds.length > 0) {
-      const optsRes = await supabase
+    const optionsMap = new Map<string, string>();
+    if (optionIds.length > 0) {
+      const { data: opts } = await supabase
         .from("prediction_options")
         .select("id, label")
-        .in("id", allOptionIds);
-      if (optsRes.data) {
-        for (const o of optsRes.data) {
+        .in("id", optionIds);
+      if (opts) {
+        for (const o of opts) {
           optionsMap.set(o.id, o.label);
         }
       }
     }
 
-    const allLedgerRows = ledgerRes.data || [];
-
-    // ใช้ ledger ทั้งหมด — ไม่กรองตาม predictions table อีกต่อไป
-    const ledgerRows = allLedgerRows;
-
-    const predictRows = ledgerRows.filter((r) => r.type === "predict");
-    const payoutRows = ledgerRows.filter((r) => r.type === "payout");
-
-    // ── Match predict↔payout คู่กันด้วย question text + time window ──
-    interface SettledPrediction {
-      predict: LedgerRow;
-      payout: LedgerRow | null;
-      isWon: boolean;
-    }
-    const settledPredictions: SettledPrediction[] = [];
-
-    const usedPayoutIds = new Set<string>();
-
-    // Strategy 1: ลอง match ด้วย question text + time proximity (predict ต้องมาก่อน payout)
-    for (const predict of predictRows) {
-      const qText = extractQuestion(predict.detail, "Question: ");
-
-      // หา payout ที่ match question เดียวกัน และเกิดหลัง predict และยังไม่ถูกใช้
-      const match = payoutRows.find((p) => {
-        if (usedPayoutIds.has(p.id)) return false;
-        const pq = extractQuestion(p.detail, "Question: ");
-        // match ถ้า question ตรงกัน หรือ ถ้าทั้งคู่ไม่มี question text (fallback)
-        const textMatch = qText && pq ? qText === pq : (!qText && !pq);
-        return textMatch && new Date(p.created_at) >= new Date(predict.created_at);
-      });
-
-      if (match) {
-        usedPayoutIds.add(match.id);
-
-        // Determine won/lost from prediction_entries.status (authoritative source)
-        // Fallback to payout amount if entry not found (old data without ref_id)
-        let determinedIsWon: boolean;
-        const entryStatus = predict.ref_id
-          ? entryById.get(predict.ref_id)?.status
-          : undefined;
-        if (entryStatus === "won") {
-          determinedIsWon = true;
-        } else if (entryStatus === "lost" || entryStatus === "refunded") {
-          determinedIsWon = false;
-        } else {
-          // Fallback for old entries without prediction_entries linkage
-          determinedIsWon = match.amount > 0;
-        }
-
-        settledPredictions.push({
-          predict,
-          payout: match,
-          isWon: determinedIsWon,
-        });
-      }
-      // ถ้าไม่ match payout → ยัง open อยู่ ไม่นับเป็น settled
-    }
-
-    const totalSettled = settledPredictions.length;
-
-    // นับ win/loss จาก settled set เดียวกัน — ไม่ cross-set!
-    let wonCount = 0;
-    let lostCount = 0;
-    for (const sp of settledPredictions) {
-      if (sp.isWon) wonCount++;
-      else lostCount++;
-    }
-
-    const winRate = totalSettled > 0 ? Math.round((wonCount / totalSettled) * 100) : 0;
-
-    const totalCoinsBet = settledPredictions.reduce((acc, sp) => acc + Math.abs(sp.predict.amount), 0);
-    const totalCoinsWon = settledPredictions
-      .filter((sp) => sp.isWon)
-      .reduce((acc, sp) => acc + (sp.payout?.amount || 0), 0);
-    const avgBetSize = totalSettled > 0 ? Math.round(totalCoinsBet / totalSettled) : 0;
-
-    // สร้างประวัติจาก settled predictions (เรียงใหม่ตาม payout date desc)
-    const sortedByDate = [...settledPredictions].sort((a, b) => {
-      const dateA = new Date(a.payout?.created_at || a.predict.created_at).getTime();
-      const dateB = new Date(b.payout?.created_at || b.predict.created_at).getTime();
+    // ── สร้าง history (เรียงตาม resolved_at desc → created_at desc) ──
+    const sortedEntries = [...(entries || [])].sort((a: any, b: any) => {
+      const dateA = new Date(a.predictions?.resolved_at || a.created_at).getTime();
+      const dateB = new Date(b.predictions?.resolved_at || b.created_at).getTime();
       return dateB - dateA; // newest first
     });
 
-    const history = sortedByDate.slice(0, 5).map(({ predict, payout, isWon }) => {
-      const tournament = extractQuestion(predict.detail, "Tournament: ");
-      const question = extractQuestion(predict.detail, "Question: ");
+    const history = sortedEntries.slice(0, 5).map((e: any) => {
+      const pred = e.predictions || {};
+      const pickText = e.option_id ? (optionsMap.get(e.option_id) || "") : "";
 
-      // ── Pick text: ลำดับความสำคัญ (จากแม่นยำ → fallback) ──
-      // 1. ref_id → prediction_entries.option_id → prediction_options.label (แม่นที่สุด)
-      // 2. coin_ledger.detail "Pick:" field (format เก่า)
-      let pickText = "";
-
-      // Method 1: ref_id lookup (most accurate)
-      // predict.ref_id = prediction_entries.id → use entryById map
-      if (predict.ref_id) {
-        const entry = entryById.get(predict.ref_id);
-        if (entry?.option_id) {
-          pickText = optionsMap.get(entry.option_id) || "";
-        }
-        // If ref_id doesn't match, try finding by amount+time as fallback
-        if (!pickText) {
-          for (const [predId, e] of entryByPredictionId) {
-            if (e.amount === Math.abs(predict.amount) && e.option_id) {
-              const optLabel = optionsMap.get(e.option_id);
-              if (optLabel) { pickText = optLabel; break; }
-            }
-          }
-        }
-      }
-
-      // Method 2: fallback — parse from detail string
-      if (!pickText && predict.detail) {
-        const pickParts = predict.detail.split(/ \. | · |\. /g);
-        const foundPick = pickParts.find((part) => /^Pick\s*:/i.test(part));
-        if (foundPick) {
-          pickText = foundPick.replace(/^Pick\s*:\s*/i, "").trim();
-        } else {
-          const pickMatch = predict.detail.match(/[Pp]ick\s*[：:]\s*(.+?)(?:\s*[.·]\s|$)/);
-          pickText = pickMatch?.[1]?.trim() || "";
-        }
-      }
+      // net profit: สำหรับ won = payout - bet | สำหรับ lost/refunded = -bet
+      const isWon = e.status === "won";
+      const net = isWon
+        ? (e.payout_amount || 0) - e.amount
+        : -e.amount;
 
       return {
-        id: predict.id,
-        tournament: tournament || "Prediction",
-        question,
+        id: e.id,
+        tournament: pred.tournament_name || "Prediction",
+        question: pred.question || "Unknown Question",
         pick: pickText,
-        amount: Math.abs(predict.amount),
-        payout: payout?.amount || 0,
+        amount: e.amount,
+        payout: e.payout_amount || 0,
         status: isWon ? "won" : ("lost" as "won" | "lost"),
-        date: new Date(payout?.created_at || predict.created_at).toLocaleDateString("en-GB", {
+        net, // เพิ่ม net ให้ frontend ไม่ต้องคำนวณซ้ำ
+        date: new Date(pred.resolved_at || e.created_at).toLocaleDateString("en-GB", {
           day: "numeric",
           month: "short"
         })
       };
     });
 
-    // คำนวณเหรียญตรา (Badge)
+    // ── Stats เพิ่มเติม ──
+    const totalCoinsBet = (entries || []).reduce((acc: number, e: any) => acc + Math.abs(e.amount), 0);
+    const avgBetSize = totalSettled > 0 ? Math.round(totalCoinsBet / totalSettled) : 0;
+
+    // ── Badge ──
     let badge = "Rookie";
     let badgeDesc = "New predictor in the arena.";
     if (totalSettled >= 10 && winRate >= 60) {
@@ -277,7 +165,7 @@ export async function GET(request: NextRequest) {
       data: {
         name: user.display_name || user.email.split("@")[0],
         displayName: user.display_name || null,
-        profitScore: profitScore,
+        profitScore,
         allTimeProfit: user.lifetime_profit || 0,
         winRate,
         wonCount,
