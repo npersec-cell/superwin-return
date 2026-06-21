@@ -1457,15 +1457,11 @@ export default function SuperWinPrototype() {
 }
 
 function RunningModal({ running, runningPage, runningPageSize, setRunningPage, onClose }: { running: RunningPrediction[]; runningPage: number; runningPageSize: number; setRunningPage: (page: number) => void; onClose: () => void }) {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
-  }, []);
   const totalPages = Math.max(1, Math.ceil(running.length / runningPageSize));
   const start = (runningPage - 1) * runningPageSize;
   const rows = running.slice(start, start + runningPageSize);
   return (
-    <section className="modal" aria-label="Running predictions" style={{ display: visible ? "flex" : "none" }} onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="modal open" aria-label="Running predictions" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card">
         <div className="modal-head"><h3>Running Predictions</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body">
@@ -1503,12 +1499,8 @@ function RunningModal({ running, runningPage, runningPageSize, setRunningPage, o
 }
 
 function InfoModal({ settings, onClose }: { settings: SiteSettings; onClose: () => void }) {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
-  }, []);
   return (
-    <section className="modal" aria-label="Game information" style={{ display: visible ? "flex" : "none" }} onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="modal open" aria-label="Game information" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card">
         <div className="modal-head"><h3>Info</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body">
@@ -1527,12 +1519,8 @@ function ProfileModal({
   profile: UserProfileStats;
   onClose: () => void;
 }) {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
-  }, []);
   return (
-    <section className="modal" aria-label="User Profile" style={{ display: visible ? "flex" : "none" }} onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="modal open" aria-label="User Profile" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card" style={{ maxWidth: "480px" }}>
         <div className="modal-head">
           <h3>🎮 {profile.displayName || maskName(profile.name)}'s Profile</h3>
@@ -1646,17 +1634,13 @@ function HistoryModal({
   setHistoryFilter: (value: "All" | HistoryItem["action"]) => void;
   onClose: () => void;
 }) {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
-  }, []);
   const filtered = historyFilter === "All" ? history : history.filter((item) => item.action === historyFilter);
   const totalPages = Math.max(1, Math.ceil(filtered.length / historyPageSize));
   const start = (historyPage - 1) * historyPageSize;
   const rows = filtered.slice(start, start + historyPageSize);
 
   return (
-    <section className="modal" aria-label="Coin history" style={{ display: visible ? "flex" : "none" }} onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="modal open" aria-label="Coin history" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card history-modal-card">
         <div className="modal-head"><h3>Coin History</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body history-modal-body">
