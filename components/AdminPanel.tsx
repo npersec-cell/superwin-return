@@ -1434,7 +1434,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         })()
                       }}>
                         {p.status === "won"
-                          ? `+${(p.payoutAmount - p.betAmount).toLocaleString()}`
+                          ? `${(p.payoutAmount - p.betAmount).toLocaleString()}`
                           : p.hasInsurance && p.insuranceCost > 0
                             ? `${(p.insuranceCost - p.betAmount).toLocaleString()}`
                             : `-${p.betAmount.toLocaleString()}`
