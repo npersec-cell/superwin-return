@@ -1243,17 +1243,24 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     <select className="button" value={selectedDashboardTournament} onChange={(e) => setSelectedDashboardTournament(e.target.value)} style={{ width: "100%", height: "38px" }}>
                       <option value="">-- เลือกทัวร์นาเมนต์ --</option>
                       {Array.from(new Set(dashboardData.map((d) => d.tournamentName)))
-                        .filter((tour) => {
-                          const activeTournaments = new Set(
-                            (settings.tournaments || [])
-                              .filter((t) => !getTournamentInfo(t).archived)
-                              .map((t) => getTournamentInfo(t).name)
-                          );
-                          return activeTournaments.has(tour);
+                        .sort((a, b) => {
+                          const aInfo = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === a.toLowerCase());
+                          const bInfo = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === b.toLowerCase());
+                          const aArchived = aInfo ? getTournamentInfo(aInfo).archived : false;
+                          const bArchived = bInfo ? getTournamentInfo(bInfo).archived : false;
+                          // Active tournaments first, then archived
+                          if (aArchived !== bArchived) return aArchived ? 1 : -1;
+                          return a.localeCompare(b);
                         })
-                        .map((tour) => (
-                          <option key={tour} value={tour}>{tour}</option>
-                        ))}
+                        .map((tour) => {
+                          const info = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === tour.toLowerCase());
+                          const isArchived = info ? getTournamentInfo(info).archived : false;
+                          return (
+                            <option key={tour} value={tour}>
+                              {isArchived ? "📦 " : ""}{tour}
+                            </option>
+                          );
+                        })}
                     </select>
                   </div>
 
@@ -1762,11 +1769,19 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   >
                     <option value="">-- เลือกทัวร์นาเมนต์ --</option>
                     {settings.tournaments
-                      ?.filter((t) => !getTournamentInfo(t).archived)
-                      .map((t) => {
-                        const name = getTournamentInfo(t).name;
-                        return <option key={name} value={name}>{name}</option>;
-                      })}
+                      ?.map((t) => {
+                        const info = getTournamentInfo(t);
+                        return { name: info.name, archived: info.archived };
+                      })
+                      .sort((a, b) => {
+                        if (a.archived !== b.archived) return a.archived ? 1 : -1;
+                        return a.name.localeCompare(b.name);
+                      })
+                      .map((t) => (
+                        <option key={t.name} value={t.name}>
+                          {t.archived ? "📦 " : ""}{t.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
                 
