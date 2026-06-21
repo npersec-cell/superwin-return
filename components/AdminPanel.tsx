@@ -179,7 +179,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const hasInitializedTournament = useRef(false);
   const [tournamentName, setTournamentName] = useState("");
   const [question, setQuestion] = useState("");
   const [round, setRound] = useState("");
@@ -348,11 +347,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       if (!selectedDashboardTournament) {
         setSelectedDashboardTournament(data[0].tournamentName);
       }
-      // Set default tournament to the one with the latest question
-      if (!hasInitializedTournament.current) {
-        setTournamentName(data[0].tournamentName);
-        hasInitializedTournament.current = true;
-      }
+      // NOTE: Do NOT auto-initialize tournamentName from dashboard data.
+      // That caused bugs where new questions were saved under the wrong tournament
+      // (data[0] = newest prediction, not necessarily the desired tournament).
+      // Admin must explicitly select a tournament from the dropdown.
     }
   }
 
@@ -527,6 +525,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   async function createPrediction(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!tournamentName.trim()) {
+      setMessage("⚠️ กรุณาเลือกทัวร์นาเมนต์ (Tournament) ก่อนสร้างคำถาม");
+      return;
+    }
     setLoading(true);
     setMessage("");
     try {
@@ -1359,9 +1361,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </span>
                   {!showQuickTournament ? (
                     <select className="button" value={tournamentName} onChange={(event) => setTournamentName(event.target.value)} style={{ width: "100%", height: "34px", textAlign: "left" }}>
-                      {!(settings.tournaments && settings.tournaments.length > 0) && (
-                        <option value="">-- กรุณาเพิ่มชื่อทัวร์นาเมนต์ก่อน --</option>
-                      )}
+                      <option value="">-- เลือกทัวร์นาเมนต์ --</option>
                       {(settings.tournaments || [])
                         .filter((t) => !getTournamentInfo(t).archived)
                         .map((t) => {
