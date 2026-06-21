@@ -31,8 +31,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "userId is required" }, { status: 400 });
     }
 
-    // ดึง coin_ledger แทน prediction_entries (เพราะ entries ถูกลบไปแล้ว)
-    const [userRes, ledgerRes, predictionsRes] = await Promise.all([
+    // ดึง coin_ledger สำหรับคำนวณประวัติการทาย
+    const [userRes, ledgerRes] = await Promise.all([
       supabase
         .from("users")
         .select("display_name, email, lifetime_profit")
@@ -45,9 +45,6 @@ export async function GET(request: NextRequest) {
         .in("type", ["predict", "payout"])
         .order("created_at", { ascending: false })
         .returns<LedgerRow[]>(),
-      supabase
-        .from("predictions")
-        .select("question, tournament_name")
     ]);
 
     if (userRes.error || !userRes.data) {
@@ -72,17 +69,10 @@ export async function GET(request: NextRequest) {
 
     const allLedgerRows = ledgerRes.data || [];
 
-    // กรองเฉพาะ coin_ledger ที่ยังมี predictions อยู่จริงๆ (ป้องกันข้อมูลค้างจากการลบคำถามเก่า)
-    const activeQuestions = new Set((predictionsRes.data || []).map((p) => p.question));
-    const activeTournaments = new Set((predictionsRes.data || []).map((p) => p.tournament_name));
-    const ledgerRows = allLedgerRows.filter((row) => {
-      const q = extractQuestion(row.detail, "Question: ");
-      const t = extractQuestion(row.detail, "Tournament: ");
-      // ถ้าไม่มี detail ที่ parse ได้ ให้เก็บไว้ (อาจเป็นรูปแบบอื่น)
-      if (!q && !t) return true;
-      // ถ้า match question หรือ tournament ที่ยังมีอยู่ ให้เก็บ
-      return activeQuestions.has(q) || activeTournaments.has(t);
-    });
+    // ใช้ ledger ทั้งหมด — ไม่กรองตาม predictions table อีกต่อไป
+    // เพราะ exact string match ทำให้คำถามใหม่/ทัวร์ใหม่/คำถามที่ถูก edit โดนกรองตก
+    // ถ้ามี predict + payout pair = เป็น settled prediction ที่ถูกต้อง
+    const ledgerRows = allLedgerRows;
 
     const predictRows = ledgerRows.filter((r) => r.type === "predict");
     const payoutRows = ledgerRows.filter((r) => r.type === "payout");
