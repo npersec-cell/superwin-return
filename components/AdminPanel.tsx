@@ -1424,14 +1424,20 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       <span style={{
                         textAlign: "right",
                         fontWeight: "bold",
-                        color: p.payoutAmount > p.betAmount ? "var(--green)" :
-                               p.payoutAmount > 0 ? "var(--text-strong)" : "var(--red)"
+                        color: (() => {
+                          const net = p.status === "won"
+                            ? p.payoutAmount - p.betAmount
+                            : p.hasInsurance && p.insuranceCost > 0
+                              ? p.insuranceCost - p.betAmount
+                              : -p.betAmount;
+                          return net >= 0 ? "var(--green)" : "var(--red)";
+                        })()
                       }}>
                         {p.status === "won"
-                          ? `+${p.payoutAmount.toLocaleString()}`
+                          ? `+${(p.payoutAmount - p.betAmount).toLocaleString()}`
                           : p.hasInsurance && p.insuranceCost > 0
-                            ? `+${p.insuranceCost.toLocaleString()}`
-                            : `-${p.betAmount}`
+                            ? `${(p.insuranceCost - p.betAmount).toLocaleString()}`
+                            : `-${p.betAmount.toLocaleString()}`
                         }
                       </span>
                     </div>

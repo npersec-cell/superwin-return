@@ -91,14 +91,13 @@ export async function GET(request: NextRequest) {
 
     if (optionError) throw new Error(optionError.message);
 
-    // Fetch running entry counts for all predictions
+    // Fetch entry counts for ALL predictions (any status)
     const { data: entryCounts, error: entryError } = ids.length
       ? await supabase
           .from("prediction_entries")
-          .select("prediction_id, status")
+          .select("prediction_id")
           .in("prediction_id", ids)
-          .eq("status", "running")
-      : { data: [] as { prediction_id: string; status: string }[], error: null };
+      : { data: [] as { prediction_id: string }[], error: null };
 
     if (entryError) throw new Error(entryError.message);
 
