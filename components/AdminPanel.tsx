@@ -329,6 +329,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   const runningPredictions = useMemo(() => predictions.filter(isRunningNow), [predictions]);
   const pendingPredictions = useMemo(() => predictions.filter(isPendingResult), [predictions]);
+  const resolvedPredictions = useMemo(() => predictions.filter((item) => item.status === "resolved"), [predictions]);
 
   // การแบ่งหน้าสำหรับคำถามที่กำลังรัน
   const [runningPage, setRunningPage] = useState(1);
@@ -358,6 +359,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const start = (pendingPage - 1) * pendingPageSize;
     return pendingPredictions.slice(start, start + pendingPageSize);
   }, [pendingPredictions, pendingPage]);
+
+  // การแบ่งหน้าสำหรับคำถามที่สรุปผลแล้ว
+  const [resolvedPage, setResolvedPage] = useState(1);
+  const resolvedPageSize = 5;
+  const resolvedTotalPages = Math.max(1, Math.ceil(resolvedPredictions.length / resolvedPageSize));
+  const currentResolved = useMemo(() => {
+    const start = (resolvedPage - 1) * resolvedPageSize;
+    return resolvedPredictions.slice(start, start + resolvedPageSize);
+  }, [resolvedPredictions, resolvedPage]);
 
   // การแบ่งหน้าสำหรับคำถามทั้งหมด
   const [allPage, setAllPage] = useState(1);
@@ -2198,6 +2208,37 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     <button className="button" disabled={pendingPage <= 1} onClick={() => setPendingPage(pendingPage - 1)}>ก่อนหน้า</button>
                     <span className="micro">หน้า {pendingPage} / {pendingTotalPages}</span>
                     <button className="button" disabled={pendingPage >= pendingTotalPages} onClick={() => setPendingPage(pendingPage + 1)}>ถัดไป</button>
+                  </div>
+                )}
+              </section>
+
+              <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
+                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h3>คำถามที่สรุปผลแล้ว</h3><span className="micro">{resolvedPredictions.length} รายการ</span></div>
+                <div className="leaderboard-body" style={{ gap: "10px", padding: "12px 0 0 0" }}>
+                  {currentResolved.length ? currentResolved.map((item) => (
+                    <div key={item.id} className="question resolved" style={{ padding: "12px", display: "grid", gridTemplateColumns: "auto 1fr", gap: "12px", alignItems: "center" }}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", paddingRight: "8px", borderRight: "1px solid var(--hairline)", alignSelf: "stretch", justifyContent: "center" }}>
+                        <span style={{ fontSize: "14px", color: "var(--green)" }}>✅</span>
+                      </div>
+                      <div style={{ display: "grid", gap: "6px", width: "100%" }}>
+                        <div className="question-main">
+                          <strong>{item.question}</strong>
+                          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", marginTop: "2px", marginBottom: "4px" }}>
+                            <span className="meta">{item.tournamentName} · ปิด {displayDate(item.closesAt)} UTC+7 · {item.options.length} คำตอบ · {item.entryCount || 0} คนแทง</span>
+                            <span className="pill" style={{ background: "rgba(14,203,129,0.12)", color: "var(--green)", fontSize: "9px" }}>สรุปผลแล้ว</span>
+                          </div>
+                        </div>
+                        {renderPredictionControls(item)}
+                        {renderPayoutBreakdown(item)}
+                      </div>
+                    </div>
+                  )) : <div className="question"><strong>ยังไม่มีคำถามที่สรุปผลแล้ว</strong></div>}
+                </div>
+                {resolvedTotalPages > 1 && (
+                  <div className="history-footer" style={{ marginTop: "16px" }}>
+                    <button className="button" disabled={resolvedPage <= 1} onClick={() => setResolvedPage(resolvedPage - 1)}>ก่อนหน้า</button>
+                    <span className="micro">หน้า {resolvedPage} / {resolvedTotalPages}</span>
+                    <button className="button" disabled={resolvedPage >= resolvedTotalPages} onClick={() => setResolvedPage(resolvedPage + 1)}>ถัดไป</button>
                   </div>
                 )}
               </section>
