@@ -1005,23 +1005,34 @@ export default function SuperWinPrototype() {
               </SignInButton>
             ) : (
               <>
-                <span className="button gold" style={{ display: "flex", alignItems: "center", gap: "3px", cursor: "default" }}>
-                  <span>{coins.toLocaleString()}</span>
-                  <img src="/ammo-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} />
+                {/* Stats display */}
+                <span className="actions-group">
+                  <span className="button gold" style={{ display: "flex", alignItems: "center", gap: "3px", cursor: "default" }}>
+                    <span>{coins.toLocaleString()}</span>
+                    <img src="/ammo-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} />
+                  </span>
+                  <span className="button gold" style={{ display: "flex", alignItems: "center", gap: "3px", cursor: "default" }}>
+                    <span>{profitScore.toLocaleString()}</span>
+                    <img src="/ammo-556-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} />
+                  </span>
                 </span>
-                <span className="button gold" style={{ display: "flex", alignItems: "center", gap: "3px", cursor: "default" }}>
-                  <span>{profitScore.toLocaleString()}</span>
-                  <img src="/ammo-556-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} />
+
+                {/* Action buttons */}
+                <span className="actions-group">
+                  <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>
+                    {claimFlash ? `+${claimResult}` : "Reload"}
+                  </button>
+                  <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
+                  <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory("All"); }}>History</button>
+                  {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
                 </span>
-                <button className="button primary" disabled={claimLabel !== "Ready"} onClick={claim}>
-                  {claimFlash ? `+${claimResult}` : "Reload"}
-                </button>
-                <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
-                <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory("All"); }}>History</button>
-                {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
-                <Link className="button" href="/profile" style={{ fontSize: "11px", padding: "0 10px", height: "32px", display: "flex", alignItems: "center" }}>Profile</Link>
-                <UserButton showName={false} />
-                <NotificationBell />
+
+                {/* User tools */}
+                <span className="actions-group">
+                  <Link className="button" href="/profile" style={{ fontSize: "11px", padding: "0 10px", height: "32px", display: "flex", alignItems: "center" }}>Profile</Link>
+                  <UserButton showName={false} />
+                  <NotificationBell />
+                </span>
               </>
             )}
             <button className="button gold" onClick={() => setOpenModal("info")}>Info</button>

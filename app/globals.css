@@ -55,6 +55,7 @@ a { color: inherit; text-decoration: none; }
 }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px; background: rgba(13, 16, 19, 0.94); height: 46px; }
 .brand, .actions, .amounts, .reward-line, .history-row, .modal-summary, .running-row, .filter-row { display: flex; align-items: center; gap: 6px; }
+.actions { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .brand { gap: 8px; min-width: 0; }
 .logo { width: 26px; height: 26px; object-fit: contain; flex: 0 0 auto; border-radius: 6px; background: var(--yellow); padding: 2px; }
 .brand-text { display: grid; gap: 1px; min-width: 0; }
@@ -82,6 +83,11 @@ input:focus, select:focus, textarea:focus, .dropdown-trigger:focus { border-colo
 .button:disabled { opacity: 0.45; cursor: not-allowed; }
 .pill { display: inline-flex; align-items: center; min-height: 28px; font-size: 10px; font-weight: 600; border-radius: 999px; }
 .actions .button.primary, .actions .button.gold { border-radius: 6px; }
+
+/* Header button groups: coins | actions | user tools — separated by slightly larger gap */
+.actions > * + *:not(.actions-group *) { margin-left: 2px; }
+.actions .actions-group { display: flex; align-items: center; gap: 3px; }
+.actions .actions-group + * { margin-left: 6px; }
 
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); overflow: hidden; }
 .stat { padding: 10px 12px; background: transparent; }
@@ -297,6 +303,7 @@ input { width: 100%; min-width: 0; }
     width: 100%;
     justify-content: flex-start;
   }
+  .actions .actions-group { flex-wrap: wrap; gap: 4px; }
   .content, .admin-content { grid-template-columns: minmax(0, 1fr); }
   .admin-stack { grid-template-rows: auto auto; }
   .admin-list { max-height: none; }
@@ -331,12 +338,13 @@ input { width: 100%; min-width: 0; }
   .brand { width: 100%; justify-content: flex-start; }
   .brand h1 { font-size: 12px; }
   .brand span { font-size: 7.5px; }
-  .actions { 
-    width: 100%; 
-    flex-wrap: wrap; 
-    gap: 4px; 
-    justify-content: flex-start; 
+  .actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-start;
   }
+  .actions .actions-group { flex-wrap: wrap; gap: 3px; }
   .actions .button { 
     height: 32px; 
     padding: 0 8px; 
