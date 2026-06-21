@@ -17,9 +17,17 @@ function extractQuestion(detail: string | null, prefix: string): string {
   const start = detail.indexOf(prefix);
   if (start === -1) return "";
   const afterPrefix = detail.slice(start + prefix.length);
-  // coin_ledger.detail ใช้ " . " (dot-space-dot) เป็น delimiter
-  // รองรับทั้ง " . " และ " · " ไว้เผื่อ format เก่า
-  const end = afterPrefix.indexOf(" . ") !== -1 ? afterPrefix.indexOf(" . ") : afterPrefix.indexOf(" · ");
+  // coin_ledger.detail มีหลาย delimiter จาก SQL migrations คนละเวอร์ชั่น:
+  //   " . " (period+space) - resolve atomic v1
+  //   " · " (middle dot+space) - place prediction v2
+  //   ". " (period only) - lifetime profit fix v3
+  const dotSpaceIdx = afterPrefix.indexOf(" . ");
+  const middleDotIdx = afterPrefix.indexOf(" · ");
+  const periodOnlyIdx = afterPrefix.indexOf(". ");
+  let end = -1;
+  if (dotSpaceIdx !== -1) end = dotSpaceIdx;
+  else if (middleDotIdx !== -1) end = middleDotIdx;
+  else if (periodOnlyIdx !== -1 && periodOnlyIdx > 0) end = periodOnlyIdx;
   return end === -1 ? afterPrefix.trim() : afterPrefix.slice(0, end).trim();
 }
 
@@ -140,8 +148,20 @@ export async function GET(request: NextRequest) {
       const tournament = extractQuestion(predict.detail, "Tournament: ");
       const question = extractQuestion(predict.detail, "Question: ");
 
-      const pickSegment = predict.detail?.split(" · ").find((part) => part.startsWith("Pick: "));
-      const pickText = pickSegment ? pickSegment.replace("Pick: ", "").trim() : "Unknown";
+      // Pick text: try all known delimiters (ledger detail has inconsistent formats)
+      let pickText = "";
+      if (predict.detail) {
+        // Split by any known delimiter
+        const pickParts = predict.detail.split(/ \. | · |\. /g);
+        const foundPick = pickParts.find((part) => /^Pick\s*:/i.test(part));
+        if (foundPick) {
+          pickText = foundPick.replace(/^Pick\s*:\s*/i, "").trim();
+        } else {
+          // Fallback: regex on raw detail for edge cases
+          const pickMatch = predict.detail.match(/[Pp]ick\s*[：:]\s*(.+?)(?:\s*[.·]\s|$)/);
+          pickText = pickMatch?.[1]?.trim() || "";
+        }
+      }
 
       return {
         id: predict.id,

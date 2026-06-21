@@ -1612,7 +1612,7 @@ function ProfileModal({
                             {h.question}
                           </strong>
                           <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {h.tournament} · Picked: <strong style={{ color: "var(--text-strong)" }}>{h.pick}</strong>
+                            {h.tournament}{h.pick ? (<span> · Picked: <strong style={{ color: "var(--text-strong)" }}>{h.pick}</strong></span>) : ""}
                           </span>
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -1626,7 +1626,10 @@ function ProfileModal({
                             borderRadius: "4px",
                             fontWeight: "bold"
                           }}>
-                            {h.status === "won" ? `+${h.payout - h.amount}` : `-${h.amount}`}
+                            {(() => {
+                              const net = h.status === "won" ? h.payout - h.amount : -h.amount;
+                              return net >= 0 ? `+${net}` : `${net}`;
+                            })()}
                           </span>
                           <span className="meta" style={{ display: "block", fontSize: "8px", marginTop: "2px" }}>
                             {h.date}
