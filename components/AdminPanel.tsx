@@ -164,7 +164,11 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   }
   const payload = (await response.json()) as ApiResponse<T>;
   if (!response.ok || !payload.ok || payload.data === undefined) {
-    throw new Error(`API ${url}: ${payload.error || "คำสั่งไม่สำเร็จ"}`);
+    // Include validation details if available
+    const detailStr = (payload as any).details?.length
+      ? `\n→ ${(payload as any).details.join(", ")}`
+      : "";
+    throw new Error(`API ${url}: ${payload.error || "คำสั่งไม่สำเร็จ"}${detailStr}`);
   }
   return payload.data;
 }

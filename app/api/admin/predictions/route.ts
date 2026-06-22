@@ -127,8 +127,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate request body with Zod
+    const rawBody = await request.clone().json().catch(() => null);
+    console.log('[ADMIN CREATE] Raw body:', JSON.stringify(rawBody));
     const validation = await validateRequest(request, createPredictionBodySchema);
     if (!validation.success) {
+      console.log('[ADMIN CREATE] Validation failed');
       return validation.response;
     }
 
