@@ -115,7 +115,7 @@ export const createPredictionBodySchema = z.object({
   options: z
     .array(z.string().min(1, "Option label cannot be empty"))
     .min(2, "At least 2 options are required")
-    .max(20, "Maximum 20 options allowed"),
+    .max(50, "Maximum 50 options allowed"),
   numberWarEnabled: z.boolean().optional().default(false),
   numberWarOpenAt: z.string().optional().nullable(),
   numberWarCloseAt: z.string().optional().nullable(),
