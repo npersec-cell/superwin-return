@@ -228,6 +228,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     status: string;
     payoutAmount: number;
     insuranceCost: number;
+    insuranceRefund: number;  // Add this field
     hasInsurance: boolean;
   }
   interface PayoutSummary {
@@ -1435,7 +1436,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       <span className="meta" style={{ fontSize: "9px", color: p.optionLabel === data.prediction.winningOptionLabel ? "var(--green)" : "var(--muted)" }}>
                         {p.optionLabel === data.prediction.winningOptionLabel ? "✅" : ""} {p.optionLabel}
                       </span>
-                      <span className="meta">{p.status === "won" ? "ชนะ" : p.hasInsurance && p.insuranceCost > 0 ? "แพ้+คืนประกัน" : "แพ้"}</span>
+                      <span className="meta">{p.status === "won" ? "ชนะ" : p.hasInsurance && p.insuranceRefund > 0 ? "แพ้+คืนประกัน" : "แพ้"}</span>
                       <span style={{ textAlign: "right" }}>{p.betAmount.toLocaleString()}</span>
                       <span style={{
                         textAlign: "right",
@@ -1443,16 +1444,16 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         color: (() => {
                           const net = p.status === "won"
                             ? p.payoutAmount - p.betAmount
-                            : p.hasInsurance && p.insuranceCost > 0
-                              ? p.insuranceCost - p.betAmount
+                            : p.hasInsurance && p.insuranceRefund > 0
+                              ? p.insuranceRefund - p.betAmount  // Use actual refund
                               : -p.betAmount;
                           return net >= 0 ? "var(--green)" : "var(--red)";
                         })()
                       }}>
                         {p.status === "won"
                           ? `${(p.payoutAmount - p.betAmount).toLocaleString()}`
-                          : p.hasInsurance && p.insuranceCost > 0
-                            ? `${(p.insuranceCost - p.betAmount).toLocaleString()}`
+                          : p.hasInsurance && p.insuranceRefund > 0
+                            ? `${(p.insuranceRefund - p.betAmount).toLocaleString()}`
                             : `-${p.betAmount.toLocaleString()}`
                         }
                       </span>

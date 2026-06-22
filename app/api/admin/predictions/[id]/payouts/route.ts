@@ -29,7 +29,7 @@ export async function GET(request: NextRequest, context: Params) {
     const [entriesRes, optionsRes] = await Promise.all([
       supabase
         .from("prediction_entries")
-        .select("id, user_id, option_id, amount, status, payout_amount, insurance, insurance_cost, created_at")
+        .select("id, user_id, option_id, amount, status, payout_amount, insurance, insurance_cost, insurance_refund, created_at")
         .eq("prediction_id", predictionId),
       supabase
         .from("prediction_options")
@@ -79,16 +79,17 @@ export async function GET(request: NextRequest, context: Params) {
       totalPool += e.amount;
       const isWon = e.status === "won";
       const payout = e.payout_amount || 0;
-      const isLostWithInsurance = e.status === "lost" && e.insurance && e.insurance_cost > 0;
+      const insuranceRefund = e.insurance_refund || 0;  // Use actual refund amount
+      const isLostWithInsurance = e.status === "lost" && e.insurance && insuranceRefund > 0;
 
       if (isWon) {
         totalDistributed += payout;
         winnersCount++;
       } else {
         losersCount++;
-        if (isLostWithInsurance && e.insurance_cost > 0) {
-          totalDistributed += e.insurance_cost; // insurance refund goes back to user
-          totalInsuranceRefunded += e.insurance_cost;
+        if (isLostWithInsurance) {
+          totalDistributed += insuranceRefund; // Use actual refund amount
+          totalInsuranceRefunded += insuranceRefund;
         }
       }
 
@@ -101,6 +102,7 @@ export async function GET(request: NextRequest, context: Params) {
         status: e.status,
         payoutAmount: payout,
         insuranceCost: e.insurance_cost || 0,
+        insuranceRefund: insuranceRefund,  // Add actual refund amount
         hasInsurance: !!e.insurance,
         createdAt: e.created_at,
       };
