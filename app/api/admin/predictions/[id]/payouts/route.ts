@@ -29,7 +29,7 @@ export async function GET(request: NextRequest, context: Params) {
     const [entriesRes, optionsRes] = await Promise.all([
       supabase
         .from("prediction_entries")
-        .select("id, user_id, option_id, amount, status, payout_amount, insurance, insurance_cost, insurance_refund, created_at")
+        .select("id, user_id, option_id, amount, status, payout_amount, insurance, insurance_cost, created_at")
         .eq("prediction_id", predictionId),
       supabase
         .from("prediction_options")
@@ -79,7 +79,8 @@ export async function GET(request: NextRequest, context: Params) {
       totalPool += e.amount;
       const isWon = e.status === "won";
       const payout = e.payout_amount || 0;
-      const insuranceRefund = e.insurance_refund || 0;  // Use actual refund amount
+      // Calculate insurance_refund dynamically (matches resolve function logic)
+      const insuranceRefund = e.insurance ? Math.floor(e.amount * 0.5) : 0;
       const isLostWithInsurance = e.status === "lost" && e.insurance && insuranceRefund > 0;
 
       if (isWon) {
