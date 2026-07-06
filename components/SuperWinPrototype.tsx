@@ -788,13 +788,17 @@ export default function SuperWinPrototype() {
 
     setLiveQuestions(apiQuestions);
 
-    // Merge selected: keep current selection if still available, otherwise fallback to first option
+    // Merge selected: keep current selection if still available, otherwise fallback to highest return option
     setSelected((currentSelected) => {
       const merged: Record<string, string> = {};
       for (const question of apiQuestions) {
         const current = currentSelected[question.id];
         const stillAvailable = question.options.find((o) => o.name === current);
-        merged[question.id] = stillAvailable ? current : (question.options[0]?.name || "");
+        // Fallback: pick option with highest return instead of first option
+        const highestReturnOption = question.options.reduce((max, o) => 
+          (o.returns || 0) > (max.returns || 0) ? o : max
+        , question.options[0]);
+        merged[question.id] = stillAvailable ? current : (highestReturnOption?.name || "");
       }
       return merged;
     });
@@ -854,7 +858,8 @@ export default function SuperWinPrototype() {
   }
 
   function selectedOption(question: Question) {
-    return question.options.find((option) => option.name === selected[question.id]) || question.options[0];
+    return question.options.find((option) => option.name === selected[question.id]) || 
+      question.options.reduce((max, o) => (o.returns || 0) > (max.returns || 0) ? o : max, question.options[0]);
   }
 
   function getLockedOptionName(question: Question): string | null {
