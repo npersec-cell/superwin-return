@@ -1220,16 +1220,21 @@ export default function SuperWinPrototype() {
                                   </svg>
                                 </button>
                                 <div className="dropdown-menu-new">
-                                  {question.options.map((choice) => (
-                                    <button key={choice.id} className={`option-button-new ${choice.name === option.name ? "active" : ""}`} onClick={(event) => {
-                                      event.stopPropagation();
-                                      setSelected((current) => ({ ...current, [question.id]: choice.name }));
-                                      setOpenDropdown(null);
-                                    }}>
-                                      <span>{choice.name}</span>
-                                      <span className="return">~{choice.returns}%</span>
-                                    </button>
-                                  ))}
+                                  {(() => {
+                                    // Sort options: highest return first, then random pick if multiple have same max
+                                    const opts = [...question.options];
+                                    opts.sort((a, b) => (b.returns || 0) - (a.returns || 0));
+                                    return opts.map((choice) => 
+                                      <button key={choice.id} className={`option-button-new ${choice.name === option.name ? "active" : ""}`} onClick={(event) => {
+                                        event.stopPropagation();
+                                        setSelected((current) => ({ ...current, [question.id]: choice.name }));
+                                        setOpenDropdown(null);
+                                      }}>
+                                        <span>{choice.name}</span>
+                                        <span className="return">~{choice.returns}%</span>
+                                      </button>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             )}
