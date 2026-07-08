@@ -101,7 +101,7 @@ export async function GET() {
     const activeScore = calcLogScore(user.avgReloadPerDay);
     
     // Sum of all scores (no cap, balanced, no decimals)
-    const overall = Math.round(log2(profitScore + 1) + Math.log2(predictionCount + 1) + Math.log2(highestSingleWin + 1) + Math.log2(avgReloadPerDay + 1));
+    const overall = Math.round(profitScore + predictionScore + winScore + activeScore);
     
     return {
       ...user,
