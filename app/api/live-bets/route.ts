@@ -8,7 +8,7 @@ export async function GET() {
   // Only show entries with amount >= 1000
   const { data: entries, error: entriesError } = await supabase
     .from('prediction_entries')
-    .select('id, user_id, prediction_id, amount, option_name, created_at')
+    .select('id, user_id, prediction_id, amount, option_id, created_at')
     .eq('status', 'pending')
     .gte('amount', 1000)
     .order('amount', { ascending: false })
@@ -34,8 +34,20 @@ export async function GET() {
   const predictionIds = [...new Set(entries.map(e => e.prediction_id))];
   const { data: predictions } = await supabase
     .from('predictions')
-    .select('id, title')
+    .select('id, title, options')
     .in('id', predictionIds);
+  
+  // Get option labels from prediction_options
+  const optionLabels: Record<string, string> = {};
+  for (const pred of predictions || []) {
+    if (pred.options && Array.isArray(pred.options)) {
+      for (const opt of pred.options) {
+        if (opt.id && opt.label) {
+          optionLabels[opt.id] = opt.label;
+        }
+      }
+    }
+  }
   
   // Map users and predictions
   const userMap = new Map(users?.map(u => [u.id, u]) as [string, any][]);
@@ -45,13 +57,14 @@ export async function GET() {
   const liveBets = entries.map(entry => {
     const user = userMap.get(entry.user_id);
     const prediction = predictionMap.get(entry.prediction_id);
+    const optionLabel = entry.option_id ? optionLabels[entry.option_id] : 'Option';
     
     return {
       userId: entry.user_id,
       displayName: user?.display_name || user?.email?.split('@')[0] || 'User',
       predictionId: entry.prediction_id,
       predictionTitle: prediction?.title || 'Prediction',
-      optionName: entry.option_name,
+      optionName: optionLabel,
       amount: entry.amount,
       createdAt: entry.created_at
     };
