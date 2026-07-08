@@ -761,6 +761,13 @@ export default function SuperWinPrototype() {
   }
 
   async function loadOpenPredictions() {
+    // Track reload for leaderboard
+    if (devBypass || isSignedIn) {
+      try {
+        await fetch("/api/track-reload", { method: "POST" });
+      } catch { /* ignore */ }
+    }
+    
     const response = await fetch("/api/predictions/open");
     const payload = (await response.json()) as ApiPredictionsResponse;
     if (!response.ok || !payload.ok) return;
