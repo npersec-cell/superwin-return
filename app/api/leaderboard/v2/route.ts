@@ -12,6 +12,14 @@ function calcAvgReloadPerDay(reloadCount: number | null, createdAt: string | nul
   return Math.round((reloadCount / days) * 100) / 100; // 2 decimal places
 }
 
+// Logarithmic score calculation (0-100 range)
+function calcLogScore(value: number, maxValue: number): number {
+  if (value <= 0 || maxValue <= 0) return 0;
+  const valueLog = Math.log2(value + 1);
+  const maxLog = Math.log2(maxValue + 1);
+  return maxLog > 0 ? Math.round((valueLog / maxLog) * 100) : 0;
+}
+
 export async function GET() {
   const supabase = createSupabaseAdminClient();
   
@@ -85,22 +93,29 @@ export async function GET() {
     };
   });
   
-  // Calculate Overall score for each user
+  // Calculate Overall score for each user using Logarithmic Score
+  // First, find max values for each category to normalize scores
+  const maxValues = {
+    profitScore: Math.max(1, ...leaderboardData.map(u => u.profitScore)),
+    predictionCount: Math.max(1, ...leaderboardData.map(u => u.predictionCount)),
+    highestSingleWin: Math.max(1, ...leaderboardData.map(u => u.highestSingleWin)),
+    avgReloadPerDay: Math.max(0.1, ...leaderboardData.map(u => u.avgReloadPerDay))
+  };
+  
   const leaderboardWithOverall = leaderboardData.map(user => {
-    const validStats = [
-      user.profitScore,
-      user.predictionCount,
-      user.highestSingleWin,
-      user.avgReloadPerDay
-    ].filter(s => s >= 0);
+    // Calculate log score for each category (0-100 range)
+    const profitScore = calcLogScore(user.profitScore, maxValues.profitScore);
+    const predictionScore = calcLogScore(user.predictionCount, maxValues.predictionCount);
+    const winScore = calcLogScore(user.highestSingleWin, maxValues.highestSingleWin);
+    const activeScore = calcLogScore(user.avgReloadPerDay, maxValues.avgReloadPerDay);
     
-    const overall = validStats.length > 0 
-      ? Math.round((validStats.reduce((a, b) => a + b, 0) / validStats.length) * 100) / 100
-      : 0;
+    // Average of all scores
+    const overall = Math.round(((profitScore + predictionScore + winScore + activeScore) / 4))
+      .toFixed(0);
     
     return {
       ...user,
-      overall
+      overall: parseInt(overall)
     };
   });
   
