@@ -84,7 +84,7 @@ export default function LeaderboardPage() {
         <div className="app" style={{ width: "min(820px, 100%)" }}>
           <div className="topbar">
             <div className="brand">
-              <img src="/logo.png" alt="SuperWinHub" width={32} height={32} style={{ borderRadius: 8 }} />
+              <img src="https://superwinhub.app/SuperWin_b.png" alt="SuperWinHub" width={24} height={24} style={{ borderRadius: 6, objectFit: "contain" }} />
               <div className="brand-text">
                 <h1>SuperWinHub</h1>
                 <span>Leaderboard</span>
@@ -103,66 +103,97 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <div className="page">
-      <div className="app" style={{ width: "min(820px, 100%)" }}>
-        <div className="topbar">
-          <div className="brand">
-            <img src="/logo.png" alt="SuperWinHub" width={32} height={32} style={{ borderRadius: 8 }} />
-            <div className="brand-text">
-              <h1>SuperWinHub</h1>
-              <span>Leaderboard</span>
+      <div className="page">
+        <div className="app" style={{ width: "min(820px, 100%)" }}>
+          <div className="topbar">
+            <div className="brand">
+              <img src="https://superwinhub.app/SuperWin_b.png" alt="SuperWinHub" width={24} height={24} style={{ borderRadius: 6, objectFit: "contain" }} />
+              <div className="brand-text">
+                <h1>SuperWinHub</h1>
+                <span>Leaderboard</span>
+              </div>
+            </div>
+            <div className="actions">
+              <Link href="/" className="button">← Back to Home</Link>
             </div>
           </div>
-          <div className="actions">
-            <Link href="/" className="button">← Back to Home</Link>
-          </div>
-        </div>
 
-        {/* All 5 categories shown at once */}
-        <div style={{ display: "grid", gap: "16px" }}>
+        {/* All 5 categories shown at once - HORIZONTAL layout */}
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: "repeat(5, 1fr)", 
+          gap: "12px",
+          alignItems: "start"
+        }}>
           {categories.map((cat) => {
             const data = leaderboards?.[cat.id] || [];
             
             return (
-              <section key={cat.id} className="panel">
-                <div className="panel-head">
-                  <h2 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <section key={cat.id} className="panel" style={{ minWidth: 0 }}>
+                <div className="panel-head" style={{ paddingBottom: "8px" }}>
+                  <h2 style={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "6px",
+                    fontSize: "12px",
+                    fontWeight: "700"
+                  }}>
                     <span>{cat.icon}</span>
                     {cat.name}
                   </h2>
-                  <span className="micro">{cat.desc}</span>
+                  <span className="micro" style={{ fontSize: "10px" }}>{cat.desc}</span>
                 </div>
                 
                 {error ? (
-                  <div style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>
-                    <span>{error}</span>
+                  <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
+                    {error}
                   </div>
                 ) : data.length === 0 ? (
-                  <div style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>
-                    No data yet
+                  <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
+                    No data
                   </div>
                 ) : (
-                  <div className="leaderboard-body" style={{ maxHeight: "400px", overflowY: "auto" }}>
-                    {data.slice(0, 10).map((entry) => (
-                      <div key={entry.userId} className="rank">
-                        <div style={{ fontSize: "14px", fontWeight: "700", color: entry.rank <= 3 ? "var(--yellow)" : "var(--text)" }}>
+                  <div style={{ 
+                    maxHeight: "320px", 
+                    overflowY: "auto",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "4px"
+                  }}>
+                    {data.slice(0, 15).map((entry) => (
+                      <div key={entry.userId} style={{ 
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "6px 8px",
+                        fontSize: "11px",
+                        borderBottom: "1px solid var(--border)"
+                      }}>
+                        <span style={{ 
+                          fontWeight: "700", 
+                          color: entry.rank <= 3 ? "var(--yellow)" : "var(--text)",
+                          width: "14px"
+                        }}>
                           {getRankBadge(entry.rank)}
-                        </div>
-                        <div>
-                          <strong style={{ fontSize: "12px", color: "var(--text-strong)" }}>
-                            {entry.displayName || "Anonymous"}
-                          </strong>
-                        </div>
-                        <div style={{ textAlign: "right" }}>
-                          <span style={{ 
-                            color: "var(--yellow)", 
-                            fontSize: "13px", 
-                            fontWeight: "700",
-                            fontFamily: "JetBrains Mono, monospace"
-                          }}>
-                            {formatValue(entry.value, cat.id)}
-                          </span>
-                        </div>
+                        </span>
+                        <strong style={{ 
+                          flex: 1, 
+                          color: "var(--text-strong)",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis"
+                        }}>
+                          {entry.displayName || "Anonymous"}
+                        </strong>
+                        <span style={{ 
+                          color: "var(--yellow)", 
+                          fontWeight: "700",
+                          fontFamily: "JetBrains Mono, monospace",
+                          minWidth: "40px",
+                          textAlign: "right"
+                        }}>
+                          {formatValue(entry.value, cat.id)}
+                        </span>
                       </div>
                     ))}
                   </div>
