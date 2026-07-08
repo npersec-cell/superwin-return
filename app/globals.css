@@ -20,6 +20,15 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { min-height: 100%; }
 
+/* Hide scrollbar for leaderboard */
+.leaderboard-scroll::-webkit-scrollbar {
+  display: none;
+}
+.leaderboard-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 body {
   background: var(--bg);
   color: var(--text);

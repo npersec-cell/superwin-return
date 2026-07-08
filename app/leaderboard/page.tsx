@@ -43,19 +43,6 @@ const layoutRows: { ids: Category[]; height: string }[] = [
   { ids: ["highestSingleWin", "mostActive"], height: "180px" }
 ];
 
-// CSS to hide scrollbar
-const hideScrollbarStyle = `
-<style>
-  .leaderboard-scroll::-webkit-scrollbar {
-    display: none;
-  }
-  .leaderboard-scroll {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-</style>
-`;
-
 export default function LeaderboardPage() {
   const [leaderboards, setLeaderboards] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -229,10 +216,8 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <div>
-      {hideScrollbarStyle}
-      <div className="page">
-        <div className="app" style={{ width: "min(820px, 100%)" }}>
+    <div className="page">
+      <div className="app" style={{ width: "min(820px, 100%)" }}>
         <div className="topbar">
           <div className="brand">
             <img src="https://superwinhub.app/SuperWin_b.png" alt="SuperWinHub" width={24} height={24} style={{ borderRadius: 6, objectFit: "contain" }} />
