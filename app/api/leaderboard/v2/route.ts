@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { createSupabaseAdminClient } from '@/lib/db';
 
 // Calculate average reloads per day for a user
 function calcAvgReloadPerDay(reloadCount: number | null, createdAt: string | null): number {
@@ -13,7 +13,7 @@ function calcAvgReloadPerDay(reloadCount: number | null, createdAt: string | nul
 }
 
 export async function GET() {
-  const supabase = createClient();
+  const supabase = createSupabaseAdminClient();
   
   // Get all users with their stats
   const { data: users, error: usersError } = await supabase

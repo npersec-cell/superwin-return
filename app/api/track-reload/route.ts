@@ -1,19 +1,12 @@
-import { createClient } from '@/lib/supabase';
-import { auth } from '@/lib/auth';
+import { createSupabaseAdminClient } from '@/lib/db';
+import { requireUser } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
-    const session = await auth.getSession();
+    const user = await requireUser(request);
     
-    if (!session?.user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    const supabase = createClient();
-    const userId = session.user.id;
+    const supabase = createSupabaseAdminClient();
+    const userId = user.id;
     
     // Update reload_count and last_seen_at
     const { data, error } = await supabase
@@ -36,16 +29,22 @@ export async function POST(request: Request) {
     
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        reloadCount: data?.reload_count || 1,
+        ok: true, 
+        reloadCount: data?.reload_count || 0,
         lastSeenAt: data?.last_seen_at 
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
-    console.error('Track reload error:', error);
+  } catch (error: any) {
+    if (error.message === 'Unauthorized') {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: error.message || 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
