@@ -1163,24 +1163,34 @@ export default function SuperWinPrototype() {
 
         <section className="content">
           {/* LIVE BIG BETS Section */}
-          {liveBets.length > 0 && (
-            <div className="panel" style={{ 
-              marginBottom: "12px",
-              border: "1px solid rgba(255, 225, 0, 0.3)",
-              background: "rgba(255, 225, 0, 0.05)"
+          <div className="panel" style={{ 
+            marginBottom: "12px",
+            border: "1px solid rgba(255, 225, 0, 0.3)",
+            background: "rgba(255, 225, 0, 0.05)"
+          }}>
+            <div style={{ 
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "8px",
+              padding: "8px 12px",
+              borderBottom: "1px solid var(--border)"
             }}>
+              <span style={{ fontSize: "14px" }}>💥</span>
+              <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)" }}>LIVE BIG BETS</span>
+              <span style={{ fontSize: "10px", color: "var(--muted)" }}>กำลังรอผล (≥1,000 <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="10" height="10" style={{ display: "inline-block", verticalAlign: "middle", marginLeft: "2px" }} />)</span>
+            </div>
+            
+            {liveBets.length === 0 ? (
               <div style={{ 
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "8px",
-                padding: "8px 12px",
-                borderBottom: "1px solid var(--border)"
+                padding: "10px 12px",
+                textAlign: "center",
+                color: "var(--muted)",
+                fontSize: "11px"
               }}>
-                <span style={{ fontSize: "14px" }}>💥</span>
-                <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)" }}>LIVE BIG BETS</span>
-                <span style={{ fontSize: "10px", color: "var(--muted)" }}>กำลังรอผล (≥1,000 <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="10" height="10" style={{ display: "inline-block", verticalAlign: "middle", marginLeft: "2px" }} />)</span>
+                รอผู้เล่นวางเดิมพันใหญ่...
               </div>
+            ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {liveBets.map((bet, index) => {
                   const date = new Date(bet.createdAt);
@@ -1245,8 +1255,8 @@ export default function SuperWinPrototype() {
                   );
                 })}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           <section className="panel">
             <div className="panel-head"><h2>Open Tournaments</h2><span className="micro">Select a question</span></div>
