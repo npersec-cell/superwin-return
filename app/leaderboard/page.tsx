@@ -25,9 +25,9 @@ interface ApiResponse {
 
 type Category = "overall" | "mostOrangeAmmo" | "mostPredictions" | "highestSingleWin" | "mostActive";
 
-const categories: { id: Category; name: string; icon: string; desc: string }[] = [
+const categories: { id: Category; name: string; icon: string; iconUrl?: string; desc: string }[] = [
   { id: "overall", name: "Overall", icon: "📊", desc: "Average of all stats" },
-  { id: "mostOrangeAmmo", name: "Most Orange Ammo", icon: "🟠", desc: "Highest profit score" },
+  { id: "mostOrangeAmmo", name: "Most Orange Ammo", iconUrl: "https://superwinhub.app/ammo-icon.webp", desc: "Highest profit score" },
   { id: "mostPredictions", name: "Most Predictions", icon: "🎯", desc: "Most predictions made" },
   { id: "highestSingleWin", name: "Highest Single Win", icon: "🏆", desc: "Biggest single profit" },
   { id: "mostActive", name: "Most Active", icon: "⚡", desc: "Avg reloads per day" }
@@ -116,7 +116,11 @@ export default function LeaderboardPage() {
             fontWeight: "800",
             color: "var(--yellow)"
           }}>
-            <span style={{ fontSize: "15px" }}>{cat.icon}</span>
+            {cat.iconUrl ? (
+              <img src={cat.iconUrl} alt="" width={15} height={15} style={{ objectFit: "contain" }} />
+            ) : (
+              <span style={{ fontSize: "15px" }}>{cat.icon}</span>
+            )}
             {cat.name}
           </h2>
           <span className="micro" style={{ fontSize: "10px", opacity: 0.7 }}>{cat.desc}</span>
@@ -194,7 +198,7 @@ export default function LeaderboardPage() {
     data, 
     maxHeight = "320px" 
   }: { 
-    cat: { id: Category; name: string; icon: string; desc: string };
+    cat: { id: Category; name: string; icon: string; iconUrl?: string; desc: string };
     data: LeaderboardEntry[];
     maxHeight?: string;
   }) {
@@ -209,7 +213,11 @@ export default function LeaderboardPage() {
             fontWeight: "700",
             color: "var(--text)"
           }}>
-            <span style={{ fontSize: "14px" }}>{cat.icon}</span>
+            {cat.iconUrl ? (
+              <img src={cat.iconUrl} alt="" width={14} height={14} style={{ objectFit: "contain" }} />
+            ) : (
+              <span style={{ fontSize: "14px" }}>{cat.icon}</span>
+            )}
             {cat.name}
           </h2>
           <span className="micro" style={{ fontSize: "10px", opacity: 0.6 }}>{cat.desc}</span>
