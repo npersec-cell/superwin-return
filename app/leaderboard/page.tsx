@@ -100,69 +100,66 @@ export default function LeaderboardPage() {
         className="panel"
         style={{ 
           minWidth: 0,
-          maxWidth: "100%",
-          margin: "0 auto",
           height: "410px",
           display: "flex",
           flexDirection: "column",
           border: "2px solid var(--yellow)",
           background: "linear-gradient(135deg, rgba(255, 225, 0, 0.05) 0%, rgba(255, 225, 0, 0.02) 100%)",
-          padding: "10px"
+          padding: "8px"
         }}
       >
-        <div className="panel-head" style={{ paddingBottom: "8px", flexShrink: 0 }}>
+        <div className="panel-head" style={{ paddingBottom: "6px", flexShrink: 0 }}>
           <h2 style={{ 
             display: "flex", 
             alignItems: "center", 
-            gap: "8px",
-            fontSize: "14px",
+            gap: "6px",
+            fontSize: "13px",
             fontWeight: "800",
             color: "var(--yellow)"
           }}>
             {cat.iconUrl ? (
-              <img src={cat.iconUrl} alt="" width={16} height={16} style={{ objectFit: "contain" }} />
+              <img src={cat.iconUrl} alt="" width={15} height={15} style={{ objectFit: "contain" }} />
             ) : (
-              <span style={{ fontSize: "16px" }}>{cat.icon}</span>
+              <span style={{ fontSize: "15px" }}>{cat.icon}</span>
             )}
             {cat.name}
           </h2>
-          <span className="micro" style={{ fontSize: "11px", opacity: 0.7 }}>{cat.desc}</span>
+          <span className="micro" style={{ fontSize: "10px", opacity: 0.7 }}>{cat.desc}</span>
         </div>
         
         {error ? (
-          <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", fontSize: "12px" }}>
+          <div style={{ padding: "8px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
             {error}
           </div>
         ) : data.length === 0 ? (
-          <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", fontSize: "12px" }}>
+          <div style={{ padding: "8px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
             No data yet
           </div>
         ) : (
           <div style={{ 
             display: "flex",
             flexDirection: "column",
-            gap: "4px",
-            flexGrow: 1,
-            justifyContent: "flex-start"
+            gap: "2px",
+            flexGrow: 1
           }}>
             {data.slice(0, 10).map((entry) => (
               <div 
-                key={entry.userId} 
+                key={entry.userId + entry.rank}
                 style={{ 
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px",
-                  padding: "6px 12px",
-                  fontSize: "12px",
-                  borderBottom: "1px solid var(--border)"
+                  gap: "6px",
+                  padding: "4px 8px",
+                  fontSize: "11px",
+                  borderBottom: "1px solid var(--border)",
+                  transition: "background 0.15s"
                 }}
               >
                 <span style={{ 
-                  fontWeight: "800", 
+                  fontWeight: "700", 
                   color: "var(--text)",
-                  width: "24px",
-                  textAlign: "center",
-                  fontSize: "13px"
+                  width: "18px",
+                  textAlign: "center"
                 }}>
                   {getRankBadge(entry.rank)}
                 </span>
@@ -173,8 +170,7 @@ export default function LeaderboardPage() {
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  fontWeight: "600",
-                  fontSize: "12px"
+                  fontWeight: "600"
                 }}>
                   {entry.displayName || "Anonymous"}
                 </strong>
@@ -183,9 +179,9 @@ export default function LeaderboardPage() {
                   color: "var(--yellow)", 
                   fontWeight: "700",
                   fontFamily: "JetBrains Mono, monospace",
-                  minWidth: "40px",
+                  minWidth: "35px",
                   textAlign: "right",
-                  fontSize: "11px"
+                  fontSize: "10px"
                 }}>
                   {formatValue(entry.value, cat.id)}
                 </span>
@@ -241,7 +237,7 @@ export default function LeaderboardPage() {
             gap: "2px"
           }}>
             {data.slice(0, 10).map((entry) => (
-              <div key={entry.userId} style={{ 
+              <div key={entry.userId + entry.rank} style={{ 
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
@@ -326,24 +322,34 @@ export default function LeaderboardPage() {
         </div>
 
         {/* Live Bets Section */}
-        {liveBets.length > 0 && (
-          <div className="panel" style={{ 
-            marginBottom: "16px",
-            border: "1px solid rgba(255, 225, 0, 0.3)",
-            background: "rgba(255, 225, 0, 0.05)"
+        <div className="panel" style={{ 
+          marginBottom: "16px",
+          border: "1px solid rgba(255, 225, 0, 0.3)",
+          background: "rgba(255, 225, 0, 0.05)"
+        }}>
+          <div style={{ 
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            marginBottom: "8px",
+            padding: "8px 12px",
+            borderBottom: "1px solid var(--border)"
           }}>
+            <span style={{ fontSize: "14px" }}>🎯</span>
+            <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)" }}>LIVE BIG BETS</span>
+            <span style={{ fontSize: "10px", color: "var(--muted)" }}>กำลังรอผล (≥1,000 🟠)</span>
+          </div>
+          
+          {liveBets.length === 0 ? (
             <div style={{ 
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              marginBottom: "12px",
-              padding: "8px 12px",
-              borderBottom: "1px solid var(--border)"
+              padding: "12px",
+              textAlign: "center",
+              color: "var(--muted)",
+              fontSize: "11px"
             }}>
-              <span style={{ fontSize: "14px" }}>🎯</span>
-              <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)" }}>LIVE BIG BETS</span>
-              <span style={{ fontSize: "10px", color: "var(--muted)" }}>กำลังรอผล</span>
+              รอผู้เล่นวางเดิมพันใหญ่...
             </div>
+          ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               {liveBets.map((bet, index) => {
                 const date = new Date(bet.createdAt);
@@ -408,8 +414,8 @@ export default function LeaderboardPage() {
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Overall - single row */}
         <div style={{ marginBottom: "16px" }}>
