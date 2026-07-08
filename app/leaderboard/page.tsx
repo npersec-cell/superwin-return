@@ -82,7 +82,7 @@ export default function LeaderboardPage() {
           minWidth: 0,
           maxWidth: "100%",
           margin: "0 auto",
-          height: "200px",
+          height: "380px",
           display: "flex",
           flexDirection: "column",
           border: "2px solid var(--yellow)",
