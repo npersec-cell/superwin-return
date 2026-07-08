@@ -33,10 +33,6 @@ const categories: { id: Category; name: string; icon: string; desc: string }[] =
   { id: "mostActive", name: "Most Active", icon: "⚡", desc: "Avg reloads per day" }
 ];
 
-// Layout: 3 rows
-// Row 1: Overall (full width, prominent)
-// Row 2: Most Orange Ammo | Most Predictions (2 columns)
-// Row 3: Highest Single Win | Most Active (2 columns)
 const layoutRows: { ids: Category[]; height: string }[] = [
   { ids: ["overall"], height: "380px" },
   { ids: ["mostOrangeAmmo", "mostPredictions"], height: "320px" },
@@ -88,46 +84,30 @@ export default function LeaderboardPage() {
     return `${rank}`;
   }
 
-  function CategorySection({ 
-    cat, 
-    data, 
-    isProminent = false, 
-    maxHeight = "320px" 
-  }: { 
-    cat: { id: Category; name: string; icon: string; desc: string };
-    data: LeaderboardEntry[];
-    isProminent?: boolean;
-    maxHeight?: string;
-  }) {
+  // Special component for Overall (prominent)
+  function OverallSection({ cat, data }: { cat: { id: Category; name: string; icon: string; desc: string }; data: LeaderboardEntry[] }) {
     return (
       <section 
-        className={isProminent ? "panel" : "panel"}
+        className="panel"
         style={{ 
           minWidth: 0,
-          ...(isProminent ? { 
-            border: "2px solid var(--yellow)",
-            background: "linear-gradient(135deg, rgba(255, 225, 0, 0.05) 0%, rgba(255, 225, 0, 0.02) 100%)"
-          } : {})
+          border: "2px solid var(--yellow)",
+          background: "linear-gradient(135deg, rgba(255, 225, 0, 0.05) 0%, rgba(255, 225, 0, 0.02) 100%)"
         }}
       >
-        <div className="panel-head" style={{ 
-          paddingBottom: isProminent ? "12px" : "8px"
-        }}>
-            <h2 style={{ 
+        <div className="panel-head" style={{ paddingBottom: "12px" }}>
+          <h2 style={{ 
             display: "flex", 
             alignItems: "center", 
-            gap: isProminent ? "8px" : "5px",
-            fontSize: isProminent ? "14px" : "11px",
-            fontWeight: "700",
-            color: isProminent ? "var(--yellow)" : "var(--text)"
+            gap: "10px",
+            fontSize: "16px",
+            fontWeight: "800",
+            color: "var(--yellow)"
           }}>
-            <span style={{ fontSize: isProminent ? "16px" : "12px" }}>{cat.icon}</span>
+            <span style={{ fontSize: "20px" }}>{cat.icon}</span>
             {cat.name}
           </h2>
-          <span className="micro" style={{ 
-            fontSize: isProminent ? "10px" : "9px", 
-            opacity: 0.6
-          }}>{cat.desc}</span>
+          <span className="micro" style={{ fontSize: "12px", opacity: 0.7 }}>{cat.desc}</span>
         </div>
         
         {error ? (
@@ -140,25 +120,128 @@ export default function LeaderboardPage() {
           </div>
         ) : (
           <div className="leaderboard-scroll" style={{ 
-            maxHeight: isProminent ? "300px" : "260px", 
+            maxHeight: "300px", 
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column"
+          }}>
+            {data.slice(0, 10).map((entry) => (
+              <div 
+                key={entry.userId} 
+                style={{ 
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "10px 16px",
+                  fontSize: "14px",
+                  borderBottom: "1px solid var(--border)",
+                  transition: "background 0.15s"
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255, 225, 0, 0.08)"; (e.currentTarget.firstChild as HTMLElement)?.style.color = "var(--yellow)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; (e.currentTarget.firstChild as HTMLElement)?.style.color = "var(--text)"; }}
+              >
+                {/* Rank - big and prominent on the left */}
+                <span style={{ 
+                  fontWeight: "800", 
+                  color: "var(--text)",
+                  width: "48px",
+                  textAlign: "center",
+                  fontSize: "16px",
+                  fontFamily: "JetBrains Mono, monospace"
+                }}>
+                  {getRankBadge(entry.rank)}
+                </span>
+                
+                {/* Name - center, takes most space */}
+                <strong style={{ 
+                  flex: 1, 
+                  color: "var(--text-strong)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  fontWeight: "600",
+                  fontSize: "14px"
+                }}>
+                  {entry.displayName || "Anonymous"}
+                </strong>
+                
+                {/* Value - right side, highlighted */}
+                <span style={{ 
+                  color: "var(--yellow)", 
+                  fontWeight: "700",
+                  fontFamily: "JetBrains Mono, monospace",
+                  background: "rgba(255, 225, 0, 0.1)",
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  minWidth: "60px",
+                  textAlign: "right",
+                  fontSize: "13px"
+                }}>
+                  {formatValue(entry.value, cat.id)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  // Normal component for other categories
+  function CategorySection({ 
+    cat, 
+    data, 
+    maxHeight = "320px" 
+  }: { 
+    cat: { id: Category; name: string; icon: string; desc: string };
+    data: LeaderboardEntry[];
+    maxHeight?: string;
+  }) {
+    return (
+      <section className="panel" style={{ minWidth: 0 }}>
+        <div className="panel-head" style={{ paddingBottom: "8px" }}>
+          <h2 style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: "6px",
+            fontSize: "12px",
+            fontWeight: "700",
+            color: "var(--text)"
+          }}>
+            <span style={{ fontSize: "14px" }}>{cat.icon}</span>
+            {cat.name}
+          </h2>
+          <span className="micro" style={{ fontSize: "10px", opacity: 0.6 }}>{cat.desc}</span>
+        </div>
+        
+        {error ? (
+          <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
+            {error}
+          </div>
+        ) : data.length === 0 ? (
+          <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
+            No data
+          </div>
+        ) : (
+          <div className="leaderboard-scroll" style={{ 
+            maxHeight: "260px", 
             overflowY: "auto",
             display: "flex",
             flexDirection: "column",
-            gap: isProminent ? "4px" : "3px"
+            gap: "3px"
           }}>
             {data.slice(0, 10).map((entry) => (
               <div key={entry.userId} style={{ 
                 display: "flex",
                 alignItems: "center",
-                gap: isProminent ? "8px" : "5px",
-                padding: isProminent ? "5px 8px" : "4px 6px",
-                fontSize: isProminent ? "12px" : "10px",
+                gap: "6px",
+                padding: "5px 8px",
+                fontSize: "11px",
                 borderBottom: "1px solid var(--border)"
               }}>
                 <span style={{ 
                   fontWeight: "700", 
                   color: entry.rank <= 3 ? "var(--yellow)" : "var(--text)",
-                  width: isProminent ? "24px" : "16px",
+                  width: "18px",
                   textAlign: "center"
                 }}>
                   {getRankBadge(entry.rank)}
@@ -177,9 +260,9 @@ export default function LeaderboardPage() {
                   color: "var(--yellow)", 
                   fontWeight: "700",
                   fontFamily: "JetBrains Mono, monospace",
-                  minWidth: isProminent ? "45px" : "35px",
+                  minWidth: "35px",
                   textAlign: "right",
-                  fontSize: isProminent ? "11px" : "10px"
+                  fontSize: "10px"
                 }}>
                   {formatValue(entry.value, cat.id)}
                 </span>
@@ -246,12 +329,16 @@ export default function LeaderboardPage() {
               const cat = categories.find(c => c.id === catId)!;
               const data = leaderboards?.[catId] || [];
               
+              // Use special component for Overall
+              if (catId === "overall") {
+                return <OverallSection key={catId} cat={cat} data={data} />;
+              }
+              
               return (
                 <CategorySection
                   key={catId}
                   cat={cat}
                   data={data}
-                  isProminent={catId === "overall"}
                   maxHeight={row.height}
                 />
               );
