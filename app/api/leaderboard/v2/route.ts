@@ -12,12 +12,9 @@ function calcAvgReloadPerDay(reloadCount: number | null, createdAt: string | nul
   return Math.round((reloadCount / days) * 100) / 100; // 2 decimal places
 }
 
-// Logarithmic score calculation (0-100 range)
-function calcLogScore(value: number, maxValue: number): number {
-  if (value <= 0 || maxValue <= 0) return 0;
-  const valueLog = Math.log2(value + 1);
-  const maxLog = Math.log2(maxValue + 1);
-  return maxLog > 0 ? Math.round((valueLog / maxLog) * 100) : 0;
+// Logarithmic score calculation (sum of logs, no cap)
+function calcLogScore(value: number): number {
+  return Math.log2(value + 1);
 }
 
 export async function GET() {
@@ -93,29 +90,20 @@ export async function GET() {
     };
   });
   
-  // Calculate Overall score for each user using Logarithmic Score
-  // First, find max values for each category to normalize scores
-  const maxValues = {
-    profitScore: Math.max(1, ...leaderboardData.map(u => u.profitScore)),
-    predictionCount: Math.max(1, ...leaderboardData.map(u => u.predictionCount)),
-    highestSingleWin: Math.max(1, ...leaderboardData.map(u => u.highestSingleWin)),
-    avgReloadPerDay: Math.max(0.1, ...leaderboardData.map(u => u.avgReloadPerDay))
-  };
-  
+  // Calculate Overall score for each user using Logarithmic Score (sum, no cap)
   const leaderboardWithOverall = leaderboardData.map(user => {
-    // Calculate log score for each category (0-100 range)
-    const profitScore = calcLogScore(user.profitScore, maxValues.profitScore);
-    const predictionScore = calcLogScore(user.predictionCount, maxValues.predictionCount);
-    const winScore = calcLogScore(user.highestSingleWin, maxValues.highestSingleWin);
-    const activeScore = calcLogScore(user.avgReloadPerDay, maxValues.avgReloadPerDay);
+    // Calculate log score for each category
+    const profitScore = calcLogScore(user.profitScore);
+    const predictionScore = calcLogScore(user.predictionCount);
+    const winScore = calcLogScore(user.highestSingleWin);
+    const activeScore = calcLogScore(user.avgReloadPerDay);
     
-    // Average of all scores
-    const overall = Math.round(((profitScore + predictionScore + winScore + activeScore) / 4))
-      .toFixed(0);
+    // Sum of all scores (no cap, balanced)
+    const overall = Math.round((profitScore + predictionScore + winScore + activeScore) * 100) / 100;
     
     return {
       ...user,
-      overall: parseInt(overall)
+      overall
     };
   });
   
