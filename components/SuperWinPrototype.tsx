@@ -188,22 +188,6 @@ type ApiClaimResponse = {
   error?: string;
 };
 
-type LiveBet = {
-  userId: string;
-  displayName: string;
-  predictionId: string;
-  predictionTitle: string;
-  optionName: string;
-  amount: number;
-  createdAt: string;
-};
-
-type ApiLiveBetsResponse = {
-  ok: boolean;
-  data?: LiveBet[];
-  error?: string;
-};
-
 declare global {
   interface Window {
     google?: {
@@ -387,8 +371,6 @@ export default function SuperWinPrototype() {
   const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[]>(defaultLeaderboard);
   const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
-  const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
-  const [liveBetsLoading, setLiveBetsLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Auto-refresh profile data while modal is open
@@ -635,28 +617,6 @@ export default function SuperWinPrototype() {
   useEffect(() => {
     loadOpenPredictions();
     const timer = window.setInterval(loadOpenPredictions, 10000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  // Fetch live bets
-  const fetchLiveBets = async () => {
-    setLiveBetsLoading(true);
-    try {
-      const res = await fetch('/api/live-bets?t=' + Date.now());
-      const data: ApiLiveBetsResponse = await res.json();
-      if (data.ok && data.data) {
-        setLiveBets(data.data);
-      }
-    } catch (e) {
-      console.error('Failed to fetch live bets:', e);
-    } finally {
-      setLiveBetsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLiveBets();
-    const timer = window.setInterval(fetchLiveBets, 10000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -1162,153 +1122,6 @@ export default function SuperWinPrototype() {
         )}
 
         <section className="content">
-          {/* All Time Top 10 - Moved to top center */}
-          <section className="panel" style={{ marginBottom: "12px" }}>
-            <div className="panel-head"><h3>All time Top 10</h3><span className="micro" style={{ display: "flex", alignItems: "center", gap: "4px" }}>Rank <img src="/ammo-556-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} /></span></div>
-            <div className="leaderboard-body">
-              {leaderboard.map((row, index) => {
-                const targetId = row.id || (row.name === "You" ? currentUserId : null);
-                const isClickable = isSignedIn && targetId;
-                const avatarUrl = row.name === "You" ? (clerkUser?.imageUrl || row.avatarUrl) : row.avatarUrl;
-                return (
-                  <div 
-                    key={row.name} 
-                    className="rank" 
-                    onClick={() => isClickable && handleOpenProfile(targetId, row.name)}
-                    style={{ cursor: isClickable ? "pointer" : "default" }}
-                    title={isClickable ? `Click to view ${row.name}'s stats` : undefined}
-                  >
-                    <span>{index + 1}</span>
-                    <div className="rank-name-container" style={{ display: "flex", alignItems: "center", gap: "6px", flexGrow: 1, minWidth: 0 }}>
-                      {avatarUrl ? (
-                        <img 
-                          src={avatarUrl} 
-                          alt={row.name} 
-                          style={{ width: "16px", height: "16px", borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} 
-                        />
-                      ) : (
-                        <div style={{ width: "16px", height: "16px", borderRadius: "50%", backgroundColor: "#20252b", border: "1px solid #30353b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "9px", flexShrink: 0 }}>
-                          👤
-                        </div>
-                      )}
-                      <span style={{ 
-                        color: isClickable ? "var(--yellow)" : "var(--text-strong)", 
-                        fontWeight: row.name === "You" ? "bold" : "600",
-                        textDecoration: isClickable ? "underline" : "none",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap"
-                      }}>
-                        {row.displayName || maskName(row.name)}
-                      </span>
-                      <span style={{ display: "flex", alignItems: "center", gap: "3px", color: "var(--muted)", fontSize: "10px", fontWeight: 500, flexShrink: 0 }}>
-                        <img src={getRankInfo(row.profitScore).icon} alt="" width={18} height={18} style={{ objectFit: "contain" }} />
-                        {getRankInfo(row.profitScore).name}
-                      </span>
-                    </div>
-                    <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{compact(row.profitScore)} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", opacity: 0.8 }} /></b>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* LIVE BIG BETS Section */}
-          <div className="panel" style={{ 
-            marginBottom: "12px",
-            border: "1px solid rgba(255, 225, 0, 0.3)",
-            background: "rgba(255, 225, 0, 0.05)"
-          }}>
-            <div style={{ 
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              marginBottom: "8px",
-              padding: "8px 12px",
-              borderBottom: "1px solid var(--border)"
-            }}>
-              <span style={{ fontSize: "14px" }}>💥</span>
-              <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)" }}>LIVE BIG BETS</span>
-              <span style={{ fontSize: "10px", color: "var(--muted)" }}>กำลังรอผล (≥1,000 <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="10" height="10" style={{ display: "inline-block", verticalAlign: "middle", marginLeft: "2px" }} />)</span>
-            </div>
-            
-            {liveBets.length === 0 ? (
-              <div style={{ 
-                padding: "10px 12px",
-                textAlign: "center",
-                color: "var(--muted)",
-                fontSize: "11px"
-              }}>
-                รอผู้เล่นวางเดิมพันใหญ่...
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                {liveBets.map((bet, index) => {
-                  const date = new Date(bet.createdAt);
-                  const timeStr = date.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
-                  return (
-                    <div 
-                      key={bet.userId + bet.predictionId + bet.createdAt}
-                      style={{ 
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        padding: "6px 12px",
-                        fontSize: "11px"
-                      }}
-                    >
-                      <span style={{ 
-                        width: "16px",
-                        height: "16px",
-                        borderRadius: "50%",
-                        background: "var(--yellow-soft)",
-                        display: "grid",
-                        placeItems: "center",
-                        fontSize: "9px",
-                        fontWeight: "700",
-                        color: "var(--yellow)"
-                      }}>
-                        {index + 1}
-                      </span>
-                      
-                      <span style={{ 
-                        flex: 1,
-                        color: "var(--text)",
-                        fontWeight: "600",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis"
-                      }}>
-                        {bet.displayName}
-                      </span>
-                      
-                      <span style={{ 
-                        color: "var(--muted)",
-                        fontSize: "10px"
-                      }}>
-                        {bet.predictionTitle}
-                      </span>
-                      
-                      <span style={{ 
-                        color: "var(--yellow)",
-                        fontWeight: "700",
-                        fontFamily: "JetBrains Mono, monospace",
-                        minWidth: "50px",
-                        textAlign: "right"
-                      }}>
-                        {bet.amount.toLocaleString()} 🟠
-                      </span>
-                      
-                      <span style={{ fontSize: "9px", color: "var(--muted)" }}>
-                        {timeStr}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
           <section className="panel">
             <div className="panel-head"><h2>Open Tournaments</h2><span className="micro">Select a question</span></div>
             <div className="questions">
@@ -1671,6 +1484,7 @@ export default function SuperWinPrototype() {
                 </div>
               )}
             </div>
+          </aside>
         </section>
       </div>
 
