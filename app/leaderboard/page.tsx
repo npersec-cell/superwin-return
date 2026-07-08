@@ -107,35 +107,34 @@ export default function LeaderboardPage() {
           background: "linear-gradient(135deg, rgba(255, 225, 0, 0.05) 0%, rgba(255, 225, 0, 0.02) 100%)"
         }}
       >
-        <div className="panel-head" style={{ paddingBottom: "12px" }}>
+        <div className="panel-head" style={{ paddingBottom: "6px" }}>
           <h2 style={{ 
             display: "flex", 
             alignItems: "center", 
-            gap: "10px",
-            fontSize: "16px",
+            gap: "6px",
+            fontSize: "13px",
             fontWeight: "800",
             color: "var(--yellow)"
           }}>
-            <span style={{ fontSize: "20px" }}>{cat.icon}</span>
+            <span style={{ fontSize: "15px" }}>{cat.icon}</span>
             {cat.name}
           </h2>
-          <span className="micro" style={{ fontSize: "12px", opacity: 0.7 }}>{cat.desc}</span>
+          <span className="micro" style={{ fontSize: "10px", opacity: 0.7 }}>{cat.desc}</span>
         </div>
         
         {error ? (
-          <div style={{ padding: "16px", textAlign: "center", color: "var(--muted)", fontSize: "12px" }}>
+          <div style={{ padding: "8px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
             {error}
           </div>
         ) : data.length === 0 ? (
-          <div style={{ padding: "16px", textAlign: "center", color: "var(--muted)", fontSize: "12px" }}>
+          <div style={{ padding: "8px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
             No data yet
           </div>
         ) : (
-          <div className="leaderboard-scroll" style={{ 
-            maxHeight: "300px", 
-            overflowY: "auto",
+          <div style={{ 
             display: "flex",
-            flexDirection: "column"
+            flexDirection: "column",
+            gap: "2px"
           }}>
             {data.slice(0, 10).map((entry) => (
               <div 
@@ -143,50 +142,41 @@ export default function LeaderboardPage() {
                 style={{ 
                   display: "flex",
                   alignItems: "center",
-                  padding: "10px 16px",
-                  fontSize: "14px",
+                  gap: "6px",
+                  padding: "4px 8px",
+                  fontSize: "11px",
                   borderBottom: "1px solid var(--border)",
                   transition: "background 0.15s"
                 }}
                 onMouseEnter={(e) => handleMouseEnter(e)}
                 onMouseLeave={(e) => handleMouseLeave(e)}
               >
-                {/* Rank - big and prominent on the left */}
                 <span style={{ 
-                  fontWeight: "800", 
+                  fontWeight: "700", 
                   color: "var(--text)",
-                  width: "48px",
-                  textAlign: "center",
-                  fontSize: "16px",
-                  fontFamily: "JetBrains Mono, monospace"
+                  width: "18px",
+                  textAlign: "center"
                 }}>
                   {getRankBadge(entry.rank)}
                 </span>
                 
-                {/* Name - center, takes most space */}
                 <strong style={{ 
                   flex: 1, 
                   color: "var(--text-strong)",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  fontWeight: "600",
-                  fontSize: "14px"
+                  fontWeight: "600"
                 }}>
                   {entry.displayName || "Anonymous"}
                 </strong>
                 
-                {/* Value - right side, highlighted */}
                 <span style={{ 
                   color: "var(--yellow)", 
                   fontWeight: "700",
                   fontFamily: "JetBrains Mono, monospace",
-                  background: "rgba(255, 225, 0, 0.1)",
-                  padding: "6px 12px",
-                  borderRadius: "6px",
-                  minWidth: "60px",
-                  textAlign: "right",
-                  fontSize: "13px"
+                  minWidth: "35px",
+                  textAlign: "right"
                 }}>
                   {formatValue(entry.value, cat.id)}
                 </span>
