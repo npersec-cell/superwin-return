@@ -34,7 +34,7 @@ const categories: { id: Category; name: string; icon: string; iconUrl?: string; 
 ];
 
 const layoutRows: { ids: Category[]; height: string }[] = [
-  { ids: ["overall"], height: "140px" },
+  { ids: ["overall"], height: "380px" },
   { ids: ["mostOrangeAmmo", "mostPredictions"], height: "380px" },
   { ids: ["highestSingleWin", "mostActive"], height: "380px" }
 ];
@@ -103,19 +103,19 @@ export default function LeaderboardPage() {
         className="panel"
         style={{ 
           minWidth: 0,
-          maxWidth: "300px",
+          maxWidth: "100%",
           margin: "0 auto",
           border: "2px solid var(--yellow)",
           background: "linear-gradient(135deg, rgba(255, 225, 0, 0.05) 0%, rgba(255, 225, 0, 0.02) 100%)",
           padding: "8px"
         }}
       >
-        <div className="panel-head" style={{ paddingBottom: "4px" }}>
+        <div className="panel-head" style={{ paddingBottom: "6px" }}>
           <h2 style={{ 
             display: "flex", 
             alignItems: "center", 
             gap: "6px",
-            fontSize: "12px",
+            fontSize: "13px",
             fontWeight: "800",
             color: "var(--yellow)"
           }}>
