@@ -105,12 +105,15 @@ export default function LeaderboardPage() {
           minWidth: 0,
           maxWidth: "100%",
           margin: "0 auto",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
           border: "2px solid var(--yellow)",
           background: "linear-gradient(135deg, rgba(255, 225, 0, 0.05) 0%, rgba(255, 225, 0, 0.02) 100%)",
           padding: "8px"
         }}
       >
-        <div className="panel-head" style={{ paddingBottom: "6px" }}>
+        <div className="panel-head" style={{ paddingBottom: "6px", flexShrink: 0 }}>
           <h2 style={{ 
             display: "flex", 
             alignItems: "center", 
