@@ -18,11 +18,6 @@ interface LeaderboardData {
   mostActive: LeaderboardEntry[];
 }
 
-interface ApiResponse {
-  leaderboards: LeaderboardData;
-  timestamp: string;
-}
-
 type Category = "overall" | "mostOrangeAmmo" | "mostPredictions" | "highestSingleWin" | "mostActive";
 
 const categories: { id: Category; name: string; icon: string; iconUrl?: string; desc: string }[] = [
@@ -31,12 +26,6 @@ const categories: { id: Category; name: string; icon: string; iconUrl?: string; 
   { id: "mostPredictions", name: "Most Predictions", icon: "🎯", desc: "Most predictions made" },
   { id: "highestSingleWin", name: "Highest Single Win", icon: "🏆", desc: "Biggest single profit" },
   { id: "mostActive", name: "Most Active", icon: "⚡", desc: "Avg reloads per day" }
-];
-
-const layoutRows: { ids: Category[]; height: string }[] = [
-  { ids: ["overall"], height: "auto" },
-  { ids: ["mostOrangeAmmo", "mostPredictions"], height: "380px" },
-  { ids: ["highestSingleWin", "mostActive"], height: "380px" }
 ];
 
 export default function LeaderboardPage() {
@@ -84,20 +73,8 @@ export default function LeaderboardPage() {
     return `${rank}`;
   }
 
-  // Special component for Overall (prominent)
+  // Special component for Overall
   function OverallSection({ cat, data }: { cat: { id: Category; name: string; icon: string; iconUrl?: string; desc: string }; data: LeaderboardEntry[] }) {
-    function handleMouseEnter(e: React.MouseEvent<HTMLDivElement>) {
-      e.currentTarget.style.background = "rgba(255, 225, 0, 0.08)";
-      const firstChild = e.currentTarget.firstChild as HTMLElement;
-      if (firstChild) firstChild.style.color = "var(--yellow)";
-    }
-    
-    function handleMouseLeave(e: React.MouseEvent<HTMLDivElement>) {
-      e.currentTarget.style.background = "transparent";
-      const firstChild = e.currentTarget.firstChild as HTMLElement;
-      if (firstChild) firstChild.style.color = "var(--text)";
-    }
-    
     return (
       <section 
         className="panel"
@@ -105,44 +82,48 @@ export default function LeaderboardPage() {
           minWidth: 0,
           maxWidth: "100%",
           margin: "0 auto",
-          minHeight: "380px",
+          height: "200px",
+          display: "flex",
+          flexDirection: "column",
           border: "2px solid var(--yellow)",
           background: "linear-gradient(135deg, rgba(255, 225, 0, 0.05) 0%, rgba(255, 225, 0, 0.02) 100%)",
-          padding: "8px"
+          padding: "10px"
         }}
       >
-        <div className="panel-head" style={{ paddingBottom: "6px" }}>
+        <div className="panel-head" style={{ paddingBottom: "8px", flexShrink: 0 }}>
           <h2 style={{ 
             display: "flex", 
             alignItems: "center", 
-            gap: "6px",
-            fontSize: "13px",
+            gap: "8px",
+            fontSize: "14px",
             fontWeight: "800",
             color: "var(--yellow)"
           }}>
             {cat.iconUrl ? (
-              <img src={cat.iconUrl} alt="" width={15} height={15} style={{ objectFit: "contain" }} />
+              <img src={cat.iconUrl} alt="" width={16} height={16} style={{ objectFit: "contain" }} />
             ) : (
-              <span style={{ fontSize: "15px" }}>{cat.icon}</span>
+              <span style={{ fontSize: "16px" }}>{cat.icon}</span>
             )}
             {cat.name}
           </h2>
-          <span className="micro" style={{ fontSize: "10px", opacity: 0.7 }}>{cat.desc}</span>
+          <span className="micro" style={{ fontSize: "11px", opacity: 0.7 }}>{cat.desc}</span>
         </div>
         
         {error ? (
-          <div style={{ padding: "4px", textAlign: "center", color: "var(--muted)", fontSize: "10px" }}>
+          <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", fontSize: "12px" }}>
             {error}
           </div>
         ) : data.length === 0 ? (
-          <div style={{ padding: "4px", textAlign: "center", color: "var(--muted)", fontSize: "10px" }}>
+          <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", fontSize: "12px" }}>
             No data yet
           </div>
         ) : (
           <div style={{ 
             display: "flex",
             flexDirection: "column",
-            gap: "2px"
+            gap: "4px",
+            flexGrow: 1,
+            justifyContent: "flex-start"
           }}>
             {data.slice(0, 10).map((entry) => (
               <div 
@@ -150,20 +131,18 @@ export default function LeaderboardPage() {
                 style={{ 
                   display: "flex",
                   alignItems: "center",
-                  gap: "6px",
-                  padding: "4px 8px",
-                  fontSize: "10px",
-                  borderBottom: "1px solid var(--border)",
-                  transition: "background 0.15s"
+                  gap: "8px",
+                  padding: "6px 12px",
+                  fontSize: "12px",
+                  borderBottom: "1px solid var(--border)"
                 }}
-                onMouseEnter={(e) => handleMouseEnter(e)}
-                onMouseLeave={(e) => handleMouseLeave(e)}
               >
                 <span style={{ 
-                  fontWeight: "700", 
+                  fontWeight: "800", 
                   color: "var(--text)",
-                  width: "18px",
-                  textAlign: "center"
+                  width: "24px",
+                  textAlign: "center",
+                  fontSize: "13px"
                 }}>
                   {getRankBadge(entry.rank)}
                 </span>
@@ -174,7 +153,8 @@ export default function LeaderboardPage() {
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  fontWeight: "600"
+                  fontWeight: "600",
+                  fontSize: "12px"
                 }}>
                   {entry.displayName || "Anonymous"}
                 </strong>
@@ -183,8 +163,9 @@ export default function LeaderboardPage() {
                   color: "var(--yellow)", 
                   fontWeight: "700",
                   fontFamily: "JetBrains Mono, monospace",
-                  minWidth: "35px",
-                  textAlign: "right"
+                  minWidth: "40px",
+                  textAlign: "right",
+                  fontSize: "11px"
                 }}>
                   {formatValue(entry.value, cat.id)}
                 </span>
@@ -324,36 +305,31 @@ export default function LeaderboardPage() {
           </div>
         </div>
 
-        {/* 3-row layout */}
-        {layoutRows.map((row, rowIdx) => (
-          <div 
-            key={rowIdx}
-            style={{ 
-              display: "grid",
-              gridTemplateColumns: row.ids.length === 1 ? "1fr" : "repeat(2, 1fr)",
-              gap: "12px",
-              marginBottom: rowIdx < layoutRows.length - 1 ? "16px" : 0
-            }}
-          >
-            {row.ids.map((catId) => {
-              const cat = categories.find(c => c.id === catId)!;
-              const data = leaderboards?.[catId] || [];
-              
-              // Use special component for Overall
-              if (catId === "overall") {
-                return <OverallSection key={catId} cat={cat} data={data} />;
-              }
-              
-              return (
-                <CategorySection
-                  key={catId}
-                  cat={cat}
-                  data={data}
-                />
-              );
-            })}
-          </div>
-        ))}
+        {/* Overall - single row */}
+        <div style={{ marginBottom: "16px" }}>
+          <OverallSection cat={categories.find(c => c.id === "overall")!} data={leaderboards?.overall || []} />
+        </div>
+
+        {/* Row 2: Most Orange Ammo + Most Predictions */}
+        <div style={{ 
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: "12px",
+          marginBottom: "16px"
+        }}>
+          <CategorySection cat={categories.find(c => c.id === "mostOrangeAmmo")!} data={leaderboards?.mostOrangeAmmo || []} />
+          <CategorySection cat={categories.find(c => c.id === "mostPredictions")!} data={leaderboards?.mostPredictions || []} />
+        </div>
+
+        {/* Row 3: Highest Single Win + Most Active */}
+        <div style={{ 
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: "12px"
+        }}>
+          <CategorySection cat={categories.find(c => c.id === "highestSingleWin")!} data={leaderboards?.highestSingleWin || []} />
+          <CategorySection cat={categories.find(c => c.id === "mostActive")!} data={leaderboards?.mostActive || []} />
+        </div>
       </div>
     </div>
   );
