@@ -195,9 +195,8 @@ export default function LeaderboardPage() {
   // Normal component for other categories
   function CategorySection({ 
     cat, 
-    data, 
-    maxHeight = "320px" 
-  ): { 
+    data
+  }: { 
     cat: { id: Category; name: string; icon: string; iconUrl?: string; desc: string };
     data: LeaderboardEntry[];
   }) {
