@@ -1162,6 +1162,57 @@ export default function SuperWinPrototype() {
         )}
 
         <section className="content">
+          {/* All Time Top 10 - Moved to top center */}
+          <section className="panel" style={{ marginBottom: "12px" }}>
+            <div className="panel-head"><h3>All time Top 10</h3><span className="micro" style={{ display: "flex", alignItems: "center", gap: "4px" }}>Rank <img src="/ammo-556-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} /></span></div>
+            <div className="leaderboard-body">
+              {leaderboard.map((row, index) => {
+                const targetId = row.id || (row.name === "You" ? currentUserId : null);
+                const isClickable = isSignedIn && targetId;
+                const avatarUrl = row.name === "You" ? (clerkUser?.imageUrl || row.avatarUrl) : row.avatarUrl;
+                return (
+                  <div 
+                    key={row.name} 
+                    className="rank" 
+                    onClick={() => isClickable && handleOpenProfile(targetId, row.name)}
+                    style={{ cursor: isClickable ? "pointer" : "default" }}
+                    title={isClickable ? `Click to view ${row.name}'s stats` : undefined}
+                  >
+                    <span>{index + 1}</span>
+                    <div className="rank-name-container" style={{ display: "flex", alignItems: "center", gap: "6px", flexGrow: 1, minWidth: 0 }}>
+                      {avatarUrl ? (
+                        <img 
+                          src={avatarUrl} 
+                          alt={row.name} 
+                          style={{ width: "16px", height: "16px", borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} 
+                        />
+                      ) : (
+                        <div style={{ width: "16px", height: "16px", borderRadius: "50%", backgroundColor: "#20252b", border: "1px solid #30353b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "9px", flexShrink: 0 }}>
+                          👤
+                        </div>
+                      )}
+                      <span style={{ 
+                        color: isClickable ? "var(--yellow)" : "var(--text-strong)", 
+                        fontWeight: row.name === "You" ? "bold" : "600",
+                        textDecoration: isClickable ? "underline" : "none",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap"
+                      }}>
+                        {row.displayName || maskName(row.name)}
+                      </span>
+                      <span style={{ display: "flex", alignItems: "center", gap: "3px", color: "var(--muted)", fontSize: "10px", fontWeight: 500, flexShrink: 0 }}>
+                        <img src={getRankInfo(row.profitScore).icon} alt="" width={18} height={18} style={{ objectFit: "contain" }} />
+                        {getRankInfo(row.profitScore).name}
+                      </span>
+                    </div>
+                    <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{compact(row.profitScore)} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", opacity: 0.8 }} /></b>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
           {/* LIVE BIG BETS Section */}
           <div className="panel" style={{ 
             marginBottom: "12px",
@@ -1620,7 +1671,6 @@ export default function SuperWinPrototype() {
                 </div>
               )}
             </div>
-          </aside>
         </section>
       </div>
 
