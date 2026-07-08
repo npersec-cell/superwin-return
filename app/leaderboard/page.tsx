@@ -38,10 +38,23 @@ const categories: { id: Category; name: string; icon: string; desc: string }[] =
 // Row 2: Most Orange Ammo | Most Predictions (2 columns)
 // Row 3: Highest Single Win | Most Active (2 columns)
 const layoutRows: { ids: Category[]; height: string }[] = [
-  { ids: ["overall"], height: "auto" },
-  { ids: ["mostOrangeAmmo", "mostPredictions"], height: "320px" },
-  { ids: ["highestSingleWin", "mostActive"], height: "320px" }
+  { ids: ["overall"], height: "220px" },
+  { ids: ["mostOrangeAmmo", "mostPredictions"], height: "180px" },
+  { ids: ["highestSingleWin", "mostActive"], height: "180px" }
 ];
+
+// CSS to hide scrollbar
+const hideScrollbarStyle = `
+<style>
+  .leaderboard-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .leaderboard-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+</style>
+`;
 
 export default function LeaderboardPage() {
   const [leaderboards, setLeaderboards] = useState<LeaderboardData | null>(null);
@@ -113,20 +126,20 @@ export default function LeaderboardPage() {
         <div className="panel-head" style={{ 
           paddingBottom: isProminent ? "12px" : "8px"
         }}>
-          <h2 style={{ 
+            <h2 style={{ 
             display: "flex", 
             alignItems: "center", 
-            gap: isProminent ? "10px" : "6px",
-            fontSize: isProminent ? "16px" : "12px",
-            fontWeight: "800",
+            gap: isProminent ? "8px" : "5px",
+            fontSize: isProminent ? "14px" : "11px",
+            fontWeight: "700",
             color: isProminent ? "var(--yellow)" : "var(--text)"
           }}>
-            <span style={{ fontSize: isProminent ? "20px" : "14px" }}>{cat.icon}</span>
+            <span style={{ fontSize: isProminent ? "16px" : "12px" }}>{cat.icon}</span>
             {cat.name}
           </h2>
           <span className="micro" style={{ 
-            fontSize: isProminent ? "12px" : "10px", 
-            opacity: 0.7
+            fontSize: isProminent ? "10px" : "9px", 
+            opacity: 0.6
           }}>{cat.desc}</span>
         </div>
         
@@ -139,22 +152,21 @@ export default function LeaderboardPage() {
             No data yet
           </div>
         ) : (
-          <div style={{ 
-            maxHeight: isProminent ? "400px" : maxHeight, 
+          <div className="leaderboard-scroll" style={{ 
+            maxHeight: isProminent ? "160px" : "140px", 
             overflowY: "auto",
             display: "flex",
             flexDirection: "column",
-            gap: isProminent ? "6px" : "4px"
+            gap: isProminent ? "4px" : "3px"
           }}>
-            {data.slice(0, isProminent ? 20 : 15).map((entry) => (
+            {data.slice(0, isProminent ? 12 : 10).map((entry) => (
               <div key={entry.userId} style={{ 
                 display: "flex",
                 alignItems: "center",
-                gap: isProminent ? "10px" : "6px",
-                padding: isProminent ? "8px 12px" : "6px 8px",
-                fontSize: isProminent ? "13px" : "11px",
-                borderBottom: "1px solid var(--border)",
-                transition: "background 0.15s"
+                gap: isProminent ? "8px" : "5px",
+                padding: isProminent ? "5px 8px" : "4px 6px",
+                fontSize: isProminent ? "12px" : "10px",
+                borderBottom: "1px solid var(--border)"
               }}>
                 <span style={{ 
                   fontWeight: "700", 
@@ -178,9 +190,9 @@ export default function LeaderboardPage() {
                   color: "var(--yellow)", 
                   fontWeight: "700",
                   fontFamily: "JetBrains Mono, monospace",
-                  minWidth: isProminent ? "60px" : "45px",
+                  minWidth: isProminent ? "45px" : "35px",
                   textAlign: "right",
-                  fontSize: isProminent ? "14px" : "12px"
+                  fontSize: isProminent ? "11px" : "10px"
                 }}>
                   {formatValue(entry.value, cat.id)}
                 </span>
@@ -217,8 +229,10 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <div className="page">
-      <div className="app" style={{ width: "min(820px, 100%)" }}>
+    <>
+      {hideScrollbarStyle}
+      <div className="page">
+        <div className="app" style={{ width: "min(820px, 100%)" }}>
         <div className="topbar">
           <div className="brand">
             <img src="https://superwinhub.app/SuperWin_b.png" alt="SuperWinHub" width={24} height={24} style={{ borderRadius: 6, objectFit: "contain" }} />
@@ -260,6 +274,6 @@ export default function LeaderboardPage() {
           </div>
         ))}
       </div>
-    </div>
+    </>
   );
 }
