@@ -73,12 +73,17 @@ export async function GET() {
     }
   }
   
-  // Build leaderboard data
-  const leaderboardData = Array.from(userStats.entries()).map(([userId, stats]) => ({
-    userId,
-    displayName: users?.find(u => u.id === userId)?.display_name || 'Unknown',
-    ...stats
-  }));
+  // Build leaderboard data - use email if display_name is null
+  const leaderboardData = Array.from(userStats.entries()).map(([userId, stats]) => {
+    const user = users?.find(u => u.id === userId);
+    const displayName = user?.display_name || user?.email?.split('@')[0] || 'User';
+    
+    return {
+      userId,
+      displayName,
+      ...stats
+    };
+  });
   
   // Calculate Overall score for each user
   const leaderboardWithOverall = leaderboardData.map(user => {

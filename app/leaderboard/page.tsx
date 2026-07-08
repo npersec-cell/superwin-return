@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 
 interface LeaderboardEntry {
   rank: number;
@@ -37,7 +37,6 @@ export default function LeaderboardPage() {
   const [leaderboards, setLeaderboards] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState<Category>("overall");
 
   useEffect(() => {
     async function fetchData() {
@@ -60,12 +59,10 @@ export default function LeaderboardPage() {
 
     fetchData();
     
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchData, 30000);
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
-
-  const currentData = leaderboards?.[activeCategory] || [];
 
   function formatValue(value: number, category: Category): string {
     if (category === "mostActive") {
@@ -87,7 +84,7 @@ export default function LeaderboardPage() {
         <div className="app" style={{ width: "min(820px, 100%)" }}>
           <div className="topbar">
             <div className="brand">
-              <div className="logo" />
+              <img src="/logo.png" alt="SuperWinHub" width={32} height={32} style={{ borderRadius: 8 }} />
               <div className="brand-text">
                 <h1>SuperWinHub</h1>
                 <span>Leaderboard</span>
@@ -110,7 +107,7 @@ export default function LeaderboardPage() {
       <div className="app" style={{ width: "min(820px, 100%)" }}>
         <div className="topbar">
           <div className="brand">
-            <div className="logo" />
+            <img src="/logo.png" alt="SuperWinHub" width={32} height={32} style={{ borderRadius: 8 }} />
             <div className="brand-text">
               <h1>SuperWinHub</h1>
               <span>Leaderboard</span>
@@ -121,93 +118,58 @@ export default function LeaderboardPage() {
           </div>
         </div>
 
-        <div className="stats">
-          <div className="stat">
-            <div className="label">Last Updated</div>
-            <span className="value">{leaderboards ? "Just now" : "—"}</span>
-          </div>
-        </div>
-
-        <div className="content" style={{ gridTemplateColumns: "1fr 2fr" }}>
-          {/* Left: Category Navigation */}
-          <aside className="side" style={{ gridRow: "1 / 2", borderRight: "1px solid var(--hairline)" }}>
-            <div className="panel" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-              <div className="panel-head">
-                <h3>Categories</h3>
-                <span className="micro">Top 20 each</span>
-              </div>
-              <div style={{ display: "grid", gap: "4px", padding: "10px" }}>
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    className={`button ${activeCategory === cat.id ? "primary" : ""}`}
-                    style={{
-                      width: "100%",
-                      justifyContent: "flex-start",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px"
-                    }}
-                    onClick={() => setActiveCategory(cat.id)}
-                  >
+        {/* All 5 categories shown at once */}
+        <div style={{ display: "grid", gap: "16px" }}>
+          {categories.map((cat) => {
+            const data = leaderboards?.[cat.id] || [];
+            
+            return (
+              <section key={cat.id} className="panel">
+                <div className="panel-head">
+                  <h2 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <span>{cat.icon}</span>
-                    <span>{cat.name}</span>
-                  </button>
-                ))}
-              </div>
-              <div style={{ padding: "12px", borderTop: "1px solid var(--hairline)" }}>
-                <span className="micro">Auto-refresh every 30s</span>
-              </div>
-            </div>
-          </aside>
-
-          {/* Right: Leaderboard List */}
-          <section className="content" style={{ gridRow: "1 / 2", gridColumn: "2" }}>
-            <section className="panel">
-              <div className="panel-head">
-                <h2>{categories.find(c => c.id === activeCategory)?.name}</h2>
-                <span className="micro">
-                  {categories.find(c => c.id === activeCategory)?.desc}
-                </span>
-              </div>
-              
-              {error ? (
-                <div style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>
-                  <span>{error}</span>
+                    {cat.name}
+                  </h2>
+                  <span className="micro">{cat.desc}</span>
                 </div>
-              ) : currentData.length === 0 ? (
-                <div style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>
-                  No data yet. Be the first to appear on the leaderboard!
-                </div>
-              ) : (
-                <div className="leaderboard-body">
-                  {currentData.map((entry) => (
-                    <div key={entry.userId} className="rank">
-                      <div style={{ fontSize: "14px", fontWeight: "700", color: entry.rank <= 3 ? "var(--yellow)" : "var(--text)" }}>
-                        {getRankBadge(entry.rank)}
+                
+                {error ? (
+                  <div style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>
+                    <span>{error}</span>
+                  </div>
+                ) : data.length === 0 ? (
+                  <div style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>
+                    No data yet
+                  </div>
+                ) : (
+                  <div className="leaderboard-body" style={{ maxHeight: "400px", overflowY: "auto" }}>
+                    {data.slice(0, 10).map((entry) => (
+                      <div key={entry.userId} className="rank">
+                        <div style={{ fontSize: "14px", fontWeight: "700", color: entry.rank <= 3 ? "var(--yellow)" : "var(--text)" }}>
+                          {getRankBadge(entry.rank)}
+                        </div>
+                        <div>
+                          <strong style={{ fontSize: "12px", color: "var(--text-strong)" }}>
+                            {entry.displayName || "Anonymous"}
+                          </strong>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <span style={{ 
+                            color: "var(--yellow)", 
+                            fontSize: "13px", 
+                            fontWeight: "700",
+                            fontFamily: "JetBrains Mono, monospace"
+                          }}>
+                            {formatValue(entry.value, cat.id)}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <strong style={{ fontSize: "12px", color: "var(--text-strong)" }}>
-                          {entry.displayName || "Anonymous"}
-                        </strong>
-                        <span className="meta" style={{ fontSize: "9px" }}>ID: {entry.userId.slice(0, 8)}...</span>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <span style={{ 
-                          color: "var(--yellow)", 
-                          fontSize: "13px", 
-                          fontWeight: "700",
-                          fontFamily: "JetBrains Mono, monospace"
-                        }}>
-                          {formatValue(entry.value, activeCategory)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          </section>
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
       </div>
     </div>
