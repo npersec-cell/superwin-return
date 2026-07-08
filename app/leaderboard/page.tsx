@@ -34,7 +34,7 @@ const categories: { id: Category; name: string; icon: string; iconUrl?: string; 
 ];
 
 const layoutRows: { ids: Category[]; height: string }[] = [
-  { ids: ["overall"], height: "280px" },
+  { ids: ["overall"], height: "140px" },
   { ids: ["mostOrangeAmmo", "mostPredictions"], height: "380px" },
   { ids: ["highestSingleWin", "mostActive"], height: "380px" }
 ];
@@ -103,16 +103,19 @@ export default function LeaderboardPage() {
         className="panel"
         style={{ 
           minWidth: 0,
+          maxWidth: "300px",
+          margin: "0 auto",
           border: "2px solid var(--yellow)",
-          background: "linear-gradient(135deg, rgba(255, 225, 0, 0.05) 0%, rgba(255, 225, 0, 0.02) 100%)"
+          background: "linear-gradient(135deg, rgba(255, 225, 0, 0.05) 0%, rgba(255, 225, 0, 0.02) 100%)",
+          padding: "8px"
         }}
       >
-        <div className="panel-head" style={{ paddingBottom: "6px" }}>
+        <div className="panel-head" style={{ paddingBottom: "4px" }}>
           <h2 style={{ 
             display: "flex", 
             alignItems: "center", 
             gap: "6px",
-            fontSize: "13px",
+            fontSize: "12px",
             fontWeight: "800",
             color: "var(--yellow)"
           }}>
@@ -127,18 +130,18 @@ export default function LeaderboardPage() {
         </div>
         
         {error ? (
-          <div style={{ padding: "8px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
+          <div style={{ padding: "4px", textAlign: "center", color: "var(--muted)", fontSize: "10px" }}>
             {error}
           </div>
         ) : data.length === 0 ? (
-          <div style={{ padding: "8px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
+          <div style={{ padding: "4px", textAlign: "center", color: "var(--muted)", fontSize: "10px" }}>
             No data yet
           </div>
         ) : (
           <div style={{ 
             display: "flex",
             flexDirection: "column",
-            gap: "2px"
+            gap: "1px"
           }}>
             {data.slice(0, 10).map((entry) => (
               <div 
@@ -146,9 +149,9 @@ export default function LeaderboardPage() {
                 style={{ 
                   display: "flex",
                   alignItems: "center",
-                  gap: "6px",
-                  padding: "4px 8px",
-                  fontSize: "11px",
+                  gap: "4px",
+                  padding: "2px 6px",
+                  fontSize: "10px",
                   borderBottom: "1px solid var(--border)",
                   transition: "background 0.15s"
                 }}
