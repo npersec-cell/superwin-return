@@ -100,7 +100,7 @@ export default function LeaderboardPage() {
         className="panel"
         style={{ 
           minWidth: 0,
-          height: "410px",
+          height: "550px",
           display: "flex",
           flexDirection: "column",
           border: "2px solid var(--yellow)",
@@ -142,7 +142,7 @@ export default function LeaderboardPage() {
             gap: "2px",
             flexGrow: 1
           }}>
-            {data.slice(0, 10).map((entry) => (
+            {data.slice(0, 15).map((entry) => (
               <div 
                 key={entry.userId + entry.rank}
                 style={{ 
@@ -236,7 +236,7 @@ export default function LeaderboardPage() {
             flexDirection: "column",
             gap: "2px"
           }}>
-            {data.slice(0, 10).map((entry) => (
+            {data.slice(0, 15).map((entry) => (
               <div key={entry.userId + entry.rank} style={{ 
                 display: "flex",
                 alignItems: "center",

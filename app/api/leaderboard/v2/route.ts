@@ -109,11 +109,11 @@ export async function GET() {
     };
   });
   
-  // Create leaderboards for each category (top 20)
+  // Create leaderboards for each category
   const leaderboards = {
     overall: leaderboardWithOverall
       .sort((a, b) => b.overall - a.overall)
-      .slice(0, 20)
+      .slice(0, 15)
       .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, value: u.overall })),
     
     mostOrangeAmmo: leaderboardWithOverall
