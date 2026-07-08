@@ -100,7 +100,7 @@ export default function LeaderboardPage() {
         className="panel"
         style={{ 
           minWidth: 0,
-          height: "550px",
+          height: "410px",
           display: "flex",
           flexDirection: "column",
           border: "2px solid var(--yellow)",
