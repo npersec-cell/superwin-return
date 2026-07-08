@@ -86,6 +86,18 @@ export default function LeaderboardPage() {
 
   // Special component for Overall (prominent)
   function OverallSection({ cat, data }: { cat: { id: Category; name: string; icon: string; desc: string }; data: LeaderboardEntry[] }) {
+    function handleMouseEnter(e: React.MouseEvent<HTMLDivElement>) {
+      e.currentTarget.style.background = "rgba(255, 225, 0, 0.08)";
+      const firstChild = e.currentTarget.firstChild as HTMLElement;
+      if (firstChild) firstChild.style.color = "var(--yellow)";
+    }
+    
+    function handleMouseLeave(e: React.MouseEvent<HTMLDivElement>) {
+      e.currentTarget.style.background = "transparent";
+      const firstChild = e.currentTarget.firstChild as HTMLElement;
+      if (firstChild) firstChild.style.color = "var(--text)";
+    }
+    
     return (
       <section 
         className="panel"
@@ -136,8 +148,8 @@ export default function LeaderboardPage() {
                   borderBottom: "1px solid var(--border)",
                   transition: "background 0.15s"
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255, 225, 0, 0.08)"; (e.currentTarget.firstChild as HTMLElement)?.style.color = "var(--yellow)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; (e.currentTarget.firstChild as HTMLElement)?.style.color = "var(--text)"; }}
+                onMouseEnter={(e) => handleMouseEnter(e)}
+                onMouseLeave={(e) => handleMouseLeave(e)}
               >
                 {/* Rank - big and prominent on the left */}
                 <span style={{ 
