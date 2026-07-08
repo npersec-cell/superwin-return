@@ -34,7 +34,7 @@ const categories: { id: Category; name: string; icon: string; iconUrl?: string; 
 ];
 
 const layoutRows: { ids: Category[]; height: string }[] = [
-  { ids: ["overall"], height: "380px" },
+  { ids: ["overall"], height: "auto" },
   { ids: ["mostOrangeAmmo", "mostPredictions"], height: "380px" },
   { ids: ["highestSingleWin", "mostActive"], height: "380px" }
 ];
@@ -105,15 +105,13 @@ export default function LeaderboardPage() {
           minWidth: 0,
           maxWidth: "100%",
           margin: "0 auto",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
+          minHeight: "380px",
           border: "2px solid var(--yellow)",
           background: "linear-gradient(135deg, rgba(255, 225, 0, 0.05) 0%, rgba(255, 225, 0, 0.02) 100%)",
           padding: "8px"
         }}
       >
-        <div className="panel-head" style={{ paddingBottom: "6px", flexShrink: 0 }}>
+        <div className="panel-head" style={{ paddingBottom: "6px" }}>
           <h2 style={{ 
             display: "flex", 
             alignItems: "center", 
@@ -144,7 +142,7 @@ export default function LeaderboardPage() {
           <div style={{ 
             display: "flex",
             flexDirection: "column",
-            gap: "1px"
+            gap: "2px"
           }}>
             {data.slice(0, 10).map((entry) => (
               <div 
@@ -152,8 +150,8 @@ export default function LeaderboardPage() {
                 style={{ 
                   display: "flex",
                   alignItems: "center",
-                  gap: "4px",
-                  padding: "2px 6px",
+                  gap: "6px",
+                  padding: "4px 8px",
                   fontSize: "10px",
                   borderBottom: "1px solid var(--border)",
                   transition: "background 0.15s"
