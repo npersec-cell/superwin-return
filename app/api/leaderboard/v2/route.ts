@@ -128,7 +128,6 @@ export async function GET() {
       .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, value: u.highestSingleWin })),
     
     mostActive: leaderboardWithOverall
-      .filter(u => u.avgReloadPerDay > 0)
       .sort((a, b) => b.avgReloadPerDay - a.avgReloadPerDay)
       .slice(0, 20)
       .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, value: u.avgReloadPerDay }))
