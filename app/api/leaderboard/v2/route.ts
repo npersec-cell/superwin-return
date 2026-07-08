@@ -20,11 +20,13 @@ function calcLogScore(value: number): number {
 export async function GET() {
   const supabase = createSupabaseAdminClient();
   
-  // Get all users with their stats
+  // Get all users with their stats (exclude admin and test accounts)
   const { data: users, error: usersError } = await supabase
     .from('users')
     .select('id, display_name, email, profit_score, role, created_at, reload_count')
     .neq('role', 'admin')
+    .not('email', 'like', '%test%')
+    .not('email', 'like', '%automated%')
     .order('profit_score', { ascending: false });
   
   if (usersError) {
