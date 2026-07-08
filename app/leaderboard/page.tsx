@@ -27,7 +27,7 @@ type Category = "overall" | "mostOrangeAmmo" | "mostPredictions" | "highestSingl
 
 const categories: { id: Category; name: string; icon: string; iconUrl?: string; desc: string }[] = [
   { id: "overall", name: "Overall", icon: "📊", desc: "Average of all stats" },
-  { id: "mostOrangeAmmo", name: "Most Orange Ammo", iconUrl: "https://superwinhub.app/ammo-icon.webp", desc: "Highest profit score" },
+  { id: "mostOrangeAmmo", name: "Most Orange Ammo", icon: "🟠", iconUrl: "https://superwinhub.app/ammo-icon.webp", desc: "Highest profit score" },
   { id: "mostPredictions", name: "Most Predictions", icon: "🎯", desc: "Most predictions made" },
   { id: "highestSingleWin", name: "Highest Single Win", icon: "🏆", desc: "Biggest single profit" },
   { id: "mostActive", name: "Most Active", icon: "⚡", desc: "Avg reloads per day" }
