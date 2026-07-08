@@ -18,6 +18,16 @@ interface LeaderboardData {
   mostActive: LeaderboardEntry[];
 }
 
+interface LiveBet {
+  userId: string;
+  displayName: string;
+  predictionId: string;
+  predictionTitle: string;
+  optionName: string;
+  amount: number;
+  createdAt: string;
+}
+
 type Category = "overall" | "mostOrangeAmmo" | "mostPredictions" | "highestSingleWin" | "mostActive";
 
 const categories: { id: Category; name: string; icon: string; iconUrl?: string; desc: string }[] = [
@@ -30,20 +40,30 @@ const categories: { id: Category; name: string; icon: string; iconUrl?: string; 
 
 export default function LeaderboardPage() {
   const [leaderboards, setLeaderboards] = useState<LeaderboardData | null>(null);
+  const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await fetch(`/api/leaderboard/v2?t=${Date.now()}`);
-        const data = await response.json();
+        // Fetch leaderboard
+        const leaderboardResponse = await fetch(`/api/leaderboard/v2?t=${Date.now()}`);
+        const leaderboardData = await leaderboardResponse.json();
         
-        if (data.leaderboards) {
-          setLeaderboards(data.leaderboards);
+        if (leaderboardData.leaderboards) {
+          setLeaderboards(leaderboardData.leaderboards);
           setError(null);
         } else {
-          setError(data.error || "Failed to load leaderboard");
+          setError(leaderboardData.error || "Failed to load leaderboard");
+        }
+        
+        // Fetch live bets
+        const betsResponse = await fetch(`/api/live-bets?t=${Date.now()}`);
+        const betsData = await betsResponse.json();
+        
+        if (betsData.ok && betsData.data) {
+          setLiveBets(betsData.data);
         }
       } catch (e) {
         setError("Failed to load leaderboard");
@@ -304,6 +324,92 @@ export default function LeaderboardPage() {
             <Link href="/" className="button">← Back to Home</Link>
           </div>
         </div>
+
+        {/* Live Bets Section */}
+        {liveBets.length > 0 && (
+          <div className="panel" style={{ 
+            marginBottom: "16px",
+            border: "1px solid rgba(255, 225, 0, 0.3)",
+            background: "rgba(255, 225, 0, 0.05)"
+          }}>
+            <div style={{ 
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "12px",
+              padding: "8px 12px",
+              borderBottom: "1px solid var(--border)"
+            }}>
+              <span style={{ fontSize: "14px" }}>🎯</span>
+              <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)" }}>LIVE BIG BETS</span>
+              <span style={{ fontSize: "10px", color: "var(--muted)" }}>กำลังรอผล</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              {liveBets.map((bet, index) => {
+                const date = new Date(bet.createdAt);
+                const timeStr = date.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+                return (
+                  <div 
+                    key={bet.userId + bet.predictionId + bet.createdAt}
+                    style={{ 
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "8px 12px",
+                      fontSize: "12px"
+                    }}
+                  >
+                    <span style={{ 
+                      width: "18px",
+                      height: "18px",
+                      borderRadius: "50%",
+                      background: "var(--yellow-soft)",
+                      display: "grid",
+                      placeItems: "center",
+                      fontSize: "10px",
+                      fontWeight: "700",
+                      color: "var(--yellow)"
+                    }}>
+                      {index + 1}
+                    </span>
+                    
+                    <span style={{ 
+                      flex: 1,
+                      color: "var(--text)",
+                      fontWeight: "600",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis"
+                    }}>
+                      {bet.displayName}
+                    </span>
+                    
+                    <span style={{ 
+                      color: "var(--muted)",
+                      fontSize: "11px"
+                    }}>
+                      {bet.predictionTitle}
+                    </span>
+                    
+                    <span style={{ 
+                      color: "var(--yellow)",
+                      fontWeight: "700",
+                      fontFamily: "JetBrains Mono, monospace",
+                      minWidth: "60px",
+                      textAlign: "right"
+                    }}>
+                      {bet.amount.toLocaleString()} 🟠
+                    </span>
+                    
+                    <span style={{ fontSize: "10px", color: "var(--muted)" }}>
+                      {timeStr}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Overall - single row */}
         <div style={{ marginBottom: "16px" }}>
