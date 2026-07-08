@@ -34,9 +34,9 @@ const categories: { id: Category; name: string; icon: string; iconUrl?: string; 
 ];
 
 const layoutRows: { ids: Category[]; height: string }[] = [
-  { ids: ["overall"], height: "380px" },
-  { ids: ["mostOrangeAmmo", "mostPredictions"], height: "320px" },
-  { ids: ["highestSingleWin", "mostActive"], height: "320px" }
+  { ids: ["overall"], height: "280px" },
+  { ids: ["mostOrangeAmmo", "mostPredictions"], height: "380px" },
+  { ids: ["highestSingleWin", "mostActive"], height: "380px" }
 ];
 
 export default function LeaderboardPage() {
@@ -197,10 +197,9 @@ export default function LeaderboardPage() {
     cat, 
     data, 
     maxHeight = "320px" 
-  }: { 
+  ): { 
     cat: { id: Category; name: string; icon: string; iconUrl?: string; desc: string };
     data: LeaderboardEntry[];
-    maxHeight?: string;
   }) {
     return (
       <section className="panel" style={{ minWidth: 0 }}>
@@ -224,27 +223,25 @@ export default function LeaderboardPage() {
         </div>
         
         {error ? (
-          <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
+          <div style={{ padding: "8px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
             {error}
           </div>
         ) : data.length === 0 ? (
-          <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
+          <div style={{ padding: "8px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
             No data
           </div>
         ) : (
-          <div className="leaderboard-scroll" style={{ 
-            maxHeight: "260px", 
-            overflowY: "auto",
+          <div style={{ 
             display: "flex",
             flexDirection: "column",
-            gap: "3px"
+            gap: "2px"
           }}>
             {data.slice(0, 10).map((entry) => (
               <div key={entry.userId} style={{ 
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
-                padding: "5px 8px",
+                padding: "4px 8px",
                 fontSize: "11px",
                 borderBottom: "1px solid var(--border)"
               }}>
@@ -330,7 +327,7 @@ export default function LeaderboardPage() {
             key={rowIdx}
             style={{ 
               display: "grid",
-              gridTemplateColumns: `repeat(${row.ids.length}, 1fr)`,
+              gridTemplateColumns: row.ids.length === 1 ? "1fr" : "repeat(2, 1fr)",
               gap: "12px",
               marginBottom: rowIdx < layoutRows.length - 1 ? "16px" : 0
             }}
@@ -349,7 +346,6 @@ export default function LeaderboardPage() {
                   key={catId}
                   cat={cat}
                   data={data}
-                  maxHeight={row.height}
                 />
               );
             })}
