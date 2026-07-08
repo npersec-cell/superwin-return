@@ -8,19 +8,33 @@ export async function POST(request: Request) {
     const supabase = createSupabaseAdminClient();
     const userId = user.id;
     
-    // Update reload_count and last_seen_at
-    const { data, error } = await supabase
+    // Get current reload_count first
+    const { data: currentUser, error: fetchError } = await supabase
       .from('users')
-      .update({
-        reload_count: supabase.raw('COALESCE(reload_count, 0) + 1'),
-        last_seen_at: new Date()
-      })
+      .select('reload_count, created_at')
       .eq('id', userId)
-      .select('reload_count, last_seen_at')
       .single();
     
-    if (error) {
-      console.error('Error updating reload count:', error);
+    if (fetchError || !currentUser) {
+      return new Response(
+        JSON.stringify({ error: 'User not found' }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const newReloadCount = (currentUser.reload_count || 0) + 1;
+    
+    // Update reload_count and last_seen_at
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        reload_count: newReloadCount,
+        last_seen_at: new Date()
+      })
+      .eq('id', userId);
+    
+    if (updateError) {
+      console.error('Error updating reload count:', updateError);
       return new Response(
         JSON.stringify({ error: 'Failed to update reload count' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -30,8 +44,8 @@ export async function POST(request: Request) {
     return new Response(
       JSON.stringify({ 
         ok: true, 
-        reloadCount: data?.reload_count || 0,
-        lastSeenAt: data?.last_seen_at 
+        reloadCount: newReloadCount,
+        lastSeenAt: new Date().toISOString()
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
