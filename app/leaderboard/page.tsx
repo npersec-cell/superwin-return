@@ -85,7 +85,7 @@ export default function LeaderboardPage() {
   }
 
   // Special component for Overall (prominent)
-  function OverallSection({ cat, data }: { cat: { id: Category; name: string; icon: string; desc: string }; data: LeaderboardEntry[] }) {
+  function OverallSection({ cat, data }: { cat: { id: Category; name: string; icon: string; iconUrl?: string; desc: string }; data: LeaderboardEntry[] }) {
     function handleMouseEnter(e: React.MouseEvent<HTMLDivElement>) {
       e.currentTarget.style.background = "rgba(255, 225, 0, 0.08)";
       const firstChild = e.currentTarget.firstChild as HTMLElement;
