@@ -33,6 +33,16 @@ const categories: { id: Category; name: string; icon: string; desc: string }[] =
   { id: "mostActive", name: "Most Active", icon: "⚡", desc: "Avg reloads per day" }
 ];
 
+// Layout: 3 rows
+// Row 1: Overall (full width, prominent)
+// Row 2: Most Orange Ammo | Most Predictions (2 columns)
+// Row 3: Highest Single Win | Most Active (2 columns)
+const layoutRows: { ids: Category[]; height: string }[] = [
+  { ids: ["overall"], height: "auto" },
+  { ids: ["mostOrangeAmmo", "mostPredictions"], height: "320px" },
+  { ids: ["highestSingleWin", "mostActive"], height: "320px" }
+];
+
 export default function LeaderboardPage() {
   const [leaderboards, setLeaderboards] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,6 +88,110 @@ export default function LeaderboardPage() {
     return `${rank}`;
   }
 
+  function CategorySection({ 
+    cat, 
+    data, 
+    isProminent = false, 
+    maxHeight = "320px" 
+  }: { 
+    cat: { id: Category; name: string; icon: string; desc: string };
+    data: LeaderboardEntry[];
+    isProminent?: boolean;
+    maxHeight?: string;
+  }) {
+    return (
+      <section 
+        className={isProminent ? "panel" : "panel"}
+        style={{ 
+          minWidth: 0,
+          ...(isProminent ? { 
+            border: "2px solid var(--yellow)",
+            background: "linear-gradient(135deg, rgba(255, 225, 0, 0.05) 0%, rgba(255, 225, 0, 0.02) 100%)"
+          } : {})
+        }}
+      >
+        <div className="panel-head" style={{ 
+          paddingBottom: isProminent ? "12px" : "8px"
+        }}>
+          <h2 style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: isProminent ? "10px" : "6px",
+            fontSize: isProminent ? "16px" : "12px",
+            fontWeight: "800",
+            color: isProminent ? "var(--yellow)" : "var(--text)"
+          }}>
+            <span style={{ fontSize: isProminent ? "20px" : "14px" }}>{cat.icon}</span>
+            {cat.name}
+          </h2>
+          <span className="micro" style={{ 
+            fontSize: isProminent ? "12px" : "10px", 
+            opacity: 0.7
+          }}>{cat.desc}</span>
+        </div>
+        
+        {error ? (
+          <div style={{ padding: "16px", textAlign: "center", color: "var(--muted)", fontSize: "12px" }}>
+            {error}
+          </div>
+        ) : data.length === 0 ? (
+          <div style={{ padding: "16px", textAlign: "center", color: "var(--muted)", fontSize: "12px" }}>
+            No data yet
+          </div>
+        ) : (
+          <div style={{ 
+            maxHeight: isProminent ? "400px" : maxHeight, 
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column",
+            gap: isProminent ? "6px" : "4px"
+          }}>
+            {data.slice(0, isProminent ? 20 : 15).map((entry) => (
+              <div key={entry.userId} style={{ 
+                display: "flex",
+                alignItems: "center",
+                gap: isProminent ? "10px" : "6px",
+                padding: isProminent ? "8px 12px" : "6px 8px",
+                fontSize: isProminent ? "13px" : "11px",
+                borderBottom: "1px solid var(--border)",
+                transition: "background 0.15s"
+              }}>
+                <span style={{ 
+                  fontWeight: "700", 
+                  color: entry.rank <= 3 ? "var(--yellow)" : "var(--text)",
+                  width: isProminent ? "24px" : "16px",
+                  textAlign: "center"
+                }}>
+                  {getRankBadge(entry.rank)}
+                </span>
+                <strong style={{ 
+                  flex: 1, 
+                  color: "var(--text-strong)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  fontWeight: "600"
+                }}>
+                  {entry.displayName || "Anonymous"}
+                </strong>
+                <span style={{ 
+                  color: "var(--yellow)", 
+                  fontWeight: "700",
+                  fontFamily: "JetBrains Mono, monospace",
+                  minWidth: isProminent ? "60px" : "45px",
+                  textAlign: "right",
+                  fontSize: isProminent ? "14px" : "12px"
+                }}>
+                  {formatValue(entry.value, cat.id)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  }
+
   if (loading) {
     return (
       <div className="page">
@@ -103,105 +217,48 @@ export default function LeaderboardPage() {
   }
 
   return (
-      <div className="page">
-        <div className="app" style={{ width: "min(820px, 100%)" }}>
-          <div className="topbar">
-            <div className="brand">
-              <img src="https://superwinhub.app/SuperWin_b.png" alt="SuperWinHub" width={24} height={24} style={{ borderRadius: 6, objectFit: "contain" }} />
-              <div className="brand-text">
-                <h1>SuperWinHub</h1>
-                <span>Leaderboard</span>
-              </div>
-            </div>
-            <div className="actions">
-              <Link href="/" className="button">← Back to Home</Link>
+    <div className="page">
+      <div className="app" style={{ width: "min(820px, 100%)" }}>
+        <div className="topbar">
+          <div className="brand">
+            <img src="https://superwinhub.app/SuperWin_b.png" alt="SuperWinHub" width={24} height={24} style={{ borderRadius: 6, objectFit: "contain" }} />
+            <div className="brand-text">
+              <h1>SuperWinHub</h1>
+              <span>Leaderboard</span>
             </div>
           </div>
-
-        {/* All 5 categories shown at once - HORIZONTAL layout */}
-        <div style={{ 
-          display: "grid", 
-          gridTemplateColumns: "repeat(5, 1fr)", 
-          gap: "12px",
-          alignItems: "start"
-        }}>
-          {categories.map((cat) => {
-            const data = leaderboards?.[cat.id] || [];
-            
-            return (
-              <section key={cat.id} className="panel" style={{ minWidth: 0 }}>
-                <div className="panel-head" style={{ paddingBottom: "8px" }}>
-                  <h2 style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: "6px",
-                    fontSize: "12px",
-                    fontWeight: "700"
-                  }}>
-                    <span>{cat.icon}</span>
-                    {cat.name}
-                  </h2>
-                  <span className="micro" style={{ fontSize: "10px" }}>{cat.desc}</span>
-                </div>
-                
-                {error ? (
-                  <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
-                    {error}
-                  </div>
-                ) : data.length === 0 ? (
-                  <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", fontSize: "11px" }}>
-                    No data
-                  </div>
-                ) : (
-                  <div style={{ 
-                    maxHeight: "320px", 
-                    overflowY: "auto",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "4px"
-                  }}>
-                    {data.slice(0, 15).map((entry) => (
-                      <div key={entry.userId} style={{ 
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        padding: "6px 8px",
-                        fontSize: "11px",
-                        borderBottom: "1px solid var(--border)"
-                      }}>
-                        <span style={{ 
-                          fontWeight: "700", 
-                          color: entry.rank <= 3 ? "var(--yellow)" : "var(--text)",
-                          width: "14px"
-                        }}>
-                          {getRankBadge(entry.rank)}
-                        </span>
-                        <strong style={{ 
-                          flex: 1, 
-                          color: "var(--text-strong)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis"
-                        }}>
-                          {entry.displayName || "Anonymous"}
-                        </strong>
-                        <span style={{ 
-                          color: "var(--yellow)", 
-                          fontWeight: "700",
-                          fontFamily: "JetBrains Mono, monospace",
-                          minWidth: "40px",
-                          textAlign: "right"
-                        }}>
-                          {formatValue(entry.value, cat.id)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            );
-          })}
+          <div className="actions">
+            <Link href="/" className="button">← Back to Home</Link>
+          </div>
         </div>
+
+        {/* 3-row layout */}
+        {layoutRows.map((row, rowIdx) => (
+          <div 
+            key={rowIdx}
+            style={{ 
+              display: "grid",
+              gridTemplateColumns: `repeat(${row.ids.length}, 1fr)`,
+              gap: "12px",
+              marginBottom: rowIdx < layoutRows.length - 1 ? "16px" : 0
+            }}
+          >
+            {row.ids.map((catId) => {
+              const cat = categories.find(c => c.id === catId)!;
+              const data = leaderboards?.[catId] || [];
+              
+              return (
+                <CategorySection
+                  key={catId}
+                  cat={cat}
+                  data={data}
+                  isProminent={catId === "overall"}
+                  maxHeight={row.height}
+                />
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
