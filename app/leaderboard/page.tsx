@@ -229,7 +229,7 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <>
+    <div>
       {hideScrollbarStyle}
       <div className="page">
         <div className="app" style={{ width: "min(820px, 100%)" }}>
@@ -274,6 +274,6 @@ export default function LeaderboardPage() {
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
