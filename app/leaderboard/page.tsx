@@ -38,9 +38,9 @@ const categories: { id: Category; name: string; icon: string; desc: string }[] =
 // Row 2: Most Orange Ammo | Most Predictions (2 columns)
 // Row 3: Highest Single Win | Most Active (2 columns)
 const layoutRows: { ids: Category[]; height: string }[] = [
-  { ids: ["overall"], height: "220px" },
-  { ids: ["mostOrangeAmmo", "mostPredictions"], height: "180px" },
-  { ids: ["highestSingleWin", "mostActive"], height: "180px" }
+  { ids: ["overall"], height: "380px" },
+  { ids: ["mostOrangeAmmo", "mostPredictions"], height: "320px" },
+  { ids: ["highestSingleWin", "mostActive"], height: "320px" }
 ];
 
 export default function LeaderboardPage() {
@@ -140,13 +140,13 @@ export default function LeaderboardPage() {
           </div>
         ) : (
           <div className="leaderboard-scroll" style={{ 
-            maxHeight: isProminent ? "160px" : "140px", 
+            maxHeight: isProminent ? "300px" : "260px", 
             overflowY: "auto",
             display: "flex",
             flexDirection: "column",
             gap: isProminent ? "4px" : "3px"
           }}>
-            {data.slice(0, isProminent ? 12 : 10).map((entry) => (
+            {data.slice(0, 10).map((entry) => (
               <div key={entry.userId} style={{ 
                 display: "flex",
                 alignItems: "center",
