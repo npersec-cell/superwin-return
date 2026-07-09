@@ -1549,9 +1549,13 @@ export default function SuperWinPrototype() {
                           fontWeight: "700",
                           fontFamily: "JetBrains Mono, monospace",
                           minWidth: "55px",
-                          textAlign: "right"
+                          textAlign: "right",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "2px"
                         }}>
-                          {bet.amount.toLocaleString()} 🟠
+                          {bet.amount.toLocaleString()}
+                          <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="14" height="14" style={{ display: "inline-block", verticalAlign: "middle" }} />
                         </span>
                         
                         <span style={{ fontSize: "9px", color: "var(--muted)" }}>
