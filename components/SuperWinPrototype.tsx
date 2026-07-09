@@ -1669,7 +1669,19 @@ export default function SuperWinPrototype() {
         <ProfileModal profile={selectedProfile} onClose={closeProfile} />
       )}
       {selectedLiveBet && (
-        <LiveBetModal bet={selectedLiveBet} onClose={() => setSelectedLiveBet(null)} />
+        <LiveBetModal 
+          bet={{
+            userId: selectedLiveBet.userId,
+            displayName: selectedLiveBet.displayName,
+            predictionId: selectedLiveBet.predictionId,
+            predictionTitle: selectedLiveBet.predictionTitle,
+            tournamentName: selectedLiveBet.tournamentName,
+            optionLabel: selectedLiveBet.optionLabel,
+            amount: selectedLiveBet.amount,
+            createdAt: selectedLiveBet.createdAt
+          }} 
+          onClose={() => setSelectedLiveBet(null)} 
+        />
       )}
     </main>
   );
