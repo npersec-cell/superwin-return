@@ -48,6 +48,8 @@ export async function GET() {
         }
       }
     }
+    // Debug: log prediction data to check structure
+    console.log('Prediction:', pred.id, 'options:', pred.options);
   }
   
   // Map users and predictions
@@ -59,6 +61,9 @@ export async function GET() {
     const user = userMap.get(entry.user_id);
     const prediction = predictionMap.get(entry.prediction_id);
     const optionLabel = entry.option_id ? optionLabels[entry.option_id] : 'Option';
+    
+    // Debug: log entry data
+    console.log('Entry:', entry, 'optionLabel:', optionLabel, 'prediction:', prediction);
     
     return {
       userId: entry.user_id,
