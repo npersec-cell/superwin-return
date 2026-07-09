@@ -1539,8 +1539,6 @@ export default function SuperWinPrototype() {
                           overflow: "hidden",
                           textOverflow: "ellipsis"
                         }}>
-                          {/* Debug */}
-                          {console.log('Live bet item:', bet)}
                           {bet.displayName}
                         </span>
                         
