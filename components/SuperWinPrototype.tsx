@@ -1483,6 +1483,10 @@ export default function SuperWinPrototype() {
                 }}>
                   <span style={{ fontSize: "14px" }}>💥</span>
                   <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)" }}>LIVE BIG PREDICT</span>
+                  <span style={{ fontSize: "10px", color: "var(--muted)" }}>
+                    ≥1,000&nbsp;
+                    <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
+                  </span>
                 </div>
                 
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
