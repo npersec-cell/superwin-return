@@ -35,21 +35,22 @@ export async function GET() {
   const predictionIds = [...new Set(entries.map(e => e.prediction_id))];
   const { data: predictions } = await supabase
     .from('predictions')
-    .select('id, question, tournament_name, options')
+    .select('id, question, tournament_name')
     .in('id', predictionIds);
   
-  // Get option labels from prediction_options
+  // Get option labels from prediction_options table
+  const optionIds = [...new Set(entries.map(e => e.option_id))];
+  const { data: optionRows } = await supabase
+    .from('prediction_options')
+    .select('id, label')
+    .in('id', optionIds);
+  
+  // Build option labels map
   const optionLabels: Record<string, string> = {};
-  for (const pred of predictions || []) {
-    if (pred.options && Array.isArray(pred.options)) {
-      for (const opt of pred.options) {
-        if (opt.id && opt.label) {
-          optionLabels[opt.id] = opt.label;
-        }
-      }
+  for (const opt of optionRows || []) {
+    if (opt.id && opt.label) {
+      optionLabels[opt.id] = opt.label;
     }
-    // Debug: log prediction data to check structure
-    console.log('Prediction:', pred.id, 'options:', pred.options);
   }
   
   // Map users and predictions
@@ -61,9 +62,6 @@ export async function GET() {
     const user = userMap.get(entry.user_id);
     const prediction = predictionMap.get(entry.prediction_id);
     const optionLabel = entry.option_id ? optionLabels[entry.option_id] : 'Option';
-    
-    // Debug: log entry data
-    console.log('Entry:', entry, 'optionLabel:', optionLabel, 'prediction:', prediction);
     
     return {
       userId: entry.user_id,

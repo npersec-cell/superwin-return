@@ -1538,7 +1538,7 @@ export default function SuperWinPrototype() {
                           color: "var(--muted)",
                           fontSize: "10px"
                         }}>
-                          {bet.predictionTitle}
+                          {bet.tournamentName} · {bet.optionLabel}
                         </span>
                         
                         <span style={{ 
@@ -1865,12 +1865,19 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <div style={{ fontSize: "11px", color: "var(--muted)" }}>Tournament</div>
             <div style={{ fontSize: "13px", color: "var(--text)" }}>
-              🏆 {bet.predictionTitle}
+              🏆 {bet.tournamentName}
             </div>
           </div>
           
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <div style={{ fontSize: "11px", color: "var(--muted)" }}>Prediction</div>
+            <div style={{ fontSize: "13px", color: "var(--text)" }}>
+              🎯 {bet.predictionTitle}
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Option</div>
             <div style={{ fontSize: "13px", color: "var(--text)" }}>
               🎯 {bet.optionLabel}
             </div>
