@@ -387,6 +387,19 @@ export default function SuperWinPrototype() {
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
   const [reportSuccess, setReportSuccess] = useState(false);
+  
+  // LIVE BIG BETS
+  interface LiveBet {
+    userId: string;
+    displayName: string;
+    predictionId: string;
+    predictionTitle: string;
+    optionName: string;
+    amount: number;
+    createdAt: string;
+  }
+  const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
+  const [liveBetsLoading, setLiveBetsLoading] = useState(true);
 
   // DEV BYPASS: Check for dev_bypass cookie OR URL param on mount
   useEffect(() => {
@@ -514,6 +527,30 @@ export default function SuperWinPrototype() {
       fetch("/api/track-reload", { method: "POST" }).catch(() => {});
     }
   }, [isSignedIn]);
+
+  // Load LIVE BIG BETS
+  useEffect(() => {
+    async function fetchLiveBets() {
+      setLiveBetsLoading(true);
+      try {
+        const response = await fetch("/api/live-bets");
+        const data = await response.json();
+        if (data.ok && data.data) {
+          setLiveBets(data.data.slice(0, 2)); // Show only top 2
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLiveBetsLoading(false);
+      }
+    }
+
+    fetchLiveBets();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchLiveBets, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const marquee = marqueeRef.current;
@@ -1412,6 +1449,94 @@ export default function SuperWinPrototype() {
                 })}
               </div>
             </section>
+            
+            {/* LIVE BIG BETS - กำลังรอผล (≥1,000 🟠) */}
+            {liveBets.length > 0 && (
+              <section className="panel" style={{ 
+                border: "1px solid rgba(255, 225, 0, 0.3)",
+                background: "rgba(255, 225, 0, 0.05)",
+                marginBottom: "12px"
+              }}>
+                <div style={{ 
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "8px",
+                  padding: "8px 12px",
+                  borderBottom: "1px solid var(--border)"
+                }}>
+                  <span style={{ fontSize: "14px" }}>💥</span>
+                  <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)" }}>LIVE BIG BETS</span>
+                  <span style={{ fontSize: "10px", color: "var(--muted)" }}>กำลังรอผล (≥1,000 <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="10" height="10" style={{ display: "inline-block", verticalAlign: "middle", marginLeft: "2px" }} />)</span>
+                </div>
+                
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {liveBets.slice(0, 2).map((bet, index) => {
+                    const date = new Date(bet.createdAt);
+                    const timeStr = date.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+                    return (
+                      <div 
+                        key={bet.userId + bet.predictionId + bet.createdAt}
+                        style={{ 
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "6px 10px",
+                          fontSize: "11px"
+                        }}
+                      >
+                        <span style={{ 
+                          width: "16px",
+                          height: "16px",
+                          borderRadius: "50%",
+                          background: "var(--yellow-soft)",
+                          display: "grid",
+                          placeItems: "center",
+                          fontSize: "9px",
+                          fontWeight: "700",
+                          color: "var(--yellow)"
+                        }}>
+                          {index + 1}
+                        </span>
+                        
+                        <span style={{ 
+                          flex: 1,
+                          color: "var(--text)",
+                          fontWeight: "600",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis"
+                        }}>
+                          {bet.displayName}
+                        </span>
+                        
+                        <span style={{ 
+                          color: "var(--muted)",
+                          fontSize: "10px"
+                        }}>
+                          {bet.predictionTitle}
+                        </span>
+                        
+                        <span style={{ 
+                          color: "var(--yellow)",
+                          fontWeight: "700",
+                          fontFamily: "JetBrains Mono, monospace",
+                          minWidth: "55px",
+                          textAlign: "right"
+                        }}>
+                          {bet.amount.toLocaleString()} 🟠
+                        </span>
+                        
+                        <span style={{ fontSize: "9px", color: "var(--muted)" }}>
+                          {timeStr}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+            
             <section className="panel" style={{ border: "1px solid var(--yellow)", background: "linear-gradient(135deg, rgba(255,225,0,0.06) 0%, var(--card) 60%)" }}>
               <div className="panel-head">
                 <h3 style={{ color: "var(--yellow)" }}>NUMBER WAR</h3>
