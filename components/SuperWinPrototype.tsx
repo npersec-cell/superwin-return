@@ -1853,7 +1853,7 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <div style={{ fontSize: "11px", color: "var(--muted)" }}>User</div>
             <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--yellow)" }}>
-              {bet.displayName}
+              {maskName(bet.displayName)}
             </div>
           </div>
           
