@@ -1539,7 +1539,9 @@ export default function SuperWinPrototype() {
                           overflow: "hidden",
                           textOverflow: "ellipsis"
                         }}>
-                          {bet.displayName || bet.userId?.slice(0, 8) || 'User'}
+                          {/* Debug */}
+                          {console.log('Live bet item:', bet)}
+                          {bet.displayName}
                         </span>
                         
                         <span style={{ 
