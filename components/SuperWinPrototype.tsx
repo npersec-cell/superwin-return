@@ -551,22 +551,8 @@ export default function SuperWinPrototype() {
         const response = await fetch("/api/live-bets");
         const data = await response.json();
         if (data.ok && data.data) {
-          // Debug: log raw data
-          console.log('Live bets raw data:', data.data);
-          
-          // Convert API response to LiveBet type
-          setLiveBets(data.data.slice(0, 2).map((item: Record<string, unknown>) => ({
-            userId: item.userId as string,
-            displayName: (item.displayName as string) || 'Unknown User',
-            predictionId: item.predictionId as string,
-            predictionTitle: item.predictionTitle as string,
-            tournamentName: (item.tournamentName as string) || 'PUBG Mobile Esports',
-            optionLabel: (item.optionLabel as string) || 'Option',
-            amount: item.amount as number,
-            createdAt: item.createdAt as string
-          })));
-          
-          console.log('Live bets after conversion:', liveBets);
+          // Direct assignment without conversion
+          setLiveBets(data.data.slice(0, 2));
         }
       } catch {
         // ignore
@@ -1500,7 +1486,7 @@ export default function SuperWinPrototype() {
                 </div>
                 
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  {liveBets.slice(0, 2).map((bet: LiveBet & { tournamentName?: string; optionLabel?: string }, index) => {
+                  {liveBets.slice(0, 2).map((bet: any, index: number) => {
                     const date = new Date(bet.createdAt);
                     const timeStr = date.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
                     return (
@@ -1539,7 +1525,7 @@ export default function SuperWinPrototype() {
                           overflow: "hidden",
                           textOverflow: "ellipsis"
                         }}>
-                          {bet.displayName}
+                          {bet.displayName || bet.userId?.slice(0, 8) || 'User'}
                         </span>
                         
                         <span style={{ 
