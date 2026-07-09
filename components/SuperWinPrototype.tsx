@@ -1529,7 +1529,7 @@ export default function SuperWinPrototype() {
                           overflow: "hidden",
                           textOverflow: "ellipsis"
                         }}>
-                          {bet.displayName || bet.userId?.slice(0, 8) || 'User'}
+                          {censorName(bet.displayName || bet.userId?.slice(0, 8) || 'User')}
                         </span>
                         
                         <span style={{ 
