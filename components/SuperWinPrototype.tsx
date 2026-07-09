@@ -400,6 +400,7 @@ export default function SuperWinPrototype() {
   }
   const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
   const [liveBetsLoading, setLiveBetsLoading] = useState(true);
+  const [selectedLiveBet, setSelectedLiveBet] = useState<LiveBet | null>(null);
 
   // DEV BYPASS: Check for dev_bypass cookie OR URL param on mount
   useEffect(() => {
@@ -1477,12 +1478,15 @@ export default function SuperWinPrototype() {
                     return (
                       <div 
                         key={bet.userId + bet.predictionId + bet.createdAt}
+                        onClick={() => setSelectedLiveBet(bet)}
                         style={{ 
                           display: "flex",
                           alignItems: "center",
                           gap: "8px",
                           padding: "6px 10px",
-                          fontSize: "11px"
+                          fontSize: "11px",
+                          cursor: "pointer",
+                          transition: "background 0.15s"
                         }}
                       >
                         <span style={{ 
@@ -1643,6 +1647,9 @@ export default function SuperWinPrototype() {
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={closeProfile} />
       )}
+      {selectedLiveBet && (
+        <LiveBetModal bet={selectedLiveBet} onClose={() => setSelectedLiveBet(null)} />
+      )}
     </main>
   );
 }
@@ -1801,6 +1808,71 @@ function ProfileModal({
               </div>
               </>
           )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
+  const date = new Date(bet.createdAt);
+  const formattedDate = date.toLocaleString("th-TH", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  
+  return (
+    <section className="modal" aria-label="Live Bet Details" onClick={(event) => event.target === event.currentTarget && onClose()}>
+      <div className="modal-card" style={{ maxWidth: "400px" }}>
+        <div className="modal-head">
+          <h3>💥 Live Predict Details</h3>
+          <button className="button" onClick={onClose}>Close</button>
+        </div>
+        <div className="modal-body" style={{ gap: "14px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ fontSize: "11px", color: "var(--muted)" }}>User</div>
+            <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--yellow)" }}>
+              {bet.displayName}
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Tournament</div>
+            <div style={{ fontSize: "13px", color: "var(--text)" }}>
+              🏆 {bet.predictionTitle}
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Prediction</div>
+            <div style={{ fontSize: "13px", color: "var(--text)" }}>
+              🎯 {bet.optionName}
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Amount</div>
+            <div style={{ fontSize: "16px", fontWeight: "700", color: "var(--yellow)" }}>
+              {bet.amount.toLocaleString()} <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="18" height="18" style={{ display: "inline-block", verticalAlign: "middle", marginLeft: "4px" }} />
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Status</div>
+            <div style={{ fontSize: "13px", color: "var(--text-weak)" }}>
+              ⏳ Waiting for result...
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Placed at</div>
+            <div style={{ fontSize: "12px", color: "var(--text-weak)" }}>
+              {formattedDate}
+            </div>
+          </div>
         </div>
       </div>
     </section>
