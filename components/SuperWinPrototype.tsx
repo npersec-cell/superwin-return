@@ -199,6 +199,9 @@ type LiveBet = {
   createdAt: string;
 };
 
+// Ensure LiveBet is recognized by TypeScript
+export type { LiveBet };
+
 declare global {
   interface Window {
     google?: {
