@@ -507,6 +507,14 @@ export default function SuperWinPrototype() {
     return () => { clearInterval(interval); clearInterval(lbInterval); };
   }, []);
 
+  // Track reload when user signs in (Clerk might take a moment to load)
+  useEffect(() => {
+    if (isSignedIn) {
+      console.log('[SuperWinPrototype] isSignedIn changed to true, calling track-reload');
+      fetch("/api/track-reload", { method: "POST" }).catch(() => {});
+    }
+  }, [isSignedIn]);
+
   useEffect(() => {
     const marquee = marqueeRef.current;
     const container = marqueeContainerRef.current;
@@ -761,11 +769,14 @@ export default function SuperWinPrototype() {
   }
 
   async function loadOpenPredictions() {
-    // Track reload for leaderboard
+    // Track reload for leaderboard - ต้องรอให้ Clerk โหลดข้อมูลผู้ใช้เสร็จก่อน
     if (devBypass || isSignedIn) {
       try {
         await fetch("/api/track-reload", { method: "POST" });
-      } catch { /* ignore */ }
+        console.log('[SuperWinPrototype] track-reload called, isSignedIn:', isSignedIn);
+      } catch (err) {
+        console.error('[SuperWinPrototype] track-reload error:', err);
+      }
     }
     
     const response = await fetch("/api/predictions/open");
