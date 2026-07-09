@@ -9,7 +9,7 @@ export async function GET() {
     .from('users')
     .select('id, email, display_name, reload_count, created_at, last_seen_at')
     .order('reload_count', { ascending: false })
-    .limit(20);
+    .limit(50); // ดู 50 คนเพื่อหา pubgmth
   
   if (error) {
     return new Response(
@@ -18,14 +18,22 @@ export async function GET() {
     );
   }
   
+  // หา pubgmth
+  const pubgmthUser = usersWithReload.find(u => u.email?.includes('pubgmth'));
+  
+  // หาว่ามีใคร reload_count > 0 ไหม
+  const hasNonZeroReload = usersWithReload.some(u => (u.reload_count || 0) > 0);
+  
+  // หาผู้ใช้ที่มี reload_count > 0 ทั้งหมด
+  const usersWithReloadCount = usersWithReload.filter(u => (u.reload_count || 0) > 0);
+  
   const result = {
     timestamp: new Date().toISOString(),
     totalUsersChecked: usersWithReload.length,
+    usersWithNonZeroReload: usersWithReloadCount.length,
     usersWithReload: usersWithReload,
-    // หาว่ามีใคร reload_count > 0 ไหม
-    hasNonZeroReload: usersWithReload.some(u => (u.reload_count || 0) > 0),
-    // หา pubgmth
-    pubgmth: usersWithReload.find(u => u.email?.includes('pubgmth'))
+    pubgmth: pubgmthUser,
+    hasNonZeroReload
   };
   
   return new Response(
