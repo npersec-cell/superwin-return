@@ -344,7 +344,10 @@ export default function LeaderboardPage() {
           }}>
             <span style={{ fontSize: "14px" }}>💥</span>
             <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)" }}>LIVE BIG PREDICT</span>
-            <span style={{ fontSize: "10px", color: "var(--muted)" }}>กำลังรอผล (≥1,000 <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="10" height="10" style={{ display: "inline-block", verticalAlign: "middle", marginLeft: "2px" }} />)</span>
+            <span style={{ fontSize: "10px", color: "var(--muted)" }}>
+              ≥1,000&nbsp;
+              <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
+            </span>
           </div>
           
           {liveBets.length === 0 ? (
