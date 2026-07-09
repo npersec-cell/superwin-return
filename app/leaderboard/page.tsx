@@ -360,19 +360,19 @@ export default function LeaderboardPage() {
                     style={{ 
                       display: "flex",
                       alignItems: "center",
-                      gap: "10px",
-                      padding: "8px 12px",
-                      fontSize: "12px"
+                      gap: "8px",
+                      padding: "6px 10px",
+                      fontSize: "11px"
                     }}
                   >
                     <span style={{ 
-                      width: "18px",
-                      height: "18px",
+                      width: "16px",
+                      height: "16px",
                       borderRadius: "50%",
                       background: "var(--yellow-soft)",
                       display: "grid",
                       placeItems: "center",
-                      fontSize: "10px",
+                      fontSize: "9px",
                       fontWeight: "700",
                       color: "var(--yellow)"
                     }}>
@@ -387,27 +387,24 @@ export default function LeaderboardPage() {
                       overflow: "hidden",
                       textOverflow: "ellipsis"
                     }}>
-                      {bet.displayName}
-                    </span>
-                    
-                    <span style={{ 
-                      color: "var(--muted)",
-                      fontSize: "11px"
-                    }}>
-                      {bet.predictionTitle}
+                      {maskName(bet.displayName || bet.userId?.slice(0, 8) || 'User')}
                     </span>
                     
                     <span style={{ 
                       color: "var(--yellow)",
                       fontWeight: "700",
                       fontFamily: "JetBrains Mono, monospace",
-                      minWidth: "60px",
-                      textAlign: "right"
+                      minWidth: "55px",
+                      textAlign: "right",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "2px"
                     }}>
-                      {bet.amount.toLocaleString()} 🟠
+                      {bet.amount.toLocaleString()}
+                      <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="14" height="14" style={{ display: "inline-block", verticalAlign: "middle" }} />
                     </span>
                     
-                    <span style={{ fontSize: "10px", color: "var(--muted)" }}>
+                    <span style={{ fontSize: "9px", color: "var(--muted)" }}>
                       {timeStr}
                     </span>
                   </div>
