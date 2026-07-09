@@ -4,12 +4,13 @@ import { createSupabaseAdminClient } from '@/lib/db';
 export async function GET() {
   const supabase = createSupabaseAdminClient();
   
-  // Get prediction entries that are pending (not yet resolved)
+  // Get prediction entries that are running (not yet resolved)
   // Only show entries with amount >= 1000
+  // Note: status can be 'running' or 'pending'
   const { data: entries, error: entriesError } = await supabase
     .from('prediction_entries')
-    .select('id, user_id, prediction_id, amount, option_id, created_at')
-    .eq('status', 'pending')
+    .select('id, user_id, prediction_id, amount, option_id, created_at, status')
+    .in('status', ['running', 'pending'])
     .gte('amount', 1000)
     .order('amount', { ascending: false })
     .limit(5);
