@@ -551,8 +551,23 @@ export default function SuperWinPrototype() {
         const response = await fetch("/api/live-bets");
         const data = await response.json();
         if (data.ok && data.data) {
+          // Debug: log raw data
+          console.log('Live bets raw data:', data.data);
+          
           // Convert API response to LiveBet type
           setLiveBets(data.data.slice(0, 2).map((item: Record<string, unknown>) => ({
+            userId: item.userId as string,
+            displayName: (item.displayName as string) || 'Unknown User',
+            predictionId: item.predictionId as string,
+            predictionTitle: item.predictionTitle as string,
+            tournamentName: (item.tournamentName as string) || 'PUBG Mobile Esports',
+            optionLabel: (item.optionLabel as string) || 'Option',
+            amount: item.amount as number,
+            createdAt: item.createdAt as string
+          })));
+          
+          console.log('Live bets after conversion:', liveBets);
+        }
             userId: item.userId as string,
             displayName: item.displayName as string,
             predictionId: item.predictionId as string,
