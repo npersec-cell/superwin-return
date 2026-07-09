@@ -3,6 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+function maskName(name: string): string {
+  if (!name) return "";
+  if (name === "You") return name;
+  if (name.length <= 2) return name + "xx";
+  return name.slice(0, -2) + "xx";
+}
+
 interface LeaderboardEntry {
   rank: number;
   userId: string;
