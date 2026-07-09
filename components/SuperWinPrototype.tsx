@@ -1873,7 +1873,7 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <div style={{ fontSize: "11px", color: "var(--muted)" }}>Prediction</div>
             <div style={{ fontSize: "13px", color: "var(--text)" }}>
-              🎯 {bet.optionName}
+              🎯 {bet.optionLabel}
             </div>
           </div>
           
