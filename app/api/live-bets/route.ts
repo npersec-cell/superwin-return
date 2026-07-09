@@ -65,7 +65,8 @@ export async function GET() {
       displayName: user?.display_name || user?.email?.split('@')[0] || 'User',
       predictionId: entry.prediction_id,
       predictionTitle: prediction?.title || 'Prediction',
-      optionName: optionLabel,
+      tournamentName: prediction?.tournament_name || 'PUBG Mobile Esports',
+      optionLabel: optionLabel,
       amount: entry.amount,
       createdAt: entry.created_at
     };
