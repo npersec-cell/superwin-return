@@ -1495,7 +1495,7 @@ export default function SuperWinPrototype() {
                 </div>
                 
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  {liveBets.slice(0, 2).map((bet: LiveBet, index) => {
+                  {liveBets.slice(0, 2).map((bet: LiveBet & { tournamentName?: string; optionLabel?: string }, index) => {
                     const date = new Date(bet.createdAt);
                     const timeStr = date.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
                     return (
