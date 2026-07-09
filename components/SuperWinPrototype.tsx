@@ -188,6 +188,17 @@ type ApiClaimResponse = {
   error?: string;
 };
 
+type LiveBet = {
+  userId: string;
+  displayName: string;
+  predictionId: string;
+  predictionTitle: string;
+  tournamentName: string;
+  optionLabel: string;
+  amount: number;
+  createdAt: string;
+};
+
 declare global {
   interface Window {
     google?: {
