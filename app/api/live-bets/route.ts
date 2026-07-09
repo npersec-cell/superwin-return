@@ -35,7 +35,7 @@ export async function GET() {
   const predictionIds = [...new Set(entries.map(e => e.prediction_id))];
   const { data: predictions } = await supabase
     .from('predictions')
-    .select('id, title, options')
+    .select('id, title, tournament_name, options')
     .in('id', predictionIds);
   
   // Get option labels from prediction_options
