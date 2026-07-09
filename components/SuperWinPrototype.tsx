@@ -568,16 +568,6 @@ export default function SuperWinPrototype() {
           
           console.log('Live bets after conversion:', liveBets);
         }
-            userId: item.userId as string,
-            displayName: item.displayName as string,
-            predictionId: item.predictionId as string,
-            predictionTitle: item.predictionTitle as string,
-            tournamentName: (item.tournamentName as string) || 'PUBG Mobile Esports',
-            optionLabel: (item.optionLabel as string) || 'Option',
-            amount: item.amount as number,
-            createdAt: item.createdAt as string
-          })));
-        }
       } catch {
         // ignore
       } finally {
