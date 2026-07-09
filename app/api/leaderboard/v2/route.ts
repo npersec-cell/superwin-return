@@ -54,10 +54,17 @@ export async function GET() {
     reloadCount: number;
   }>();
   
+  console.log('[leaderboard/v2] Total users:', users?.length || 0);
+  
   // Initialize with user data
   for (const user of users) {
     const reloadCount = user.reload_count || 0;
     const avgReloadPerDay = calcAvgReloadPerDay(reloadCount, user.created_at);
+    
+    // Log for debugging Most Active
+    if (reloadCount > 0 || avgReloadPerDay > 0) {
+      console.log('[leaderboard/v2] User:', user.display_name, 'reload_count:', reloadCount, 'avgReloadPerDay:', avgReloadPerDay);
+    }
     
     userStats.set(user.id, {
       profitScore: user.profit_score || 0,
