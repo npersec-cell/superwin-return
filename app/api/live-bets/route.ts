@@ -35,7 +35,7 @@ export async function GET() {
   const predictionIds = [...new Set(entries.map(e => e.prediction_id))];
   const { data: predictions } = await supabase
     .from('predictions')
-    .select('id, title, tournament_name, options')
+    .select('id, question, tournament_name, options')
     .in('id', predictionIds);
   
   // Get option labels from prediction_options
@@ -64,7 +64,7 @@ export async function GET() {
       userId: entry.user_id,
       displayName: user?.display_name || user?.email?.split('@')[0] || 'User',
       predictionId: entry.prediction_id,
-      predictionTitle: prediction?.title || 'Prediction',
+      predictionTitle: prediction?.question || 'Prediction',
       tournamentName: prediction?.tournament_name || 'PUBG Mobile Esports',
       optionLabel: optionLabel,
       amount: entry.amount,
