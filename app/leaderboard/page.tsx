@@ -30,7 +30,8 @@ interface LiveBet {
   displayName: string;
   predictionId: string;
   predictionTitle: string;
-  optionName: string;
+  tournamentName?: string;
+  optionLabel?: string;
   amount: number;
   createdAt: string;
 }
@@ -48,6 +49,7 @@ const categories: { id: Category; name: string; icon: string; iconUrl?: string; 
 export default function LeaderboardPage() {
   const [leaderboards, setLeaderboards] = useState<LeaderboardData | null>(null);
   const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
+  const [selectedLiveBet, setSelectedLiveBet] = useState<LiveBet | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -367,12 +369,15 @@ export default function LeaderboardPage() {
                 return (
                   <div 
                     key={bet.userId + bet.predictionId + bet.createdAt}
+                    onClick={() => setSelectedLiveBet(bet)}
                     style={{ 
                       display: "flex",
                       alignItems: "center",
                       gap: "8px",
                       padding: "6px 10px",
-                      fontSize: "11px"
+                      fontSize: "11px",
+                      cursor: "pointer",
+                      transition: "background 0.15s"
                     }}
                   >
                     <span style={{ 
@@ -450,6 +455,73 @@ export default function LeaderboardPage() {
           <CategorySection cat={categories.find(c => c.id === "mostActive")!} data={leaderboards?.mostActive || []} />
         </div>
       </div>
+
+      {selectedLiveBet && <LiveBetModal bet={selectedLiveBet} onClose={() => setSelectedLiveBet(null)} />}
     </div>
+  );
+}
+
+function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
+  const date = new Date(bet.createdAt);
+  const formattedDate = date.toLocaleString("th-TH", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  
+  return (
+    <section className="modal" aria-label="Live Bet Details" onClick={(event) => event.target === event.currentTarget && onClose()}>
+      <div className="modal-card" style={{ maxWidth: "400px" }}>
+        <div className="modal-head">
+          <h3>💥 Live Predict Details</h3>
+          <button className="button" onClick={onClose}>Close</button>
+        </div>
+        <div className="modal-body" style={{ gap: "14px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ fontSize: "11px", color: "var(--muted)" }}>User</div>
+            <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--yellow)" }}>
+              {maskName(bet.displayName)}
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Tournament</div>
+            <div style={{ fontSize: "13px", color: "var(--text)" }}>
+              🏆 {bet.tournamentName || 'PUBG Mobile Esports'}
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Prediction</div>
+            <div style={{ fontSize: "13px", color: "var(--text)" }}>
+              🎯 {bet.predictionTitle}
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Option</div>
+            <div style={{ fontSize: "13px", color: "var(--text)" }}>
+              🎯 {bet.optionLabel || 'Option'}
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Amount</div>
+            <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--yellow)" }}>
+              {bet.amount.toLocaleString()} 🟠
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Created At</div>
+            <div style={{ fontSize: "13px", color: "var(--text)" }}>
+              {formattedDate}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
