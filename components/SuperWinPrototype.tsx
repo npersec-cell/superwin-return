@@ -1529,13 +1529,6 @@ export default function SuperWinPrototype() {
                         </span>
                         
                         <span style={{ 
-                          color: "var(--muted)",
-                          fontSize: "10px"
-                        }}>
-                          {bet.tournamentName} · {bet.optionLabel}
-                        </span>
-                        
-                        <span style={{ 
                           color: "var(--yellow)",
                           fontWeight: "700",
                           fontFamily: "JetBrains Mono, monospace",
