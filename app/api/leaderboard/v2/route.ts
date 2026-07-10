@@ -17,6 +17,14 @@ function calcLogScore(value: number): number {
   return Math.log2(value + 1);
 }
 
+// Mask name: if it's a userId/email prefix (no @), mask last 2 chars
+function maskName(name: string): string {
+  if (!name) return "";
+  if (name.includes("@")) return name; // Don't mask real emails
+  if (name.length <= 2) return name + "xx";
+  return name.slice(0, -2) + "xx";
+}
+
 export async function GET() {
   const supabase = createSupabaseAdminClient();
   
@@ -87,10 +95,16 @@ export async function GET() {
     }
   }
   
-  // Build leaderboard data - use email if display_name is null
+  // Build leaderboard data - use masked email if display_name is null
   const leaderboardData = Array.from(userStats.entries()).map(([userId, stats]) => {
     const user = users?.find(u => u.id === userId);
-    const displayName = user?.display_name || user?.email?.split('@')[0] || 'User';
+    let displayName = user?.display_name;
+    
+    // If no display_name, use masked email prefix
+    if (!displayName) {
+      const emailPrefix = user?.email?.split('@')[0];
+      displayName = emailPrefix ? maskName(emailPrefix) : 'Userxx';
+    }
     
     return {
       userId,
