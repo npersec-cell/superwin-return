@@ -160,8 +160,9 @@ export async function GET(request: NextRequest) {
       overall: 0
     };
 
-    // Overall rank
-    const sortedOverall = [...allUsersData].sort((a, b) => b.overall - a.overall);
+    // Overall rank (only count active users who have activity)
+    const activeUsersData = allUsersData.filter(u => u.predictionCount > 0 || u.profitScore > 0);
+    const sortedOverall = [...activeUsersData].sort((a, b) => b.overall - a.overall);
     const overallRank = sortedOverall.findIndex(u => u.userId === userId) + 1;
 
     // Most Orange Ammo rank
