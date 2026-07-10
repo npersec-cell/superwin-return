@@ -10,6 +10,12 @@ function maskName(name: string): string {
   return name.slice(0, -2) + "xx";
 }
 
+function compact(n: number): string {
+  if (n < 1000) return `${n}`;
+  if (n < 10000) return `${(n / 1000).toFixed(1)}k`;
+  return `${Math.round(n / 1000)}k`;
+}
+
 function getRankInfo(profitScore: number) {
   if (profitScore >= 100000) return { name: "Crown", icon: "/ranks/crown.png" };
   if (profitScore >= 50000) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
