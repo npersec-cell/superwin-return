@@ -186,8 +186,9 @@ export async function GET(request: NextRequest) {
     const sortedByActive = [...allUsersData].sort((a, b) => b.avgReloadPerDay - a.avgReloadPerDay);
     const mostActiveRank = sortedByActive.findIndex(u => u.userId === userId) + 1;
 
-    // Calculate rank tier based on Overall rank (not Most Orange Ammo rank)
-    const rankInfo = getRankFromPosition(overallRank, totalActiveUsers > 0 ? totalActiveUsers : totalUsers);
+    // Calculate rank tier based on Overall rank
+    // Use totalUsers for percentile calculation (not totalActiveUsers)
+    const rankInfo = getRankFromPosition(overallRank, totalUsers);
 
     // ── ดึงทุก entries ของ user ที่ settle แล้ว (won / lost / refunded) ──
     const { data: historyEntries, error: historyEntriesError } = await supabase
@@ -329,7 +330,7 @@ export async function GET(request: NextRequest) {
         totalSettled,
         // Rank data (now based on Overall rank)
         rank: overallRank,
-        rankPercentile: overallRank / totalActiveUsers,
+        rankPercentile: overallRank / totalUsers,
         rankName: rankInfo.name,
         rankIcon: rankInfo.icon,
         totalUsers,

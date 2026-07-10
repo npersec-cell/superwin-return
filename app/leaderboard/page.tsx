@@ -374,8 +374,8 @@ export default function LeaderboardPage() {
                   
                   {/* Rank icon */}
                   <span style={{ display: "flex", alignItems: "center", gap: "2px", color: "var(--muted)", fontSize: "9px", fontWeight: 500, flexShrink: 0 }}>
-                    <img src={getRankFromPosition(entry.rank, totalActiveUsers).icon} alt="" width={14} height={14} style={{ objectFit: "contain" }} />
-                    {getRankFromPosition(entry.rank, totalActiveUsers).name}
+                    <img src={getRankFromPosition(entry.rank, totalUsers).icon} alt="" width={14} height={14} style={{ objectFit: "contain" }} />
+                    {getRankFromPosition(entry.rank, totalUsers).name}
                   </span>
                 </div>
                 
