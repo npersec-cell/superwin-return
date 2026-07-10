@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     let rankPercentile = 100; // Default percentile (100 = bottom)
     let totalUsers = allUsers?.length || 0;
     
-    if (!usersError && allUsers) {
+    if (!usersError && allUsers && allUsers.length > 0) {
       // Get all users' entries count and highest win
       const allUserIds = allUsers.map(u => u.id);
       const { data: allEntries, error: allEntriesError } = await supabase
@@ -92,9 +92,14 @@ export async function GET(request: NextRequest) {
         .in('user_id', allUserIds)
         .eq('status', 'won');
 
+      // Initialize all users with score 0
+      const userScores = new Map<string, number>();
+      for (const u of allUsers) {
+        userScores.set(u.id, 0);
+      }
+
       if (!allEntriesError && allEntries) {
         // Calculate each user's overall score
-        const userScores = new Map<string, number>();
         for (const u of allUsers) {
           const entries = allEntries.filter(e => e.user_id === u.id);
           const count = entries.length;
@@ -114,17 +119,17 @@ export async function GET(request: NextRequest) {
           );
           userScores.set(u.id, score);
         }
-
-        // Sort all users by score descending
-        const sortedUsers = [...userScores.entries()].sort((a, b) => b[1] - a[1]);
-        
-        // Find this user's position
-        const userPosition = sortedUsers.findIndex(([uid]) => uid === userId);
-        rank = userPosition >= 0 ? userPosition + 1 : totalUsers;
-        
-        // Calculate percentile (higher = better, 100 = top)
-        rankPercentile = totalUsers > 0 ? Math.round(((totalUsers - rank) / totalUsers) * 100) : 100;
       }
+
+      // Sort all users by score descending
+      const sortedUsers = [...userScores.entries()].sort((a, b) => b[1] - a[1]);
+      
+      // Find this user's position
+      const userPosition = sortedUsers.findIndex(([uid]) => uid === userId);
+      rank = userPosition >= 0 ? userPosition + 1 : totalUsers;
+      
+      // Calculate percentile (higher = better, 100 = top)
+      rankPercentile = totalUsers > 0 ? Math.round(((totalUsers - rank) / totalUsers) * 100) : 100;
     }
     
     // Get rank info from percentile

@@ -131,6 +131,24 @@ function getRankInfo(profitScore: number) {
   return { name: "Bronze", icon: "/ranks/bronze.png" };
 }
 
+// Get rank based on position (1-based) and total users
+function getRankFromPosition(rank: number, totalUsers: number): { name: string; icon: string } {
+  if (totalUsers === 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
+  
+  // Calculate percentile: higher = better (100 = top)
+  const percentile = ((totalUsers - rank) / totalUsers) * 100;
+  
+  // Crown: Top 1% (only #1 if few users)
+  if (percentile >= 99) return { name: "Crown", icon: "/ranks/crown.png" };
+  if (percentile >= 97) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
+  if (percentile >= 92) return { name: "Ace", icon: "/ranks/ace.png" };
+  if (percentile >= 75) return { name: "Diamond", icon: "/ranks/diamond.png" };
+  if (percentile >= 50) return { name: "Platinum", icon: "/ranks/platinum.png" };
+  if (percentile >= 40) return { name: "Gold", icon: "/ranks/gold.png" };
+  if (percentile >= 15) return { name: "Silver", icon: "/ranks/silver.png" };
+  return { name: "Bronze", icon: "/ranks/bronze.png" };
+}
+
 type UserProfileStats = {
   name: string;
   displayName?: string | null;
@@ -1771,9 +1789,9 @@ function ProfileModal({
                 <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                   <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>RANK</span>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
-                    <img src={profile.rankIcon} alt="" width={20} height={20} style={{ objectFit: "contain" }} />
+                    <img src={getRankFromPosition(profile.rank, profile.totalUsers).icon} alt="" width={20} height={20} style={{ objectFit: "contain" }} />
                     <strong style={{ fontSize: "16px", color: "var(--yellow)" }}>
-                      {profile.rankName}
+                      {getRankFromPosition(profile.rank, profile.totalUsers).name}
                     </strong>
                   </div>
                   <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
