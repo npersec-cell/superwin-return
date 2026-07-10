@@ -735,7 +735,7 @@ export default function SuperWinPrototype() {
 
   const leaderboard = useMemo(() => {
     let rows = [...leaderboardRows];
-    if (isSignedIn && currentUserId) {
+    if (isSignedIn && currentUserId && accountRole !== "admin") {
       rows = rows.map((row) => {
         if (row.id === currentUserId) {
           return { ...row, id: currentUserId, name: "You", profitScore, rank: row.rank } as LeaderboardRow;
@@ -745,11 +745,11 @@ export default function SuperWinPrototype() {
       if (!rows.some((row) => row.id === currentUserId || row.name === "You")) {
         rows.push({ id: currentUserId, name: "You", profit: 0, profitScore, rank: 0, isReal: true });
       }
-    } else {
+    } else if (accountRole !== "admin") {
       rows = rows.map((row) => (row.name === "You" ? { ...row, profitScore } as LeaderboardRow : row));
     }
     return rows.sort((a, b) => b.profitScore - a.profitScore).slice(0, 10);
-  }, [leaderboardRows, profitScore, isSignedIn, currentUserId]);
+  }, [leaderboardRows, profitScore, isSignedIn, currentUserId, accountRole]);
 
   const userRank = leaderboard.findIndex((row) => row.name === "You") + 1;
 
