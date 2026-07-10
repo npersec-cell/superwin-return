@@ -69,12 +69,33 @@ export default function LeaderboardPage() {
   const [profileLoading, setProfileLoading] = useState(false);
 
   async function handleOpenProfile(userId: string, displayName: string) {
+    // Show modal immediately with loading state
+    setSelectedProfile({
+      userId,
+      displayName,
+      avatarUrl: '',
+      profitScore: 0,
+      predictionsCount: 0,
+      winsCount: 0,
+      lossesCount: 0,
+      winRate: 0,
+      totalWagered: 0,
+      totalWon: 0,
+      totalLost: 0,
+      avgWin: 0,
+      avgLoss: 0,
+      streak: 0,
+      lastActive: '',
+      badges: [],
+      loading: true
+    });
     setProfileLoading(true);
+    
     try {
-      const response = await fetch(`/api/user-profile?userId=${userId}`);
+      const response = await fetch(`/api/leaderboard/profile?userId=${userId}&_t=${Date.now()}`);
       const data = await response.json();
-      if (data.ok && data.profile) {
-        setSelectedProfile(data.profile);
+      if (data.ok && data.data) {
+        setSelectedProfile({ ...data.data, loading: false });
       } else {
         // Show basic info if API fails
         setSelectedProfile({
@@ -87,11 +108,18 @@ export default function LeaderboardPage() {
           lossesCount: 0,
           winRate: 0,
           totalWagered: 0,
-          totalWon: 0
+          totalWon: 0,
+          totalLost: 0,
+          avgWin: 0,
+          avgLoss: 0,
+          streak: 0,
+          lastActive: '',
+          badges: [],
+          loading: false
         });
       }
     } catch {
-      setSelectedProfile(null);
+      setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
     } finally {
       setProfileLoading(false);
     }
