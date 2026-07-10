@@ -354,6 +354,7 @@ type LeaderboardRow = {
   displayName?: string | null;
   profit: number;
   profitScore: number;
+  rank: number;
   isReal?: boolean;
   avatarUrl?: string | null;
 };
@@ -428,6 +429,7 @@ export default function SuperWinPrototype() {
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[]>(defaultLeaderboard);
+  const [leaderboardTotalUsers, setLeaderboardTotalUsers] = useState(0);
   const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -790,10 +792,21 @@ export default function SuperWinPrototype() {
 
   async function loadLeaderboard() {
     try {
-      const response = await fetch(`/api/leaderboard?_t=${Date.now()}`);
+      const response = await fetch(`/api/leaderboard/v2?t=${Date.now()}`);
       const payload = await response.json();
-      if (response.ok && payload.ok && payload.data) {
-        setLeaderboardRows(payload.data);
+      if (response.ok && payload.leaderboards?.mostOrangeAmmo) {
+        // Convert v2 leaderboard format to LeaderboardRow[]
+        const rows: LeaderboardRow[] = payload.leaderboards.mostOrangeAmmo.map(item => ({
+          id: item.userId,
+          name: item.displayName,
+          displayName: item.displayName,
+          profit: 0,
+          profitScore: item.profitScore,
+          rank: item.rank,
+          avatarUrl: item.avatarUrl
+        }));
+        setLeaderboardRows(rows);
+        setLeaderboardTotalUsers(payload.totalUsers || 0);
       }
     } catch {
       // fallback
@@ -1480,7 +1493,7 @@ export default function SuperWinPrototype() {
                       style={{ cursor: isClickable ? "pointer" : "default" }}
                       title={isClickable ? `Click to view ${row.name}'s stats` : undefined}
                     >
-                      <span>{index + 1}</span>
+                      <span>{row.rank}</span>
                       <div className="rank-name-container" style={{ display: "flex", alignItems: "center", gap: "6px", flexGrow: 1, minWidth: 0 }}>
                         {avatarUrl ? (
                           <img 
@@ -1504,8 +1517,8 @@ export default function SuperWinPrototype() {
                           {row.displayName || maskName(row.name)}
                         </span>
                         <span style={{ display: "flex", alignItems: "center", gap: "3px", color: "var(--muted)", fontSize: "10px", fontWeight: 500, flexShrink: 0 }}>
-                          <img src={getRankFromPosition(index + 1, leaderboard.length).icon} alt="" width={18} height={18} style={{ objectFit: "contain" }} />
-                          {getRankFromPosition(index + 1, leaderboard.length).name}
+                          <img src={getRankFromPosition(row.rank, leaderboardTotalUsers).icon} alt="" width={18} height={18} style={{ objectFit: "contain" }} />
+                          {getRankFromPosition(row.rank, leaderboardTotalUsers).name}
                         </span>
                       </div>
                       <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{compact(row.profitScore)} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", opacity: 0.8 }} /></b>

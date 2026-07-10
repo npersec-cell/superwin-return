@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
       mostOrangeAmmo: leaderboardWithOverall
         .sort((a, b) => b.profitScore - a.profitScore)
         .slice(0, 20)
-        .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.profitScore })),
+        .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.profitScore, profitScore: u.profitScore })),
       
       mostPredictions: leaderboardWithOverall
         .sort((a, b) => b.predictionCount - a.predictionCount)
