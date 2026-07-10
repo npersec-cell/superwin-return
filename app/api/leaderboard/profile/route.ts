@@ -243,14 +243,14 @@ export async function GET(request: NextRequest) {
     // ── นับ stats ──
     let wonCount = 0;
     let lostCount = 0;
-    let highestSingleWin = 0;
-    let predictionCount = (historyEntries || []).length;
+    let userHighestSingleWin = 0;
+    const userPredictionCount = (historyEntries || []).length;
 
     for (const e of historyEntries || []) {
       if (e.status === "won") {
         wonCount++;
         const profit = (e.payout_amount || 0) - e.amount;
-        if (profit > highestSingleWin) highestSingleWin = profit;
+        if (profit > userHighestSingleWin) userHighestSingleWin = profit;
       } else {
         lostCount++;
       }
@@ -317,8 +317,8 @@ export async function GET(request: NextRequest) {
         // Basic stats
         profitScore: user.lifetime_profit || 0,
         allTimeProfit: user.lifetime_profit || 0,
-        predictionCount,
-        highestSingleWin,
+        predictionCount: userPredictionCount,
+        highestSingleWin: userHighestSingleWin,
         winRate,
         wonCount,
         lostCount,
