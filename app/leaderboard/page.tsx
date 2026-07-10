@@ -80,7 +80,7 @@ export default function LeaderboardPage() {
         setSelectedProfile({
           userId,
           displayName,
-          avatarUrl: null,
+          avatarUrl: '',
           profitScore: 0,
           predictionsCount: 0,
           winsCount: 0,
