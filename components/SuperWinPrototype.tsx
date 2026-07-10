@@ -551,7 +551,7 @@ export default function SuperWinPrototype() {
         const data = await response.json();
         if (data.ok && data.data) {
           // Direct assignment without conversion
-          setLiveBets(data.data.slice(0, 2));
+          setLiveBets(data.data);
         }
       } catch {
         // ignore
@@ -1484,7 +1484,7 @@ export default function SuperWinPrototype() {
                 </div>
                 
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  {liveBets.slice(0, 2).map((bet: any, index: number) => {
+                  {liveBets.map((bet: any, index: number) => {
                     const date = new Date(bet.createdAt);
                     const timeStr = date.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
                     return (
