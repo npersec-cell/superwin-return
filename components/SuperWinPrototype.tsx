@@ -135,17 +135,25 @@ function getRankInfo(profitScore: number) {
 function getRankFromPosition(rank: number, totalUsers: number): { name: string; icon: string } {
   if (totalUsers === 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
   
+  // Crown: #1 only (the absolute best)
+  if (rank === 1) return { name: "Crown", icon: "/ranks/crown.png" };
+  
   // Calculate percentile: higher = better (100 = top)
   const percentile = ((totalUsers - rank) / totalUsers) * 100;
   
-  // Crown: Top 1% (only #1 if few users)
-  if (percentile >= 99) return { name: "Crown", icon: "/ranks/crown.png" };
+  // Conqueror: Top 3%
   if (percentile >= 97) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
+  // Ace: Top 8%
   if (percentile >= 92) return { name: "Ace", icon: "/ranks/ace.png" };
+  // Diamond: Top 15%
   if (percentile >= 75) return { name: "Diamond", icon: "/ranks/diamond.png" };
+  // Platinum: Top 25%
   if (percentile >= 50) return { name: "Platinum", icon: "/ranks/platinum.png" };
+  // Gold: Top 40%
   if (percentile >= 40) return { name: "Gold", icon: "/ranks/gold.png" };
+  // Silver: 40-70%
   if (percentile >= 15) return { name: "Silver", icon: "/ranks/silver.png" };
+  // Bronze: Bottom 30%
   return { name: "Bronze", icon: "/ranks/bronze.png" };
 }
 

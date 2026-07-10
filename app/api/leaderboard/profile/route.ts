@@ -9,16 +9,30 @@ function calcLogScore(value: number): number {
   return Math.log2(value + 1);
 }
 
-// Get rank name based on percentile
-function getRankFromPercentile(percentile: number): { name: string; icon: string } {
-  if (percentile >= 99) return { name: "Crown", icon: "/ranks/crown.png" }; // Top 1%
-  if (percentile >= 97) return { name: "Conqueror", icon: "/ranks/conqueror.png" }; // Top 3%
-  if (percentile >= 92) return { name: "Ace", icon: "/ranks/ace.png" }; // Top 8%
-  if (percentile >= 75) return { name: "Diamond", icon: "/ranks/diamond.png" }; // Top 15%
-  if (percentile >= 50) return { name: "Platinum", icon: "/ranks/platinum.png" }; // Top 25%
-  if (percentile >= 40) return { name: "Gold", icon: "/ranks/gold.png" }; // Top 40%
-  if (percentile >= 15) return { name: "Silver", icon: "/ranks/silver.png" }; // 40-70%
-  return { name: "Bronze", icon: "/ranks/bronze.png" }; // Bottom 30%
+// Get rank name based on rank position
+function getRankFromPosition(rank: number, totalUsers: number): { name: string; icon: string } {
+  if (totalUsers === 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
+  
+  // Crown: #1 only (the absolute best)
+  if (rank === 1) return { name: "Crown", icon: "/ranks/crown.png" };
+  
+  // Calculate percentile
+  const percentile = ((totalUsers - rank) / totalUsers) * 100;
+  
+  // Conqueror: Top 3%
+  if (percentile >= 97) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
+  // Ace: Top 8%
+  if (percentile >= 92) return { name: "Ace", icon: "/ranks/ace.png" };
+  // Diamond: Top 15%
+  if (percentile >= 75) return { name: "Diamond", icon: "/ranks/diamond.png" };
+  // Platinum: Top 25%
+  if (percentile >= 50) return { name: "Platinum", icon: "/ranks/platinum.png" };
+  // Gold: Top 40%
+  if (percentile >= 40) return { name: "Gold", icon: "/ranks/gold.png" };
+  // Silver: 40-70%
+  if (percentile >= 15) return { name: "Silver", icon: "/ranks/silver.png" };
+  // Bronze: Bottom 30%
+  return { name: "Bronze", icon: "/ranks/bronze.png" };
 }
 
 export async function GET(request: NextRequest) {
@@ -132,8 +146,8 @@ export async function GET(request: NextRequest) {
       rankPercentile = totalUsers > 0 ? Math.round(((totalUsers - rank) / totalUsers) * 100) : 100;
     }
     
-    // Get rank info from percentile
-    const rankInfo = getRankFromPercentile(rankPercentile);
+    // Get rank info from position
+    const rankInfo = getRankFromPosition(rank, totalUsers);
 
     // ════════════════════════════════════════════════
     // SOURCE OF TRUTH: prediction_entries table
