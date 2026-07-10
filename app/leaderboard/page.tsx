@@ -10,6 +10,14 @@ function maskName(name: string): string {
   return name.slice(0, -2) + "xx";
 }
 
+function getRankInfo(profitScore: number) {
+  if (profitScore >= 50000) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
+  if (profitScore >= 20000) return { name: "Ace", icon: "/ranks/ace.png" };
+  if (profitScore >= 5000) return { name: "Diamond", icon: "/ranks/diamond.png" };
+  if (profitScore >= 1000) return { name: "Gold", icon: "/ranks/gold.png" };
+  return { name: "Bronze", icon: "/ranks/bronze.png" };
+}
+
 interface UserProfileStats {
   name: string;
   displayName?: string | null;
@@ -610,55 +618,95 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
 function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; onClose: () => void }) {
   return (
     <section className="modal" aria-label="User Profile" onClick={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="modal-card" style={{ maxWidth: "360px" }}>
+      <div className="modal-card" style={{ maxWidth: "480px" }}>
         <div className="modal-head">
-          <h3>👤 User Profile</h3>
+          <h3>🎮 {profile?.displayName || maskName(profile?.name || "")}'s Profile</h3>
           <button className="button" onClick={onClose}>Close</button>
         </div>
-        {profile ? (
-          <div className="modal-body" style={{ gap: "12px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-              <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "var(--card)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                👤
-              </div>
-              <div>
-                <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--text)" }}>
-                  {profile.name || profile.displayName}
-                </div>
-                <div style={{ fontSize: "11px", color: "var(--muted)" }}>
-                  ID: {profile.name.slice(0, 8)}...
-                </div>
-              </div>
+        <div className="modal-body" style={{ gap: "12px", minHeight: "180px" }}>
+          {profile?.loading ? (
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "160px" }}>
+              <div className="spinner" />
             </div>
-            
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <div style={{ fontSize: "10px", color: "var(--muted)" }}>💰 Profit Score</div>
-                <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--yellow)" }}>
-                  {profile.profitScore.toLocaleString()}
+          ) : profile ? (
+            <>
+              {/* Quick Stats Grid - same as home page */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>WIN RATE</span>
+                  <strong style={{ display: "block", fontSize: "18px", color: "var(--yellow)", marginTop: "4px" }}>
+                    {profile.winRate}%
+                  </strong>
+                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                    {profile.wonCount} won · {profile.lostCount} lost
+                  </span>
+                </div>
+                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>RANK</span>
+                  <strong style={{ display: "flex", justifyContent: "center", fontSize: "18px", color: "var(--yellow)", marginTop: "4px" }}>
+                    <span style={{ position: "relative", display: "inline-block" }}>
+                      <img src={getRankInfo(profile.profitScore).icon} alt="" width={27} height={27} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "6px", objectFit: "contain" }} />
+                      {getRankInfo(profile.profitScore).name}
+                    </span>
+                  </strong>
+                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                    Profit Score: {profile.profitScore.toLocaleString()}
+                  </span>
                 </div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <div style={{ fontSize: "10px", color: "var(--muted)" }}>✅ Wins</div>
-                <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
-                  {profile.wonCount}
-                </div>
+
+              {/* Last 5 Settled Predictions */}
+              <div style={{ display: "grid", gap: "6px" }}>
+                <h4 className="meta" style={{ color: "var(--yellow)", fontSize: "11px", margin: "4px 0" }}>⚡ Last 5 Settled Predictions</h4>
+                {!profile.history || profile.history.length === 0 ? (
+                  <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)", fontSize: "11px" }}>
+                    No settled predictions found.
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: "6px", maxHeight: "180px", overflowY: "auto" }}>
+                    {profile.history.map((h) => (
+                      <div key={h.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)", gap: "8px" }}>
+                        <div style={{ display: "grid", gap: "2px", minWidth: 0 }}>
+                          <strong style={{ fontSize: "11px", color: "var(--text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {h.question}
+                          </strong>
+                          <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {h.tournament}{h.pick ? (<span> · Picked: <strong style={{ color: "var(--text-strong)" }}>{h.pick}</strong></span>) : ""}
+                          </span>
+                        </div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          {(() => {
+                            const net = (h as any).net !== undefined
+                              ? (h as any).net
+                              : (h.status === "won" ? h.payout - h.amount : -h.amount);
+                            const isPositive = net >= 0;
+                            return (
+                              <span className="pill" style={{
+                                fontSize: "9px",
+                                height: "18px",
+                                padding: "0 6px",
+                                background: isPositive ? "rgba(14, 203, 129, 0.12)" : "rgba(240, 84, 84, 0.12)",
+                                color: isPositive ? "var(--green)" : "var(--red)",
+                                borderColor: isPositive ? "rgba(14, 203, 129, 0.4)" : "rgba(240, 84, 84, 0.4)",
+                                borderRadius: "4px",
+                                fontWeight: "bold"
+                              }}>
+                                {isPositive ? `+${net}` : `${net}`}
+                              </span>
+                            );
+                          })()}
+                          <span className="meta" style={{ display: "block", fontSize: "8px", marginTop: "2px" }}>
+                            {h.date}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <div style={{ fontSize: "10px", color: "var(--muted)" }}>❌ Losses</div>
-                <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
-                  {profile.lostCount}
-                </div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <div style={{ fontSize: "10px", color: "var(--muted)" }}>📈 Win Rate</div>
-                <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
-                  {profile.totalSettled > 0 ? (profile.winRate * 100).toFixed(1) + "%" : "—"}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
+            </>
+          ) : null}
+        </div>
       </div>
     </section>
   );
