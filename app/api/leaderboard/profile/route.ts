@@ -50,6 +50,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "userId is required" }, { status: 400 });
     }
 
+    // ── Fetch rank data from API v2 first (to ensure consistency) ──
+    const v2Response = await fetch(`http://localhost:3000/api/leaderboard/v2?userId=${userId}&t=${Date.now()}`);
+    const v2Data = await v2Response.json();
+    
+    const userRankData = v2Data.userRankData;
+
     // ── ดึง user info ──
     const { data: user, error: userError } = await supabase
       .from("users")
@@ -163,31 +169,20 @@ export async function GET(request: NextRequest) {
       overall: 0
     };
 
-    // Overall rank (only count active users who have activity)
-    const activeUsersData = allUsersData.filter(u => u.predictionCount > 0 || u.profitScore > 0);
-    const sortedOverall = [...activeUsersData].sort((a, b) => b.overall - a.overall);
-    const overallRank = sortedOverall.findIndex(u => u.userId === userId) + 1;
+    // ── Use rank data from API v2 (to ensure consistency) ──
+    const overallRank = userRankData?.overallRank || 1;
+    const profitScore = userRankData?.profitScore || 0;
+    const mostOrangeAmmoRank = userRankData?.profitScoreRank || 1;
+    const predictionCount = userRankData?.predictionCount || 0;
+    const mostPredictionsRank = userRankData?.predictionCountRank || 1;
+    const highestSingleWin = userRankData?.highestSingleWin || 0;
+    const highestSingleWinRank = userRankData?.highestSingleWinRank || 1;
+    const avgReloadPerDay = userRankData?.avgReloadPerDay || 0;
+    const mostActiveRank = userRankData?.activeRank || 1;
+    const userHasActivity = userRankData?.userHasActivity || false;
+    const totalActiveUsersFromV2 = userRankData?.totalActiveUsers || totalUsers;
 
-    // Most Orange Ammo rank
-    const sortedByProfit = [...allUsersData].sort((a, b) => b.profitScore - a.profitScore);
-    const mostOrangeAmmoRank = sortedByProfit.findIndex(u => u.userId === userId) + 1;
-
-    // Most Predictions rank
-    const sortedByPredictions = [...allUsersData].sort((a, b) => b.predictionCount - a.predictionCount);
-    const mostPredictionsRank = sortedByPredictions.findIndex(u => u.userId === userId) + 1;
-
-    // Highest Single Win rank
-    const usersWithWin = allUsersData.filter(u => u.highestSingleWin > 0);
-    const sortedByWin = [...usersWithWin].sort((a, b) => b.highestSingleWin - a.highestSingleWin);
-    const hasWin = sortedByWin.some(u => u.userId === userId);
-    const highestSingleWinRank = hasWin ? sortedByWin.findIndex(u => u.userId === userId) + 1 : totalUsers;
-
-    // Most Active rank
-    const sortedByActive = [...allUsersData].sort((a, b) => b.avgReloadPerDay - a.avgReloadPerDay);
-    const mostActiveRank = sortedByActive.findIndex(u => u.userId === userId) + 1;
-
-    // Calculate rank tier based on Overall rank
-    // Use totalUsers for percentile calculation (not totalActiveUsers)
+    // Calculate rank tier based on Overall rank from API v2
     const rankInfo = getRankFromPosition(overallRank, totalUsers);
 
     // ── ดึงทุก entries ของ user ที่ settle แล้ว (won / lost / refunded) ──
