@@ -3,12 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-function compact(n: number): string {
-  if (n < 1000) return `${n}`;
-  if (n < 10000) return `${(n / 1000).toFixed(1)}k`;
-  return `${Math.round(n / 1000)}k`;
-}
-
 interface UserInfo {
   id: string;
   email: string;
@@ -21,33 +15,9 @@ interface UserInfo {
   shippingPhone?: string;
 }
 
-interface LeaderboardStats {
-  // Basic stats
-  profitScore: number;
-  allTimeProfit: number;
-  predictionCount: number;
-  highestSingleWin: number;
-  winRate: number;
-  wonCount: number;
-  lostCount: number;
-  totalSettled: number;
-  history: Array<{
-    id: string;
-    tournament: string;
-    question: string;
-    pick: string;
-    amount: number;
-    payout: number;
-    status: "won" | "lost";
-    net: number;
-    date: string;
-  }>;
-}
-
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<UserInfo | null>(null);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -86,31 +56,14 @@ export default function ProfilePage() {
       }
     } catch (err) {
       console.error("Error loading user:", err);
-    }
-  }
-
-  async function loadLeaderboard(userId: string) {
-    try {
-      const res = await fetch(`/api/leaderboard/profile?userId=${userId}`);
-      const data = await res.json();
-      if (data.ok && data.data) {
-        setLeaderboard(data.data);
-      }
-    } catch (err) {
-      console.error("Error loading leaderboard:", err);
+    } finally {
+      setLoading(false);
     }
   }
 
   useEffect(() => {
     loadUser();
   }, []);
-
-  // Load leaderboard after user is loaded
-  useEffect(() => {
-    if (user?.id) {
-      loadLeaderboard(user.id);
-    }
-  }, [user]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -240,47 +193,6 @@ export default function ProfilePage() {
               <span style={{ color: "var(--muted)" }}>กระสุนเขียวคงเหลือ:</span>
               <span style={{ color: "var(--green)", fontWeight: 700 }}>{user.profitScore}</span>
               <img src="https://superwinhub.app/ammo-556-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
-            </div>
-          </div>
-        )}
-
-        {/* Leaderboard Stats - show basic stats only, no ranks */}
-        {leaderboard && (
-          <div className="panel" style={{ padding: "14px", marginBottom: "12px" }}>
-            <div style={{ fontSize: "12px", fontWeight: 600, marginBottom: "10px", color: "var(--yellow)" }}>
-              📊 สถิติการทาย
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Orange Ammo</span>
-                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  {compact(leaderboard.profitScore)}
-                </strong>
-              </div>
-              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Predictions</span>
-                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  {leaderboard.predictionCount}
-                </strong>
-              </div>
-              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Highest Single Win</span>
-                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  {compact(leaderboard.highestSingleWin)}
-                </strong>
-              </div>
-              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Win Rate</span>
-                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  {leaderboard.winRate}%
-                </strong>
-                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                  {leaderboard.wonCount} won · {leaderboard.lostCount} lost
-                </span>
-              </div>
-            </div>
-            <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "10px", textAlign: "center" }}>
-              🏆 ดูอันดับเต็มใน <a href="/leaderboard" style={{ color: "var(--yellow)" }}>Leaderboard</a>
             </div>
           </div>
         )}
