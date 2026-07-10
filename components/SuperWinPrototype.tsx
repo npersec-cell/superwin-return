@@ -796,7 +796,7 @@ export default function SuperWinPrototype() {
       const payload = await response.json();
       if (response.ok && payload.leaderboards?.mostOrangeAmmo) {
         // Convert v2 leaderboard format to LeaderboardRow[]
-        const rows: LeaderboardRow[] = payload.leaderboards.mostOrangeAmmo.map(item => ({
+        const rows: LeaderboardRow[] = payload.leaderboards.mostOrangeAmmo.map((item: { userId: string; displayName: string; avatarUrl: string | null; profitScore: number; rank: number }) => ({
           id: item.userId,
           name: item.displayName,
           displayName: item.displayName,
