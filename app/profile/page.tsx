@@ -165,10 +165,10 @@ export default function ProfilePage() {
             <img src="https://superwinhub.app/ammo-556-icon.webp" alt="" className="logo" />
             <div className="brand-text">
               <div style={{ fontWeight: 700, fontSize: "13px", color: "var(--yellow)" }}>
-                {readOnly ? "ข้อมูลจัดส่ง" : "แก้ไขข้อมูลจัดส่ง"}
+                {readOnly ? "ข้อมูลโปรไฟล์" : "แก้ไขข้อมูลโปรไฟล์"}
               </div>
               <div style={{ fontSize: "10px", color: "var(--muted)" }}>
-                {readOnly ? "ข้อมูลสำหรับจัดส่งรางวัล" : "กรอกข้อมูลให้ครบถ้วนเพื่อรับรางวัล"}
+                {readOnly ? "ข้อมูลส่วนตัวของคุณ" : "กรอกข้อมูลให้ครบถ้วน"}
               </div>
             </div>
           </div>
