@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     // ── ดึง user info ──
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("display_name, email, lifetime_profit, profit_score, reload_count, created_at")
+      .select("display_name, email, lifetime_profit, reload_count, created_at")
       .eq("id", userId)
       .single();
 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     // ── ดึงทุก users สำหรับคำนวณ rank ──
     const { data: allUsers, error: allUsersError } = await supabase
       .from('users')
-      .select('id, display_name, email, profit_score, reload_count, created_at')
+      .select('id, display_name, email, lifetime_profit, reload_count, created_at')
       .neq('role', 'admin')
       .not('email', 'like', '%test%')
       .not('email', 'like', '%automated%');
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
     // Calculate rank for the target user
     const targetUser = allUsersData.find(u => u.userId === userId);
     const targetUserStats = targetUser || {
-      profitScore: user.profit_score || 0,
+      profitScore: user.lifetime_profit || 0,
       predictionCount: 0,
       highestSingleWin: 0,
       avgReloadPerDay: 0,
@@ -212,7 +212,7 @@ export async function GET(request: NextRequest) {
           name: user.display_name || user.email.split("@")[0],
           displayName: user.display_name || null,
           // Basic stats
-          profitScore: user.profit_score || 0,
+          profitScore: user.lifetime_profit || 0,
           allTimeProfit: user.lifetime_profit || 0,
           predictionCount: 0,
           highestSingleWin: 0,
@@ -312,7 +312,7 @@ export async function GET(request: NextRequest) {
         name: user.display_name || user.email.split("@")[0],
         displayName: user.display_name || null,
         // Basic stats
-        profitScore: user.profit_score || 0,
+        profitScore: user.lifetime_profit || 0,
         allTimeProfit: user.lifetime_profit || 0,
         predictionCount,
         highestSingleWin,
