@@ -145,13 +145,11 @@ export async function GET(request: NextRequest) {
         .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.overall })),
       
       mostOrangeAmmo: leaderboardWithOverall
-        .filter(u => u.profitScore > 0)
         .sort((a, b) => b.profitScore - a.profitScore)
         .slice(0, 20)
         .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.profitScore, profitScore: u.profitScore })),
       
       mostPredictions: leaderboardWithOverall
-        .filter(u => u.predictionCount > 0)
         .sort((a, b) => b.predictionCount - a.predictionCount)
         .slice(0, 20)
         .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.predictionCount })),
