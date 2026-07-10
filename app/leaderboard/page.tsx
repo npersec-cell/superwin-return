@@ -639,33 +639,21 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <div style={{ fontSize: "10px", color: "var(--muted)" }}>🎯 Predictions</div>
-                <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
-                  {profile.predictionsCount}
-                </div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                 <div style={{ fontSize: "10px", color: "var(--muted)" }}>✅ Wins</div>
                 <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
-                  {profile.winsCount}
+                  {profile.wonCount}
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                 <div style={{ fontSize: "10px", color: "var(--muted)" }}>❌ Losses</div>
                 <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
-                  {profile.lossesCount}
+                  {profile.lostCount}
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                 <div style={{ fontSize: "10px", color: "var(--muted)" }}>📈 Win Rate</div>
                 <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
-                  {profile.predictionsCount > 0 ? (profile.winRate * 100).toFixed(1) + "%" : "—"}
-                </div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <div style={{ fontSize: "10px", color: "var(--muted)" }}>💵 Total Wagered</div>
-                <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
-                  {profile.totalWagered.toLocaleString()}
+                  {profile.totalSettled > 0 ? (profile.winRate * 100).toFixed(1) + "%" : "—"}
                 </div>
               </div>
             </div>
