@@ -794,14 +794,14 @@ export default function SuperWinPrototype() {
     try {
       const response = await fetch(`/api/leaderboard/v2?t=${Date.now()}`);
       const payload = await response.json();
-      if (response.ok && payload.leaderboards?.mostOrangeAmmo) {
-        // Convert v2 leaderboard format to LeaderboardRow[]
-        const rows: LeaderboardRow[] = payload.leaderboards.mostOrangeAmmo.map((item: { userId: string; displayName: string; avatarUrl: string | null; profitScore: number; rank: number }) => ({
+      if (response.ok && payload.leaderboards?.overall) {
+        // Convert v2 leaderboard format to LeaderboardRow[] - use overall leaderboard
+        const rows: LeaderboardRow[] = payload.leaderboards.overall.map((item: { userId: string; displayName: string; avatarUrl: string | null; value: number; rank: number }) => ({
           id: item.userId,
           name: item.displayName,
           displayName: item.displayName,
           profit: 0,
-          profitScore: item.profitScore,
+          profitScore: item.value, // Use overall score
           rank: item.rank,
           avatarUrl: item.avatarUrl
         }));
@@ -1479,7 +1479,7 @@ export default function SuperWinPrototype() {
 
           <aside className="side">
             <section className="panel">
-              <div className="panel-head"><h3>All time Top 10</h3><span className="micro" style={{ display: "flex", alignItems: "center", gap: "4px" }}>Rank <img src="/ammo-556-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} /></span></div>
+              <div className="panel-head"><h3>All time Top 10</h3><span className="micro" style={{ display: "flex", alignItems: "center", gap: "4px" }}>Average Score</span></div>
               <div className="leaderboard-body">
                 {leaderboard.map((row, index) => {
                   const targetId = row.id || (row.name === "You" ? currentUserId : null);
@@ -1521,7 +1521,7 @@ export default function SuperWinPrototype() {
                           {getRankFromPosition(row.rank, leaderboardTotalUsers).name}
                         </span>
                       </div>
-                      <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{compact(row.profitScore)} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", opacity: 0.8 }} /></b>
+                      <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{compact(row.profitScore)}</b>
                     </div>
                   );
                 })}
