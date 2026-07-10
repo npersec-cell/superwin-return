@@ -236,11 +236,6 @@ export default function ProfilePage() {
                 <div style={{ fontSize: "10px", color: "var(--muted)" }}>{user.email}</div>
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px" }}>
-              <span style={{ color: "var(--muted)" }}>กระสุนเขียวคงเหลือ:</span>
-              <span style={{ color: "var(--green)", fontWeight: 700 }}>{user.profitScore}</span>
-              <img src="https://superwinhub.app/SuperWin_b.png" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
-            </div>
           </div>
         )}
 
