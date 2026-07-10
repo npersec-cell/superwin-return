@@ -28,32 +28,31 @@ function getRankFromPosition(rank: number, totalUsers: number): { name: string; 
   // Crown: #1 only (the absolute best)
   if (rank === 1) return { name: "Crown", icon: "/ranks/crown.png" };
   
-  // Adjust for small user base
-  if (totalUsers < 5) {
-    // Less than 5 users: #1 = Crown, others = Bronze
-    return { name: "Bronze", icon: "/ranks/bronze.png" };
+  // Helper to check minimum count for each rank tier
+  function minForTier(tierPercent: number): number {
+    return Math.max(1, Math.ceil(totalUsers * tierPercent / 100));
   }
   
-  if (totalUsers < 10) {
-    // 5-9 users: #1 = Crown, #2 = Gold, others = Bronze
-    if (rank === 2) return { name: "Gold", icon: "/ranks/gold.png" };
-    return { name: "Bronze", icon: "/ranks/bronze.png" };
-  }
+  // Conqueror: Top 3% OR at least 2 people
+  const minConqueror = Math.max(2, minForTier(3));
+  if (rank <= minConqueror) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
+  
+  // Ace: Top 8% OR at least 3 people
+  const minAce = Math.max(3, minForTier(8));
+  if (rank <= minAce) return { name: "Ace", icon: "/ranks/ace.png" };
+  
+  // Diamond: Top 15% OR at least 5 people
+  const minDiamond = Math.max(5, minForTier(15));
+  if (rank <= minDiamond) return { name: "Diamond", icon: "/ranks/diamond.png" };
   
   // Calculate percentile: higher = better (100 = top)
   const percentile = ((totalUsers - rank) / totalUsers) * 100;
   
-  // Conqueror: Top 3% (percentile >= 97)
-  if (percentile >= 97) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
-  // Ace: Top 8% (percentile >= 92)
-  if (percentile >= 92) return { name: "Ace", icon: "/ranks/ace.png" };
-  // Diamond: Top 15% (percentile >= 75)
-  if (percentile >= 75) return { name: "Diamond", icon: "/ranks/diamond.png" };
-  // Platinum: Top 25% (percentile >= 50)
+  // Platinum: Top 25%
   if (percentile >= 50) return { name: "Platinum", icon: "/ranks/platinum.png" };
-  // Gold: Top 40% (percentile >= 40)
+  // Gold: Top 40%
   if (percentile >= 40) return { name: "Gold", icon: "/ranks/gold.png" };
-  // Silver: 40-70% (percentile >= 15)
+  // Silver: 40-70%
   if (percentile >= 15) return { name: "Silver", icon: "/ranks/silver.png" };
   // Bronze: Bottom 30%
   return { name: "Bronze", icon: "/ranks/bronze.png" };
