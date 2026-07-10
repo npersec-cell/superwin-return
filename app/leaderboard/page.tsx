@@ -10,6 +10,19 @@ function maskName(name: string): string {
   return name.slice(0, -2) + "xx";
 }
 
+interface UserProfileStats {
+  userId: string;
+  displayName: string;
+  avatarUrl: string;
+  profitScore: number;
+  predictionsCount: number;
+  winsCount: number;
+  lossesCount: number;
+  winRate: number;
+  totalWagered: number;
+  totalWon: number;
+}
+
 interface LeaderboardEntry {
   rank: number;
   userId: string;
@@ -52,6 +65,41 @@ export default function LeaderboardPage() {
   const [selectedLiveBet, setSelectedLiveBet] = useState<LiveBet | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  async function handleOpenProfile(userId: string, displayName: string) {
+    setProfileLoading(true);
+    try {
+      const response = await fetch(`/api/user-profile?userId=${userId}`);
+      const data = await response.json();
+      if (data.ok && data.profile) {
+        setSelectedProfile(data.profile);
+      } else {
+        // Show basic info if API fails
+        setSelectedProfile({
+          userId,
+          displayName,
+          avatarUrl: null,
+          profitScore: 0,
+          predictionsCount: 0,
+          winsCount: 0,
+          lossesCount: 0,
+          winRate: 0,
+          totalWagered: 0,
+          totalWon: 0
+        });
+      }
+    } catch {
+      setSelectedProfile(null);
+    } finally {
+      setProfileLoading(false);
+    }
+  }
+
+  function closeProfile() {
+    setSelectedProfile(null);
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -154,6 +202,7 @@ export default function LeaderboardPage() {
             {data.slice(0, 15).map((entry) => (
               <div 
                 key={entry.userId + entry.rank}
+                onClick={() => handleOpenProfile(entry.userId, entry.displayName || "User")}
                 style={{ 
                   display: "flex",
                   alignItems: "center",
@@ -161,7 +210,8 @@ export default function LeaderboardPage() {
                   padding: "4px 8px",
                   fontSize: "11px",
                   borderBottom: "1px solid var(--border)",
-                  transition: "background 0.15s"
+                  transition: "background 0.15s",
+                  cursor: "pointer"
                 }}
               >
                 <span style={{ 
@@ -457,6 +507,7 @@ export default function LeaderboardPage() {
       </div>
 
       {selectedLiveBet && <LiveBetModal bet={selectedLiveBet} onClose={() => setSelectedLiveBet(null)} />}
+      {selectedProfile && <ProfileModal profile={selectedProfile} onClose={closeProfile} profileLoading={profileLoading} />}
     </div>
   );
 }
@@ -529,6 +580,81 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
             </div>
           </div>
         </div>
+      </div>
+    </section>
+  );
+}
+
+function ProfileModal({ profile, onClose, profileLoading }: { profile: UserProfileStats | null; onClose: () => void; profileLoading: boolean }) {
+  return (
+    <section className="modal" aria-label="User Profile" onClick={(event) => event.target === event.currentTarget && onClose()}>
+      <div className="modal-card" style={{ maxWidth: "360px" }}>
+        <div className="modal-head">
+          <h3>👤 User Profile</h3>
+          <button className="button" onClick={onClose}>Close</button>
+        </div>
+        {profileLoading ? (
+          <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>Loading...</div>
+        ) : profile ? (
+          <div className="modal-body" style={{ gap: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
+              {profile.avatarUrl ? (
+                <img src={profile.avatarUrl} alt={profile.displayName} style={{ width: "48px", height: "48px", borderRadius: "50%", objectFit: "cover" }} />
+              ) : (
+                <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "var(--card)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  👤
+                </div>
+              )}
+              <div>
+                <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--text)" }}>
+                  {profile.displayName}
+                </div>
+                <div style={{ fontSize: "11px", color: "var(--muted)" }}>
+                  ID: {profile.userId.slice(0, 8)}...
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ fontSize: "10px", color: "var(--muted)" }}>💰 Profit Score</div>
+                <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--yellow)" }}>
+                  {profile.profitScore.toLocaleString()}
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ fontSize: "10px", color: "var(--muted)" }}>🎯 Predictions</div>
+                <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
+                  {profile.predictionsCount}
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ fontSize: "10px", color: "var(--muted)" }}>✅ Wins</div>
+                <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
+                  {profile.winsCount}
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ fontSize: "10px", color: "var(--muted)" }}>❌ Losses</div>
+                <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
+                  {profile.lossesCount}
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ fontSize: "10px", color: "var(--muted)" }}>📈 Win Rate</div>
+                <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
+                  {profile.predictionsCount > 0 ? (profile.winRate * 100).toFixed(1) + "%" : "—"}
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ fontSize: "10px", color: "var(--muted)" }}>💵 Total Wagered</div>
+                <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--text)" }}>
+                  {profile.totalWagered.toLocaleString()}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );
