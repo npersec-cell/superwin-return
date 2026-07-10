@@ -261,7 +261,7 @@ export default function LeaderboardPage() {
                   textOverflow: "ellipsis",
                   fontWeight: "600"
                 }}>
-                  {entry.displayName || "Anonymous"}
+                  {entry.displayName || maskName(entry.userId.slice(0, 8))}
                 </strong>
                 
                 <span style={{ 
