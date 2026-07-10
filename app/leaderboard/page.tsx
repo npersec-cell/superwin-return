@@ -754,29 +754,31 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
             </div>
           ) : profile ? (
             <>
-              {/* Quick Stats Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>WIN RATE</span>
-                  <strong style={{ display: "block", fontSize: "18px", color: "var(--yellow)", marginTop: "4px" }}>
-                    {profile.winRate}%
-                  </strong>
-                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    {profile.wonCount} won · {profile.lostCount} lost
-                  </span>
-                </div>
-                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>RANK</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
-                    <img src={getRankFromPosition(profile.rank, profile.totalUsers).icon} alt="" width={20} height={20} style={{ objectFit: "contain" }} />
-                    <strong style={{ fontSize: "16px", color: "var(--yellow)" }}>
+              {/* RANK - Full Width, Top */}
+              <div className="info-block" style={{ padding: "14px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", textAlign: "center" }}>
+                <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>RANK</span>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginTop: "8px" }}>
+                  <img src={getRankFromPosition(profile.rank, profile.totalUsers).icon} alt="" width={28} height={28} style={{ objectFit: "contain" }} />
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <strong style={{ fontSize: "22px", color: "var(--yellow)", fontWeight: 700 }}>
                       {getRankFromPosition(profile.rank, profile.totalUsers).name}
                     </strong>
+                    <span className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "none", marginTop: "2px" }}>
+                      #{profile.rank} ของ {profile.totalUsers} คน
+                    </span>
                   </div>
-                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    #{profile.rank} ของ {profile.totalUsers} คน
-                  </span>
                 </div>
+              </div>
+
+              {/* Win Rate */}
+              <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>WIN RATE</span>
+                <strong style={{ display: "block", fontSize: "18px", color: "var(--yellow)", marginTop: "4px" }}>
+                  {profile.winRate}%
+                </strong>
+                <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  {profile.wonCount} won · {profile.lostCount} lost
+                </span>
               </div>
 
               {/* Leaderboard Stats Grid */}
@@ -825,12 +827,6 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
                   <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
                     #{profile.mostActiveRank}
                   </span>
-                </div>
-                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>All Time Profit</span>
-                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {compact(profile.allTimeProfit)}
-                  </strong>
                 </div>
               </div>
 
