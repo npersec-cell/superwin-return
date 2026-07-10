@@ -21,6 +21,7 @@ interface UserProfileStats {
   winRate: number;
   totalWagered: number;
   totalWon: number;
+  loading?: boolean;
 }
 
 interface LeaderboardEntry {
