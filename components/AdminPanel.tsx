@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import NotificationBell from "./NotificationBell";
 import NumberWarBoard from "./NumberWarBoard";
 
 type AdminPrediction = {
@@ -1482,7 +1481,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           </div>
           <div className="actions" style={{ gap: "6px" }}>
             <Link className="button gold" href="/">กลับหน้าเว็บ</Link>
-            <NotificationBell />
           </div>
         </header>
 

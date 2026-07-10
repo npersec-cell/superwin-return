@@ -3,7 +3,6 @@
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import NotificationBell from "./NotificationBell";
 
 type PredictionOption = {
   id: string;
@@ -1134,7 +1133,6 @@ export default function SuperWinPrototype() {
                 <span className="actions-group">
                   <Link className="button" href="/profile" style={{ fontSize: "11px", padding: "0 10px", height: "32px", display: "flex", alignItems: "center" }}>Profile</Link>
                   <UserButton showName={false} />
-                  <NotificationBell />
                 </span>
               </>
             )}
