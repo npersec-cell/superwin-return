@@ -520,6 +520,7 @@ export default function LeaderboardPage() {
               {liveBets.map((bet, index) => {
                 const date = new Date(bet.createdAt);
                 const timeStr = date.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+                const isBigBet = bet.amount >= 1000;
                 return (
                   <div 
                     key={bet.userId + bet.predictionId + bet.createdAt}
@@ -531,21 +532,23 @@ export default function LeaderboardPage() {
                       padding: "6px 10px",
                       fontSize: "11px",
                       cursor: "pointer",
-                      transition: "background 0.15s"
+                      transition: "background 0.15s",
+                      background: isBigBet ? "rgba(255, 225, 0, 0.15)" : "transparent",
+                      border: isBigBet ? "1px solid rgba(255, 225, 0, 0.3)" : "none"
                     }}
                   >
                     <span style={{ 
                       width: "16px",
                       height: "16px",
                       borderRadius: "50%",
-                      background: "var(--yellow-soft)",
+                      background: isBigBet ? "rgba(255, 225, 0, 0.3)" : "var(--yellow-soft)",
                       display: "grid",
                       placeItems: "center",
                       fontSize: "9px",
                       fontWeight: "700",
-                      color: "var(--yellow)"
+                      color: isBigBet ? "var(--yellow)" : "var(--yellow)"
                     }}>
-                      {index + 1}
+                      {isBigBet ? "🔥" : (index + 1)}
                     </span>
                     
                     <span style={{ 
@@ -560,17 +563,28 @@ export default function LeaderboardPage() {
                     </span>
                     
                     <span style={{ 
-                      color: "var(--yellow)",
-                      fontWeight: "700",
-                      fontFamily: "JetBrains Mono, monospace",
-                      minWidth: "55px",
-                      textAlign: "right",
                       display: "flex",
                       alignItems: "center",
-                      gap: "2px"
+                      gap: "4px",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      color: isBigBet ? "var(--yellow)" : "var(--text)",
+                      fontFamily: isBigBet ? "JetBrains Mono, monospace" : "inherit"
                     }}>
-                      {bet.amount.toLocaleString()}
-                      <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="14" height="14" style={{ display: "inline-block", verticalAlign: "middle" }} />
+                      {isBigBet ? <span>🔥 BIG</span> : null}
+                      <span style={{ 
+                        color: "var(--yellow)",
+                        fontWeight: "700",
+                        fontFamily: "JetBrains Mono, monospace",
+                        minWidth: "55px",
+                        textAlign: "right",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "2px"
+                      }}>
+                        {bet.amount.toLocaleString()}
+                        <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="14" height="14" style={{ display: "inline-block", verticalAlign: "middle" }} />
+                      </span>
                     </span>
                     
                     <span style={{ fontSize: "9px", color: "var(--muted)" }}>
