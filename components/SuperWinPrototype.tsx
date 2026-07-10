@@ -1805,12 +1805,12 @@ function ProfileModal({
                     {profile.wonCount} won · {profile.lostCount} lost
                   </span>
                 </div>
-                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                  <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                   <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>RANK</span>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
-                    <img src={getRankFromPosition(profile.rank, profile.totalUsers).icon} alt="" width={20} height={20} style={{ objectFit: "contain" }} />
+                    <img src={profile.rankIcon} alt="" width={20} height={20} style={{ objectFit: "contain" }} />
                     <strong style={{ fontSize: "16px", color: "var(--yellow)" }}>
-                      {getRankFromPosition(profile.rank, profile.totalUsers).name}
+                      {profile.rankName}
                     </strong>
                   </div>
                   <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
