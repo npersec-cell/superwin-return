@@ -262,38 +262,26 @@ export default function ProfilePage() {
               <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                 <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Orange Ammo</span>
                 <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  {compact(rankData.profitScore)}
+                  #{rankData.profitScoreRank} ของ {rankData.totalUsers} คน
                 </strong>
-                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                  #{rankData.profitScoreRank}
-                </span>
               </div>
               <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                 <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Predictions</span>
                 <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  {rankData.predictionCount}
+                  #{rankData.predictionCountRank} ของ {rankData.totalUsers} คน
                 </strong>
-                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                  #{rankData.predictionCountRank}
-                </span>
               </div>
               <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                 <span style={{ fontSize: "10px", color: "var(--muted)" }}>Highest Single Win</span>
                 <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  {compact(rankData.highestSingleWin)}
+                  #{rankData.highestSingleWinRank} ของ {rankData.totalUsers} คน
                 </strong>
-                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                  #{rankData.highestSingleWinRank}
-                </span>
               </div>
               <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                 <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Active (avg/day)</span>
                 <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  {(rankData.avgReloadPerDay || 0).toFixed(1)}
+                  #{rankData.activeRank} ของ {rankData.totalUsers} คน
                 </strong>
-                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                  #{rankData.activeRank}
-                </span>
               </div>
             </div>
           </div>
