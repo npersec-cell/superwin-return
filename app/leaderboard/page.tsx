@@ -157,7 +157,22 @@ export default function LeaderboardPage() {
     // Show modal immediately with loading state
     setSelectedProfile({
       name: displayName,
+      // Overall leaderboard
       overallScore: 0,
+      overallRank: 0,
+      // Most Orange Ammo
+      profitScore: 0,
+      mostOrangeAmmoRank: 0,
+      // Most Predictions
+      predictionCount: 0,
+      mostPredictionsRank: 0,
+      // Highest Single Win
+      highestSingleWin: 0,
+      highestSingleWinRank: 0,
+      // Most Active
+      avgReloadPerDay: 0,
+      mostActiveRank: 0,
+      // Other stats
       rank: 0,
       rankPercentile: 0,
       rankName: "Bronze",
