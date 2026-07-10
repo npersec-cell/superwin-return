@@ -21,6 +21,24 @@ function getRankInfo(profitScore: number) {
   return { name: "Bronze", icon: "/ranks/bronze.png" };
 }
 
+// Get rank based on position (1-based) and total users
+function getRankFromPosition(rank: number, totalUsers: number): { name: string; icon: string } {
+  if (totalUsers === 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
+  
+  // Calculate percentile: higher = better (100 = top)
+  const percentile = ((totalUsers - rank) / totalUsers) * 100;
+  
+  // Crown: Top 1% (only #1 if few users)
+  if (percentile >= 99) return { name: "Crown", icon: "/ranks/crown.png" };
+  if (percentile >= 97) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
+  if (percentile >= 92) return { name: "Ace", icon: "/ranks/ace.png" };
+  if (percentile >= 75) return { name: "Diamond", icon: "/ranks/diamond.png" };
+  if (percentile >= 50) return { name: "Platinum", icon: "/ranks/platinum.png" };
+  if (percentile >= 40) return { name: "Gold", icon: "/ranks/gold.png" };
+  if (percentile >= 15) return { name: "Silver", icon: "/ranks/silver.png" };
+  return { name: "Bronze", icon: "/ranks/bronze.png" };
+}
+
 interface UserProfileStats {
   name: string;
   displayName?: string | null;
@@ -90,6 +108,7 @@ const categories: { id: Category; name: string; icon: string; iconUrl?: string; 
 
 export default function LeaderboardPage() {
   const [leaderboards, setLeaderboards] = useState<LeaderboardData | null>(null);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
   const [selectedLiveBet, setSelectedLiveBet] = useState<LiveBet | null>(null);
   const [loading, setLoading] = useState(true);
@@ -155,6 +174,7 @@ export default function LeaderboardPage() {
         
         if (leaderboardData.leaderboards) {
           setLeaderboards(leaderboardData.leaderboards);
+          setTotalUsers(leaderboardData.totalUsers || 0);
           setError(null);
         } else {
           setError(leaderboardData.error || "Failed to load leaderboard");
@@ -297,8 +317,8 @@ export default function LeaderboardPage() {
                   
                   {/* Rank icon */}
                   <span style={{ display: "flex", alignItems: "center", gap: "2px", color: "var(--muted)", fontSize: "9px", fontWeight: 500, flexShrink: 0 }}>
-                    <img src={getRankInfo(entry.value).icon} alt="" width={14} height={14} style={{ objectFit: "contain" }} />
-                    {getRankInfo(entry.value).name}
+                    <img src={getRankFromPosition(entry.rank, totalUsers).icon} alt="" width={14} height={14} style={{ objectFit: "contain" }} />
+                    {getRankFromPosition(entry.rank, totalUsers).name}
                   </span>
                 </div>
                 
