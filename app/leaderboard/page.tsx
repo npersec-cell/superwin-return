@@ -21,7 +21,6 @@ interface UserProfileStats {
   winRate: number;
   totalWagered: number;
   totalWon: number;
-  loading?: boolean;
 }
 
 interface LeaderboardEntry {
@@ -67,10 +66,9 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
 
-  async function handleOpenProfile(userId: string, displayName: string) {
-    // Show modal immediately with loading state
+  function handleOpenProfile(userId: string, displayName: string) {
+    // Show modal with basic info (no API call)
     setSelectedProfile({
       userId,
       displayName,
@@ -81,37 +79,8 @@ export default function LeaderboardPage() {
       lossesCount: 0,
       winRate: 0,
       totalWagered: 0,
-      totalWon: 0,
-      loading: true
+      totalWon: 0
     });
-    setProfileLoading(true);
-    
-    try {
-      const response = await fetch(`/api/leaderboard/profile?userId=${userId}&_t=${Date.now()}`);
-      const data = await response.json();
-      if (data.ok && data.data) {
-        setSelectedProfile({ ...data.data, loading: false });
-      } else {
-        // Show basic info if API fails
-        setSelectedProfile({
-          userId,
-          displayName,
-          avatarUrl: '',
-          profitScore: 0,
-          predictionsCount: 0,
-          winsCount: 0,
-          lossesCount: 0,
-          winRate: 0,
-          totalWagered: 0,
-          totalWon: 0,
-          loading: false
-        });
-      }
-    } catch {
-      setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
-    } finally {
-      setProfileLoading(false);
-    }
   }
 
   function closeProfile() {
@@ -524,7 +493,7 @@ export default function LeaderboardPage() {
       </div>
 
       {selectedLiveBet && <LiveBetModal bet={selectedLiveBet} onClose={() => setSelectedLiveBet(null)} />}
-      {selectedProfile && <ProfileModal profile={selectedProfile} onClose={closeProfile} profileLoading={profileLoading} />}
+      {selectedProfile && <ProfileModal profile={selectedProfile} onClose={closeProfile} />}
     </div>
   );
 }
@@ -602,7 +571,7 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
   );
 }
 
-function ProfileModal({ profile, onClose, profileLoading }: { profile: UserProfileStats | null; onClose: () => void; profileLoading: boolean }) {
+function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; onClose: () => void }) {
   return (
     <section className="modal" aria-label="User Profile" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card" style={{ maxWidth: "360px" }}>
@@ -610,9 +579,7 @@ function ProfileModal({ profile, onClose, profileLoading }: { profile: UserProfi
           <h3>👤 User Profile</h3>
           <button className="button" onClick={onClose}>Close</button>
         </div>
-        {profileLoading ? (
-          <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>Loading...</div>
-        ) : profile ? (
+        {profile ? (
           <div className="modal-body" style={{ gap: "12px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
               {profile.avatarUrl ? (
