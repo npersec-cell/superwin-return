@@ -366,7 +366,7 @@ function money(amount: number) {
 }
 
 function compact(n: number): string {
-  if (n < 1000) return `${n >= 0 ? "+" : ""}${n}`;
+  if (n < 1000) return `${n}`;
   if (n < 10000) return `${(n / 1000).toFixed(1)}k`;
   return `${Math.round(n / 1000)}k`;
 }
