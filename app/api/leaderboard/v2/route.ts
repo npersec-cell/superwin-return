@@ -34,13 +34,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
     }
     
-    // Get prediction entries for all users
+    // Get prediction entries for all users (count all settled entries: won, lost, refunded)
     const userIds = users?.map(u => u.id) || [];
     const { data: entries, error: entriesError } = await supabase
       .from('prediction_entries')
       .select('id, user_id, amount, payout_amount, status')
       .in('user_id', userIds)
-      .eq('status', 'won');
+      .in('status', ['won', 'lost', 'refunded']);
     
     if (entriesError) {
       return NextResponse.json({ error: 'Failed to fetch entries' }, { status: 500 });
@@ -70,9 +70,12 @@ export async function GET(request: NextRequest) {
       const stat = userStats.get(entry.user_id);
       if (stat) {
         stat.predictionCount++;
-        const profit = entry.payout_amount - entry.amount;
-        if (profit > stat.highestSingleWin) {
-          stat.highestSingleWin = profit;
+        // Only calculate highestSingleWin for WON entries
+        if (entry.status === 'won') {
+          const profit = entry.payout_amount - entry.amount;
+          if (profit > stat.highestSingleWin) {
+            stat.highestSingleWin = profit;
+          }
         }
       }
     }

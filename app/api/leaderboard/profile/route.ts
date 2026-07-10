@@ -73,13 +73,13 @@ export async function GET(request: NextRequest) {
       console.error("[Profile] Error fetching users:", allUsersError);
     }
 
-    // ── ดึงทุก entries สำหรับคำนวณ rank ──
+    // ── ดึงทุก entries สำหรับคำนวณ rank (count all settled: won, lost, refunded) ──
     const allUserIds = allUsers?.map(u => u.id) || [];
     const { data: allEntries, error: allEntriesError } = await supabase
       .from('prediction_entries')
       .select('id, user_id, amount, payout_amount, status')
       .in('user_id', allUserIds)
-      .eq('status', 'won');
+      .in('status', ['won', 'lost', 'refunded']);
 
     if (allEntriesError) {
       console.error("[Profile] Error fetching entries:", allEntriesError);
@@ -109,9 +109,12 @@ export async function GET(request: NextRequest) {
       const stat = userStatsMap.get(entry.user_id);
       if (stat) {
         stat.predictionCount++;
-        const profit = entry.payout_amount - entry.amount;
-        if (profit > stat.highestSingleWin) {
-          stat.highestSingleWin = profit;
+        // Only calculate highestSingleWin for WON entries
+        if (entry.status === 'won') {
+          const profit = entry.payout_amount - entry.amount;
+          if (profit > stat.highestSingleWin) {
+            stat.highestSingleWin = profit;
+          }
         }
       }
     }
