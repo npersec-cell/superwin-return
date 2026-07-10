@@ -521,6 +521,11 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
               {formattedDate}
             </div>
           </div>
+          
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 0", borderTop: "1px solid var(--border)" }}>
+            <span>⏳</span>
+            <span style={{ fontSize: "12px", color: "var(--muted)" }}>Waiting for result...</span>
+          </div>
         </div>
       </div>
     </section>
