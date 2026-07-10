@@ -134,9 +134,12 @@ function getRankInfo(profitScore: number) {
 type UserProfileStats = {
   name: string;
   displayName?: string | null;
-  profitScore: number;
   overallScore: number;
   rank: number;
+  rankPercentile: number;
+  rankName: string;
+  rankIcon: string;
+  totalUsers: number;
   allTimeProfit: number;
   winRate: number;
   wonCount: number;
@@ -153,6 +156,7 @@ type UserProfileStats = {
     amount: number;
     payout: number;
     status: "won" | "lost";
+    net: number;
     date: string;
   }>;
 };
@@ -766,9 +770,12 @@ export default function SuperWinPrototype() {
     // show modal immediately with loading state
     setSelectedProfile({
       name: userName,
-      profitScore: 0,
       overallScore: 0,
       rank: 0,
+      rankPercentile: 0,
+      rankName: "Bronze",
+      rankIcon: "/ranks/bronze.png",
+      totalUsers: 0,
       allTimeProfit: 0,
       winRate: 0,
       wonCount: 0,
@@ -1763,11 +1770,14 @@ function ProfileModal({
                 </div>
                 <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                   <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>RANK</span>
-                  <strong style={{ fontSize: "18px", color: "var(--yellow)", marginTop: "4px" }}>
-                    {profile.rank}
-                  </strong>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
+                    <img src={profile.rankIcon} alt="" width={20} height={20} style={{ objectFit: "contain" }} />
+                    <strong style={{ fontSize: "16px", color: "var(--yellow)" }}>
+                      {profile.rankName}
+                    </strong>
+                  </div>
                   <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    Average Score: {profile.overallScore.toFixed(2)}
+                    #{profile.rank} · {profile.rankPercentile}% · {profile.overallScore.toFixed(2)}
                   </span>
                 </div>
               </div>

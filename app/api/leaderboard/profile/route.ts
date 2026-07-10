@@ -9,6 +9,18 @@ function calcLogScore(value: number): number {
   return Math.log2(value + 1);
 }
 
+// Get rank name based on percentile
+function getRankFromPercentile(percentile: number): { name: string; icon: string } {
+  if (percentile >= 99) return { name: "Crown", icon: "/ranks/crown.png" }; // Top 1%
+  if (percentile >= 97) return { name: "Conqueror", icon: "/ranks/conqueror.png" }; // Top 3%
+  if (percentile >= 92) return { name: "Ace", icon: "/ranks/ace.png" }; // Top 8%
+  if (percentile >= 75) return { name: "Diamond", icon: "/ranks/diamond.png" }; // Top 15%
+  if (percentile >= 50) return { name: "Platinum", icon: "/ranks/platinum.png" }; // Top 25%
+  if (percentile >= 40) return { name: "Gold", icon: "/ranks/gold.png" }; // Top 40%
+  if (percentile >= 15) return { name: "Silver", icon: "/ranks/silver.png" }; // 40-70%
+  return { name: "Bronze", icon: "/ranks/bronze.png" }; // Bottom 30%
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = createSupabaseAdminClient();
@@ -67,7 +79,10 @@ export async function GET(request: NextRequest) {
       .not('email', 'like', '%test%')
       .not('email', 'like', '%automated%');
 
-    let rank = 1; // Default rank
+    let rank = 1; // Default rank (position)
+    let rankPercentile = 100; // Default percentile (100 = bottom)
+    let totalUsers = allUsers?.length || 0;
+    
     if (!usersError && allUsers) {
       // Get all users' entries count and highest win
       const allUserIds = allUsers.map(u => u.id);
@@ -100,14 +115,20 @@ export async function GET(request: NextRequest) {
           userScores.set(u.id, score);
         }
 
-        // Count how many users have higher score
-        let usersWithHigherScore = 0;
-        for (const [uid, score] of userScores) {
-          if (score > overallScore) usersWithHigherScore++;
-        }
-        rank = usersWithHigherScore + 1;
+        // Sort all users by score descending
+        const sortedUsers = [...userScores.entries()].sort((a, b) => b[1] - a[1]);
+        
+        // Find this user's position
+        const userPosition = sortedUsers.findIndex(([uid]) => uid === userId);
+        rank = userPosition >= 0 ? userPosition + 1 : totalUsers;
+        
+        // Calculate percentile (higher = better, 100 = top)
+        rankPercentile = totalUsers > 0 ? Math.round(((totalUsers - rank) / totalUsers) * 100) : 100;
       }
     }
+    
+    // Get rank info from percentile
+    const rankInfo = getRankFromPercentile(rankPercentile);
 
     // ════════════════════════════════════════════════
     // SOURCE OF TRUTH: prediction_entries table
@@ -145,6 +166,10 @@ export async function GET(request: NextRequest) {
           displayName: user.display_name || null,
           overallScore: 0,
           rank: 1,
+          rankPercentile: 100,
+          rankName: "Bronze",
+          rankIcon: "/ranks/bronze.png",
+          totalUsers: 0,
           allTimeProfit: user.lifetime_profit || 0,
           winRate: 0,
           wonCount: 0,
@@ -241,8 +266,12 @@ export async function GET(request: NextRequest) {
       data: {
         name: user.display_name || user.email.split("@")[0],
         displayName: user.display_name || null,
-        overallScore, // คะแนน Overall (ใช้คำนวณ rank)
-        rank, // ตำแหน่งของผู้ใช้
+        overallScore, // คะแน Overall
+        rank, // ตำแหน่งตัวเลข (1, 2, 3...)
+        rankPercentile, // เปอร์เซ็นต์อันดับ (100 = ดีที่สุด)
+        rankName: rankInfo.name, // ชื่อ Rank (Crown, Diamond, Gold...)
+        rankIcon: rankInfo.icon, // ไอคอน Rank
+        totalUsers, // จำนวนผู้ใช้ทั้งหมด
         allTimeProfit: user.lifetime_profit || 0,
         winRate,
         wonCount,
