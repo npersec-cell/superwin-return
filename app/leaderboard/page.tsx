@@ -123,10 +123,6 @@ export default function LeaderboardPage() {
     setSelectedProfile(null);
   }
 
-  function closeProfile() {
-    setSelectedProfile(null);
-  }
-
   useEffect(() => {
     async function fetchData() {
       try {
