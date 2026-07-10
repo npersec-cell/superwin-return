@@ -46,6 +46,7 @@ interface LeaderboardEntry {
   rank: number;
   userId: string;
   displayName: string;
+  avatarUrl: string | null;
   value: number;
 }
 
@@ -244,6 +245,7 @@ export default function LeaderboardPage() {
                   cursor: "pointer"
                 }}
               >
+                {/* Rank badge */}
                 <span style={{ 
                   fontWeight: "700", 
                   color: "var(--text)",
@@ -253,17 +255,40 @@ export default function LeaderboardPage() {
                   {getRankBadge(entry.rank)}
                 </span>
                 
-                <strong style={{ 
-                  flex: 1, 
-                  color: "var(--text-strong)",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  fontWeight: "600"
-                }}>
-                  {entry.displayName || maskName(entry.userId.slice(0, 8))}
-                </strong>
+                {/* Avatar + Name + Rank */}
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", flexGrow: 1, minWidth: 0 }}>
+                  {/* Avatar */}
+                  {entry.avatarUrl ? (
+                    <img 
+                      src={entry.avatarUrl} 
+                      alt={entry.displayName} 
+                      style={{ width: "16px", height: "16px", borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} 
+                    />
+                  ) : (
+                    <div style={{ width: "16px", height: "16px", borderRadius: "50%", backgroundColor: "#20252b", border: "1px solid #30353b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "9px", flexShrink: 0 }}>
+                      👤
+                    </div>
+                  )}
+                  
+                  {/* Name */}
+                  <strong style={{ 
+                    color: "var(--text-strong)",
+                    fontWeight: "600",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap"
+                  }}>
+                    {entry.displayName || maskName(entry.userId.slice(0, 8))}
+                  </strong>
+                  
+                  {/* Rank icon */}
+                  <span style={{ display: "flex", alignItems: "center", gap: "2px", color: "var(--muted)", fontSize: "9px", fontWeight: 500, flexShrink: 0 }}>
+                    <img src={getRankInfo(entry.value).icon} alt="" width={14} height={14} style={{ objectFit: "contain" }} />
+                    {getRankInfo(entry.value).name}
+                  </span>
+                </div>
                 
+                {/* Value */}
                 <span style={{ 
                   color: "var(--yellow)", 
                   fontWeight: "700",

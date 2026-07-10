@@ -109,6 +109,7 @@ export async function GET() {
     return {
       userId,
       displayName,
+      avatarUrl: user?.avatar_url || null,
       ...stats
     };
   });
@@ -135,28 +136,28 @@ export async function GET() {
     overall: leaderboardWithOverall
       .sort((a, b) => b.overall - a.overall)
       .slice(0, 15)
-      .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, value: u.overall })),
+      .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.overall })),
     
     mostOrangeAmmo: leaderboardWithOverall
       .sort((a, b) => b.profitScore - a.profitScore)
       .slice(0, 20)
-      .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, value: u.profitScore })),
+      .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.profitScore })),
     
     mostPredictions: leaderboardWithOverall
       .sort((a, b) => b.predictionCount - a.predictionCount)
       .slice(0, 20)
-      .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, value: u.predictionCount })),
+      .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.predictionCount })),
     
     highestSingleWin: leaderboardWithOverall
       .filter(u => u.highestSingleWin > 0)
       .sort((a, b) => b.highestSingleWin - a.highestSingleWin)
       .slice(0, 20)
-      .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, value: u.highestSingleWin })),
+      .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.highestSingleWin })),
     
     mostActive: leaderboardWithOverall
       .sort((a, b) => b.avgReloadPerDay - a.avgReloadPerDay)
       .slice(0, 20)
-      .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, value: u.avgReloadPerDay }))
+      .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.avgReloadPerDay }))
   };
   
   return NextResponse.json({
