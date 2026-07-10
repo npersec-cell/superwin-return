@@ -18,6 +18,8 @@ function maskName(name: string): string {
 export async function GET(request: NextRequest) {
   try {
     const supabase = createSupabaseAdminClient();
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
     
     // Get all users with their stats (exclude admin and test accounts)
     const { data: users, error: usersError } = await supabase
@@ -151,9 +153,53 @@ export async function GET(request: NextRequest) {
         .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.avgReloadPerDay }))
     };
     
+    // Calculate user's rank if userId is provided
+    let userRankData = null;
+    if (userId) {
+      const userPosition = leaderboardWithOverall.findIndex(u => u.userId === userId);
+      if (userPosition >= 0) {
+        const userStats = leaderboardWithOverall[userPosition];
+        
+        // Overall rank
+        const overallRank = userPosition + 1;
+        
+        // Most Orange Ammo rank
+        const sortedByProfitScore = [...leaderboardWithOverall].sort((a, b) => b.profitScore - a.profitScore);
+        const profitScoreRank = sortedByProfitScore.findIndex(u => u.userId === userId) + 1;
+        
+        // Most Predictions rank
+        const sortedByPredictionCount = [...leaderboardWithOverall].sort((a, b) => b.predictionCount - a.predictionCount);
+        const predictionCountRank = sortedByPredictionCount.findIndex(u => u.userId === userId) + 1;
+        
+        // Highest Single Win rank
+        const sortedByHighestWin = [...leaderboardWithOverall.filter(u => u.highestSingleWin > 0)].sort((a, b) => b.highestSingleWin - a.highestSingleWin);
+        const highestSingleWinRank = sortedByHighestWin.findIndex(u => u.userId === userId) >= 0 
+          ? sortedByHighestWin.findIndex(u => u.userId === userId) + 1
+          : totalUsers; // If no win, rank = totalUsers
+        
+        // Most Active rank
+        const sortedByActive = [...leaderboardWithOverall].sort((a, b) => b.avgReloadPerDay - a.avgReloadPerDay);
+        const activeRank = sortedByActive.findIndex(u => u.userId === userId) + 1;
+        
+        userRankData = {
+          overallRank,
+          profitScore: userStats.profitScore,
+          profitScoreRank,
+          predictionCount: userStats.predictionCount,
+          predictionCountRank,
+          highestSingleWin: userStats.highestSingleWin,
+          highestSingleWinRank,
+          avgReloadPerDay: userStats.avgReloadPerDay,
+          activeRank,
+          totalUsers
+        };
+      }
+    }
+    
     return NextResponse.json({
       leaderboards,
       totalUsers,
+      userRankData,
       timestamp: new Date().toISOString()
     });
   } catch (error) {

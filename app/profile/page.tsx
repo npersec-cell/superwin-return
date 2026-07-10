@@ -1,7 +1,14 @@
-"use client";
+function compact(n: number): string {
+  if (n < 1000) return `${n}`;
+  if (n < 10000) return `${(n / 1000).toFixed(1)}k`;
+  return `${Math.round(n / 1000)}k`;
+}
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+function maskName(name: string): string {
+  if (!name) return "";
+  if (name.length <= 2) return name + "xx";
+  return name.slice(0, -2) + "xx";
+}
 
 interface UserInfo {
   id: string;
@@ -15,9 +22,23 @@ interface UserInfo {
   shippingPhone?: string;
 }
 
+interface UserRankData {
+  overallRank: number;
+  profitScore: number;
+  profitScoreRank: number;
+  predictionCount: number;
+  predictionCountRank: number;
+  highestSingleWin: number;
+  highestSingleWinRank: number;
+  avgReloadPerDay: number;
+  activeRank: number;
+  totalUsers: number;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [rankData, setRankData] = useState<UserRankData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -56,6 +77,18 @@ export default function ProfilePage() {
       }
     } catch (err) {
       console.error("Error loading user:", err);
+    }
+  }
+
+  async function loadRankData(userId: string) {
+    try {
+      const res = await fetch(`/api/leaderboard/v2?userId=${userId}`);
+      const data = await res.json();
+      if (data.userRankData) {
+        setRankData(data.userRankData);
+      }
+    } catch (err) {
+      console.error("Error loading rank data:", err);
     } finally {
       setLoading(false);
     }
@@ -64,6 +97,13 @@ export default function ProfilePage() {
   useEffect(() => {
     loadUser();
   }, []);
+
+  // Load rank data after user is loaded
+  useEffect(() => {
+    if (user?.id) {
+      loadRankData(user.id);
+    }
+  }, [user]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -193,6 +233,59 @@ export default function ProfilePage() {
               <span style={{ color: "var(--muted)" }}>กระสุนเขียวคงเหลือ:</span>
               <span style={{ color: "var(--green)", fontWeight: 700 }}>{user.profitScore}</span>
               <img src="https://superwinhub.app/SuperWin_b.png" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
+            </div>
+          </div>
+        )}
+
+        {/* Leaderboard Stats */}
+        {rankData && (
+          <div className="panel" style={{ padding: "14px", marginBottom: "12px" }}>
+            <div style={{ fontSize: "12px", fontWeight: 600, marginBottom: "10px", color: "var(--yellow)" }}>
+              🏆 สถิติใน Leaderboard
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Overall</span>
+                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                  #{rankData.overallRank} ของ {rankData.totalUsers} คน
+                </strong>
+              </div>
+              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Orange Ammo</span>
+                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {compact(rankData.profitScore)}
+                </strong>
+                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  #{rankData.profitScoreRank}
+                </span>
+              </div>
+              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Predictions</span>
+                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {rankData.predictionCount}
+                </strong>
+                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  #{rankData.predictionCountRank}
+                </span>
+              </div>
+              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Highest Single Win</span>
+                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {compact(rankData.highestSingleWin)}
+                </strong>
+                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  #{rankData.highestSingleWinRank}
+                </span>
+              </div>
+              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Active (avg/day)</span>
+                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {(rankData.avgReloadPerDay || 0).toFixed(1)}
+                </strong>
+                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  #{rankData.activeRank}
+                </span>
+              </div>
             </div>
           </div>
         )}
