@@ -1777,7 +1777,7 @@ function ProfileModal({
                     </strong>
                   </div>
                   <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    #{profile.rank} · {profile.rankPercentile}% · {profile.overallScore.toFixed(2)}
+                    #{profile.rank}
                   </span>
                 </div>
               </div>
