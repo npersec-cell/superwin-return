@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+function compact(n: number): string {
+  if (n < 1000) return `${n}`;
+  if (n < 10000) return `${(n / 1000).toFixed(1)}k`;
+  return `${Math.round(n / 1000)}k`;
+}
+
 interface UserInfo {
   id: string;
   email: string;
@@ -15,9 +21,36 @@ interface UserInfo {
   shippingPhone?: string;
 }
 
+interface LeaderboardStats {
+  // Overall leaderboard
+  overallScore: number;
+  overallRank: number;
+  // Most Orange Ammo (profitScore)
+  profitScore: number;
+  mostOrangeAmmoRank: number;
+  // Most Predictions
+  predictionCount: number;
+  mostPredictionsRank: number;
+  // Highest Single Win
+  highestSingleWin: number;
+  highestSingleWinRank: number;
+  // Most Active
+  avgReloadPerDay: number;
+  mostActiveRank: number;
+  // Other stats
+  rank: number;
+  rankName: string;
+  rankIcon: string;
+  totalUsers: number;
+  winRate: number;
+  wonCount: number;
+  lostCount: number;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -56,13 +89,24 @@ export default function ProfilePage() {
       }
     } catch (err) {
       console.error("Error loading user:", err);
-    } finally {
-      setLoading(false);
+    }
+  }
+
+  async function loadLeaderboard() {
+    try {
+      const res = await fetch("/api/leaderboard/profile");
+      const data = await res.json();
+      if (data.ok && data.data) {
+        setLeaderboard(data.data);
+      }
+    } catch (err) {
+      console.error("Error loading leaderboard:", err);
     }
   }
 
   useEffect(() => {
     loadUser();
+    loadLeaderboard();
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -193,6 +237,71 @@ export default function ProfilePage() {
               <span style={{ color: "var(--muted)" }}>กระสุนเขียวคงเหลือ:</span>
               <span style={{ color: "var(--green)", fontWeight: 700 }}>{user.profitScore}</span>
               <img src="https://superwinhub.app/ammo-556-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
+            </div>
+          </div>
+        )}
+
+        {/* Leaderboard Stats */}
+        {leaderboard && (
+          <div className="panel" style={{ padding: "14px", marginBottom: "12px" }}>
+            <div style={{ fontSize: "12px", fontWeight: 600, marginBottom: "10px", color: "var(--yellow)" }}>
+              🏆 สถิติใน_leaderboard
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Overall</span>
+                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {leaderboard.overallScore}
+                </strong>
+                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  #{leaderboard.overallRank} ของ {leaderboard.totalUsers} คน
+                </span>
+              </div>
+              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Orange Ammo</span>
+                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {compact(leaderboard.profitScore)}
+                </strong>
+                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  #{leaderboard.mostOrangeAmmoRank}
+                </span>
+              </div>
+              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Predictions</span>
+                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {leaderboard.predictionCount}
+                </strong>
+                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  #{leaderboard.mostPredictionsRank}
+                </span>
+              </div>
+              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Highest Single Win</span>
+                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {compact(leaderboard.highestSingleWin)}
+                </strong>
+                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  #{leaderboard.highestSingleWinRank}
+                </span>
+              </div>
+              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Active (avg/day)</span>
+                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {(leaderboard.avgReloadPerDay || 0).toFixed(1)}
+                </strong>
+                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  #{leaderboard.mostActiveRank}
+                </span>
+              </div>
+              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Win Rate</span>
+                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {leaderboard.winRate}%
+                </strong>
+                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  {leaderboard.wonCount} won · {leaderboard.lostCount} lost
+                </span>
+              </div>
             </div>
           </div>
         )}
