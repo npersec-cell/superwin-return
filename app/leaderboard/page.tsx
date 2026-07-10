@@ -11,16 +11,27 @@ function maskName(name: string): string {
 }
 
 interface UserProfileStats {
-  userId: string;
-  displayName: string;
-  avatarUrl: string;
+  name: string;
+  displayName?: string | null;
   profitScore: number;
-  predictionsCount: number;
-  winsCount: number;
-  lossesCount: number;
+  allTimeProfit: number;
   winRate: number;
-  totalWagered: number;
-  totalWon: number;
+  wonCount: number;
+  lostCount: number;
+  totalSettled: number;
+  badge: string;
+  badgeDesc: string;
+  loading?: boolean;
+  history: Array<{
+    id: string;
+    tournament: string;
+    question: string;
+    pick: string;
+    amount: number;
+    payout: number;
+    status: "won" | "lost";
+    date: string;
+  }>;
 }
 
 interface LeaderboardEntry {
@@ -66,21 +77,50 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
+  const profileRefreshRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
-  function handleOpenProfile(userId: string, displayName: string) {
-    // Show modal with basic info (no API call)
+  async function handleOpenProfile(userId: string, displayName: string) {
+    // Clear any existing refresh interval
+    if (profileRefreshRef.current) { clearInterval(profileRefreshRef.current); profileRefreshRef.current = null; }
+
+    // Show modal immediately with loading state
     setSelectedProfile({
-      userId,
-      displayName,
-      avatarUrl: '',
+      name: displayName,
       profitScore: 0,
-      predictionsCount: 0,
-      winsCount: 0,
-      lossesCount: 0,
+      allTimeProfit: 0,
       winRate: 0,
-      totalWagered: 0,
-      totalWon: 0
+      wonCount: 0,
+      lostCount: 0,
+      totalSettled: 0,
+      badge: "",
+      badgeDesc: "",
+      loading: true,
+      history: [],
     });
+
+    async function fetchProfile() {
+      try {
+        const response = await fetch(`/api/leaderboard/profile?userId=${userId}&_t=${Date.now()}`);
+        const payload = await response.json();
+        if (response.ok && payload.ok && payload.data) {
+          setSelectedProfile({ ...payload.data, loading: false });
+        } else {
+          setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
+        }
+      } catch {
+        setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
+      }
+    }
+
+    await fetchProfile();
+
+    // Auto-refresh every 15 seconds while modal is open
+    profileRefreshRef.current = setInterval(fetchProfile, 15000);
+  }
+
+  function closeProfile() {
+    if (profileRefreshRef.current) { clearInterval(profileRefreshRef.current); profileRefreshRef.current = null; }
+    setSelectedProfile(null);
   }
 
   function closeProfile() {
