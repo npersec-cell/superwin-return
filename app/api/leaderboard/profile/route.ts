@@ -131,17 +131,20 @@ export async function GET(request: NextRequest) {
     // Convert to array and calculate Overall score
     const allUsersData = Array.from(userStatsMap.entries()).map(([uid, stats]) => {
       const u = allUsers?.find(u => u.id === uid);
+      const hasActivity = stats.predictionCount > 0 || stats.profitScore > 0;
       const profitScore = calcLogScore(stats.profitScore);
       const predictionScore = calcLogScore(stats.predictionCount);
       const winScore = calcLogScore(stats.highestSingleWin);
-      const activeScore = calcLogScore(stats.avgReloadPerDay);
+      // Only count active score if user has actual activity
+      const activeScore = hasActivity ? calcLogScore(stats.avgReloadPerDay) : 0;
       const overall = Math.round(profitScore + predictionScore + winScore + activeScore);
       
       return {
         userId: uid,
         displayName: u?.display_name || u?.email?.split('@')[0] || 'User',
         ...stats,
-        overall
+        overall,
+        hasActivity
       };
     });
 
