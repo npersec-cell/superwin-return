@@ -771,58 +771,58 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
               </div>
 
               {/* Stats Grid - 6 columns, 2 rows */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
-                <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span style={{ fontSize: "10px", color: "var(--muted)" }}>WIN RATE</span>
-                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px" }}>
+                <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>WIN RATE</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px" }}>
                     {profile.winRate}%
                   </strong>
-                  <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
                     {profile.wonCount} won · {profile.lostCount} lost
                   </span>
                 </div>
-                <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span style={{ fontSize: "10px", color: "var(--muted)" }}>Overall</span>
-                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Overall</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
                     {profile.overallScore}
                   </strong>
-                  <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
                     #{profile.overallRank}
                   </span>
                 </div>
-                <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Orange Ammo</span>
-                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Orange Ammo</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
                     {compact(profile.profitScore)}
                   </strong>
-                  <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
                     #{profile.mostOrangeAmmoRank}
                   </span>
                 </div>
-                <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Predictions</span>
-                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Predictions</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
                     {profile.predictionCount}
                   </strong>
-                  <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
                     #{profile.mostPredictionsRank}
                   </span>
                 </div>
-                <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span style={{ fontSize: "10px", color: "var(--muted)" }}>Highest Single Win</span>
-                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Highest Single Win</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
                     {compact(profile.highestSingleWin)}
                   </strong>
-                  <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
                     #{profile.highestSingleWinRank}
                   </span>
                 </div>
-                <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Active (avg/day)</span>
-                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Active (avg/day)</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
                     {(profile.avgReloadPerDay || 0).toFixed(1)}
                   </strong>
-                  <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
                     #{profile.mostActiveRank}
                   </span>
                 </div>
