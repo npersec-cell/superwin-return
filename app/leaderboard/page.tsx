@@ -98,6 +98,8 @@ export default function LeaderboardPage() {
     setSelectedProfile({
       name: displayName,
       profitScore: 0,
+      overallScore: 0,
+      rank: 0,
       allTimeProfit: 0,
       winRate: 0,
       wonCount: 0,

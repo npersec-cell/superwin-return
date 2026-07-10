@@ -764,6 +764,8 @@ export default function SuperWinPrototype() {
     setSelectedProfile({
       name: userName,
       profitScore: 0,
+      overallScore: 0,
+      rank: 0,
       allTimeProfit: 0,
       winRate: 0,
       wonCount: 0,
