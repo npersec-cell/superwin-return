@@ -738,12 +738,12 @@ export default function SuperWinPrototype() {
     if (isSignedIn && currentUserId) {
       rows = rows.map((row) => {
         if (row.id === currentUserId) {
-          return { ...row, id: currentUserId, name: "You", profitScore } as LeaderboardRow;
+          return { ...row, id: currentUserId, name: "You", profitScore, rank: row.rank } as LeaderboardRow;
         }
         return row;
       });
       if (!rows.some((row) => row.id === currentUserId || row.name === "You")) {
-        rows.push({ id: currentUserId, name: "You", profit: 0, profitScore, isReal: true });
+        rows.push({ id: currentUserId, name: "You", profit: 0, profitScore, rank: 0, isReal: true });
       }
     } else {
       rows = rows.map((row) => (row.name === "You" ? { ...row, profitScore } as LeaderboardRow : row));
