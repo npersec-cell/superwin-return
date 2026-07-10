@@ -108,6 +108,12 @@ export async function GET(request: NextRequest) {
     let rankPercentile = 100; // Default percentile (100 = bottom)
     let totalUsers = allUsers?.length || 0;
     
+    // For other leaderboard categories
+    let mostOrangeAmmoRank = 1;
+    let mostPredictionsRank = 1;
+    let highestSingleWinRank = 1;
+    let mostActiveRank = 1;
+    
     if (!usersError && allUsers && allUsers.length > 0) {
       // Get all users' entries count and highest win
       const allUserIds = allUsers.map(u => u.id);
@@ -119,22 +125,36 @@ export async function GET(request: NextRequest) {
 
       // Initialize all users with score 0
       const userScores = new Map<string, number>();
+      const userProfitScores = new Map<string, number>();
+      const userPredictionCounts = new Map<string, number>();
+      const userHighestWins = new Map<string, number>();
+      const userAvgReloads = new Map<string, number>();
+      
       for (const u of allUsers) {
         userScores.set(u.id, 0);
+        userProfitScores.set(u.id, u.profit_score || 0);
+        userPredictionCounts.set(u.id, 0);
+        userHighestWins.set(u.id, 0);
+        userAvgReloads.set(u.id, 0);
       }
 
       if (!allEntriesError && allEntries) {
-        // Calculate each user's overall score
+        // Calculate each user's stats
         for (const u of allUsers) {
           const entries = allEntries.filter(e => e.user_id === u.id);
           const count = entries.length;
+          userPredictionCounts.set(u.id, count);
+          
           let highestWin = 0;
           for (const e of entries) {
             const profit = e.payout_amount - e.amount;
             if (profit > highestWin) highestWin = profit;
           }
+          userHighestWins.set(u.id, highestWin);
+          
           const daysSince = Math.max(1, Math.floor((Date.now() - new Date(u.created_at).getTime()) / (1000 * 60 * 60 * 24)));
           const avgReload = (u.reload_count || 0) / daysSince;
+          userAvgReloads.set(u.id, avgReload);
           
           const score = Math.round(
             calcLogScore(u.profit_score || 0) +
@@ -155,6 +175,28 @@ export async function GET(request: NextRequest) {
       
       // Calculate percentile (higher = better, 100 = top)
       rankPercentile = totalUsers > 0 ? Math.round(((totalUsers - rank) / totalUsers) * 100) : 100;
+      
+      // ── Calculate rank for each leaderboard category ──
+      
+      // Most Orange Ammo (profitScore) - descending
+      const sortedByProfitScore = [...userProfitScores.entries()].sort((a, b) => b[1] - a[1]);
+      const profitScorePosition = sortedByProfitScore.findIndex(([uid]) => uid === userId);
+      mostOrangeAmmoRank = profitScorePosition >= 0 ? profitScorePosition + 1 : totalUsers;
+      
+      // Most Predictions (predictionCount) - descending
+      const sortedByPredictionCount = [...userPredictionCounts.entries()].sort((a, b) => b[1] - a[1]);
+      const predictionCountPosition = sortedByPredictionCount.findIndex(([uid]) => uid === userId);
+      mostPredictionsRank = predictionCountPosition >= 0 ? predictionCountPosition + 1 : totalUsers;
+      
+      // Highest Single Win (highestSingleWin) - descending
+      const sortedByHighestWin = [...userHighestWins.entries()].sort((a, b) => b[1] - a[1]);
+      const highestWinPosition = sortedByHighestWin.findIndex(([uid]) => uid === userId);
+      highestSingleWinRank = highestWinPosition >= 0 ? highestWinPosition + 1 : totalUsers;
+      
+      // Most Active (avgReloadPerDay) - descending
+      const sortedByAvgReload = [...userAvgReloads.entries()].sort((a, b) => b[1] - a[1]);
+      const avgReloadPosition = sortedByAvgReload.findIndex(([uid]) => uid === userId);
+      mostActiveRank = avgReloadPosition >= 0 ? avgReloadPosition + 1 : totalUsers;
     }
     
     // Get rank info from position
@@ -296,12 +338,27 @@ export async function GET(request: NextRequest) {
       data: {
         name: user.display_name || user.email.split("@")[0],
         displayName: user.display_name || null,
-        overallScore, // คะแน Overall
-        rank, // ตำแหน่งตัวเลข (1, 2, 3...)
-        rankPercentile, // เปอร์เซ็นต์อันดับ (100 = ดีที่สุด)
-        rankName: rankInfo.name, // ชื่อ Rank (Crown, Diamond, Gold...)
-        rankIcon: rankInfo.icon, // ไอคอน Rank
-        totalUsers, // จำนวนผู้ใช้ทั้งหมด
+        // Overall leaderboard
+        overallScore,
+        overallRank: rank,
+        overallValue: overallScore,
+        // Most Orange Ammo (profitScore)
+        mostOrangeAmmoRank,
+        profitScore: user.profit_score || 0,
+        // Most Predictions
+        mostPredictionsRank,
+        predictionCount: wonCount + lostCount,
+        // Highest Single Win
+        highestSingleWinRank,
+        highestSingleWin,
+        // Most Active
+        mostActiveRank,
+        avgReloadPerDay,
+        // Other stats
+        rankPercentile,
+        rankName: rankInfo.name,
+        rankIcon: rankInfo.icon,
+        totalUsers,
         allTimeProfit: user.lifetime_profit || 0,
         winRate,
         wonCount,

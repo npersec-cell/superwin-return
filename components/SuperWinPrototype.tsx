@@ -171,7 +171,22 @@ function getRankFromPosition(rank: number, totalUsers: number): { name: string; 
 type UserProfileStats = {
   name: string;
   displayName?: string | null;
+  // Overall leaderboard
   overallScore: number;
+  overallRank: number;
+  // Most Orange Ammo (profitScore)
+  profitScore: number;
+  mostOrangeAmmoRank: number;
+  // Most Predictions
+  predictionCount: number;
+  mostPredictionsRank: number;
+  // Highest Single Win
+  highestSingleWin: number;
+  highestSingleWinRank: number;
+  // Most Active
+  avgReloadPerDay: number;
+  mostActiveRank: number;
+  // Other stats
   rank: number;
   rankPercentile: number;
   rankName: string;
@@ -1800,12 +1815,12 @@ function ProfileModal({
 }) {
   return (
     <section className="modal" aria-label="User Profile" onClick={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="modal-card" style={{ maxWidth: "480px" }}>
+      <div className="modal-card" style={{ maxWidth: "520px" }}>
         <div className="modal-head">
           <h3>🎮 {profile.displayName || maskName(profile.name)}'s Profile</h3>
           <button className="button" onClick={onClose}>Close</button>
         </div>
-        <div className="modal-body" style={{ gap: "12px", minHeight: "180px" }}>
+        <div className="modal-body" style={{ gap: "12px", minHeight: "200px" }}>
           {profile.loading ? (
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "160px" }}>
               <div className="spinner" />
@@ -1823,7 +1838,7 @@ function ProfileModal({
                     {profile.wonCount} won · {profile.lostCount} lost
                   </span>
                 </div>
-                  <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                   <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>RANK</span>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
                     <img src={profile.rankIcon} alt="" width={20} height={20} style={{ objectFit: "contain" }} />
@@ -1834,6 +1849,61 @@ function ProfileModal({
                   <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
                     #{profile.rank} ของ {profile.totalUsers} คน
                   </span>
+                </div>
+              </div>
+
+              {/* Leaderboard Stats Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Overall</span>
+                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                    {profile.overallScore}
+                  </strong>
+                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                    #{profile.overallRank}
+                  </span>
+                </div>
+                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Most Orange Ammo</span>
+                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                    {compact(profile.profitScore)}
+                  </strong>
+                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                    #{profile.mostOrangeAmmoRank}
+                  </span>
+                </div>
+                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Most Predictions</span>
+                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                    {profile.predictionCount}
+                  </strong>
+                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                    #{profile.mostPredictionsRank}
+                  </span>
+                </div>
+                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Highest Single Win</span>
+                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                    {compact(profile.highestSingleWin)}
+                  </strong>
+                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                    #{profile.highestSingleWinRank}
+                  </span>
+                </div>
+                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Most Active (avg/day)</span>
+                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                    {(profile.avgReloadPerDay || 0).toFixed(1)}
+                  </strong>
+                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
+                    #{profile.mostActiveRank}
+                  </span>
+                </div>
+                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>All Time Profit</span>
+                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
+                    {compact(profile.allTimeProfit)}
+                  </strong>
                 </div>
               </div>
 
@@ -1887,7 +1957,7 @@ function ProfileModal({
                   </div>
                 )}
               </div>
-              </>
+            </>
           )}
         </div>
       </div>
