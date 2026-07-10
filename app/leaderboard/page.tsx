@@ -618,19 +618,15 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
         {profile ? (
           <div className="modal-body" style={{ gap: "12px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-              {profile.avatarUrl ? (
-                <img src={profile.avatarUrl} alt={profile.displayName} style={{ width: "48px", height: "48px", borderRadius: "50%", objectFit: "cover" }} />
-              ) : (
-                <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "var(--card)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  👤
-                </div>
-              )}
+              <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "var(--card)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                👤
+              </div>
               <div>
                 <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--text)" }}>
-                  {profile.displayName}
+                  {profile.name || profile.displayName}
                 </div>
                 <div style={{ fontSize: "11px", color: "var(--muted)" }}>
-                  ID: {profile.userId.slice(0, 8)}...
+                  ID: {profile.name.slice(0, 8)}...
                 </div>
               </div>
             </div>
