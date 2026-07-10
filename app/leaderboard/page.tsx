@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function maskName(name: string): string {
   if (!name) return "";
@@ -77,7 +77,7 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
-  const profileRefreshRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const profileRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   async function handleOpenProfile(userId: string, displayName: string) {
     // Clear any existing refresh interval
