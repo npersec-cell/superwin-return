@@ -31,7 +31,7 @@ export async function GET() {
   // Get all users with their stats (exclude admin and test accounts)
   const { data: users, error: usersError } = await supabase
     .from('users')
-    .select('id, display_name, email, profit_score, role, created_at, reload_count')
+    .select('id, display_name, email, profit_score, role, created_at, reload_count, avatar_url')
     .neq('role', 'admin')
     .not('email', 'like', '%test%')
     .not('email', 'like', '%automated%')
