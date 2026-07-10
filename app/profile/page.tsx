@@ -161,9 +161,9 @@ export default function ProfilePage() {
       <div className="app" style={{ maxWidth: "480px" }}>
         {/* Header */}
         <div className="topbar" style={{ marginBottom: "12px" }}>
-          <div className="brand">
-            <img src="https://superwinhub.app/ammo-556-icon.webp" alt="" className="logo" />
-            <div className="brand-text">
+            <div className="brand">
+              <img src="https://superwinhub.app/SuperWin_b.png" alt="" className="logo" />
+              <div className="brand-text">
               <div style={{ fontWeight: 700, fontSize: "13px", color: "var(--yellow)" }}>
                 {readOnly ? "ข้อมูลโปรไฟล์" : "แก้ไขข้อมูลโปรไฟล์"}
               </div>
@@ -192,7 +192,7 @@ export default function ProfilePage() {
             <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px" }}>
               <span style={{ color: "var(--muted)" }}>กระสุนเขียวคงเหลือ:</span>
               <span style={{ color: "var(--green)", fontWeight: 700 }}>{user.profitScore}</span>
-              <img src="https://superwinhub.app/ammo-556-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
+              <img src="https://superwinhub.app/SuperWin_b.png" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
             </div>
           </div>
         )}
