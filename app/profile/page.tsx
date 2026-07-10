@@ -92,9 +92,9 @@ export default function ProfilePage() {
     }
   }
 
-  async function loadLeaderboard() {
+  async function loadLeaderboard(userId: string) {
     try {
-      const res = await fetch("/api/leaderboard/profile");
+      const res = await fetch(`/api/leaderboard/profile?userId=${userId}`);
       const data = await res.json();
       if (data.ok && data.data) {
         setLeaderboard(data.data);
@@ -106,8 +106,14 @@ export default function ProfilePage() {
 
   useEffect(() => {
     loadUser();
-    loadLeaderboard();
   }, []);
+
+  // Load leaderboard after user is loaded
+  useEffect(() => {
+    if (user?.id) {
+      loadLeaderboard(user.id);
+    }
+  }, [user]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
