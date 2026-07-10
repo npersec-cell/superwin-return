@@ -1504,8 +1504,8 @@ export default function SuperWinPrototype() {
                           {row.displayName || maskName(row.name)}
                         </span>
                         <span style={{ display: "flex", alignItems: "center", gap: "3px", color: "var(--muted)", fontSize: "10px", fontWeight: 500, flexShrink: 0 }}>
-                          <img src={getRankInfo(row.profitScore).icon} alt="" width={18} height={18} style={{ objectFit: "contain" }} />
-                          {getRankInfo(row.profitScore).name}
+                          <img src={getRankFromPosition(index + 1, leaderboard.length).icon} alt="" width={18} height={18} style={{ objectFit: "contain" }} />
+                          {getRankFromPosition(index + 1, leaderboard.length).name}
                         </span>
                       </div>
                       <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{compact(row.profitScore)} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", opacity: 0.8 }} /></b>
