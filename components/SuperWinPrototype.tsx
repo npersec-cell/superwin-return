@@ -132,6 +132,8 @@ type UserProfileStats = {
   name: string;
   displayName?: string | null;
   profitScore: number;
+  overallScore: number;
+  rank: number;
   allTimeProfit: number;
   winRate: number;
   wonCount: number;
@@ -1756,14 +1758,11 @@ function ProfileModal({
                 </div>
                 <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                   <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>RANK</span>
-                  <strong style={{ display: "flex", justifyContent: "center", fontSize: "18px", color: "var(--yellow)", marginTop: "4px" }}>
-                    <span style={{ position: "relative", display: "inline-block" }}>
-                      <img src={getRankInfo(profile.profitScore).icon} alt="" width={27} height={27} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "6px", objectFit: "contain" }} />
-                      {getRankInfo(profile.profitScore).name}
-                    </span>
+                  <strong style={{ fontSize: "18px", color: "var(--yellow)", marginTop: "4px" }}>
+                    {profile.rank}
                   </strong>
                   <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    Profit Score: {profile.profitScore.toLocaleString()}
+                    Average Score: {profile.overallScore.toFixed(2)}
                   </span>
                 </div>
               </div>

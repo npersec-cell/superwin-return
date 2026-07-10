@@ -34,6 +34,26 @@ export async function GET(request: NextRequest) {
       console.error('[Profile] Error calculating profit_score:', profitError);
     }
 
+    // ── คำนวณ Rank (จำนวนคนที่มีคะแนนสูงกว่า + 1) ──
+    const { data: usersAbove, error: usersError } = await supabase
+      .from('users')
+      .select('id')
+      .neq('role', 'admin')
+      .not('email', 'like', '%test%')
+      .not('email', 'like', '%automated%');
+
+    let rank = 1; // Default rank
+    if (!usersError && usersAbove) {
+      // Count how many users have higher profit_score
+      const rankPromises = usersAbove.map(u => 
+        supabase.rpc('calculate_user_profit_score', { p_user_id: u.id })
+      );
+      
+      const rankResults = await Promise.all(rankPromises);
+      const usersWithHigherScore = rankResults.filter((score: any) => score && score > profitScore).length;
+      rank = usersWithHigherScore + 1;
+    }
+
     // ════════════════════════════════════════════════
     // SOURCE OF TRUTH: prediction_entries table
     // (ไม่ match text จาก ledger อีก — ใช้ DB relation โดยตรง)
@@ -166,6 +186,8 @@ export async function GET(request: NextRequest) {
         name: user.display_name || user.email.split("@")[0],
         displayName: user.display_name || null,
         profitScore,
+        overallScore: profitScore, // คะแนน Overall (ใช้คำนวณ rank)
+        rank, // ตำแหน่งของผู้ใช้
         allTimeProfit: user.lifetime_profit || 0,
         winRate,
         wonCount,
