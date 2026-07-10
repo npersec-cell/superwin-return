@@ -138,20 +138,32 @@ function getRankFromPosition(rank: number, totalUsers: number): { name: string; 
   // Crown: #1 only (the absolute best)
   if (rank === 1) return { name: "Crown", icon: "/ranks/crown.png" };
   
+  // Adjust for small user base
+  if (totalUsers < 5) {
+    // Less than 5 users: #1 = Crown, others = Bronze
+    return { name: "Bronze", icon: "/ranks/bronze.png" };
+  }
+  
+  if (totalUsers < 10) {
+    // 5-9 users: #1 = Crown, #2 = Gold, others = Bronze
+    if (rank === 2) return { name: "Gold", icon: "/ranks/gold.png" };
+    return { name: "Bronze", icon: "/ranks/bronze.png" };
+  }
+  
   // Calculate percentile: higher = better (100 = top)
   const percentile = ((totalUsers - rank) / totalUsers) * 100;
   
-  // Conqueror: Top 3%
+  // Conqueror: Top 3% (percentile >= 97)
   if (percentile >= 97) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
-  // Ace: Top 8%
+  // Ace: Top 8% (percentile >= 92)
   if (percentile >= 92) return { name: "Ace", icon: "/ranks/ace.png" };
-  // Diamond: Top 15%
+  // Diamond: Top 15% (percentile >= 75)
   if (percentile >= 75) return { name: "Diamond", icon: "/ranks/diamond.png" };
-  // Platinum: Top 25%
+  // Platinum: Top 25% (percentile >= 50)
   if (percentile >= 50) return { name: "Platinum", icon: "/ranks/platinum.png" };
-  // Gold: Top 40%
+  // Gold: Top 40% (percentile >= 40)
   if (percentile >= 40) return { name: "Gold", icon: "/ranks/gold.png" };
-  // Silver: 40-70%
+  // Silver: 40-70% (percentile >= 15)
   if (percentile >= 15) return { name: "Silver", icon: "/ranks/silver.png" };
   // Bronze: Bottom 30%
   return { name: "Bronze", icon: "/ranks/bronze.png" };

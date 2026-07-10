@@ -16,6 +16,18 @@ function getRankFromPosition(rank: number, totalUsers: number): { name: string; 
   // Crown: #1 only (the absolute best)
   if (rank === 1) return { name: "Crown", icon: "/ranks/crown.png" };
   
+  // Adjust for small user base
+  if (totalUsers < 5) {
+    // Less than 5 users: #1 = Crown, others = Bronze
+    return { name: "Bronze", icon: "/ranks/bronze.png" };
+  }
+  
+  if (totalUsers < 10) {
+    // 5-9 users: #1 = Crown, #2 = Gold, others = Bronze
+    if (rank === 2) return { name: "Gold", icon: "/ranks/gold.png" };
+    return { name: "Bronze", icon: "/ranks/bronze.png" };
+  }
+  
   // Calculate percentile
   const percentile = ((totalUsers - rank) / totalUsers) * 100;
   
