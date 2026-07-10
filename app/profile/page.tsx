@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
 function compact(n: number): string {
   if (n < 1000) return `${n}`;
   if (n < 10000) return `${(n / 1000).toFixed(1)}k`;
