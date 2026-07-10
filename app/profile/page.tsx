@@ -38,6 +38,8 @@ interface UserRankData {
   avgReloadPerDay: number;
   activeRank: number;
   totalUsers: number;
+  totalActiveUsers?: number;
+  userHasActivity?: boolean;
 }
 
 export default function ProfilePage() {
@@ -252,7 +254,9 @@ export default function ProfilePage() {
               <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                 <span style={{ fontSize: "10px", color: "var(--muted)" }}>Overall</span>
                 <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  #{rankData.overallRank} ของ {rankData.totalUsers} คน
+                  {rankData.userHasActivity 
+                    ? `#${rankData.overallRank} ของ ${rankData.totalActiveUsers || rankData.totalUsers} คน`
+                    : "ยังไม่ได้เล่น"}
                 </strong>
               </div>
               <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>

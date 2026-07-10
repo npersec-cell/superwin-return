@@ -107,26 +107,39 @@ export async function GET(request: NextRequest) {
     
     // Calculate Overall score for each user using Logarithmic Score (sum, no cap)
     const leaderboardWithOverall = leaderboardData.map(user => {
+      // Only count active score if user has actual prediction activity
+      // Otherwise, they shouldn't benefit from reload_count
+      const hasActivity = user.predictionCount > 0 || user.profitScore > 0;
+      
       // Calculate log score for each category
       const profitScore = calcLogScore(user.profitScore);
       const predictionScore = calcLogScore(user.predictionCount);
       const winScore = calcLogScore(user.highestSingleWin);
-      const activeScore = calcLogScore(user.avgReloadPerDay);
+      const activeScore = hasActivity ? calcLogScore(user.avgReloadPerDay) : 0;
       
       // Sum of all scores (no cap, balanced, no decimals)
       const overall = Math.round(profitScore + predictionScore + winScore + activeScore);
       
       return {
         ...user,
-        overall
+        overall,
+        hasActivity
       };
     });
     
     // Create leaderboards for each category
     const totalUsers = leaderboardWithOverall.length; // Total active users
     
+    // For Overall ranking, only include users who have actual activity
+    const activeUsers = leaderboardWithOverall.filter(u => u.hasActivity);
+    const totalActiveUsers = activeUsers.length;
+    
     const leaderboards = {
-      overall: leaderboardWithOverall
+      overall: activeUsers
+        .sort((a, b) => b.overall - a.overall)
+        .slice(0, 15)
+        .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.overall })),
+      overallAll: leaderboardWithOverall
         .sort((a, b) => b.overall - a.overall)
         .slice(0, 15)
         .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.overall })),
@@ -159,9 +172,17 @@ export async function GET(request: NextRequest) {
       const userPosition = leaderboardWithOverall.findIndex(u => u.userId === userId);
       if (userPosition >= 0) {
         const userStats = leaderboardWithOverall[userPosition];
+        const userHasActivity = userStats.hasActivity;
         
-        // Overall rank
-        const overallRank = userPosition + 1;
+        // Overall rank - only among active users
+        let overallRank;
+        if (userHasActivity) {
+          const activeRank = activeUsers.findIndex(u => u.userId === userId);
+          overallRank = activeRank >= 0 ? activeRank + 1 : totalActiveUsers + 1;
+        } else {
+          // If user has no activity, they're not in the active leaderboard
+          overallRank = totalActiveUsers + 1;
+        }
         
         // Most Orange Ammo rank
         const sortedByProfitScore = [...leaderboardWithOverall].sort((a, b) => b.profitScore - a.profitScore);
@@ -191,7 +212,9 @@ export async function GET(request: NextRequest) {
           highestSingleWinRank,
           avgReloadPerDay: userStats.avgReloadPerDay,
           activeRank,
-          totalUsers
+          totalUsers,
+          totalActiveUsers,
+          userHasActivity
         };
       }
     }
