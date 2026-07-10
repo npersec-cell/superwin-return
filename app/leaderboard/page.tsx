@@ -510,7 +510,8 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <div style={{ fontSize: "11px", color: "var(--muted)" }}>Amount</div>
             <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--yellow)" }}>
-              {bet.amount.toLocaleString()} 🟠
+              {bet.amount.toLocaleString()}&nbsp;
+              <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="16" height="16" style={{ display: "inline-block", verticalAlign: "middle" }} />
             </div>
           </div>
           
