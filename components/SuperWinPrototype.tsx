@@ -401,7 +401,7 @@ export default function SuperWinPrototype() {
   const [reportError, setReportError] = useState<string | null>(null);
   const [reportSuccess, setReportSuccess] = useState(false);
   
-  // LIVE BIG PREDICT
+  // LIVE PREDICT
   interface LiveBet {
     userId: string;
     displayName: string;
@@ -542,7 +542,7 @@ export default function SuperWinPrototype() {
     }
   }, [isSignedIn]);
 
-  // Load LIVE BIG PREDICT
+  // Load LIVE PREDICT
   useEffect(() => {
     async function fetchLiveBets() {
       setLiveBetsLoading(true);
@@ -1464,7 +1464,7 @@ export default function SuperWinPrototype() {
               </div>
             </section>
             
-            {/* LIVE BIG PREDICT - กำลังรอผล (≥1,000 🟠) */}
+            {/* LIVE PREDICT - กำลังรอผล */}
             {liveBets.length > 0 && (
               <section className="panel" style={{ 
                 border: "1px solid rgba(255, 225, 0, 0.3)",
@@ -1480,11 +1480,7 @@ export default function SuperWinPrototype() {
                   borderBottom: "1px solid var(--border)"
                 }}>
                   <span style={{ fontSize: "14px" }}>💥</span>
-                  <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)" }}>LIVE BIG PREDICT</span>
-                  <span style={{ fontSize: "10px", color: "var(--muted)" }}>
-                    ≥1,000&nbsp;
-                    <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
-                  </span>
+                  <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)" }}>LIVE PREDICT</span>
                 </div>
                 
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>

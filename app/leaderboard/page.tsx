@@ -450,11 +450,7 @@ export default function LeaderboardPage() {
             borderBottom: "1px solid var(--border)"
           }}>
             <span style={{ fontSize: "14px" }}>💥</span>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)" }}>LIVE BIG PREDICT</span>
-            <span style={{ fontSize: "10px", color: "var(--muted)" }}>
-              ≥1,000&nbsp;
-              <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
-            </span>
+            <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)" }}>LIVE PREDICT</span>
           </div>
           
           {liveBets.length === 0 ? (

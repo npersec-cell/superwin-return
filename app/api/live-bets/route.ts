@@ -5,14 +5,13 @@ export async function GET() {
   const supabase = createSupabaseAdminClient();
   
   // Get prediction entries that are running (not yet resolved)
-  // Only show entries with amount >= 1000
+  // Show all entries regardless of amount
   // Note: status can be 'running' or 'pending'
   const { data: entries, error: entriesError } = await supabase
     .from('prediction_entries')
     .select('id, user_id, prediction_id, amount, option_id, created_at, status')
     .in('status', ['running', 'pending'])
-    .gte('amount', 1000)
-    .order('amount', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(5);
   
   if (entriesError) {
