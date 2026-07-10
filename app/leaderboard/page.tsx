@@ -784,47 +784,32 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
                 <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                   <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Overall</span>
                   <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {profile.overallScore}
+                    #{profile.overallRank} ของ {profile.totalUsers} คน
                   </strong>
-                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    #{profile.overallRank}
-                  </span>
                 </div>
                 <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                   <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Most Orange Ammo</span>
                   <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {compact(profile.profitScore)}
+                    #{profile.mostOrangeAmmoRank} ของ {profile.totalUsers} คน
                   </strong>
-                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    #{profile.mostOrangeAmmoRank}
-                  </span>
                 </div>
                 <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                   <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Most Predictions</span>
                   <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {profile.predictionCount}
+                    #{profile.mostPredictionsRank} ของ {profile.totalUsers} คน
                   </strong>
-                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    #{profile.mostPredictionsRank}
-                  </span>
                 </div>
                 <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                   <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Highest Single Win</span>
                   <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {compact(profile.highestSingleWin)}
+                    #{profile.highestSingleWinRank} ของ {profile.totalUsers} คน
                   </strong>
-                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    #{profile.highestSingleWinRank}
-                  </span>
                 </div>
                 <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                   <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Most Active (avg/day)</span>
                   <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {(profile.avgReloadPerDay || 0).toFixed(1)}
+                    #{profile.mostActiveRank} ของ {profile.totalUsers} คน
                   </strong>
-                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    #{profile.mostActiveRank}
-                  </span>
                 </div>
                 <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                   <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>All Time Profit</span>

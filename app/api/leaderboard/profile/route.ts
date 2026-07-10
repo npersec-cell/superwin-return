@@ -4,6 +4,42 @@ import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 export const dynamic = "force-dynamic";
 
+// Logarithmic score calculation (same as v2 API)
+function calcLogScore(value: number): number {
+  return Math.log2(value + 1);
+}
+
+// Get rank from position with minimum counts
+function getRankFromPosition(position: number, totalUsers: number): { name: string; icon: string } {
+  if (totalUsers <= 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
+  
+  const percentile = position / totalUsers;
+  
+  // Crown: #1 only
+  if (position === 1) return { name: "Crown", icon: "/ranks/crown.png" };
+  
+  // Conqueror: Top 3% OR at least 2 people
+  if (percentile <= 0.03 || (position <= 2 && totalUsers >= 2)) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
+  
+  // Ace: Top 8% OR at least 3 people
+  if (percentile <= 0.08 || (position <= 3 && totalUsers >= 3)) return { name: "Ace", icon: "/ranks/ace.png" };
+  
+  // Diamond: Top 15% OR at least 5 people
+  if (percentile <= 0.15 || (position <= 5 && totalUsers >= 5)) return { name: "Diamond", icon: "/ranks/diamond.png" };
+  
+  // Platinum: Top 25%
+  if (percentile <= 0.25) return { name: "Platinum", icon: "/ranks/platinum.png" };
+  
+  // Gold: Top 40%
+  if (percentile <= 0.40) return { name: "Gold", icon: "/ranks/gold.png" };
+  
+  // Silver: 40-70%
+  if (percentile <= 0.70) return { name: "Silver", icon: "/ranks/silver.png" };
+  
+  // Bronze: Bottom 30%
+  return { name: "Bronze", icon: "/ranks/bronze.png" };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = createSupabaseAdminClient();
@@ -24,6 +60,124 @@ export async function GET(request: NextRequest) {
     if (userError || !user) {
       return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
     }
+
+    // ── ดึงทุก users สำหรับคำนวณ rank ──
+    const { data: allUsers, error: allUsersError } = await supabase
+      .from('users')
+      .select('id, display_name, email, profit_score, reload_count, created_at')
+      .neq('role', 'admin')
+      .not('email', 'like', '%test%')
+      .not('email', 'like', '%automated%');
+
+    if (allUsersError) {
+      console.error("[Profile] Error fetching users:", allUsersError);
+    }
+
+    // ── ดึงทุก entries สำหรับคำนวณ rank ──
+    const allUserIds = allUsers?.map(u => u.id) || [];
+    const { data: allEntries, error: allEntriesError } = await supabase
+      .from('prediction_entries')
+      .select('id, user_id, amount, payout_amount, status')
+      .in('user_id', allUserIds)
+      .eq('status', 'won');
+
+    if (allEntriesError) {
+      console.error("[Profile] Error fetching entries:", allEntriesError);
+    }
+
+    // ── คำนวณ stats สำหรับทุก user ──
+    const userStatsMap = new Map<string, {
+      profitScore: number;
+      predictionCount: number;
+      highestSingleWin: number;
+      avgReloadPerDay: number;
+      reloadCount: number;
+    }>();
+
+    for (const u of allUsers || []) {
+      userStatsMap.set(u.id, {
+        profitScore: u.profit_score || 0,
+        predictionCount: 0,
+        highestSingleWin: 0,
+        avgReloadPerDay: 0,
+        reloadCount: u.reload_count || 0
+      });
+    }
+
+    // Calculate from entries
+    for (const entry of (allEntries || [])) {
+      const stat = userStatsMap.get(entry.user_id);
+      if (stat) {
+        stat.predictionCount++;
+        const profit = entry.payout_amount - entry.amount;
+        if (profit > stat.highestSingleWin) {
+          stat.highestSingleWin = profit;
+        }
+      }
+    }
+
+    // Calculate average reload per day for each user
+    for (const [uid, stat] of userStatsMap) {
+      const u = allUsers?.find(u => u.id === uid);
+      if (u) {
+        const daysSinceCreated = Math.max(1, Math.floor((Date.now() - new Date(u.created_at).getTime()) / (1000 * 60 * 60 * 24)));
+        stat.avgReloadPerDay = stat.reloadCount / daysSinceCreated;
+      }
+    }
+
+    // Convert to array and calculate Overall score
+    const allUsersData = Array.from(userStatsMap.entries()).map(([uid, stats]) => {
+      const u = allUsers?.find(u => u.id === uid);
+      const profitScore = calcLogScore(stats.profitScore);
+      const predictionScore = calcLogScore(stats.predictionCount);
+      const winScore = calcLogScore(stats.highestSingleWin);
+      const activeScore = calcLogScore(stats.avgReloadPerDay);
+      const overall = Math.round(profitScore + predictionScore + winScore + activeScore);
+      
+      return {
+        userId: uid,
+        displayName: u?.display_name || u?.email?.split('@')[0] || 'User',
+        ...stats,
+        overall
+      };
+    });
+
+    const totalUsers = allUsersData.length;
+
+    // Calculate rank for the target user
+    const targetUser = allUsersData.find(u => u.userId === userId);
+    const targetUserStats = targetUser || {
+      profitScore: user.profit_score || 0,
+      predictionCount: 0,
+      highestSingleWin: 0,
+      avgReloadPerDay: 0,
+      overall: 0
+    };
+
+    // Overall rank
+    const sortedOverall = [...allUsersData].sort((a, b) => b.overall - a.overall);
+    const overallRank = sortedOverall.findIndex(u => u.userId === userId) + 1;
+
+    // Most Orange Ammo rank
+    const sortedByProfit = [...allUsersData].sort((a, b) => b.profitScore - a.profitScore);
+    const mostOrangeAmmoRank = sortedByProfit.findIndex(u => u.userId === userId) + 1;
+
+    // Most Predictions rank
+    const sortedByPredictions = [...allUsersData].sort((a, b) => b.predictionCount - a.predictionCount);
+    const mostPredictionsRank = sortedByPredictions.findIndex(u => u.userId === userId) + 1;
+
+    // Highest Single Win rank
+    const usersWithWin = allUsersData.filter(u => u.highestSingleWin > 0);
+    const sortedByWin = [...usersWithWin].sort((a, b) => b.highestSingleWin - a.highestSingleWin);
+    const hasWin = sortedByWin.some(u => u.userId === userId);
+    const highestSingleWinRank = hasWin ? sortedByWin.findIndex(u => u.userId === userId) + 1 : totalUsers;
+
+    // Most Active rank
+    const sortedByActive = [...allUsersData].sort((a, b) => b.avgReloadPerDay - a.avgReloadPerDay);
+    const mostActiveRank = sortedByActive.findIndex(u => u.userId === userId) + 1;
+
+    // Calculate rank tier
+    const rankInfo = getRankFromPosition(mostOrangeAmmoRank, totalUsers);
 
     // ── ดึงทุก entries ของ user ที่ settle แล้ว (won / lost / refunded) ──
     const { data: historyEntries, error: historyEntriesError } = await supabase
@@ -54,12 +208,27 @@ export async function GET(request: NextRequest) {
         data: {
           name: user.display_name || user.email.split("@")[0],
           displayName: user.display_name || null,
+          // Basic stats
           profitScore: user.profit_score || 0,
           allTimeProfit: user.lifetime_profit || 0,
+          predictionCount: 0,
+          highestSingleWin: 0,
           winRate: 0,
           wonCount: 0,
           lostCount: 0,
           totalSettled: 0,
+          // Rank data
+          rank: mostOrangeAmmoRank,
+          rankPercentile: mostOrangeAmmoRank / totalUsers,
+          rankName: rankInfo.name,
+          rankIcon: rankInfo.icon,
+          totalUsers,
+          overallScore: targetUserStats.overall,
+          overallRank,
+          mostOrangeAmmoRank,
+          mostPredictionsRank,
+          highestSingleWinRank,
+          mostActiveRank,
           history: []
         }
       });
@@ -148,6 +317,19 @@ export async function GET(request: NextRequest) {
         wonCount,
         lostCount,
         totalSettled,
+        // Rank data
+        rank: mostOrangeAmmoRank,
+        rankPercentile: mostOrangeAmmoRank / totalUsers,
+        rankName: rankInfo.name,
+        rankIcon: rankInfo.icon,
+        totalUsers,
+        // Leaderboard ranks
+        overallScore: targetUserStats.overall,
+        overallRank,
+        mostOrangeAmmoRank,
+        mostPredictionsRank,
+        highestSingleWinRank,
+        mostActiveRank,
         history
       }
     }, {
