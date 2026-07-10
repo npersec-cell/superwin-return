@@ -4,6 +4,11 @@ import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 export const dynamic = "force-dynamic";
 
+// Logarithmic score calculation (same as v2 leaderboard API)
+function calcLogScore(value: number): number {
+  return Math.log2(value + 1);
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = createSupabaseAdminClient();
@@ -17,7 +22,7 @@ export async function GET(request: NextRequest) {
     // ── ดึง user info ──
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("display_name, email, lifetime_profit")
+      .select("display_name, email, lifetime_profit, profit_score, reload_count, created_at")
       .eq("id", userId)
       .single();
 
@@ -25,33 +30,83 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
     }
 
-    // ── คำนวณ profit_score แบบ real-time ──
-    const { data: calculatedProfitScore, error: profitError } = await supabase
-      .rpc('calculate_user_profit_score', { p_user_id: userId });
+    // ── ดึง entries ของ user ที่ won ──
+    const { data: userEntries, error: userEntriesError } = await supabase
+      .from("prediction_entries")
+      .select("amount, payout_amount, status")
+      .eq("user_id", userId)
+      .eq("status", "won");
 
-    const profitScore = calculatedProfitScore ?? 0;
-    if (profitError) {
-      console.error('[Profile] Error calculating profit_score:', profitError);
+    let predictionCount = (userEntries || []).length; // จำนวนครั้งที่猜
+    let highestSingleWin = 0; // สูงสุดที่ได้
+
+    // Calculate highest single win from won entries
+    for (const entry of (userEntries || [])) {
+      const profit = entry.payout_amount - entry.amount;
+      if (profit > highestSingleWin) {
+        highestSingleWin = profit;
+      }
     }
 
-    // ── คำนวณ Rank (จำนวนคนที่มีคะแนนสูงกว่า + 1) ──
-    const { data: usersAbove, error: usersError } = await supabase
+    // Calculate average reload per day (simplified)
+    const daysSinceCreated = Math.max(1, Math.floor((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24)));
+    const avgReloadPerDay = (user.reload_count || 0) / daysSinceCreated;
+
+    // ── Calculate Overall score using the same formula as v2 API ──
+    const profitScoreLog = calcLogScore(user.profit_score || 0);
+    const predictionScoreLog = calcLogScore(predictionCount);
+    const winScoreLog = calcLogScore(highestSingleWin);
+    const activeScoreLog = calcLogScore(avgReloadPerDay);
+    const overallScore = Math.round(profitScoreLog + predictionScoreLog + winScoreLog + activeScoreLog);
+
+    // ── คำนวณ Rank (จำนวนคนที่มี Overall score สูงกว่า + 1) ──
+    const { data: allUsers, error: usersError } = await supabase
       .from('users')
-      .select('id')
+      .select('id, profit_score, reload_count, created_at')
       .neq('role', 'admin')
       .not('email', 'like', '%test%')
       .not('email', 'like', '%automated%');
 
     let rank = 1; // Default rank
-    if (!usersError && usersAbove) {
-      // Count how many users have higher profit_score
-      const rankPromises = usersAbove.map(u => 
-        supabase.rpc('calculate_user_profit_score', { p_user_id: u.id })
-      );
-      
-      const rankResults = await Promise.all(rankPromises);
-      const usersWithHigherScore = rankResults.filter((score: any) => score && score > profitScore).length;
-      rank = usersWithHigherScore + 1;
+    if (!usersError && allUsers) {
+      // Get all users' entries count and highest win
+      const allUserIds = allUsers.map(u => u.id);
+      const { data: allEntries, error: allEntriesError } = await supabase
+        .from('prediction_entries')
+        .select('user_id, amount, payout_amount, status')
+        .in('user_id', allUserIds)
+        .eq('status', 'won');
+
+      if (!allEntriesError && allEntries) {
+        // Calculate each user's overall score
+        const userScores = new Map<string, number>();
+        for (const u of allUsers) {
+          const entries = allEntries.filter(e => e.user_id === u.id);
+          const count = entries.length;
+          let highestWin = 0;
+          for (const e of entries) {
+            const profit = e.payout_amount - e.amount;
+            if (profit > highestWin) highestWin = profit;
+          }
+          const daysSince = Math.max(1, Math.floor((Date.now() - new Date(u.created_at).getTime()) / (1000 * 60 * 60 * 24)));
+          const avgReload = (u.reload_count || 0) / daysSince;
+          
+          const score = Math.round(
+            calcLogScore(u.profit_score || 0) +
+            calcLogScore(count) +
+            calcLogScore(highestWin) +
+            calcLogScore(avgReload)
+          );
+          userScores.set(u.id, score);
+        }
+
+        // Count how many users have higher score
+        let usersWithHigherScore = 0;
+        for (const [uid, score] of userScores) {
+          if (score > overallScore) usersWithHigherScore++;
+        }
+        rank = usersWithHigherScore + 1;
+      }
     }
 
     // ════════════════════════════════════════════════
@@ -60,7 +115,7 @@ export async function GET(request: NextRequest) {
     // ════════════════════════════════════════════════
 
     // ดึงทุก entries ของ user ที่ settle แล้ว (won / lost / refunded)
-    const { data: entries, error: entriesError } = await supabase
+    const { data: historyEntries, error: historyEntriesError } = await supabase
       .from("prediction_entries")
       .select(`
         id,
@@ -81,14 +136,15 @@ export async function GET(request: NextRequest) {
       .in("status", ["won", "lost", "refunded"])
       .order("created_at", { ascending: false });
 
-    if (entriesError) {
-      console.error("[Profile] Error fetching prediction_entries:", entriesError);
+    if (historyEntriesError) {
+      console.error("[Profile] Error fetching prediction_entries:", historyEntriesError);
       return NextResponse.json({
         ok: true,
         data: {
           name: user.display_name || user.email.split("@")[0],
           displayName: user.display_name || null,
-          profitScore,
+          overallScore: 0,
+          rank: 1,
           allTimeProfit: user.lifetime_profit || 0,
           winRate: 0,
           wonCount: 0,
@@ -104,16 +160,16 @@ export async function GET(request: NextRequest) {
     // ── นับ win/loss จาก entries โดยตรง (authoritative) ──
     let wonCount = 0;
     let lostCount = 0;
-    for (const e of entries || []) {
+    for (const e of historyEntries || []) {
       if (e.status === "won") wonCount++;
       else lostCount++; // lost OR refunded นับเป็น lost
     }
-    const totalSettled = (entries || []).length;
+    const totalSettled = (historyEntries || []).length;
     const winRate = totalSettled > 0 ? Math.round((wonCount / totalSettled) * 100) : 0;
 
     // ── Batch fetch option labels ──
     const optionIds = [...new Set(
-      (entries || []).map((e: any) => e.option_id).filter(Boolean)
+      (historyEntries || []).map((e: any) => e.option_id).filter(Boolean)
     )] as string[];
 
     const optionsMap = new Map<string, string>();
@@ -130,7 +186,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ── สร้าง history (เรียงตาม resolved_at desc → created_at desc) ──
-    const sortedEntries = [...(entries || [])].sort((a: any, b: any) => {
+    const sortedEntries = [...(historyEntries || [])].sort((a: any, b: any) => {
       const dateA = new Date(a.predictions?.resolved_at || a.created_at).getTime();
       const dateB = new Date(b.predictions?.resolved_at || b.created_at).getTime();
       return dateB - dateA; // newest first
@@ -163,7 +219,7 @@ export async function GET(request: NextRequest) {
     });
 
     // ── Stats เพิ่มเติม ──
-    const totalCoinsBet = (entries || []).reduce((acc: number, e: any) => acc + Math.abs(e.amount), 0);
+    const totalCoinsBet = (historyEntries || []).reduce((acc: number, e: any) => acc + Math.abs(e.amount), 0);
     const avgBetSize = totalSettled > 0 ? Math.round(totalCoinsBet / totalSettled) : 0;
 
     // ── Badge ──
@@ -185,8 +241,7 @@ export async function GET(request: NextRequest) {
       data: {
         name: user.display_name || user.email.split("@")[0],
         displayName: user.display_name || null,
-        profitScore,
-        overallScore: profitScore, // คะแนน Overall (ใช้คำนวณ rank)
+        overallScore, // คะแนน Overall (ใช้คำนวณ rank)
         rank, // ตำแหน่งของผู้ใช้
         allTimeProfit: user.lifetime_profit || 0,
         winRate,
