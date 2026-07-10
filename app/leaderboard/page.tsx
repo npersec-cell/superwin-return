@@ -11,10 +11,13 @@ function maskName(name: string): string {
 }
 
 function getRankInfo(profitScore: number) {
+  if (profitScore >= 100000) return { name: "Crown", icon: "/ranks/crown.png" };
   if (profitScore >= 50000) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
   if (profitScore >= 20000) return { name: "Ace", icon: "/ranks/ace.png" };
-  if (profitScore >= 5000) return { name: "Diamond", icon: "/ranks/diamond.png" };
+  if (profitScore >= 10000) return { name: "Diamond", icon: "/ranks/diamond.png" };
+  if (profitScore >= 5000) return { name: "Platinum", icon: "/ranks/platinum.png" };
   if (profitScore >= 1000) return { name: "Gold", icon: "/ranks/gold.png" };
+  if (profitScore >= 100) return { name: "Silver", icon: "/ranks/silver.png" };
   return { name: "Bronze", icon: "/ranks/bronze.png" };
 }
 
