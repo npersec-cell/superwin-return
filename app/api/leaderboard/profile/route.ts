@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
 
     for (const u of allUsers || []) {
       userStatsMap.set(u.id, {
-        profitScore: u.profit_score || 0,
+        profitScore: u.lifetime_profit || 0,
         predictionCount: 0,
         highestSingleWin: 0,
         avgReloadPerDay: 0,
