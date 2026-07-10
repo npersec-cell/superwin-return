@@ -158,13 +158,17 @@ export async function GET(request: NextRequest) {
     const sortedOverall = [...allUsersData].sort((a, b) => b.overall - a.overall);
     const overallRank = sortedOverall.findIndex(u => u.userId === userId) + 1;
 
-    // Most Orange Ammo rank
-    const sortedByProfit = [...allUsersData].sort((a, b) => b.profitScore - a.profitScore);
-    const mostOrangeAmmoRank = sortedByProfit.findIndex(u => u.userId === userId) + 1;
+    // Most Orange Ammo rank (only count users with profitScore > 0)
+    const sortedByProfit = [...allUsersData].filter(u => u.profitScore > 0).sort((a, b) => b.profitScore - a.profitScore);
+    const mostOrangeAmmoRank = sortedByProfit.some(u => u.userId === userId) 
+      ? sortedByProfit.findIndex(u => u.userId === userId) + 1 
+      : totalUsers;
 
-    // Most Predictions rank
-    const sortedByPredictions = [...allUsersData].sort((a, b) => b.predictionCount - a.predictionCount);
-    const mostPredictionsRank = sortedByPredictions.findIndex(u => u.userId === userId) + 1;
+    // Most Predictions rank (only count users with predictionCount > 0)
+    const sortedByPredictions = [...allUsersData].filter(u => u.predictionCount > 0).sort((a, b) => b.predictionCount - a.predictionCount);
+    const mostPredictionsRank = sortedByPredictions.some(u => u.userId === userId) 
+      ? sortedByPredictions.findIndex(u => u.userId === userId) + 1 
+      : totalUsers;
 
     // Highest Single Win rank
     const usersWithWin = allUsersData.filter(u => u.highestSingleWin > 0);
