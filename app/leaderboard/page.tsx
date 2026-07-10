@@ -685,7 +685,7 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
                     </strong>
                   </div>
                   <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    #{profile.rank}
+                    #{profile.rank} ของ {profile.totalUsers} คน
                   </span>
                 </div>
               </div>
