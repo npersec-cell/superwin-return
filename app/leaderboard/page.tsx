@@ -81,11 +81,6 @@ export default function LeaderboardPage() {
       winRate: 0,
       totalWagered: 0,
       totalWon: 0,
-      avgWin: 0,
-      avgLoss: 0,
-      streak: 0,
-      lastActive: '',
-      badges: [],
       loading: true
     });
     setProfileLoading(true);
@@ -108,11 +103,6 @@ export default function LeaderboardPage() {
           winRate: 0,
           totalWagered: 0,
           totalWon: 0,
-          avgWin: 0,
-          avgLoss: 0,
-          streak: 0,
-          lastActive: '',
-          badges: [],
           loading: false
         });
       }
