@@ -22,29 +22,26 @@ interface UserInfo {
 }
 
 interface LeaderboardStats {
-  // Overall leaderboard
-  overallScore: number;
-  overallRank: number;
-  // Most Orange Ammo (profitScore)
+  // Basic stats
   profitScore: number;
-  mostOrangeAmmoRank: number;
-  // Most Predictions
+  allTimeProfit: number;
   predictionCount: number;
-  mostPredictionsRank: number;
-  // Highest Single Win
   highestSingleWin: number;
-  highestSingleWinRank: number;
-  // Most Active
-  avgReloadPerDay: number;
-  mostActiveRank: number;
-  // Other stats
-  rank: number;
-  rankName: string;
-  rankIcon: string;
-  totalUsers: number;
   winRate: number;
   wonCount: number;
   lostCount: number;
+  totalSettled: number;
+  history: Array<{
+    id: string;
+    tournament: string;
+    question: string;
+    pick: string;
+    amount: number;
+    payout: number;
+    status: "won" | "lost";
+    net: number;
+    date: string;
+  }>;
 }
 
 export default function ProfilePage() {
@@ -247,57 +244,30 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Leaderboard Stats */}
+        {/* Leaderboard Stats - show basic stats only, no ranks */}
         {leaderboard && (
           <div className="panel" style={{ padding: "14px", marginBottom: "12px" }}>
             <div style={{ fontSize: "12px", fontWeight: 600, marginBottom: "10px", color: "var(--yellow)" }}>
-              🏆 สถิติใน_leaderboard
+              📊 สถิติการทาย
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Overall</span>
-                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  {leaderboard.overallScore}
-                </strong>
-                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                  #{leaderboard.overallRank} ของ {leaderboard.totalUsers} คน
-                </span>
-              </div>
               <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                 <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Orange Ammo</span>
                 <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
                   {compact(leaderboard.profitScore)}
                 </strong>
-                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                  #{leaderboard.mostOrangeAmmoRank}
-                </span>
               </div>
               <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                 <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Predictions</span>
                 <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
                   {leaderboard.predictionCount}
                 </strong>
-                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                  #{leaderboard.mostPredictionsRank}
-                </span>
               </div>
               <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                 <span style={{ fontSize: "10px", color: "var(--muted)" }}>Highest Single Win</span>
                 <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
                   {compact(leaderboard.highestSingleWin)}
                 </strong>
-                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                  #{leaderboard.highestSingleWinRank}
-                </span>
-              </div>
-              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Active (avg/day)</span>
-                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  {(leaderboard.avgReloadPerDay || 0).toFixed(1)}
-                </strong>
-                <span style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                  #{leaderboard.mostActiveRank}
-                </span>
               </div>
               <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
                 <span style={{ fontSize: "10px", color: "var(--muted)" }}>Win Rate</span>
@@ -308,6 +278,9 @@ export default function ProfilePage() {
                   {leaderboard.wonCount} won · {leaderboard.lostCount} lost
                 </span>
               </div>
+            </div>
+            <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "10px", textAlign: "center" }}>
+              🏆 ดูอันดับเต็มใน <a href="/leaderboard" style={{ color: "var(--yellow)" }}>Leaderboard</a>
             </div>
           </div>
         )}
