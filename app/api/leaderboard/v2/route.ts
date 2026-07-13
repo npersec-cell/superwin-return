@@ -181,7 +181,9 @@ export async function GET(request: NextRequest) {
         // Overall rank - only among active users
         let overallRank;
         if (userHasActivity) {
-          const activeRank = activeUsers.findIndex(u => u.userId === userId);
+          // Sort active users by overall score first, then find position
+          const sortedActive = [...activeUsers].sort((a, b) => b.overall - a.overall);
+          const activeRank = sortedActive.findIndex(u => u.userId === userId);
           overallRank = activeRank >= 0 ? activeRank + 1 : totalActiveUsers + 1;
         } else {
           // If user has no activity, they're not in the active leaderboard
