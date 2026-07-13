@@ -212,18 +212,13 @@ export async function GET(request: NextRequest) {
         const userStats = leaderboardWithOverall[userPosition];
         const userHasActivity = userStats.hasActivity;
         
-        // Overall rank - only among active users (stable sort by userId)
-        let overallRank;
-        if (userHasActivity) {
-          const sortedActive = [...activeUsers].sort((a, b) => {
-            if (b.overall !== a.overall) return b.overall - a.overall;
-            return a.userId.localeCompare(b.userId);
-          });
-          const activeRank = sortedActive.findIndex(u => u.userId === userId);
-          overallRank = activeRank >= 0 ? activeRank + 1 : totalActiveUsers + 1;
-        } else {
-          overallRank = totalActiveUsers + 1;
-        }
+        // Overall rank - include ALL users (not just active users) for consistency with Profile
+        const sortedOverall = [...leaderboardWithOverall].sort((a, b) => {
+          if (b.overall !== a.overall) return b.overall - a.overall;
+          return a.userId.localeCompare(b.userId);
+        });
+        const overallUserIndex = sortedOverall.findIndex(u => u.userId === userId);
+        const overallRank = overallUserIndex >= 0 ? overallUserIndex + 1 : totalUsers + 1;
         
         // Most Orange Ammo rank (stable sort by userId)
         const sortedByProfitScore = [...leaderboardWithOverall].sort((a, b) => {
@@ -266,7 +261,7 @@ export async function GET(request: NextRequest) {
           avgReloadPerDay: userStats.avgReloadPerDay,
           activeRank,
           totalUsers,
-          totalActiveUsers,
+          totalActiveUsers: leaderboardWithOverall.filter(u => u.hasActivity).length,
           userHasActivity
         };
       }
