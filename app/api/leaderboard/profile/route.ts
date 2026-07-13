@@ -163,46 +163,27 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // ── Sort and find user's rank ──
-    const sortedOverall = [...leaderboardWithOverall].sort((a, b) => {
+    // ── Filter to ONLY ACTIVE users (same as Leaderboard table) ──
+    // Active users = users with hasActivity OR predictionCount > 0 OR profitScore > 0
+    const activeUsers = leaderboardWithOverall.filter(u => 
+      u.hasActivity || u.predictionCount > 0 || u.profitScore > 0 || u.overall > 0
+    );
+    const totalActiveUsers = activeUsers.length;
+    const totalUsers = leaderboardData.length;
+
+    // ── Sort ACTIVE users and find user's rank ──
+    const sortedActiveOverall = [...activeUsers].sort((a, b) => {
       if (b.overall !== a.overall) return b.overall - a.overall;
       return a.userId.localeCompare(b.userId);
     });
     
-    // Find user in sorted leaderboard
-    const userPosition = sortedOverall.findIndex(u => u.userId === userId);
-    const overallRank = userPosition >= 0 ? userPosition + 1 : totalUsers + 1;
-    const overallScore = userPosition >= 0 ? sortedOverall[userPosition].overall : 0;
+    // Find user in sorted ACTIVE leaderboard (this matches Leaderboard table exactly)
+    const userPosition = sortedActiveOverall.findIndex(u => u.userId === userId);
+    const overallRank = userPosition >= 0 ? userPosition + 1 : totalActiveUsers + 1;
+    const overallScore = userPosition >= 0 ? sortedActiveOverall[userPosition].overall : 0;
     
-    // Sort for other categories
-    const sortedByProfitScore = [...leaderboardWithOverall].sort((a, b) => {
-      if (b.profitScore !== a.profitScore) return b.profitScore - a.profitScore;
-      return a.userId.localeCompare(b.userId);
-    });
-    const profitScoreRank = sortedByProfitScore.findIndex(u => u.userId === userId) + 1;
-    
-    const sortedByPredictionCount = [...leaderboardWithOverall].sort((a, b) => {
-      if (b.predictionCount !== a.predictionCount) return b.predictionCount - a.predictionCount;
-      return a.userId.localeCompare(b.userId);
-    });
-    const predictionCountRank = sortedByPredictionCount.findIndex(u => u.userId === userId) + 1;
-    
-    const sortedByHighestWin = [...leaderboardWithOverall.filter(u => u.highestSingleWin > 0)].sort((a, b) => {
-      if (b.highestSingleWin !== a.highestSingleWin) return b.highestSingleWin - a.highestSingleWin;
-      return a.userId.localeCompare(b.userId);
-    });
-    const highestSingleWinRank = sortedByHighestWin.findIndex(u => u.userId === userId) >= 0 
-      ? sortedByHighestWin.findIndex(u => u.userId === userId) + 1
-      : totalUsers;
-    
-    const sortedByActive = [...leaderboardWithOverall].sort((a, b) => {
-      if (b.avgReloadPerDay !== a.avgReloadPerDay) return b.avgReloadPerDay - a.avgReloadPerDay;
-      return a.userId.localeCompare(b.userId);
-    });
-    const activeRank = sortedByActive.findIndex(u => u.userId === userId) + 1;
-    
-    // Get user stats
-    const userStatsData = userPosition >= 0 ? leaderboardWithOverall[userPosition] : {
+    // Also get user stats directly (not from sorted array)
+    const userStatsData = activeUsers.find(u => u.userId === userId) || {
       profitScore: 0,
       predictionCount: 0,
       highestSingleWin: 0,
