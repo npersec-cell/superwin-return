@@ -205,13 +205,13 @@ export async function GET(request: NextRequest) {
       mostActiveRank = v2RankData.activeRank;
     } else {
       // Calculate from scratch if v2 data unavailable
-      // Overall rank - only among active users (stable sort by userId)
-      const sortedOverall = [...activeUsers].sort((a, b) => {
+      // Overall rank - include ALL users (not just active users) for consistency with API v2
+      const sortedOverall = [...allUsersData].sort((a, b) => {
         if (b.overall !== a.overall) return b.overall - a.overall;
         return a.userId.localeCompare(b.userId);
       });
-      const activeUserIndex = sortedOverall.findIndex(u => u.userId === userId);
-      overallRank = activeUserIndex >= 0 ? activeUserIndex + 1 : totalActiveUsers + 1;
+      const overallUserIndex = sortedOverall.findIndex(u => u.userId === userId);
+      overallRank = overallUserIndex >= 0 ? overallUserIndex + 1 : totalUsers + 1;
 
       // Most Orange Ammo rank (stable sort by userId)
       const sortedByProfit = [...allUsersData].sort((a, b) => {

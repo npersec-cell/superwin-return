@@ -131,14 +131,12 @@ export async function GET(request: NextRequest) {
     });
     
     // Create leaderboards for each category
-    const totalUsers = leaderboardWithOverall.length; // Total active users
+    const totalUsers = leaderboardWithOverall.length;
     
-    // For Overall ranking, only include users who have actual activity
-    const activeUsers = leaderboardWithOverall.filter(u => u.hasActivity);
-    const totalActiveUsers = activeUsers.length;
-    
+    // For Overall ranking, include ALL users (not just active users)
+    // This ensures rank consistency between Leaderboard table and Profile modal
     const leaderboards = {
-      overall: activeUsers
+      overall: leaderboardWithOverall
         .slice()
         .sort((a, b) => {
           if (b.overall !== a.overall) return b.overall - a.overall;
@@ -146,6 +144,7 @@ export async function GET(request: NextRequest) {
         })
         .slice(0, 15)
         .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.overall })),
+      
       overallAll: leaderboardWithOverall
         .slice()
         .sort((a, b) => {
@@ -154,6 +153,18 @@ export async function GET(request: NextRequest) {
         })
         .slice(0, 15)
         .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.overall })),
+      
+      overallActive: leaderboardWithOverall
+        .filter(u => u.hasActivity)
+        .slice()
+        .sort((a, b) => {
+          if (b.overall !== a.overall) return b.overall - a.overall;
+          return a.userId.localeCompare(b.userId); // stable sort by userId
+        })
+        .slice(0, 15)
+        .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.overall })),
+      
+      activeUsersCount: leaderboardWithOverall.filter(u => u.hasActivity).length,
       
       mostOrangeAmmo: leaderboardWithOverall
         .slice()
