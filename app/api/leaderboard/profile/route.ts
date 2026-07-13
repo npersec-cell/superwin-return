@@ -64,23 +64,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Failed to fetch users" }, { status: 500 });
     }
 
-    // ── Fetch ALL entries for all users (batch query in chunks to avoid timeout) ──
+    // ── Fetch ALL entries for all users (parallel batch query) ──
     const userIds = users?.map(u => u.id) || [];
-    const entries: any[] = [];
     
-    // Split into chunks of 50 to avoid timeout
+    // Split into chunks and query in parallel
     const chunkSize = 50;
+    const chunks: string[][] = [];
     for (let i = 0; i < userIds.length; i += chunkSize) {
-      const chunk = userIds.slice(i, i + chunkSize);
-      const { data: chunkEntries } = await supabase
+      chunks.push(userIds.slice(i, i + chunkSize));
+    }
+    
+    const chunkPromises = chunks.map(chunk => 
+      supabase
         .from('prediction_entries')
         .select('id, user_id, amount, payout_amount, status')
         .in('user_id', chunk)
-        .in('status', ['won', 'lost', 'refunded']);
-      if (chunkEntries) {
-        entries.push(...chunkEntries);
-      }
-    }
+        .in('status', ['won', 'lost', 'refunded'])
+        .then(({ data }) => data || [])
+    );
+    
+    const chunkResults = await Promise.all(chunkPromises);
+    const entries = chunkResults.flat();
 
     // ── Calculate stats for ALL users (MUST match v2 API logic) ──
     const userStatsMap = new Map<string, {
