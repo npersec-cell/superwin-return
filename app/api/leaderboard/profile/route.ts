@@ -109,6 +109,21 @@ export async function GET(request: NextRequest) {
       const activeScore = hasActivity ? calcLogScore(avgReloadPerDay) : 0;
       const overall = Math.round(orangeAmmoScore + predictionScore + winScore + activeScore);
 
+      // Debug log for arther0945
+      if (user.id.includes('arther0945') || user.email?.includes('arther0945')) {
+        console.log('[DEBUG] arther0945 stats:', {
+          profitScore,
+          predictionCount,
+          highestSingleWin,
+          avgReloadPerDay,
+          orangeAmmoScore,
+          predictionScore,
+          winScore,
+          activeScore,
+          overall
+        });
+      }
+
       userStatsMap.set(user.id, {
         profitScore,
         predictionCount,
