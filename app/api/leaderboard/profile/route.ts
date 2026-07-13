@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
       const userEntries = allEntries.filter(e => e.user_id === user.id);
       const wonEntries = userEntries.filter(e => e.status === 'won');
       
-      const profitScore = user.coin_balance || 0;
+      const profitScore = Number(user.coin_balance) || 0;
       const predictionCount = userEntries.length;
       const highestSingleWin = wonEntries.length > 0
         ? Math.max(...wonEntries.map(e => (e.payout_amount || 0) - e.amount))

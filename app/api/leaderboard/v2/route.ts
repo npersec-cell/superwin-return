@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     
     for (const u of users || []) {
       userStats.set(u.id, {
-        profitScore: u.coin_balance || 0,  // Use coin_balance (Orange Ammo)
+        profitScore: Number(u.coin_balance) || 0,  // Use coin_balance (Orange Ammo)
         predictionCount: 0,
         highestSingleWin: 0,
         avgReloadPerDay: 0,
