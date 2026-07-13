@@ -133,7 +133,7 @@ function getRankInfo(profitScore: number) {
 
 // Get rank based on position (1-based) and total users
 function getRankFromPosition(rank: number, totalUsers: number): { name: string; icon: string } {
-  if (totalUsers === 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
+  if (!totalUsers || totalUsers === 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
   
   // Crown: #1 only (the absolute best)
   if (rank === 1) return { name: "Crown", icon: "/ranks/crown.png" };
@@ -1551,7 +1551,7 @@ export default function SuperWinPrototype() {
                           {getRankFromPosition(row.rank, leaderboardTotalUsers).name}
                         </span>
                       </div>
-                      <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{compact(row.profitScore)}</b>
+                      <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{compact(row.profitScore || 0)}</b>
                     </div>
                   );
                 })}
