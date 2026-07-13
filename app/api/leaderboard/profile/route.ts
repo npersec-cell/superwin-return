@@ -129,17 +129,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Convert to array and calculate Overall score
-    // Note: profitScore (green ammo) is NOT used in leaderboard calculations
-    // It's only used for NUMBER WAR page
+    // Overall = Most Orange Ammo + Most Predictions + Highest Single Win + Most Active
     const allUsersData = Array.from(userStatsMap.entries()).map(([uid, stats]) => {
       const u = allUsers?.find(u => u.id === uid);
       const hasActivity = stats.predictionCount > 0;
-      const predictionScore = calcLogScore(stats.predictionCount);
-      const winScore = calcLogScore(stats.highestSingleWin);
+      const orangeAmmoScore = calcLogScore(stats.profitScore);  // Most Orange Ammo
+      const predictionScore = calcLogScore(stats.predictionCount);  // Most Predictions
+      const winScore = calcLogScore(stats.highestSingleWin);  // Highest Single Win
       // Only count active score if user has actual activity
-      const activeScore = hasActivity ? calcLogScore(stats.avgReloadPerDay) : 0;
-      // Overall = Most Predictions + Highest Single Win + Most Active
-      const overall = Math.round(predictionScore + winScore + activeScore);
+      const activeScore = hasActivity ? calcLogScore(stats.avgReloadPerDay) : 0;  // Most Active
+      // Overall = Most Orange Ammo + Most Predictions + Highest Single Win + Most Active
+      const overall = Math.round(orangeAmmoScore + predictionScore + winScore + activeScore);
       
       return {
         userId: uid,
