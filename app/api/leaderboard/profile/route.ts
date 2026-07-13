@@ -144,9 +144,6 @@ export async function GET(request: NextRequest) {
       };
     });
     
-    const totalUsers = leaderboardData.length;
-    const totalActiveUsers = leaderboardData.filter(u => u.hasActivity).length;
-
     // ── Calculate Overall score for each user ──
     const leaderboardWithOverall = leaderboardData.map(user => {
       const orangeAmmoScore = calcLogScore(user.profitScore);
@@ -164,12 +161,13 @@ export async function GET(request: NextRequest) {
     });
 
     // ── Filter to ONLY ACTIVE users (same as Leaderboard table) ──
-    // Active users = users with hasActivity OR predictionCount > 0 OR profitScore > 0
     const activeUsers = leaderboardWithOverall.filter(u => 
       u.hasActivity || u.predictionCount > 0 || u.profitScore > 0 || u.overall > 0
     );
-    const totalActiveUsers = activeUsers.length;
+    
+    // Total counts
     const totalUsers = leaderboardData.length;
+    const totalActiveUsers = activeUsers.length;
 
     // ── Sort ACTIVE users and find user's rank ──
     const sortedActiveOverall = [...activeUsers].sort((a, b) => {
@@ -182,7 +180,7 @@ export async function GET(request: NextRequest) {
     const overallRank = userPosition >= 0 ? userPosition + 1 : totalActiveUsers + 1;
     const overallScore = userPosition >= 0 ? sortedActiveOverall[userPosition].overall : 0;
     
-    // Also get user stats directly (not from sorted array)
+    // Get user's stats directly
     const userStatsData = activeUsers.find(u => u.userId === userId) || {
       profitScore: 0,
       predictionCount: 0,
@@ -190,8 +188,8 @@ export async function GET(request: NextRequest) {
       avgReloadPerDay: 0
     };
 
-    // Calculate rank tier
-    const rankInfo = getRankFromPosition(overallRank, totalActiveUsers > 0 ? totalActiveUsers : totalUsers);
+    // Calculate rank tier from overallRank
+    const rankInfo = getRankFromPosition(overallRank, totalActiveUsers);
 
     // ── Fetch user basic info ──
     const targetUser = users?.find(u => u.id === userId);
@@ -310,10 +308,6 @@ export async function GET(request: NextRequest) {
         totalActiveUsers,
         overallScore,
         overallRank,
-        mostOrangeAmmoRank: profitScoreRank,
-        mostPredictionsRank: predictionCountRank,
-        highestSingleWinRank,
-        mostActiveRank: activeRank,
         badge: "",
         badgeDesc: "",
         history
