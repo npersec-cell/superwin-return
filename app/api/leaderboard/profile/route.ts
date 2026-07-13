@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
       // Calculate average reload per day (from reload_count and account age)
       const createdAt = new Date(user.created_at);
       const daysActive = Math.max(1, Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)));
-      const avgReloadPerDay = user.reload_count / daysActive;
+      const avgReloadPerDay = (user.reload_count || 0) / daysActive;
       
       // Overall score = sum of all component scores
       // All users are included in the calculation, inactive users get 0 for activity-related scores
