@@ -320,7 +320,7 @@ export async function GET(request: NextRequest) {
         name: user.display_name || user.email.split("@")[0],
         displayName: user.display_name || null,
         // Basic stats
-        profitScore: user.profit_score || 0,
+        profitScore: user.lifetime_profit || 0,
         allTimeProfit: user.lifetime_profit || 0,
         predictionCount,
         highestSingleWin,
