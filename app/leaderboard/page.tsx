@@ -200,6 +200,9 @@ export default function LeaderboardPage() {
       try {
         const response = await fetch(`/api/leaderboard/profile?userId=${userId}&_t=${Date.now()}`);
         const payload = await response.json();
+        // Debug log
+        console.log("[Profile] FETCH_RESPONSE:", JSON.stringify(payload, null, 2));
+        
         // Check if response is successful AND has valid data
         if (response.ok && payload.ok && payload.data) {
           setSelectedProfile(prev => ({ 
@@ -209,11 +212,11 @@ export default function LeaderboardPage() {
           }));
         } else {
           // If API returned error, log it and update loading state
-          console.error("[Profile] API error:", payload.error);
+          console.error("[Profile] API ERROR:", payload.error);
           setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
         }
       } catch (err) {
-        console.error("[Profile] Fetch error:", err);
+        console.error("[Profile] FETCH ERROR:", err);
         // On fetch error, update loading state
         setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
       }
