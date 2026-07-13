@@ -155,9 +155,38 @@ export default function LeaderboardPage() {
   const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
   const profileRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Create a map of userId -> value for each leaderboard category
+  const leaderboardValueMap = {
+    mostOrangeAmmo: new Map<string, number>(),
+    mostPredictions: new Map<string, number>(),
+    highestSingleWin: new Map<string, number>(),
+    mostActive: new Map<string, number>()
+  };
+
+  // Initialize the maps when leaderboard data is loaded
+  useEffect(() => {
+    if (leaderboards) {
+      leaderboards.mostOrangeAmmo?.forEach(entry => {
+        leaderboardValueMap.mostOrangeAmmo.set(entry.userId, entry.value);
+      });
+      leaderboards.mostPredictions?.forEach(entry => {
+        leaderboardValueMap.mostPredictions.set(entry.userId, entry.value);
+      });
+      leaderboards.highestSingleWin?.forEach(entry => {
+        leaderboardValueMap.highestSingleWin.set(entry.userId, entry.value);
+      });
+      leaderboards.mostActive?.forEach(entry => {
+        leaderboardValueMap.mostActive.set(entry.userId, entry.value);
+      });
+    }
+  }, [leaderboards]);
+
   async function handleOpenProfile(userId: string, displayName: string) {
     // Clear any existing refresh interval
     if (profileRefreshRef.current) { clearInterval(profileRefreshRef.current); profileRefreshRef.current = null; }
+
+    // Get values from leaderboard data (more reliable than Profile API)
+    const coinBalanceFromLeaderboard = leaderboardValueMap.mostOrangeAmmo.get(userId) || 0;
 
     // Show modal immediately with loading state
     setSelectedProfile({
@@ -165,8 +194,8 @@ export default function LeaderboardPage() {
       // Overall leaderboard
       overallScore: 0,
       overallRank: 0,
-      // Most Orange Ammo
-      coinBalance: 0,
+      // Most Orange Ammo - use value from leaderboard
+      coinBalance: coinBalanceFromLeaderboard,
       mostOrangeAmmoRank: 0,
       // Most Predictions
       predictionCount: 0,
@@ -198,7 +227,13 @@ export default function LeaderboardPage() {
         const response = await fetch(`/api/leaderboard/profile?userId=${userId}&_t=${Date.now()}`);
         const payload = await response.json();
         if (response.ok && payload.ok && payload.data) {
-          setSelectedProfile({ ...payload.data, loading: false });
+          // Use coinBalance from leaderboard if Profile API returns NaN
+          const finalProfile = { ...payload.data, loading: false };
+          if (finalProfile.coinBalance !== finalProfile.coinBalance) {
+            // NaN check - use leaderboard value
+            finalProfile.coinBalance = coinBalanceFromLeaderboard;
+          }
+          setSelectedProfile(finalProfile);
         } else {
           setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
         }
