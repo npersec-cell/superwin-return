@@ -67,32 +67,15 @@ function getRankFromPosition(rank: number, totalUsers: number): { name: string; 
 interface UserProfileStats {
   name: string;
   displayName?: string | null;
-  // Overall leaderboard
-  overallScore: number;
-  overallRank: number;  // -1 means not loaded
-  // Most Orange Ammo (profitScore)
-  profitScore: number;
-  mostOrangeAmmoRank: number;  // -1 means not loaded
-  // Most Predictions
-  predictionCount: number;
-  mostPredictionsRank: number;  // -1 means not loaded
-  // Highest Single Win
-  highestSingleWin: number;
-  highestSingleWinRank: number;  // -1 means not loaded
-  // Most Active
-  avgReloadPerDay: number;
-  mostActiveRank: number;  // -1 means not loaded
-  // Other stats
-  rank: number;  // -1 means not loaded
-  rankPercentile: number;
-  rankName: string;
-  rankIcon: string;
-  totalUsers: number;
+  // Stats from API
+  seasonProfit: number;
   allTimeProfit: number;
   winRate: number;
   wonCount: number;
   lostCount: number;
   totalSettled: number;
+  totalCoinsBet: number;
+  totalCoinsWon: number;
   badge: string;
   badgeDesc: string;
   loading?: boolean;
@@ -168,32 +151,14 @@ export default function LeaderboardPage() {
     // Show modal immediately with loading state
     setSelectedProfile({
       name: displayName,
-      // Overall leaderboard
-      overallScore: 0,
-      overallRank: -1,
-      // Most Orange Ammo
-      profitScore: 0,
-      mostOrangeAmmoRank: -1,
-      // Most Predictions
-      predictionCount: 0,
-      mostPredictionsRank: -1,
-      // Highest Single Win
-      highestSingleWin: 0,
-      highestSingleWinRank: -1,
-      // Most Active
-      avgReloadPerDay: 0,
-      mostActiveRank: -1,
-      // Other stats
-      rank: -1,
-      rankPercentile: 0,
-      rankName: "Bronze",
-      rankIcon: "/ranks/bronze.png",
-      totalUsers: 0,
+      seasonProfit: 0,
       allTimeProfit: 0,
       winRate: 0,
       wonCount: 0,
       lostCount: 0,
       totalSettled: 0,
+      totalCoinsBet: 0,
+      totalCoinsWon: 0,
       badge: "",
       badgeDesc: "",
       loading: true,
@@ -204,19 +169,12 @@ export default function LeaderboardPage() {
       try {
         const response = await fetch(`/api/leaderboard/profile?userId=${userId}&_t=${Date.now()}`);
         const payload = await response.json();
-        // Debug log - check the exact structure
+        
+        // Debug log
         console.log("[Profile] FETCH_RESPONSE:", JSON.stringify(payload, null, 2));
-        console.log("[Profile] payload.ok:", payload.ok);
-        console.log("[Profile] payload.data:", payload.data);
-        console.log("[Profile] payload.data?.overallRank:", payload.data?.overallRank);
         
         // Check if response is successful AND has valid data
         if (response.ok && payload.ok && payload.data) {
-          console.log("[Profile] Setting profile with data:", {
-            overallRank: payload.data.overallRank,
-            rankName: payload.data.rankName,
-            overallScore: payload.data.overallScore
-          });
           setSelectedProfile(prev => ({ 
             ...payload.data, 
             loading: false,
@@ -224,7 +182,7 @@ export default function LeaderboardPage() {
           }));
         } else {
           // If API returned error, log it and update loading state
-          console.error("[Profile] API ERROR - payload:", payload);
+          console.error("[Profile] API ERROR:", payload.error);
           setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
         }
       } catch (err) {
@@ -243,13 +201,6 @@ export default function LeaderboardPage() {
   function closeProfile() {
     if (profileRefreshRef.current) { clearInterval(profileRefreshRef.current); profileRefreshRef.current = null; }
     setSelectedProfile(null);
-  }
-
-  // Retry function for Profile Modal
-  function retryProfile() {
-    if (selectedLeaderboardEntry) {
-      handleOpenProfile(selectedLeaderboardEntry.userId, selectedLeaderboardEntry.displayName);
-    }
   }
 
   useEffect(() => {
@@ -694,7 +645,7 @@ export default function LeaderboardPage() {
       </div>
 
       {selectedLiveBet && <LiveBetModal bet={selectedLiveBet} onClose={() => setSelectedLiveBet(null)} />}
-      {selectedProfile && <ProfileModal profile={selectedProfile} onClose={closeProfile} onRetry={retryProfile} />}
+      {selectedProfile && <ProfileModal profile={selectedProfile} onClose={closeProfile} />}]
     </div>
   );
 }
