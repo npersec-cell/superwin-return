@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
 
     // Overall rank - only among active users
     const sortedOverall = [...activeUsers].sort((a, b) => b.overall - a.overall);
-    const activeUserIndex = activeUsers.findIndex(u => u.userId === userId);
+    const activeUserIndex = sortedOverall.findIndex(u => u.userId === userId);
     const overallRank = activeUserIndex >= 0 ? activeUserIndex + 1 : totalActiveUsers + 1;
 
     // Most Orange Ammo rank
