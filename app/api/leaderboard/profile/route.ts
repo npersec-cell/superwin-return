@@ -47,27 +47,16 @@ export async function GET(request: NextRequest) {
     // ── Fetch rank data from API v2 (SINGLE SOURCE OF TRUTH) ──
     // Use VERCEL_URL environment variable for production, fallback to localhost for dev
     const baseURL = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}`.replace("https://", "").replace("http://", "")
+      ? `https://${process.env.VERCEL_URL.replace("https://", "").replace("http://", "")}`
       : "http://localhost:3000";
     
     let v2Data: any = null;
     try {
-      const response = await fetch(`${baseURL}/api/leaderboard/v2?userId=${userId}&t=${Date.now()}`, {
-        headers: {
-          'X-VerCEL-Internal': 'true' // Bypasses edge function execution for internal calls
-        }
-      });
+      const response = await fetch(`${baseURL}/api/leaderboard/v2?userId=${userId}&t=${Date.now()}`);
       v2Data = await response.json();
     } catch (error) {
       console.error("[Profile] Error fetching from API v2:", error);
-      // If internal call fails, try without the header
-      try {
-        const response = await fetch(`${baseURL}/api/leaderboard/v2?userId=${userId}&t=${Date.now()}`);
-        v2Data = await response.json();
-      } catch (error2) {
-        console.error("[Profile] Error fetching from API v2 (retry):", error2);
-        return NextResponse.json({ ok: false, error: "Failed to fetch rank data" }, { status: 500 });
-      }
+      return NextResponse.json({ ok: false, error: "Failed to fetch rank data" }, { status: 500 });
     }
 
     // If API v2 didn't return userRankData, user doesn't exist
