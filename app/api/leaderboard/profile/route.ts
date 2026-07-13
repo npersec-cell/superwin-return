@@ -129,15 +129,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Convert to array and calculate Overall score
+    // Note: profitScore (green ammo) is NOT used in leaderboard calculations
+    // It's only used for NUMBER WAR page
     const allUsersData = Array.from(userStatsMap.entries()).map(([uid, stats]) => {
       const u = allUsers?.find(u => u.id === uid);
-      const hasActivity = stats.predictionCount > 0 || stats.profitScore > 0;
-      const profitScore = calcLogScore(stats.profitScore);
+      const hasActivity = stats.predictionCount > 0;
       const predictionScore = calcLogScore(stats.predictionCount);
       const winScore = calcLogScore(stats.highestSingleWin);
       // Only count active score if user has actual activity
       const activeScore = hasActivity ? calcLogScore(stats.avgReloadPerDay) : 0;
-      const overall = Math.round(profitScore + predictionScore + winScore + activeScore);
+      // Overall = Most Predictions + Highest Single Win + Most Active
+      const overall = Math.round(predictionScore + winScore + activeScore);
       
       return {
         userId: uid,

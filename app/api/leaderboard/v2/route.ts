@@ -109,19 +109,20 @@ export async function GET(request: NextRequest) {
     });
     
     // Calculate Overall score for each user using Logarithmic Score (sum, no cap)
+    // Note: profitScore (green ammo) is NOT used in leaderboard calculations
+    // It's only used for NUMBER WAR page
     const leaderboardWithOverall = leaderboardData.map(user => {
       // Only count active score if user has actual prediction activity
-      // Otherwise, they shouldn't benefit from reload_count
-      const hasActivity = user.predictionCount > 0 || user.profitScore > 0;
+      const hasActivity = user.predictionCount > 0;
       
-      // Calculate log score for each category
-      const profitScore = calcLogScore(user.profitScore);
+      // Calculate log score for each category (excluding profitScore)
       const predictionScore = calcLogScore(user.predictionCount);
       const winScore = calcLogScore(user.highestSingleWin);
       const activeScore = hasActivity ? calcLogScore(user.avgReloadPerDay) : 0;
       
-      // Sum of all scores (no cap, balanced, no decimals)
-      const overall = Math.round(profitScore + predictionScore + winScore + activeScore);
+      // Sum of scores (no cap, balanced, no decimals)
+      // Overall = Most Predictions + Highest Single Win + Most Active
+      const overall = Math.round(predictionScore + winScore + activeScore);
       
       return {
         ...user,
