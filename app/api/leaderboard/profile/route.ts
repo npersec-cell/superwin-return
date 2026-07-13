@@ -185,8 +185,7 @@ export async function GET(request: NextRequest) {
     const activeRank = sortedByActive.findIndex(u => u.userId === userId) + 1;
 
     // Get rank tier
-    const activeUserCount = sortedOverall.filter(u => u.overall > 0).length || totalUsers;
-    const rankInfo = getRankFromPosition(overallRank, activeUserCount);
+    const rankInfo = getRankFromPosition(overallRank, totalUsers);
 
     // ── Fetch user's settled entries for history display ──
     const { data: historyEntries, error: historyEntriesError } = await supabase
