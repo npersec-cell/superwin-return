@@ -110,18 +110,18 @@ export async function GET(request: NextRequest) {
     
     // Calculate Overall score for each user using Logarithmic Score (sum, no cap)
     // Overall = Most Orange Ammo + Most Predictions + Highest Single Win + Most Active
+    // All users are included, inactive users get 0 for activity-related scores
     const leaderboardWithOverall = leaderboardData.map(user => {
-      // Only count active score if user has actual prediction activity
-      const hasActivity = user.predictionCount > 0;
-      
       // Calculate log score for each category
       const orangeAmmoScore = calcLogScore(user.profitScore);  // Most Orange Ammo
       const predictionScore = calcLogScore(user.predictionCount);  // Most Predictions
       const winScore = calcLogScore(user.highestSingleWin);  // Highest Single Win
-      const activeScore = hasActivity ? calcLogScore(user.avgReloadPerDay) : 0;  // Most Active
+      const activeScore = calcLogScore(user.avgReloadPerDay);  // Most Active (always calculate, 0 for inactive)
       
       // Sum of all scores (no cap, balanced, no decimals)
       const overall = Math.round(orangeAmmoScore + predictionScore + winScore + activeScore);
+      
+      const hasActivity = user.predictionCount > 0;
       
       return {
         ...user,

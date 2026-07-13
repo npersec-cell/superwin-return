@@ -101,12 +101,12 @@ export async function GET(request: NextRequest) {
       const daysActive = Math.max(1, Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)));
       const avgReloadPerDay = user.reload_count / daysActive;
       
-      // Overall score = sum of all component scores (same as v2 API)
-      const hasActivity = predictionCount > 0;
+      // Overall score = sum of all component scores
+      // All users are included in the calculation, inactive users get 0 for activity-related scores
       const orangeAmmoScore = calcLogScore(profitScore);
       const predictionScore = calcLogScore(predictionCount);
       const winScore = calcLogScore(highestSingleWin);
-      const activeScore = hasActivity ? calcLogScore(avgReloadPerDay) : 0;
+      const activeScore = calcLogScore(avgReloadPerDay); // Always calculate, 0 for inactive users
       const overall = Math.round(orangeAmmoScore + predictionScore + winScore + activeScore);
 
       // Debug log for arther0945
