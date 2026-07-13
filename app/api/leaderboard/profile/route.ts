@@ -64,17 +64,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Failed to fetch users" }, { status: 500 });
     }
 
-    // ── Fetch ALL entries for all users (batch query) ──
+    // ── Fetch ALL entries for all users (batch query in chunks to avoid timeout) ──
     const userIds = users?.map(u => u.id) || [];
-    const { data: entries, error: entriesError } = await supabase
-      .from('prediction_entries')
-      .select('id, user_id, amount, payout_amount, status')
-      .in('user_id', userIds)
-      .in('status', ['won', 'lost', 'refunded']);
-
-    if (entriesError) {
-      console.error("[Profile] Error fetching entries:", entriesError);
-      return NextResponse.json({ ok: false, error: "Failed to fetch entries" }, { status: 500 });
+    const entries: any[] = [];
+    
+    // Split into chunks of 50 to avoid timeout
+    const chunkSize = 50;
+    for (let i = 0; i < userIds.length; i += chunkSize) {
+      const chunk = userIds.slice(i, i + chunkSize);
+      const { data: chunkEntries } = await supabase
+        .from('prediction_entries')
+        .select('id, user_id, amount, payout_amount, status')
+        .in('user_id', chunk)
+        .in('status', ['won', 'lost', 'refunded']);
+      if (chunkEntries) {
+        entries.push(...chunkEntries);
+      }
     }
 
     // ── Calculate stats for ALL users (MUST match v2 API logic) ──
