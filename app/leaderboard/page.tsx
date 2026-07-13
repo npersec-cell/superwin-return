@@ -67,15 +67,32 @@ function getRankFromPosition(rank: number, totalUsers: number): { name: string; 
 interface UserProfileStats {
   name: string;
   displayName?: string | null;
-  // Stats from API
-  monthlyProfit: number;
+  // Overall leaderboard
+  overallScore: number;
+  overallRank: number;
+  // Most Orange Ammo (profitScore)
+  profitScore: number;
+  mostOrangeAmmoRank: number;
+  // Most Predictions
+  predictionCount: number;
+  mostPredictionsRank: number;
+  // Highest Single Win
+  highestSingleWin: number;
+  highestSingleWinRank: number;
+  // Most Active
+  avgReloadPerDay: number;
+  mostActiveRank: number;
+  // Other stats
+  rank: number;
+  rankPercentile: number;
+  rankName: string;
+  rankIcon: string;
+  totalUsers: number;
   allTimeProfit: number;
   winRate: number;
   wonCount: number;
   lostCount: number;
   totalSettled: number;
-  totalCoinsBet: number;
-  totalCoinsWon: number;
   badge: string;
   badgeDesc: string;
   loading?: boolean;
@@ -138,79 +155,70 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
-  const [selectedLeaderboardEntry, setSelectedLeaderboardEntry] = useState<{ userId: string; displayName: string } | null>(null);
   const profileRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const profileFetchRef = useRef<{ fetch: (userId: string, displayName: string) => Promise<void>; userId: string; displayName: string } | null>(null);
 
   async function handleOpenProfile(userId: string, displayName: string) {
-    // Track which user opened the profile for retry
-    setSelectedLeaderboardEntry({ userId, displayName });
-    
     // Clear any existing refresh interval
     if (profileRefreshRef.current) { clearInterval(profileRefreshRef.current); profileRefreshRef.current = null; }
 
     // Show modal immediately with loading state
     setSelectedProfile({
       name: displayName,
-      monthlyProfit: 0,
+      // Overall leaderboard
+      overallScore: 0,
+      overallRank: 0,
+      // Most Orange Ammo
+      profitScore: 0,
+      mostOrangeAmmoRank: 0,
+      // Most Predictions
+      predictionCount: 0,
+      mostPredictionsRank: 0,
+      // Highest Single Win
+      highestSingleWin: 0,
+      highestSingleWinRank: 0,
+      // Most Active
+      avgReloadPerDay: 0,
+      mostActiveRank: 0,
+      // Other stats
+      rank: 0,
+      rankPercentile: 0,
+      rankName: "Bronze",
+      rankIcon: "/ranks/bronze.png",
+      totalUsers: 0,
       allTimeProfit: 0,
       winRate: 0,
       wonCount: 0,
       lostCount: 0,
       totalSettled: 0,
-      totalCoinsBet: 0,
-      totalCoinsWon: 0,
       badge: "",
       badgeDesc: "",
       loading: true,
       history: [],
     });
 
-    const fetchFunc = async (fetchUserId: string, fetchDisplayName: string) => {
+    async function fetchProfile() {
       try {
-        const response = await fetch(`/api/leaderboard/profile?userId=${fetchUserId}&_t=${Date.now()}`);
+        const response = await fetch(`/api/leaderboard/profile?userId=${userId}&_t=${Date.now()}`);
         const payload = await response.json();
-        
-        // Debug log
-        console.log("[Profile] FETCH_RESPONSE:", JSON.stringify(payload, null, 2));
-        
-        // Check if response is successful AND has valid data
         if (response.ok && payload.ok && payload.data) {
-          setSelectedProfile(prev => ({ 
-            ...payload.data, 
-            loading: false,
-            name: prev?.name || payload.data.name || fetchDisplayName
-          }));
+          setSelectedProfile({ ...payload.data, loading: false });
         } else {
-          // If API returned error, log it and update loading state
-          console.error("[Profile] API ERROR:", payload.error);
           setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
         }
-      } catch (err) {
-        console.error("[Profile] FETCH ERROR:", err);
-        // On fetch error, update loading state
+      } catch {
         setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
       }
-    };
+    }
 
-    // Store fetch function in ref for retry
-    profileFetchRef.current = { fetch: fetchFunc, userId, displayName };
+    await fetchProfile();
 
-    await fetchFunc(userId, displayName);
-
-    // Auto-refresh every 15 seconds while modal is open (only if data loaded)
-    profileRefreshRef.current = setInterval(() => fetchFunc(userId, displayName), 15000);
+    // Auto-refresh every 15 seconds while modal is open
+    profileRefreshRef.current = setInterval(fetchProfile, 15000);
   }
 
   function closeProfile() {
     if (profileRefreshRef.current) { clearInterval(profileRefreshRef.current); profileRefreshRef.current = null; }
     setSelectedProfile(null);
-  }
-
-  function retryProfile() {
-    if (profileFetchRef.current && selectedLeaderboardEntry) {
-      profileFetchRef.current.fetch(selectedLeaderboardEntry.userId, selectedLeaderboardEntry.displayName);
-    }
   }
 
   useEffect(() => {
@@ -655,7 +663,7 @@ export default function LeaderboardPage() {
       </div>
 
       {selectedLiveBet && <LiveBetModal bet={selectedLiveBet} onClose={() => setSelectedLiveBet(null)} />}
-      {selectedProfile && <ProfileModal profile={selectedProfile} onClose={closeProfile} onRetry={retryProfile} />}]
+      {selectedProfile && <ProfileModal profile={selectedProfile} onClose={closeProfile} />}
     </div>
   );
 }
@@ -733,12 +741,7 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
   );
 }
 
-function ProfileModal({ profile, onClose, onRetry }: { profile: UserProfileStats | null; onClose: () => void; onRetry: () => void }) {
-  // Debug log - check if data is loaded
-  console.log("[ProfileModal] profile loaded:", !profile?.loading, "winRate:", profile?.winRate);
-  
-  const hasValidData = profile && !profile.loading;
-  
+function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; onClose: () => void }) {
   return (
     <section className="modal" aria-label="User Profile" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card" style={{ maxWidth: "520px" }}>
@@ -751,19 +754,18 @@ function ProfileModal({ profile, onClose, onRetry }: { profile: UserProfileStats
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "180px" }}>
               <div className="spinner" />
             </div>
-          ) : hasValidData ? (
+          ) : profile ? (
             <>
               {/* RANK - Full Width, Top */}
               <div className="info-block" style={{ padding: "14px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", textAlign: "center" }}>
-                <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>SEASON STATS</span>
+                <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>OVERALL RANK</span>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginTop: "8px" }}>
+                  <img src={profile.rankIcon} alt="" width={28} height={28} style={{ objectFit: "contain" }} />
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <strong style={{ fontSize: "18px", color: profile?.monthlyProfit >= 0 ? "#ff4757" : "#2ed573", fontWeight: 700 }}>
-                      {compact(Math.abs(profile?.monthlyProfit || 0))}
+                    <strong style={{ fontSize: "22px", color: "var(--yellow)", fontWeight: 700 }}>
+                      #{profile.overallRank}
                     </strong>
-                    <span style={{ fontSize: "11px", color: "var(--muted)" }}>
-                      {profile?.monthlyProfit >= 0 ? "+" + profile?.monthlyProfit : profile?.monthlyProfit}
-                    </span>
+                    <span style={{ fontSize: "12px", color: "var(--muted)" }}>{profile.rankName}</span>
                   </div>
                 </div>
               </div>
@@ -780,28 +782,46 @@ function ProfileModal({ profile, onClose, onRetry }: { profile: UserProfileStats
                   </span>
                 </div>
                 <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
-                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Coins Bet</span>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Overall</span>
                   <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {compact(profile?.totalCoinsBet || 0)}
+                    {profile.overallScore}
                   </strong>
                 </div>
                 <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
-                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>All Time Profit</span>
-                  <strong style={{ display: "block", fontSize: "14px", color: profile?.allTimeProfit >= 0 ? "#ff4757" : "#2ed573", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {compact(Math.abs(profile?.allTimeProfit || 0))}
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Orange Ammo</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
+                    {compact(profile.allTimeProfit)}
                   </strong>
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                    #{profile.mostOrangeAmmoRank}
+                  </span>
                 </div>
                 <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
-                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Predictions</span>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Predictions</span>
                   <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {profile?.wonCount + profile?.lostCount}
+                    {profile.predictionCount}
                   </strong>
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                    #{profile.mostPredictionsRank}
+                  </span>
                 </div>
                 <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
-                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Win Rate</span>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Highest Single Win</span>
                   <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {profile?.winRate.toFixed(1)}%
+                    {compact(profile.highestSingleWin)}
                   </strong>
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                    #{profile.highestSingleWinRank}
+                  </span>
+                </div>
+                <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Active (avg/day)</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
+                    {(profile.avgReloadPerDay || 0).toFixed(1)}
+                  </strong>
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                    #{profile.mostActiveRank}
+                  </span>
                 </div>
               </div>
 
@@ -855,19 +875,7 @@ function ProfileModal({ profile, onClose, onRetry }: { profile: UserProfileStats
                 )}
               </div>
             </>
-          ) : (
-            // Show Retry button when data failed to load
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "180px", flexDirection: "column", gap: "12px" }}>
-              <span style={{ fontSize: "12px", color: "var(--muted)" }}>Failed to load profile data</span>
-              <button 
-                className="button" 
-                onClick={onRetry}
-                style={{ padding: "8px 16px", background: "var(--yellow)", color: "var(--bg)", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600" }}
-              >
-                Retry
-              </button>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </section>
