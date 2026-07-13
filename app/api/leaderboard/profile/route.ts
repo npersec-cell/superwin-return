@@ -49,14 +49,14 @@ export async function GET(request: NextRequest) {
 
     const supabase = createSupabaseAdminClient();
 
-    // ── Fetch rank data from API v2 (SINGLE SOURCE OF TRUTH) ──
+    // ── Fetch rank data from API v2 ──
     const baseURL = process.env.VERCEL_URL 
       ? `https://${process.env.VERCEL_URL}`
       : "http://localhost:3000";
     
     let v2Data: any = null;
     try {
-      const response = await fetch(`${baseURL}/api/leaderboard/v2?t=${Date.now()}`);
+      const response = await fetch(`${baseURL}/api/leaderboard/v2?userId=${userId}&t=${Date.now()}`);
       v2Data = await response.json();
     } catch (error: any) {
       console.error("[Profile] Error fetching from API v2:", error);
@@ -73,16 +73,9 @@ export async function GET(request: NextRequest) {
     const totalUsers = v2Data.totalUsers || 0;
     const totalActiveUsers = v2Data.totalActiveUsers || 0;
 
-    // Find user in overall leaderboard (ACTIVE USERS only)
-    const overallLeaderboard = leaderboards.overall || [];
-    const activeUserCount = overallLeaderboard.length;
-    const userInOverall = overallLeaderboard.find((u: any) => u.userId === userId);
-    
-    // Get rank from leaderboard or userRankData
-    const overallRank = userInOverall ? userInOverall.rank : (userRankData.overallRank || 0);
-    const overallScore = userInOverall ? userInOverall.value : (userRankData.overallScore || 0);
-    
-    // Extract other rank info
+    // ── Get rank data from userRankData (calculated from ALL users, not just top 15) ──
+    const overallRank = userRankData.overallRank || 0;
+    const overallScore = userRankData.overallScore || 0;
     const profitScoreRank = userRankData.profitScoreRank || 0;
     const predictionCountRank = userRankData.predictionCountRank || 0;
     const highestSingleWinRank = userRankData.highestSingleWinRank || 0;
@@ -90,8 +83,10 @@ export async function GET(request: NextRequest) {
     const avgReloadPerDay = userRankData.avgReloadPerDay || 0;
     const predictionCount = userRankData.predictionCount || 0;
     const highestSingleWin = userRankData.highestSingleWin || 0;
+    const profitScore = userRankData.profitScore || 0;
 
-    // Calculate rank tier
+    // Calculate rank tier from overallRank
+    const activeUserCount = totalActiveUsers || totalUsers;
     const rankInfo = getRankFromPosition(overallRank, activeUserCount);
 
     // ── Fetch user basic info ──
@@ -193,9 +188,6 @@ export async function GET(request: NextRequest) {
         })
       };
     });
-
-    // ── Get profit score from user table ──
-    const profitScore = targetUser.lifetime_profit || 0;
 
     return NextResponse.json({
       ok: true,
