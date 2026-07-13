@@ -69,21 +69,21 @@ interface UserProfileStats {
   displayName?: string | null;
   // Overall leaderboard
   overallScore: number;
-  overallRank: number;
+  overallRank: number;  // -1 means not loaded
   // Most Orange Ammo (profitScore)
   profitScore: number;
-  mostOrangeAmmoRank: number;
+  mostOrangeAmmoRank: number;  // -1 means not loaded
   // Most Predictions
   predictionCount: number;
-  mostPredictionsRank: number;
+  mostPredictionsRank: number;  // -1 means not loaded
   // Highest Single Win
   highestSingleWin: number;
-  highestSingleWinRank: number;
+  highestSingleWinRank: number;  // -1 means not loaded
   // Most Active
   avgReloadPerDay: number;
-  mostActiveRank: number;
+  mostActiveRank: number;  // -1 means not loaded
   // Other stats
-  rank: number;
+  rank: number;  // -1 means not loaded
   rankPercentile: number;
   rankName: string;
   rankIcon: string;
@@ -166,21 +166,21 @@ export default function LeaderboardPage() {
       name: displayName,
       // Overall leaderboard
       overallScore: 0,
-      overallRank: 0,
+      overallRank: -1,  // Use -1 to indicate not loaded yet
       // Most Orange Ammo
       profitScore: 0,
-      mostOrangeAmmoRank: 0,
+      mostOrangeAmmoRank: -1,
       // Most Predictions
       predictionCount: 0,
-      mostPredictionsRank: 0,
+      mostPredictionsRank: -1,
       // Highest Single Win
       highestSingleWin: 0,
-      highestSingleWinRank: 0,
+      highestSingleWinRank: -1,
       // Most Active
       avgReloadPerDay: 0,
-      mostActiveRank: 0,
+      mostActiveRank: -1,
       // Other stats
-      rank: 0,
+      rank: -1,
       rankPercentile: 0,
       rankName: "Bronze",
       rankIcon: "/ranks/bronze.png",
@@ -742,6 +742,9 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
 }
 
 function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; onClose: () => void }) {
+  // Check if profile has valid data (not just zeros from initial state)
+  const hasValidData = profile && !profile.loading && profile.overallRank > 0;
+  
   return (
     <section className="modal" aria-label="User Profile" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card" style={{ maxWidth: "520px" }}>
@@ -751,10 +754,12 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
         </div>
         <div className="modal-body" style={{ gap: "12px", minHeight: "200px" }}>
           {profile?.loading ? (
+            // Show spinner while loading
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "180px" }}>
               <div className="spinner" />
             </div>
-          ) : profile ? (
+          ) : hasValidData ? (
+            // Show data only when we have valid loaded data
             <>
               {/* RANK - Full Width, Top */}
               <div className="info-block" style={{ padding: "14px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", textAlign: "center" }}>
@@ -875,7 +880,12 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
                 )}
               </div>
             </>
-          ) : null}
+          ) : (
+            // Show error message when data failed to load
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "180px", color: "var(--muted)" }}>
+              <span style={{ fontSize: "12px" }}>Failed to load profile data</span>
+            </div>
+          )}
         </div>
       </div>
     </section>

@@ -240,6 +240,9 @@ export async function GET(request: NextRequest) {
         mostPredictionsRank: predictionCountRank,
         highestSingleWinRank,
         mostActiveRank: activeRank,
+        // Badge (optional - can be added later)
+        badge: "",
+        badgeDesc: "",
         history
       }
     }, {
