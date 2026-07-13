@@ -156,13 +156,19 @@ export async function GET(request: NextRequest) {
 
     // Calculate rank for the target user
     const targetUser = allUsersData.find(u => u.userId === userId);
+    
+    // Get target user stats from allUsersData (calculated from allEntries)
     const targetUserStats = targetUser || {
       profitScore: user.lifetime_profit || 0,
       predictionCount: 0,
       highestSingleWin: 0,
       avgReloadPerDay: 0,
-      overall: 0
+      overall: 0,
+      hasActivity: false
     };
+    
+    const predictionCount = targetUserStats.predictionCount;
+    const highestSingleWin = targetUserStats.highestSingleWin;
 
     // Overall rank - only among active users
     const sortedOverall = [...activeUsers].sort((a, b) => b.overall - a.overall);
@@ -245,17 +251,16 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // ── นับ stats ──
+    // ── นับ stats (use values from allUsersData for consistency) ──
     let wonCount = 0;
     let lostCount = 0;
-    let highestSingleWin = 0;
-    let predictionCount = (historyEntries || []).length;
+    let highestSingleWinFromHistory = 0;
 
     for (const e of historyEntries || []) {
       if (e.status === "won") {
         wonCount++;
         const profit = (e.payout_amount || 0) - e.amount;
-        if (profit > highestSingleWin) highestSingleWin = profit;
+        if (profit > highestSingleWinFromHistory) highestSingleWinFromHistory = profit;
       } else {
         lostCount++;
       }
@@ -263,6 +268,10 @@ export async function GET(request: NextRequest) {
 
     const totalSettled = historyEntries?.length || 0;
     const winRate = totalSettled > 0 ? Math.round((wonCount / totalSettled) * 100) : 0;
+
+    // Use highestSingleWin from allUsersData (calculated from all entries)
+    // This ensures consistency with rank calculation
+    const finalHighestSingleWin = highestSingleWin;
 
     // ── Batch fetch option labels ──
     const optionIds = [...new Set(
@@ -328,6 +337,7 @@ export async function GET(request: NextRequest) {
         wonCount,
         lostCount,
         totalSettled,
+        avgReloadPerDay: targetUserStats.avgReloadPerDay,
         // Rank data
         rank: mostOrangeAmmoRank,
         rankPercentile: mostOrangeAmmoRank / totalUsers,
