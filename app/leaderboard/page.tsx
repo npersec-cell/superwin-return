@@ -68,7 +68,7 @@ interface UserProfileStats {
   name: string;
   displayName?: string | null;
   // Stats from API
-  seasonProfit: number;
+  monthlyProfit: number;
   allTimeProfit: number;
   winRate: number;
   wonCount: number;
@@ -152,7 +152,7 @@ export default function LeaderboardPage() {
     // Show modal immediately with loading state
     setSelectedProfile({
       name: displayName,
-      seasonProfit: 0,
+      monthlyProfit: 0,
       allTimeProfit: 0,
       winRate: 0,
       wonCount: 0,
@@ -758,11 +758,11 @@ function ProfileModal({ profile, onClose, onRetry }: { profile: UserProfileStats
                 <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>SEASON STATS</span>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginTop: "8px" }}>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <strong style={{ fontSize: "18px", color: profile?.seasonProfit >= 0 ? "#ff4757" : "#2ed573", fontWeight: 700 }}>
-                      {compact(Math.abs(profile?.seasonProfit || 0))}
+                    <strong style={{ fontSize: "18px", color: profile?.monthlyProfit >= 0 ? "#ff4757" : "#2ed573", fontWeight: 700 }}>
+                      {compact(Math.abs(profile?.monthlyProfit || 0))}
                     </strong>
                     <span style={{ fontSize: "11px", color: "var(--muted)" }}>
-                      {profile?.seasonProfit >= 0 ? "+" + profile?.seasonProfit : profile?.seasonProfit}
+                      {profile?.monthlyProfit >= 0 ? "+" + profile?.monthlyProfit : profile?.monthlyProfit}
                     </span>
                   </div>
                 </div>
