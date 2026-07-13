@@ -166,7 +166,7 @@ export default function LeaderboardPage() {
       name: displayName,
       // Overall leaderboard
       overallScore: 0,
-      overallRank: -1,  // Use -1 to indicate not loaded yet
+      overallRank: -1,
       // Most Orange Ammo
       profitScore: 0,
       mostOrangeAmmoRank: -1,
@@ -202,21 +202,26 @@ export default function LeaderboardPage() {
         const payload = await response.json();
         // Check if response is successful AND has valid data
         if (response.ok && payload.ok && payload.data) {
-          setSelectedProfile({ ...payload.data, loading: false });
+          setSelectedProfile(prev => ({ 
+            ...payload.data, 
+            loading: false,
+            name: prev?.name || payload.data.name || displayName
+          }));
         } else {
-          // If API returned error, log it but don't crash - just show loading state
+          // If API returned error, log it and update loading state
           console.error("[Profile] API error:", payload.error);
-          // Keep the modal open with loading state, maybe user can retry
+          setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
         }
       } catch (err) {
         console.error("[Profile] Fetch error:", err);
-        // Keep the modal open with loading state
+        // On fetch error, update loading state
+        setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
       }
     }
 
     await fetchProfile();
 
-    // Auto-refresh every 15 seconds while modal is open
+    // Auto-refresh every 15 seconds while modal is open (only if data loaded)
     profileRefreshRef.current = setInterval(fetchProfile, 15000);
   }
 
