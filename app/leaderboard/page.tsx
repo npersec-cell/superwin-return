@@ -765,9 +765,6 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
                     <strong style={{ fontSize: "22px", color: "var(--yellow)", fontWeight: 700 }}>
                       {getRankFromPosition(profile.rank, profile.totalUsers).name}
                     </strong>
-                    <span className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "none", marginTop: "2px" }}>
-                      #{profile.rank} ของ {profile.totalUsers} คน
-                    </span>
                   </div>
                 </div>
               </div>
