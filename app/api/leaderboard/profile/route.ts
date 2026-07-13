@@ -4,24 +4,7 @@ import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 export const dynamic = "force-dynamic";
 
-// Logarithmic score calculation (same as v2 API)
-function calcLogScore(value: number): number {
-  return Math.log2(value + 1);
-}
-
-// Fetch rank data from API v2 to ensure consistency
-async function fetchRankDataFromV2(userId: string) {
-  try {
-    const response = await fetch(`http://localhost:3000/api/leaderboard/v2?userId=${userId}&t=${Date.now()}`);
-    const data = await response.json();
-    return data.userRankData;
-  } catch (error) {
-    console.error("[Profile] Error fetching rank data from v2:", error);
-    return null;
-  }
-}
-
-// Get rank from position with minimum counts
+// Get rank tier from position with minimum counts
 function getRankFromPosition(position: number, totalUsers: number): { name: string; icon: string } {
   if (totalUsers <= 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
   
@@ -54,200 +37,46 @@ function getRankFromPosition(position: number, totalUsers: number): { name: stri
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createSupabaseAdminClient();
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+    const userId = searchParams.get("userId") || "";
 
     if (!userId) {
       return NextResponse.json({ ok: false, error: "userId is required" }, { status: 400 });
     }
 
-    // ── ดึง user info ──
+    const supabase = createSupabaseAdminClient();
+
+    // ── Fetch rank data from API v2 (SINGLE SOURCE OF TRUTH) ──
+    let v2Data: any = null;
+    try {
+      const response = await fetch(`http://localhost:3000/api/leaderboard/v2?userId=${userId}&t=${Date.now()}`);
+      v2Data = await response.json();
+    } catch (error) {
+      console.error("[Profile] Error fetching from API v2:", error);
+      return NextResponse.json({ ok: false, error: "Failed to fetch rank data" }, { status: 500 });
+    }
+
+    // If API v2 didn't return userRankData, user doesn't exist
+    if (!v2Data.userRankData) {
+      return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
+    }
+
+    const userRankData = v2Data.userRankData;
+    const totalUsers = v2Data.totalUsers;
+
+    // ── Fetch user basic info ──
     const { data: user, error: userError } = await supabase
       .from("users")
       .select("display_name, email, lifetime_profit, reload_count, created_at")
       .eq("id", userId)
       .single();
 
-    if (userError || !user) {
-      return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
+    if (userError) {
+      console.error("[Profile] Error fetching user:", userError);
+      return NextResponse.json({ ok: false, error: "Failed to fetch user" }, { status: 500 });
     }
 
-    // ── ดึงทุก users สำหรับคำนวณ rank ──
-    const { data: allUsers, error: allUsersError } = await supabase
-      .from('users')
-      .select('id, display_name, email, lifetime_profit, reload_count, created_at')
-      .neq('role', 'admin')
-      .not('email', 'like', '%test%')
-      .not('email', 'like', '%automated%');
-
-    if (allUsersError) {
-      console.error("[Profile] Error fetching users:", allUsersError);
-      return NextResponse.json({ ok: false, error: "Failed to fetch users" }, { status: 500 });
-    }
-
-    // ── ดึงทุก entries สำหรับคำนวณ rank (count all settled: won, lost, refunded) ──
-    const allUserIds = allUsers?.map(u => u.id) || [];
-    const { data: allEntries, error: allEntriesError } = await supabase
-      .from('prediction_entries')
-      .select('id, user_id, amount, payout_amount, status')
-      .in('user_id', allUserIds)
-      .in('status', ['won', 'lost', 'refunded']);
-
-    if (allEntriesError) {
-      console.error("[Profile] Error fetching entries:", allEntriesError);
-      return NextResponse.json({ ok: false, error: "Failed to fetch entries" }, { status: 500 });
-    }
-
-    // ── คำนวณ stats สำหรับทุก user ──
-    const userStatsMap = new Map<string, {
-      profitScore: number;
-      predictionCount: number;
-      highestSingleWin: number;
-      avgReloadPerDay: number;
-      reloadCount: number;
-    }>();
-
-    for (const u of allUsers || []) {
-      userStatsMap.set(u.id, {
-        profitScore: u.lifetime_profit || 0,  // Use lifetime_profit (累计赢利), same as API v2
-        predictionCount: 0,
-        highestSingleWin: 0,
-        avgReloadPerDay: 0,
-        reloadCount: u.reload_count || 0
-      });
-    }
-
-    // Calculate from entries
-    for (const entry of (allEntries || [])) {
-      const stat = userStatsMap.get(entry.user_id);
-      if (stat) {
-        stat.predictionCount++;
-        // Only calculate highestSingleWin for WON entries
-        if (entry.status === 'won') {
-          const profit = entry.payout_amount - entry.amount;
-          if (profit > stat.highestSingleWin) {
-            stat.highestSingleWin = profit;
-          }
-        }
-      }
-    }
-
-    // Calculate average reload per day for each user
-    for (const [uid, stat] of userStatsMap) {
-      const u = allUsers?.find(u => u.id === uid);
-      if (u) {
-        const daysSinceCreated = Math.max(1, Math.floor((Date.now() - new Date(u.created_at).getTime()) / (1000 * 60 * 60 * 24)));
-        stat.avgReloadPerDay = stat.reloadCount / daysSinceCreated;
-      }
-    }
-
-    // Convert to array and calculate Overall score
-    // Overall = Most Orange Ammo + Most Predictions + Highest Single Win + Most Active
-    const allUsersData = Array.from(userStatsMap.entries()).map(([uid, stats]) => {
-      const u = allUsers?.find(u => u.id === uid);
-      const hasActivity = stats.predictionCount > 0;
-      const orangeAmmoScore = calcLogScore(stats.profitScore);  // Most Orange Ammo
-      const predictionScore = calcLogScore(stats.predictionCount);  // Most Predictions
-      const winScore = calcLogScore(stats.highestSingleWin);  // Highest Single Win
-      // Only count active score if user has actual activity
-      const activeScore = hasActivity ? calcLogScore(stats.avgReloadPerDay) : 0;  // Most Active
-      // Overall = Most Orange Ammo + Most Predictions + Highest Single Win + Most Active
-      const overall = Math.round(orangeAmmoScore + predictionScore + winScore + activeScore);
-      
-      return {
-        userId: uid,
-        displayName: u?.display_name || u?.email?.split('@')[0] || 'User',
-        ...stats,
-        overall,
-        hasActivity
-      };
-    });
-
-    const totalUsers = allUsersData.length;
-    
-    // For Overall ranking, only include users who have actual activity
-    const activeUsers = allUsersData.filter(u => u.hasActivity);
-    const totalActiveUsers = activeUsers.length;
-
-    // Calculate rank for the target user
-    const targetUser = allUsersData.find(u => u.userId === userId);
-    
-    // Get target user stats from allUsersData (calculated from allEntries)
-    const targetUserStats = targetUser || {
-      profitScore: user.lifetime_profit || 0,
-      predictionCount: 0,
-      highestSingleWin: 0,
-      avgReloadPerDay: 0,
-      overall: 0,
-      hasActivity: false
-    };
-    
-    const predictionCount = targetUserStats.predictionCount;
-    const highestSingleWin = targetUserStats.highestSingleWin;
-
-    // ── Fetch rank data from API v2 (to ensure consistency) ──
-    const v2RankData = await fetchRankDataFromV2(userId);
-    
-    // Use v2 data if available, otherwise calculate from scratch
-    let overallRank: number;
-    let mostOrangeAmmoRank: number;
-    let mostPredictionsRank: number;
-    let highestSingleWinRank: number;
-    let mostActiveRank: number;
-    
-    if (v2RankData) {
-      // Use rank data from API v2
-      overallRank = v2RankData.overallRank;
-      mostOrangeAmmoRank = v2RankData.profitScoreRank;
-      mostPredictionsRank = v2RankData.predictionCountRank;
-      highestSingleWinRank = v2RankData.highestSingleWinRank;
-      mostActiveRank = v2RankData.activeRank;
-    } else {
-      // Calculate from scratch if v2 data unavailable
-      // Overall rank - include ALL users (not just active users) for consistency with API v2
-      const sortedOverall = [...allUsersData].sort((a, b) => {
-        if (b.overall !== a.overall) return b.overall - a.overall;
-        return a.userId.localeCompare(b.userId);
-      });
-      const overallUserIndex = sortedOverall.findIndex(u => u.userId === userId);
-      overallRank = overallUserIndex >= 0 ? overallUserIndex + 1 : totalUsers + 1;
-
-      // Most Orange Ammo rank (stable sort by userId)
-      const sortedByProfit = [...allUsersData].sort((a, b) => {
-        if (b.profitScore !== a.profitScore) return b.profitScore - a.profitScore;
-        return a.userId.localeCompare(b.userId);
-      });
-      mostOrangeAmmoRank = sortedByProfit.findIndex(u => u.userId === userId) + 1;
-
-      // Most Predictions rank (stable sort by userId)
-      const sortedByPredictions = [...allUsersData].sort((a, b) => {
-        if (b.predictionCount !== a.predictionCount) return b.predictionCount - a.predictionCount;
-        return a.userId.localeCompare(b.userId);
-      });
-      mostPredictionsRank = sortedByPredictions.findIndex(u => u.userId === userId) + 1;
-
-      // Highest Single Win rank (stable sort by userId)
-      const usersWithWin = allUsersData.filter(u => u.highestSingleWin > 0);
-      const sortedByWin = [...usersWithWin].sort((a, b) => {
-        if (b.highestSingleWin !== a.highestSingleWin) return b.highestSingleWin - a.highestSingleWin;
-        return a.userId.localeCompare(b.userId);
-      });
-      const hasWin = sortedByWin.some(u => u.userId === userId);
-      highestSingleWinRank = hasWin ? sortedByWin.findIndex(u => u.userId === userId) + 1 : totalUsers;
-
-      // Most Active rank (stable sort by userId)
-      const sortedByActive = [...allUsersData].sort((a, b) => {
-        if (b.avgReloadPerDay !== a.avgReloadPerDay) return b.avgReloadPerDay - a.avgReloadPerDay;
-        return a.userId.localeCompare(b.userId);
-      });
-      mostActiveRank = sortedByActive.findIndex(u => u.userId === userId) + 1;
-    }
-
-    // Calculate rank tier
-    const rankInfo = getRankFromPosition(mostOrangeAmmoRank, totalUsers);
-
-    // ── ดึงทุก entries ของ user ที่ settle แล้ว (won / lost / refunded) ──
+    // ── Fetch user's settled entries for history display ──
     const { data: historyEntries, error: historyEntriesError } = await supabase
       .from("prediction_entries")
       .select(`
@@ -271,58 +100,20 @@ export async function GET(request: NextRequest) {
 
     if (historyEntriesError) {
       console.error("[Profile] Error fetching prediction_entries:", historyEntriesError);
-      return NextResponse.json({
-        ok: true,
-        data: {
-          name: user.display_name || user.email.split("@")[0],
-          displayName: user.display_name || null,
-          // Basic stats
-          profitScore: user.lifetime_profit || 0,  // Use lifetime_profit, same as API v2
-          allTimeProfit: user.lifetime_profit || 0,
-          predictionCount: 0,
-          highestSingleWin: 0,
-          winRate: 0,
-          wonCount: 0,
-          lostCount: 0,
-          totalSettled: 0,
-          // Rank data
-          rank: mostOrangeAmmoRank,
-          rankPercentile: mostOrangeAmmoRank / totalUsers,
-          rankName: rankInfo.name,
-          rankIcon: rankInfo.icon,
-          totalUsers,
-          overallScore: targetUserStats.overall,
-          overallRank,
-          mostOrangeAmmoRank,
-          mostPredictionsRank,
-          highestSingleWinRank,
-          mostActiveRank,
-          history: []
-        }
-      });
+      return NextResponse.json({ ok: false, error: "Failed to fetch entries" }, { status: 500 });
     }
 
-    // ── นับ stats (use values from allUsersData for consistency) ──
+    // ── Calculate history stats from entries ──
     let wonCount = 0;
     let lostCount = 0;
-    let highestSingleWinFromHistory = 0;
 
     for (const e of historyEntries || []) {
-      if (e.status === "won") {
-        wonCount++;
-        const profit = (e.payout_amount || 0) - e.amount;
-        if (profit > highestSingleWinFromHistory) highestSingleWinFromHistory = profit;
-      } else {
-        lostCount++;
-      }
+      if (e.status === "won") wonCount++;
+      else lostCount++;
     }
 
     const totalSettled = historyEntries?.length || 0;
     const winRate = totalSettled > 0 ? Math.round((wonCount / totalSettled) * 100) : 0;
-
-    // Use highestSingleWin from allUsersData (calculated from all entries)
-    // This ensures consistency with rank calculation
-    const finalHighestSingleWin = highestSingleWin;
 
     // ── Batch fetch option labels ──
     const optionIds = [...new Set(
@@ -342,7 +133,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // ── สร้าง history (เรียงตาม resolved_at desc → created_at desc) ──
+    // ── Build history (sorted by resolved_at desc → created_at desc) ──
     const sortedEntries = [...(historyEntries || [])].sort((a: any, b: any) => {
       const dateA = new Date(a.predictions?.resolved_at || a.created_at).getTime();
       const dateB = new Date(b.predictions?.resolved_at || b.created_at).getTime();
@@ -374,34 +165,39 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // ── Calculate RANK tier from Most Orange Ammo rank ──
+    const mostOrangeAmmoRank = userRankData.profitScoreRank;
+    const rankInfo = getRankFromPosition(mostOrangeAmmoRank, totalUsers);
+
+    // ── Build response using ONLY data from API v2 ──
     return NextResponse.json({
       ok: true,
       data: {
         name: user.display_name || user.email.split("@")[0],
         displayName: user.display_name || null,
-        // Basic stats
+        // Basic stats (from user table)
         profitScore: user.lifetime_profit || 0,
         allTimeProfit: user.lifetime_profit || 0,
-        predictionCount,
-        highestSingleWin,
+        predictionCount: userRankData.predictionCount,
+        highestSingleWin: userRankData.highestSingleWin,
         winRate,
         wonCount,
         lostCount,
         totalSettled,
-        avgReloadPerDay: targetUserStats.avgReloadPerDay,
-        // Rank data
+        avgReloadPerDay: userRankData.avgReloadPerDay,
+        // Rank data (100% from API v2)
         rank: mostOrangeAmmoRank,
         rankPercentile: mostOrangeAmmoRank / totalUsers,
         rankName: rankInfo.name,
         rankIcon: rankInfo.icon,
         totalUsers,
-        // Leaderboard ranks
-        overallScore: targetUserStats.overall,
-        overallRank,
-        mostOrangeAmmoRank,
-        mostPredictionsRank,
-        highestSingleWinRank,
-        mostActiveRank,
+        // Leaderboard ranks (100% from API v2)
+        overallScore: userRankData.overallScore,
+        overallRank: userRankData.overallRank,
+        mostOrangeAmmoRank: userRankData.profitScoreRank,
+        mostPredictionsRank: userRankData.predictionCountRank,
+        highestSingleWinRank: userRankData.highestSingleWinRank,
+        mostActiveRank: userRankData.activeRank,
         history
       }
     }, {

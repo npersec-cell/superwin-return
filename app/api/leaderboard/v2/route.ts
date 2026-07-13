@@ -252,6 +252,7 @@ export async function GET(request: NextRequest) {
         
         userRankData = {
           overallRank,
+          overallScore: userStats.overall,
           profitScore: userStats.profitScore,
           profitScoreRank,
           predictionCount: userStats.predictionCount,
