@@ -304,9 +304,8 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // ── Calculate RANK tier from Most Orange Ammo rank ──
-    const mostOrangeAmmoRank = profitScoreRank;
-    const rankInfo = getRankFromPosition(mostOrangeAmmoRank, totalUsers);
+    // ── Calculate RANK tier from Overall rank ──
+    const rankInfo = getRankFromPosition(overallRank, totalUsers);
 
     return NextResponse.json({
       ok: true,
@@ -323,9 +322,9 @@ export async function GET(request: NextRequest) {
         lostCount,
         totalSettled,
         avgReloadPerDay: targetUserStats.avgReloadPerDay,
-        // Rank data (calculated from all users)
-        rank: mostOrangeAmmoRank,
-        rankPercentile: mostOrangeAmmoRank / totalUsers,
+        // Rank data (based on Overall rank for consistency with Leaderboard)
+        rank: overallRank,
+        rankPercentile: overallRank / totalUsers,
         rankName: rankInfo.name,
         rankIcon: rankInfo.icon,
         totalUsers,

@@ -760,10 +760,10 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
               <div className="info-block" style={{ padding: "14px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", textAlign: "center" }}>
                 <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>RANK</span>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginTop: "8px" }}>
-                  <img src={getRankFromPosition(profile.rank, profile.totalUsers).icon} alt="" width={28} height={28} style={{ objectFit: "contain" }} />
+                  <img src={profile.rankIcon} alt="" width={28} height={28} style={{ objectFit: "contain" }} />
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                     <strong style={{ fontSize: "22px", color: "var(--yellow)", fontWeight: 700 }}>
-                      {getRankFromPosition(profile.rank, profile.totalUsers).name}
+                      {profile.rankName}
                     </strong>
                   </div>
                 </div>
