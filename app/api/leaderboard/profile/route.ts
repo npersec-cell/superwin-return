@@ -77,22 +77,32 @@ export async function GET(request: NextRequest) {
     const userRankData = v2Data.userRankData;
     const leaderboards = v2Data.leaderboards;
     const totalUsers = v2Data.totalUsers || 0;
+    const totalActiveUsers = v2Data.totalActiveUsers || 0;
 
-    if (!userRankData) {
+    // Find user in overall leaderboard (ACTIVE USERS only - this matches Leaderboard table)
+    const overallLeaderboard = leaderboards?.overall || [];
+    const userInOverall = overallLeaderboard.find((u: any) => u.userId === userId);
+    
+    if (!userInOverall && !userRankData) {
       // User not found in leaderboard
       return NextResponse.json({ ok: false, error: "User not found in leaderboard" }, { status: 404 });
     }
 
-    // Extract rank info from v2 API (this is the SINGLE SOURCE OF TRUTH)
-    const overallRank = userRankData.overallRank;
-    const overallScore = userRankData.overallScore;
-    const profitScoreRank = userRankData.profitScoreRank;
-    const predictionCountRank = userRankData.predictionCountRank;
-    const highestSingleWinRank = userRankData.highestSingleWinRank;
-    const activeRank = userRankData.activeRank;
-
-    // Calculate rank tier from overallRank (same as Leaderboard table)
-    const rankInfo = getRankFromPosition(overallRank, totalUsers);
+    // Use rank from overall leaderboard (ACTIVE USERS only) - this matches Leaderboard table exactly
+    const overallRank = userInOverall ? userInOverall.rank : (userRankData?.overallRank || 0);
+    const overallScore = userInOverall ? userInOverall.value : (userRankData?.overallScore || 0);
+    
+    // Extract other rank info from userRankData
+    const profitScoreRank = userRankData?.profitScoreRank || 0;
+    const predictionCountRank = userRankData?.predictionCountRank || 0;
+    const highestSingleWinRank = userRankData?.highestSingleWinRank || 0;
+    const activeRank = userRankData?.activeRank || 0;
+    
+    // Use active users count for rank tier calculation (matches Leaderboard table)
+    const activeUserCount = overallLeaderboard.length;
+    
+    // Calculate rank tier from overallRank using ACTIVE USERS count (matches Leaderboard table)
+    const rankInfo = getRankFromPosition(overallRank, activeUserCount);
 
     // ── Fetch user basic info ──
     const { data: targetUser, error: userError } = await supabase
@@ -197,9 +207,9 @@ export async function GET(request: NextRequest) {
 
     // ── Calculate stats from user table ──
     const profitScore = targetUser.lifetime_profit || 0;
-    const avgReloadPerDay = userRankData.avgReloadPerDay || 0;
-    const predictionCount = userRankData.predictionCount || 0;
-    const highestSingleWin = userRankData.highestSingleWin || 0;
+    const avgReloadPerDay = userRankData?.avgReloadPerDay || 0;
+    const predictionCount = userRankData?.predictionCount || 0;
+    const highestSingleWin = userRankData?.highestSingleWin || 0;
 
     return NextResponse.json({
       ok: true,
@@ -216,13 +226,14 @@ export async function GET(request: NextRequest) {
         lostCount,
         totalSettled,
         avgReloadPerDay,
-        // Rank data (100% from v2 API - SINGLE SOURCE OF TRUTH)
+        // Rank data (from overall leaderboard - ACTIVE USERS only, matches Leaderboard table)
         rank: overallRank,
-        rankPercentile: overallRank / totalUsers,
+        rankPercentile: overallRank / activeUserCount,
         rankName: rankInfo.name,
         rankIcon: rankInfo.icon,
         totalUsers,
-        // Leaderboard ranks (100% from v2 API)
+        totalActiveUsers,
+        // Leaderboard ranks (from v2 API)
         overallScore,
         overallRank,
         mostOrangeAmmoRank: profitScoreRank,
