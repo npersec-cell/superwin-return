@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       const profitScore = user.lifetime_profit || 0;
       const predictionCount = userEntries.length;
       const highestSingleWin = wonEntries.length > 0
-        ? Math.max(...wonEntries.map(e => e.payout_amount || 0))
+        ? Math.max(...wonEntries.map(e => (e.payout_amount || 0) - e.amount))
         : 0;
       
       // Calculate average reload per day (from reload_count and account age)
