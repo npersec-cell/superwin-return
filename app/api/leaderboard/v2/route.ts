@@ -140,32 +140,56 @@ export async function GET(request: NextRequest) {
     
     const leaderboards = {
       overall: activeUsers
-        .sort((a, b) => b.overall - a.overall)
+        .slice()
+        .sort((a, b) => {
+          if (b.overall !== a.overall) return b.overall - a.overall;
+          return a.userId.localeCompare(b.userId); // stable sort by userId
+        })
         .slice(0, 15)
         .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.overall })),
       overallAll: leaderboardWithOverall
-        .sort((a, b) => b.overall - a.overall)
+        .slice()
+        .sort((a, b) => {
+          if (b.overall !== a.overall) return b.overall - a.overall;
+          return a.userId.localeCompare(b.userId); // stable sort by userId
+        })
         .slice(0, 15)
         .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.overall })),
       
       mostOrangeAmmo: leaderboardWithOverall
-        .sort((a, b) => b.profitScore - a.profitScore)
+        .slice()
+        .sort((a, b) => {
+          if (b.profitScore !== a.profitScore) return b.profitScore - a.profitScore;
+          return a.userId.localeCompare(b.userId); // stable sort by userId
+        })
         .slice(0, 20)
         .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.profitScore, profitScore: u.profitScore })),
       
       mostPredictions: leaderboardWithOverall
-        .sort((a, b) => b.predictionCount - a.predictionCount)
+        .slice()
+        .sort((a, b) => {
+          if (b.predictionCount !== a.predictionCount) return b.predictionCount - a.predictionCount;
+          return a.userId.localeCompare(b.userId); // stable sort by userId
+        })
         .slice(0, 20)
         .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.predictionCount })),
       
       highestSingleWin: leaderboardWithOverall
         .filter(u => u.highestSingleWin > 0)
-        .sort((a, b) => b.highestSingleWin - a.highestSingleWin)
+        .slice()
+        .sort((a, b) => {
+          if (b.highestSingleWin !== a.highestSingleWin) return b.highestSingleWin - a.highestSingleWin;
+          return a.userId.localeCompare(b.userId); // stable sort by userId
+        })
         .slice(0, 20)
         .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.highestSingleWin })),
       
       mostActive: leaderboardWithOverall
-        .sort((a, b) => b.avgReloadPerDay - a.avgReloadPerDay)
+        .slice()
+        .sort((a, b) => {
+          if (b.avgReloadPerDay !== a.avgReloadPerDay) return b.avgReloadPerDay - a.avgReloadPerDay;
+          return a.userId.localeCompare(b.userId); // stable sort by userId
+        })
         .slice(0, 20)
         .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.avgReloadPerDay }))
     };
@@ -178,34 +202,47 @@ export async function GET(request: NextRequest) {
         const userStats = leaderboardWithOverall[userPosition];
         const userHasActivity = userStats.hasActivity;
         
-        // Overall rank - only among active users
+        // Overall rank - only among active users (stable sort by userId)
         let overallRank;
         if (userHasActivity) {
-          // Sort active users by overall score first, then find position
-          const sortedActive = [...activeUsers].sort((a, b) => b.overall - a.overall);
+          const sortedActive = [...activeUsers].sort((a, b) => {
+            if (b.overall !== a.overall) return b.overall - a.overall;
+            return a.userId.localeCompare(b.userId);
+          });
           const activeRank = sortedActive.findIndex(u => u.userId === userId);
           overallRank = activeRank >= 0 ? activeRank + 1 : totalActiveUsers + 1;
         } else {
-          // If user has no activity, they're not in the active leaderboard
           overallRank = totalActiveUsers + 1;
         }
         
-        // Most Orange Ammo rank
-        const sortedByProfitScore = [...leaderboardWithOverall].sort((a, b) => b.profitScore - a.profitScore);
+        // Most Orange Ammo rank (stable sort by userId)
+        const sortedByProfitScore = [...leaderboardWithOverall].sort((a, b) => {
+          if (b.profitScore !== a.profitScore) return b.profitScore - a.profitScore;
+          return a.userId.localeCompare(b.userId);
+        });
         const profitScoreRank = sortedByProfitScore.findIndex(u => u.userId === userId) + 1;
         
-        // Most Predictions rank
-        const sortedByPredictionCount = [...leaderboardWithOverall].sort((a, b) => b.predictionCount - a.predictionCount);
+        // Most Predictions rank (stable sort by userId)
+        const sortedByPredictionCount = [...leaderboardWithOverall].sort((a, b) => {
+          if (b.predictionCount !== a.predictionCount) return b.predictionCount - a.predictionCount;
+          return a.userId.localeCompare(b.userId);
+        });
         const predictionCountRank = sortedByPredictionCount.findIndex(u => u.userId === userId) + 1;
         
-        // Highest Single Win rank
-        const sortedByHighestWin = [...leaderboardWithOverall.filter(u => u.highestSingleWin > 0)].sort((a, b) => b.highestSingleWin - a.highestSingleWin);
+        // Highest Single Win rank (stable sort by userId)
+        const sortedByHighestWin = [...leaderboardWithOverall.filter(u => u.highestSingleWin > 0)].sort((a, b) => {
+          if (b.highestSingleWin !== a.highestSingleWin) return b.highestSingleWin - a.highestSingleWin;
+          return a.userId.localeCompare(b.userId);
+        });
         const highestSingleWinRank = sortedByHighestWin.findIndex(u => u.userId === userId) >= 0 
           ? sortedByHighestWin.findIndex(u => u.userId === userId) + 1
-          : totalUsers; // If no win, rank = totalUsers
+          : totalUsers;
         
-        // Most Active rank
-        const sortedByActive = [...leaderboardWithOverall].sort((a, b) => b.avgReloadPerDay - a.avgReloadPerDay);
+        // Most Active rank (stable sort by userId)
+        const sortedByActive = [...leaderboardWithOverall].sort((a, b) => {
+          if (b.avgReloadPerDay !== a.avgReloadPerDay) return b.avgReloadPerDay - a.avgReloadPerDay;
+          return a.userId.localeCompare(b.userId);
+        });
         const activeRank = sortedByActive.findIndex(u => u.userId === userId) + 1;
         
         userRankData = {
