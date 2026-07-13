@@ -3,12 +3,7 @@ import { createSupabaseAdminClient } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-// Logarithmic score calculation (same as v2 API)
-function calcLogScore(value: number): number {
-  return Math.log2(value + 1);
-}
-
-// Get rank tier from position (same as Leaderboard page)
+// Get rank tier from position - SAME as Leaderboard page
 function getRankFromPosition(rank: number, totalUsers: number): { name: string; icon: string } {
   if (totalUsers === 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
   
@@ -35,13 +30,6 @@ function getRankFromPosition(rank: number, totalUsers: number): { name: string; 
   return { name: "Bronze", icon: "/ranks/bronze.png" };
 }
 
-// Mask name function
-function maskName(name: string): string {
-  if (!name) return "";
-  if (name.length <= 2) return name + "xx";
-  return name.slice(0, -2) + "xx";
-}
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -53,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     const supabase = createSupabaseAdminClient();
 
-    // ── STEP 1: Fetch ALL users from DB ──
+    // ── Fetch ALL users from DB (same as v2 API) ──
     const { data: users, error: usersError } = await supabase
       .from('users')
       .select('id, display_name, email, lifetime_profit, role, created_at, reload_count, avatar_url')
@@ -66,7 +54,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Failed to fetch users", data: null }, { status: 500 });
     }
 
-    // ── STEP 2: Fetch ALL prediction entries ──
+    // ── Fetch ALL prediction entries (same as v2 API) ──
     const userIds = users?.map(u => u.id) || [];
     const { data: entries, error: entriesError } = await supabase
       .from('prediction_entries')
@@ -79,12 +67,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Failed to fetch entries", data: null }, { status: 500 });
     }
 
-    // ── STEP 3: Calculate stats for each user ──
+    // ── Calculate stats for each user (EXACTLY same as v2 API) ──
     const userStats = new Map<string, {
       profitScore: number;
       predictionCount: number;
       highestSingleWin: number;
       avgReloadPerDay: number;
+      reloadCount: number;
     }>();
 
     for (const u of users || []) {
@@ -92,7 +81,8 @@ export async function GET(request: NextRequest) {
         profitScore: u.lifetime_profit || 0,
         predictionCount: 0,
         highestSingleWin: 0,
-        avgReloadPerDay: 0
+        avgReloadPerDay: 0,
+        reloadCount: u.reload_count || 0
       });
     }
 
@@ -115,49 +105,48 @@ export async function GET(request: NextRequest) {
       const user = users?.find(u => u.id === uid);
       if (user) {
         const daysSinceCreated = Math.max(1, Math.floor((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24)));
-        stat.avgReloadPerDay = (user.reload_count || 0) / daysSinceCreated;
+        stat.avgReloadPerDay = stat.reloadCount / daysSinceCreated;
       }
     }
 
-    // ── STEP 4: Build leaderboard data ──
-    const leaderboardData = Array.from(userStats.entries()).map(([uid, stats]) => {
-      const user = users?.find(u => u.id === uid);
+    // ── Build leaderboard data (EXACTLY same as v2 API) ──
+    const leaderboardData = Array.from(userStats.entries()).map(([userId, stats]) => {
+      const user = users?.find(u => u.id === userId);
       let displayName = user?.display_name;
       if (!displayName) {
         const emailPrefix = user?.email?.split('@')[0];
-        displayName = emailPrefix ? maskName(emailPrefix) : 'Userxx';
+        displayName = emailPrefix ? emailPrefix.slice(0, -2) + "xx" : 'Userxx';
       }
-      return { userId: uid, displayName, ...stats };
+      return { userId, displayName, avatarUrl: user?.avatar_url || null, ...stats };
     });
 
-    // ── STEP 5: Calculate Overall score for each user ──
+    // ── Calculate Overall score for each user (EXACTLY same as v2 API) ──
     const leaderboardWithOverall = leaderboardData.map(user => {
       const hasActivity = user.predictionCount > 0;
-      const orangeAmmoScore = calcLogScore(user.profitScore);
-      const predictionScore = calcLogScore(user.predictionCount);
-      const winScore = calcLogScore(user.highestSingleWin);
-      const activeScore = hasActivity ? calcLogScore(user.avgReloadPerDay) : 0;
+      
+      const orangeAmmoScore = Math.log2(user.profitScore + 1);
+      const predictionScore = Math.log2(user.predictionCount + 1);
+      const winScore = Math.log2(user.highestSingleWin + 1);
+      const activeScore = hasActivity ? Math.log2(user.avgReloadPerDay + 1) : 0;
       const overall = Math.round(orangeAmmoScore + predictionScore + winScore + activeScore);
       
       return { ...user, overall, hasActivity };
     });
 
-    // ── STEP 6: Filter ONLY ACTIVE users (hasActivity = true) ──
-    const activeUsers = leaderboardWithOverall.filter(u => u.hasActivity);
-    const totalActiveUsers = activeUsers.length;
     const totalUsers = leaderboardWithOverall.length;
+    const totalActiveUsers = leaderboardWithOverall.filter(u => u.hasActivity).length;
 
-    // ── STEP 7: Sort active users by Overall Score DESC ──
-    const sortedActiveOverall = [...activeUsers].sort((a, b) => {
+    // ── Sort ALL users by Overall Score (SAME as v2 API's leaderboards.overall) ──
+    const sortedOverall = [...leaderboardWithOverall].sort((a, b) => {
       if (b.overall !== a.overall) return b.overall - a.overall;
       return a.userId.localeCompare(b.userId);
     });
 
-    // ── STEP 8: Find user's position using .findIndex() ──
-    const userPosition = sortedActiveOverall.findIndex(u => u.userId === userId);
-    const overallRank = userPosition >= 0 ? userPosition + 1 : totalActiveUsers + 1;
-    const overallScore = userPosition >= 0 ? sortedActiveOverall[userPosition].overall : 0;
-    const userStatsData = userPosition >= 0 ? sortedActiveOverall[userPosition] : {
+    // ── Find user's position in sorted array (EXACT INDEX MATCHING) ──
+    const userPosition = sortedOverall.findIndex(u => u.userId === userId);
+    const overallRank = userPosition >= 0 ? userPosition + 1 : totalUsers + 1;
+    const overallScore = userPosition >= 0 ? sortedOverall[userPosition].overall : 0;
+    const userStatsData = userPosition >= 0 ? sortedOverall[userPosition] : {
       profitScore: 0, predictionCount: 0, highestSingleWin: 0, avgReloadPerDay: 0
     };
 
@@ -213,8 +202,8 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // ── STEP 9: Calculate rank tier using the EXACT rank we found ──
-    const rankInfo = getRankFromPosition(overallRank, totalActiveUsers);
+    // Calculate rank tier using the EXACT rank from sorted array
+    const rankInfo = getRankFromPosition(overallRank, totalUsers);
 
     return NextResponse.json({
       ok: true,
@@ -229,7 +218,7 @@ export async function GET(request: NextRequest) {
         winRate, wonCount, lostCount, totalSettled,
         avgReloadPerDay: userStatsData.avgReloadPerDay,
         rank: overallRank,
-        rankPercentile: totalActiveUsers > 0 ? overallRank / totalActiveUsers : 0,
+        rankPercentile: totalUsers > 0 ? overallRank / totalUsers : 0,
         rankName: rankInfo.name,
         rankIcon: rankInfo.icon,
         totalUsers,
