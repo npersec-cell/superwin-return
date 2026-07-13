@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Get all users with their stats (exclude admin and test accounts)
     const { data: users, error: usersError } = await supabase
       .from('users')
-      .select('id, display_name, email, lifetime_profit, role, created_at, reload_count, avatar_url')
+      .select('id, display_name, email, coin_balance, lifetime_profit, role, created_at, reload_count, avatar_url')
       .neq('role', 'admin')
       .not('email', 'like', '%test%')
       .not('email', 'like', '%automated%')
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     
     for (const u of users || []) {
       userStats.set(u.id, {
-        profitScore: u.lifetime_profit || 0,  // Use lifetime_profit (累计赢利), not profit_score (当前余额)
+        profitScore: u.coin_balance || 0,  // Use coin_balance (Orange Ammo)
         predictionCount: 0,
         highestSingleWin: 0,
         avgReloadPerDay: 0,

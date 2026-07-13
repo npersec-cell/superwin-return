@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     // Get all users with their stats
     const { data: allUsers, error: usersError } = await supabase
       .from('users')
-      .select('id, display_name, email, lifetime_profit, role, created_at, reload_count')
+      .select('id, display_name, email, coin_balance, lifetime_profit, role, created_at, reload_count')
       .neq('role', 'admin')
       .not('email', 'like', '%test%')
       .not('email', 'like', '%automated%');
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
       const userEntries = allEntries.filter(e => e.user_id === user.id);
       const wonEntries = userEntries.filter(e => e.status === 'won');
       
-      const profitScore = user.lifetime_profit || 0;
+      const profitScore = user.coin_balance || 0;
       const predictionCount = userEntries.length;
       const highestSingleWin = wonEntries.length > 0
         ? Math.max(...wonEntries.map(e => (e.payout_amount || 0) - e.amount))
