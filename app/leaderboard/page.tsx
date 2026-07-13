@@ -148,7 +148,6 @@ const categories: { id: Category; name: string; icon: string; iconUrl?: string; 
 export default function LeaderboardPage() {
   const [leaderboards, setLeaderboards] = useState<LeaderboardData | null>(null);
   const [totalUsers, setTotalUsers] = useState(0);
-  const [totalActiveUsers, setTotalActiveUsers] = useState(0);
   const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
   const [selectedLiveBet, setSelectedLiveBet] = useState<LiveBet | null>(null);
   const [loading, setLoading] = useState(true);
@@ -229,7 +228,6 @@ export default function LeaderboardPage() {
         if (leaderboardData.leaderboards) {
           setLeaderboards(leaderboardData.leaderboards);
           setTotalUsers(leaderboardData.totalUsers || 0);
-          setTotalActiveUsers(leaderboardData.totalActiveUsers || 0);
           setError(null);
         } else {
           setError(leaderboardData.error || "Failed to load leaderboard");

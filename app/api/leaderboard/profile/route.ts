@@ -309,7 +309,6 @@ export async function GET(request: NextRequest) {
         rankName: rankInfo.name,
         rankIcon: rankInfo.icon,
         totalUsers,
-        totalActiveUsers: activeUserCount,
         // Leaderboard ranks
         overallScore,
         overallRank,
