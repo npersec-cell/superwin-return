@@ -9,6 +9,18 @@ function calcLogScore(value: number): number {
   return Math.log2(value + 1);
 }
 
+// Fetch rank data from API v2 to ensure consistency
+async function fetchRankDataFromV2(userId: string) {
+  try {
+    const response = await fetch(`http://localhost:3000/api/leaderboard/v2?userId=${userId}&t=${Date.now()}`);
+    const data = await response.json();
+    return data.userRankData;
+  } catch (error) {
+    console.error("[Profile] Error fetching rank data from v2:", error);
+    return null;
+  }
+}
+
 // Get rank from position with minimum counts
 function getRankFromPosition(position: number, totalUsers: number): { name: string; icon: string } {
   if (totalUsers <= 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
@@ -174,43 +186,63 @@ export async function GET(request: NextRequest) {
     const predictionCount = targetUserStats.predictionCount;
     const highestSingleWin = targetUserStats.highestSingleWin;
 
-    // Overall rank - only among active users (stable sort by userId)
-    const sortedOverall = [...activeUsers].sort((a, b) => {
-      if (b.overall !== a.overall) return b.overall - a.overall;
-      return a.userId.localeCompare(b.userId);
-    });
-    const activeUserIndex = sortedOverall.findIndex(u => u.userId === userId);
-    const overallRank = activeUserIndex >= 0 ? activeUserIndex + 1 : totalActiveUsers + 1;
+    // ── Fetch rank data from API v2 (to ensure consistency) ──
+    const v2RankData = await fetchRankDataFromV2(userId);
+    
+    // Use v2 data if available, otherwise calculate from scratch
+    let overallRank: number;
+    let mostOrangeAmmoRank: number;
+    let mostPredictionsRank: number;
+    let highestSingleWinRank: number;
+    let mostActiveRank: number;
+    
+    if (v2RankData) {
+      // Use rank data from API v2
+      overallRank = v2RankData.overallRank;
+      mostOrangeAmmoRank = v2RankData.profitScoreRank;
+      mostPredictionsRank = v2RankData.predictionCountRank;
+      highestSingleWinRank = v2RankData.highestSingleWinRank;
+      mostActiveRank = v2RankData.activeRank;
+    } else {
+      // Calculate from scratch if v2 data unavailable
+      // Overall rank - only among active users (stable sort by userId)
+      const sortedOverall = [...activeUsers].sort((a, b) => {
+        if (b.overall !== a.overall) return b.overall - a.overall;
+        return a.userId.localeCompare(b.userId);
+      });
+      const activeUserIndex = sortedOverall.findIndex(u => u.userId === userId);
+      overallRank = activeUserIndex >= 0 ? activeUserIndex + 1 : totalActiveUsers + 1;
 
-    // Most Orange Ammo rank (stable sort by userId)
-    const sortedByProfit = [...allUsersData].sort((a, b) => {
-      if (b.profitScore !== a.profitScore) return b.profitScore - a.profitScore;
-      return a.userId.localeCompare(b.userId);
-    });
-    const mostOrangeAmmoRank = sortedByProfit.findIndex(u => u.userId === userId) + 1;
+      // Most Orange Ammo rank (stable sort by userId)
+      const sortedByProfit = [...allUsersData].sort((a, b) => {
+        if (b.profitScore !== a.profitScore) return b.profitScore - a.profitScore;
+        return a.userId.localeCompare(b.userId);
+      });
+      mostOrangeAmmoRank = sortedByProfit.findIndex(u => u.userId === userId) + 1;
 
-    // Most Predictions rank (stable sort by userId)
-    const sortedByPredictions = [...allUsersData].sort((a, b) => {
-      if (b.predictionCount !== a.predictionCount) return b.predictionCount - a.predictionCount;
-      return a.userId.localeCompare(b.userId);
-    });
-    const mostPredictionsRank = sortedByPredictions.findIndex(u => u.userId === userId) + 1;
+      // Most Predictions rank (stable sort by userId)
+      const sortedByPredictions = [...allUsersData].sort((a, b) => {
+        if (b.predictionCount !== a.predictionCount) return b.predictionCount - a.predictionCount;
+        return a.userId.localeCompare(b.userId);
+      });
+      mostPredictionsRank = sortedByPredictions.findIndex(u => u.userId === userId) + 1;
 
-    // Highest Single Win rank (stable sort by userId)
-    const usersWithWin = allUsersData.filter(u => u.highestSingleWin > 0);
-    const sortedByWin = [...usersWithWin].sort((a, b) => {
-      if (b.highestSingleWin !== a.highestSingleWin) return b.highestSingleWin - a.highestSingleWin;
-      return a.userId.localeCompare(b.userId);
-    });
-    const hasWin = sortedByWin.some(u => u.userId === userId);
-    const highestSingleWinRank = hasWin ? sortedByWin.findIndex(u => u.userId === userId) + 1 : totalUsers;
+      // Highest Single Win rank (stable sort by userId)
+      const usersWithWin = allUsersData.filter(u => u.highestSingleWin > 0);
+      const sortedByWin = [...usersWithWin].sort((a, b) => {
+        if (b.highestSingleWin !== a.highestSingleWin) return b.highestSingleWin - a.highestSingleWin;
+        return a.userId.localeCompare(b.userId);
+      });
+      const hasWin = sortedByWin.some(u => u.userId === userId);
+      highestSingleWinRank = hasWin ? sortedByWin.findIndex(u => u.userId === userId) + 1 : totalUsers;
 
-    // Most Active rank (stable sort by userId)
-    const sortedByActive = [...allUsersData].sort((a, b) => {
-      if (b.avgReloadPerDay !== a.avgReloadPerDay) return b.avgReloadPerDay - a.avgReloadPerDay;
-      return a.userId.localeCompare(b.userId);
-    });
-    const mostActiveRank = sortedByActive.findIndex(u => u.userId === userId) + 1;
+      // Most Active rank (stable sort by userId)
+      const sortedByActive = [...allUsersData].sort((a, b) => {
+        if (b.avgReloadPerDay !== a.avgReloadPerDay) return b.avgReloadPerDay - a.avgReloadPerDay;
+        return a.userId.localeCompare(b.userId);
+      });
+      mostActiveRank = sortedByActive.findIndex(u => u.userId === userId) + 1;
+    }
 
     // Calculate rank tier
     const rankInfo = getRankFromPosition(mostOrangeAmmoRank, totalUsers);
