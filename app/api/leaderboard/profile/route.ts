@@ -150,6 +150,12 @@ export async function GET(request: NextRequest) {
       profitScore: 0, predictionCount: 0, highestSingleWin: 0, avgReloadPerDay: 0
     };
 
+    // Get target user
+    const targetUser = users?.find(u => u.id === userId);
+    if (!targetUser) {
+      return NextResponse.json({ ok: false, error: "User not found", data: null }, { status: 404 });
+    }
+
     // Debug log - comprehensive
     console.log("[Profile] DEBUG:", JSON.stringify({
       userId,
@@ -163,12 +169,6 @@ export async function GET(request: NextRequest) {
       top5Users: sortedOverall.slice(0, 5).map(u => ({ userId: u.userId.substring(0, 8), overall: u.overall })),
       targetUserExists: !!targetUser
     }, null, 2));
-
-    // Get target user
-    const targetUser = users?.find(u => u.id === userId);
-    if (!targetUser) {
-      return NextResponse.json({ ok: false, error: "User not found", data: null }, { status: 404 });
-    }
 
     // Fetch history entries
     const { data: historyEntries } = await supabase
