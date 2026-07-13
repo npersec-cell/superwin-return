@@ -296,8 +296,7 @@ export async function GET(request: NextRequest) {
         name: targetUser.display_name || targetUser.email.split("@")[0],
         displayName: targetUser.display_name || null,
         // Basic stats
-        profitScore: targetStats.profitScore,
-        allTimeProfit: targetStats.profitScore,
+        coinBalance: targetStats.profitScore,
         predictionCount: targetStats.predictionCount,
         highestSingleWin: targetStats.highestSingleWin,
         winRate,

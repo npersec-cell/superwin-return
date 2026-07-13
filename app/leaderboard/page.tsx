@@ -16,14 +16,14 @@ function compact(n: number): string {
   return `${Math.round(n / 1000)}k`;
 }
 
-function getRankInfo(profitScore: number) {
-  if (profitScore >= 100000) return { name: "Crown", icon: "/ranks/crown.png" };
-  if (profitScore >= 50000) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
-  if (profitScore >= 20000) return { name: "Ace", icon: "/ranks/ace.png" };
-  if (profitScore >= 10000) return { name: "Diamond", icon: "/ranks/diamond.png" };
-  if (profitScore >= 5000) return { name: "Platinum", icon: "/ranks/platinum.png" };
-  if (profitScore >= 1000) return { name: "Gold", icon: "/ranks/gold.png" };
-  if (profitScore >= 100) return { name: "Silver", icon: "/ranks/silver.png" };
+function getRankInfo(coinBalance: number) {
+  if (coinBalance >= 100000) return { name: "Crown", icon: "/ranks/crown.png" };
+  if (coinBalance >= 50000) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
+  if (coinBalance >= 20000) return { name: "Ace", icon: "/ranks/ace.png" };
+  if (coinBalance >= 10000) return { name: "Diamond", icon: "/ranks/diamond.png" };
+  if (coinBalance >= 5000) return { name: "Platinum", icon: "/ranks/platinum.png" };
+  if (coinBalance >= 1000) return { name: "Gold", icon: "/ranks/gold.png" };
+  if (coinBalance >= 100) return { name: "Silver", icon: "/ranks/silver.png" };
   return { name: "Bronze", icon: "/ranks/bronze.png" };
 }
 
@@ -70,8 +70,8 @@ interface UserProfileStats {
   // Overall leaderboard
   overallScore: number;
   overallRank: number;
-  // Most Orange Ammo (profitScore)
-  profitScore: number;
+  // Most Orange Ammo (coinBalance)
+  coinBalance: number;
   mostOrangeAmmoRank: number;
   // Most Predictions
   predictionCount: number;
@@ -88,7 +88,6 @@ interface UserProfileStats {
   rankName: string;
   rankIcon: string;
   totalUsers: number;
-  allTimeProfit: number;
   winRate: number;
   wonCount: number;
   lostCount: number;
@@ -168,7 +167,7 @@ export default function LeaderboardPage() {
       overallScore: 0,
       overallRank: 0,
       // Most Orange Ammo
-      profitScore: 0,
+      coinBalance: 0,
       mostOrangeAmmoRank: 0,
       // Most Predictions
       predictionCount: 0,
@@ -185,7 +184,6 @@ export default function LeaderboardPage() {
       rankName: "Bronze",
       rankIcon: "/ranks/bronze.png",
       totalUsers: 0,
-      allTimeProfit: 0,
       winRate: 0,
       wonCount: 0,
       lostCount: 0,
@@ -790,7 +788,7 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
                 <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
                   <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Orange Ammo</span>
                   <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {compact(profile.allTimeProfit)}
+                    {compact(profile.coinBalance)}
                   </strong>
                   <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
                     #{profile.mostOrangeAmmoRank}
