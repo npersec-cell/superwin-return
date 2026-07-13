@@ -4,6 +4,11 @@ import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 export const dynamic = "force-dynamic";
 
+// Logarithmic score calculation
+function calcLogScore(value: number): number {
+  return Math.log2(value + 1);
+}
+
 // Get rank tier from position with minimum counts
 function getRankFromPosition(position: number, totalUsers: number): { name: string; icon: string } {
   if (totalUsers <= 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
@@ -46,75 +51,126 @@ export async function GET(request: NextRequest) {
 
     const supabase = createSupabaseAdminClient();
 
-    // ── Fetch rank data from API v2 (SINGLE SOURCE OF TRUTH) ──
-    // Use VERCEL_URL for production, fallback to localhost for dev
-    const baseURL = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
-    
-    let v2Data: any = null;
-    try {
-      // Try with internal header first
-      const response = await fetch(`${baseURL}/api/leaderboard/v2?userId=${userId}&t=${Date.now()}`, {
-        headers: {
-          'X-VerCEL-Internal': 'true'
-        }
-      });
-      v2Data = await response.json();
+    // ── Calculate rank directly from database (no API-to-API call) ──
+    // Get all users with their stats
+    const { data: allUsers, error: usersError } = await supabase
+      .from('users')
+      .select('id, display_name, email, lifetime_profit, role, created_at, reload_count')
+      .neq('role', 'admin')
+      .not('email', 'like', '%test%')
+      .not('email', 'like', '%automated%');
+
+    if (usersError || !allUsers) {
+      return NextResponse.json({ ok: false, error: "Failed to fetch users" }, { status: 500 });
+    }
+
+    const userIds = allUsers.map(u => u.id);
+
+    // Get all prediction entries for rank calculation
+    const { data: allEntries, error: entriesError } = await supabase
+      .from('prediction_entries')
+      .select('id, user_id, amount, payout_amount, status, created_at')
+      .in('user_id', userIds)
+      .in('status', ['won', 'lost', 'refunded']);
+
+    if (entriesError || !allEntries) {
+      return NextResponse.json({ ok: false, error: "Failed to fetch entries" }, { status: 500 });
+    }
+
+    // Calculate stats for each user
+    const userStatsMap = new Map<string, {
+      profitScore: number;
+      predictionCount: number;
+      highestSingleWin: number;
+      avgReloadPerDay: number;
+      overall: number;
+    }>();
+
+    for (const user of allUsers) {
+      const userEntries = allEntries.filter(e => e.user_id === user.id);
+      const wonEntries = userEntries.filter(e => e.status === 'won');
       
-      // If internal call failed, try without the header
-      if (!response.ok || !v2Data.userRankData) {
-        const response2 = await fetch(`${baseURL}/api/leaderboard/v2?userId=${userId}&t=${Date.now()}`);
-        v2Data = await response2.json();
-      }
-    } catch (error) {
-      console.error("[Profile] Error fetching from API v2:", error);
-      // If v2 API call fails, return error
-      return NextResponse.json({ ok: false, error: "Failed to fetch rank data from leaderboard" }, { status: 500 });
+      const profitScore = user.lifetime_profit || 0;
+      const predictionCount = userEntries.length;
+      const highestSingleWin = wonEntries.length > 0
+        ? Math.max(...wonEntries.map(e => e.payout_amount || 0))
+        : 0;
+      
+      // Calculate average reload per day (from reload_count and account age)
+      const createdAt = new Date(user.created_at);
+      const daysActive = Math.max(1, Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)));
+      const avgReloadPerDay = user.reload_count / daysActive;
+      
+      // Overall score = sum of all component scores
+      const orangeAmmoScore = calcLogScore(profitScore);
+      const predictionScore = calcLogScore(predictionCount);
+      const winScore = calcLogScore(wonEntries.length);
+      const activeScore = calcLogScore(avgReloadPerDay);
+      const overall = Math.round(orangeAmmoScore + predictionScore + winScore + activeScore);
+
+      userStatsMap.set(user.id, {
+        profitScore,
+        predictionCount,
+        highestSingleWin,
+        avgReloadPerDay,
+        overall
+      });
     }
 
-    // Get rank data directly from v2 API
-    const userRankData = v2Data.userRankData;
-    const leaderboards = v2Data.leaderboards;
-    const totalUsers = v2Data.totalUsers || 0;
-    const totalActiveUsers = v2Data.totalActiveUsers || 0;
+    // Convert to array and sort
+    const leaderboardData = allUsers.map(u => ({
+      userId: u.id,
+      displayName: u.display_name || u.email.split('@')[0],
+      profitScore: userStatsMap.get(u.id)?.profitScore || 0,
+      predictionCount: userStatsMap.get(u.id)?.predictionCount || 0,
+      highestSingleWin: userStatsMap.get(u.id)?.highestSingleWin || 0,
+      avgReloadPerDay: userStatsMap.get(u.id)?.avgReloadPerDay || 0,
+      overall: userStatsMap.get(u.id)?.overall || 0
+    }));
 
-    // Find user in overall leaderboard (ACTIVE USERS only - this matches Leaderboard table)
-    const overallLeaderboard = leaderboards?.overall || [];
-    const userInOverall = overallLeaderboard.find((u: any) => u.userId === userId);
-    
-    if (!userInOverall && !userRankData) {
-      // User not found in leaderboard
-      return NextResponse.json({ ok: false, error: "User not found in leaderboard" }, { status: 404 });
+    const totalUsers = leaderboardData.length;
+
+    // Find target user
+    const targetUser = allUsers.find(u => u.id === userId);
+    if (!targetUser) {
+      return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
     }
 
-    // Use rank from overall leaderboard (ACTIVE USERS only) - this matches Leaderboard table exactly
-    const overallRank = userInOverall ? userInOverall.rank : (userRankData?.overallRank || 0);
-    const overallScore = userInOverall ? userInOverall.value : (userRankData?.overallScore || 0);
-    
-    // Extract other rank info from userRankData
-    const profitScoreRank = userRankData?.profitScoreRank || 0;
-    const predictionCountRank = userRankData?.predictionCountRank || 0;
-    const highestSingleWinRank = userRankData?.highestSingleWinRank || 0;
-    const activeRank = userRankData?.activeRank || 0;
-    
-    // Use active users count for rank tier calculation (matches Leaderboard table)
-    const activeUserCount = overallLeaderboard.length;
-    
-    // Calculate rank tier from overallRank using ACTIVE USERS count (matches Leaderboard table)
+    const targetStats = userStatsMap.get(userId) || {
+      profitScore: 0,
+      predictionCount: 0,
+      highestSingleWin: 0,
+      avgReloadPerDay: 0,
+      overall: 0
+    };
+
+    // Calculate ranks
+    // Overall rank
+    const sortedOverall = [...leaderboardData].sort((a, b) => b.overall - a.overall);
+    const overallRank = sortedOverall.findIndex(u => u.userId === userId) + 1;
+    const overallScore = targetStats.overall;
+
+    // Most Orange Ammo rank (profitScore)
+    const sortedByProfitScore = [...leaderboardData].sort((a, b) => b.profitScore - a.profitScore);
+    const profitScoreRank = sortedByProfitScore.findIndex(u => u.userId === userId) + 1;
+
+    // Most Predictions rank
+    const sortedByPredictionCount = [...leaderboardData].sort((a, b) => b.predictionCount - a.predictionCount);
+    const predictionCountRank = sortedByPredictionCount.findIndex(u => u.userId === userId) + 1;
+
+    // Highest Single Win rank
+    const sortedByHighestWin = [...leaderboardData.filter(u => u.highestSingleWin > 0)].sort((a, b) => b.highestSingleWin - a.highestSingleWin);
+    const highestSingleWinRank = sortedByHighestWin.length > 0 && sortedByHighestWin.some(u => u.userId === userId)
+      ? sortedByHighestWin.findIndex(u => u.userId === userId) + 1
+      : totalUsers;
+
+    // Most Active rank
+    const sortedByActive = [...leaderboardData].sort((a, b) => b.avgReloadPerDay - a.avgReloadPerDay);
+    const activeRank = sortedByActive.findIndex(u => u.userId === userId) + 1;
+
+    // Get rank tier
+    const activeUserCount = sortedOverall.filter(u => u.overall > 0).length || totalUsers;
     const rankInfo = getRankFromPosition(overallRank, activeUserCount);
-
-    // ── Fetch user basic info ──
-    const { data: targetUser, error: userError } = await supabase
-      .from("users")
-      .select("display_name, email, lifetime_profit, reload_count, created_at")
-      .eq("id", userId)
-      .single();
-
-    if (userError) {
-      console.error("[Profile] Error fetching user:", userError);
-      return NextResponse.json({ ok: false, error: "Failed to fetch user" }, { status: 500 });
-    }
 
     // ── Fetch user's settled entries for history display ──
     const { data: historyEntries, error: historyEntriesError } = await supabase
@@ -139,7 +195,6 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (historyEntriesError) {
-      console.error("[Profile] Error fetching prediction_entries:", historyEntriesError);
       return NextResponse.json({ ok: false, error: "Failed to fetch entries" }, { status: 500 });
     }
 
@@ -205,35 +260,43 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // ── Calculate stats from user table ──
-    const profitScore = targetUser.lifetime_profit || 0;
-    const avgReloadPerDay = userRankData?.avgReloadPerDay || 0;
-    const predictionCount = userRankData?.predictionCount || 0;
-    const highestSingleWin = userRankData?.highestSingleWin || 0;
+    // 4. คำนวณเหรียญตรา (Badge) พิเศษตามระดับความเทพ
+    let badge = "Rookie";
+    let badgeDesc = "New predictor in the arena.";
+    if (totalSettled >= 10 && winRate >= 60) {
+      badge = "Elite Sharpshooter";
+      badgeDesc = "Extreme precision over multiple bets.";
+    } else if ((targetStats.avgReloadPerDay || 0) >= 500 && totalSettled >= 5) {
+      badge = "High Roller";
+      badgeDesc = "Wages massive coin stacks on predictions.";
+    } else if (totalSettled >= 8) {
+      badge = "Active Predictor";
+      badgeDesc = "Experienced and consistent prediction rate.";
+    }
 
     return NextResponse.json({
       ok: true,
       data: {
         name: targetUser.display_name || targetUser.email.split("@")[0],
         displayName: targetUser.display_name || null,
-        // Basic stats (from user table + v2 API)
-        profitScore,
-        allTimeProfit: profitScore,
-        predictionCount,
-        highestSingleWin,
+        // Basic stats
+        profitScore: targetStats.profitScore,
+        allTimeProfit: targetStats.profitScore,
+        predictionCount: targetStats.predictionCount,
+        highestSingleWin: targetStats.highestSingleWin,
         winRate,
         wonCount,
         lostCount,
         totalSettled,
-        avgReloadPerDay,
-        // Rank data (from overall leaderboard - ACTIVE USERS only, matches Leaderboard table)
+        avgReloadPerDay: targetStats.avgReloadPerDay,
+        // Rank data
         rank: overallRank,
-        rankPercentile: overallRank / activeUserCount,
+        rankPercentile: overallRank / totalUsers,
         rankName: rankInfo.name,
         rankIcon: rankInfo.icon,
         totalUsers,
-        totalActiveUsers,
-        // Leaderboard ranks (from v2 API)
+        totalActiveUsers: activeUserCount,
+        // Leaderboard ranks
         overallScore,
         overallRank,
         mostOrangeAmmoRank: profitScoreRank,
