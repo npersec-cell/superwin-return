@@ -40,7 +40,11 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get("userId") || "";
 
     if (!userId) {
-      return NextResponse.json({ ok: false, error: "userId is required" }, { status: 400 });
+      return NextResponse.json({ 
+        ok: false, 
+        error: "userId is required",
+        data: null 
+      }, { status: 400 });
     }
 
     const supabase = createSupabaseAdminClient();
@@ -54,9 +58,13 @@ export async function GET(request: NextRequest) {
     try {
       const response = await fetch(`${baseURL}/api/leaderboard/v2?t=${Date.now()}`);
       v2Data = await response.json();
-    } catch (error) {
+    } catch (error: any) {
       console.error("[Profile] Error fetching from API v2:", error);
-      return NextResponse.json({ ok: false, error: "Failed to fetch rank data from leaderboard" }, { status: 500 });
+      return NextResponse.json({ 
+        ok: false, 
+        error: "Failed to fetch rank data from leaderboard",
+        data: null 
+      }, { status: 500 });
     }
 
     // Extract data safely
@@ -95,7 +103,11 @@ export async function GET(request: NextRequest) {
 
     if (userError) {
       console.error("[Profile] Error fetching user:", userError);
-      return NextResponse.json({ ok: false, error: "Failed to fetch user" }, { status: 500 });
+      return NextResponse.json({ 
+        ok: false, 
+        error: "Failed to fetch user",
+        data: null 
+      }, { status: 500 });
     }
 
     // ── Fetch user's settled entries for history display ──
@@ -187,6 +199,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      error: null,
       data: {
         name: targetUser.display_name || targetUser.email?.split("@")[0] || "User",
         displayName: targetUser.display_name || null,
@@ -222,8 +235,12 @@ export async function GET(request: NextRequest) {
         "Expires": "0"
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("[Profile] Error:", error);
-    return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ 
+      ok: false, 
+      error: error.message || "Internal server error",
+      data: null 
+    }, { status: 500 });
   }
 }

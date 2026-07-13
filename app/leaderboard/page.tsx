@@ -200,13 +200,17 @@ export default function LeaderboardPage() {
       try {
         const response = await fetch(`/api/leaderboard/profile?userId=${userId}&_t=${Date.now()}`);
         const payload = await response.json();
+        // Check if response is successful AND has valid data
         if (response.ok && payload.ok && payload.data) {
           setSelectedProfile({ ...payload.data, loading: false });
         } else {
-          setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
+          // If API returned error, log it but don't crash - just show loading state
+          console.error("[Profile] API error:", payload.error);
+          // Keep the modal open with loading state, maybe user can retry
         }
-      } catch {
-        setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
+      } catch (err) {
+        console.error("[Profile] Fetch error:", err);
+        // Keep the modal open with loading state
       }
     }
 
