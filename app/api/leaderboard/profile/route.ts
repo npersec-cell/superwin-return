@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
 
     if (allUsersError) {
       console.error("[Profile] Error fetching users:", allUsersError);
+      return NextResponse.json({ ok: false, error: "Failed to fetch users" }, { status: 500 });
     }
 
     // ── ดึงทุก entries สำหรับคำนวณ rank (count all settled: won, lost, refunded) ──
@@ -83,6 +84,7 @@ export async function GET(request: NextRequest) {
 
     if (allEntriesError) {
       console.error("[Profile] Error fetching entries:", allEntriesError);
+      return NextResponse.json({ ok: false, error: "Failed to fetch entries" }, { status: 500 });
     }
 
     // ── คำนวณ stats สำหรับทุก user ──
