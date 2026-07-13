@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     // ── ดึง user info ──
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("display_name, email, lifetime_profit, profit_score, reload_count, created_at")
+      .select("display_name, email, lifetime_profit, reload_count, created_at")
       .eq("id", userId)
       .single();
 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     // ── ดึงทุก users สำหรับคำนวณ rank ──
     const { data: allUsers, error: allUsersError } = await supabase
       .from('users')
-      .select('id, display_name, email, profit_score, reload_count, created_at')
+      .select('id, display_name, email, lifetime_profit, reload_count, created_at')
       .neq('role', 'admin')
       .not('email', 'like', '%test%')
       .not('email', 'like', '%automated%');
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
 
     for (const u of allUsers || []) {
       userStatsMap.set(u.id, {
-        profitScore: u.profit_score || 0,
+        profitScore: u.lifetime_profit || 0,  // Use lifetime_profit (累计赢利), same as API v2
         predictionCount: 0,
         highestSingleWin: 0,
         avgReloadPerDay: 0,
@@ -131,35 +131,43 @@ export async function GET(request: NextRequest) {
     // Convert to array and calculate Overall score
     const allUsersData = Array.from(userStatsMap.entries()).map(([uid, stats]) => {
       const u = allUsers?.find(u => u.id === uid);
+      const hasActivity = stats.predictionCount > 0 || stats.profitScore > 0;
       const profitScore = calcLogScore(stats.profitScore);
       const predictionScore = calcLogScore(stats.predictionCount);
       const winScore = calcLogScore(stats.highestSingleWin);
-      const activeScore = calcLogScore(stats.avgReloadPerDay);
+      // Only count active score if user has actual activity
+      const activeScore = hasActivity ? calcLogScore(stats.avgReloadPerDay) : 0;
       const overall = Math.round(profitScore + predictionScore + winScore + activeScore);
       
       return {
         userId: uid,
         displayName: u?.display_name || u?.email?.split('@')[0] || 'User',
         ...stats,
-        overall
+        overall,
+        hasActivity
       };
     });
 
     const totalUsers = allUsersData.length;
+    
+    // For Overall ranking, only include users who have actual activity
+    const activeUsers = allUsersData.filter(u => u.hasActivity);
+    const totalActiveUsers = activeUsers.length;
 
     // Calculate rank for the target user
     const targetUser = allUsersData.find(u => u.userId === userId);
     const targetUserStats = targetUser || {
-      profitScore: user.profit_score || 0,
+      profitScore: user.lifetime_profit || 0,
       predictionCount: 0,
       highestSingleWin: 0,
       avgReloadPerDay: 0,
       overall: 0
     };
 
-    // Overall rank
-    const sortedOverall = [...allUsersData].sort((a, b) => b.overall - a.overall);
-    const overallRank = sortedOverall.findIndex(u => u.userId === userId) + 1;
+    // Overall rank - only among active users
+    const sortedOverall = [...activeUsers].sort((a, b) => b.overall - a.overall);
+    const activeUserIndex = activeUsers.findIndex(u => u.userId === userId);
+    const overallRank = activeUserIndex >= 0 ? activeUserIndex + 1 : totalActiveUsers + 1;
 
     // Most Orange Ammo rank
     const sortedByProfit = [...allUsersData].sort((a, b) => b.profitScore - a.profitScore);
@@ -212,7 +220,7 @@ export async function GET(request: NextRequest) {
           name: user.display_name || user.email.split("@")[0],
           displayName: user.display_name || null,
           // Basic stats
-          profitScore: user.profit_score || 0,
+          profitScore: user.lifetime_profit || 0,  // Use lifetime_profit, same as API v2
           allTimeProfit: user.lifetime_profit || 0,
           predictionCount: 0,
           highestSingleWin: 0,
