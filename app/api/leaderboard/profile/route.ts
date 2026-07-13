@@ -160,28 +160,43 @@ export async function GET(request: NextRequest) {
       overall: 0
     };
 
-    // Calculate ranks
+    // Calculate ranks (using stable sort with userId as tiebreaker - same as v2 API)
     // Overall rank
-    const sortedOverall = [...leaderboardData].sort((a, b) => b.overall - a.overall);
+    const sortedOverall = [...leaderboardData].sort((a, b) => {
+      if (b.overall !== a.overall) return b.overall - a.overall;
+      return a.userId.localeCompare(b.userId); // stable sort
+    });
     const overallRank = sortedOverall.findIndex(u => u.userId === userId) + 1;
     const overallScore = targetStats.overall;
 
     // Most Orange Ammo rank (profitScore)
-    const sortedByProfitScore = [...leaderboardData].sort((a, b) => b.profitScore - a.profitScore);
+    const sortedByProfitScore = [...leaderboardData].sort((a, b) => {
+      if (b.profitScore !== a.profitScore) return b.profitScore - a.profitScore;
+      return a.userId.localeCompare(b.userId); // stable sort
+    });
     const profitScoreRank = sortedByProfitScore.findIndex(u => u.userId === userId) + 1;
 
     // Most Predictions rank
-    const sortedByPredictionCount = [...leaderboardData].sort((a, b) => b.predictionCount - a.predictionCount);
+    const sortedByPredictionCount = [...leaderboardData].sort((a, b) => {
+      if (b.predictionCount !== a.predictionCount) return b.predictionCount - a.predictionCount;
+      return a.userId.localeCompare(b.userId); // stable sort
+    });
     const predictionCountRank = sortedByPredictionCount.findIndex(u => u.userId === userId) + 1;
 
     // Highest Single Win rank
-    const sortedByHighestWin = [...leaderboardData.filter(u => u.highestSingleWin > 0)].sort((a, b) => b.highestSingleWin - a.highestSingleWin);
+    const sortedByHighestWin = [...leaderboardData.filter(u => u.highestSingleWin > 0)].sort((a, b) => {
+      if (b.highestSingleWin !== a.highestSingleWin) return b.highestSingleWin - a.highestSingleWin;
+      return a.userId.localeCompare(b.userId); // stable sort
+    });
     const highestSingleWinRank = sortedByHighestWin.length > 0 && sortedByHighestWin.some(u => u.userId === userId)
       ? sortedByHighestWin.findIndex(u => u.userId === userId) + 1
       : totalUsers;
 
     // Most Active rank
-    const sortedByActive = [...leaderboardData].sort((a, b) => b.avgReloadPerDay - a.avgReloadPerDay);
+    const sortedByActive = [...leaderboardData].sort((a, b) => {
+      if (b.avgReloadPerDay !== a.avgReloadPerDay) return b.avgReloadPerDay - a.avgReloadPerDay;
+      return a.userId.localeCompare(b.userId); // stable sort
+    });
     const activeRank = sortedByActive.findIndex(u => u.userId === userId) + 1;
 
     // Get rank tier
