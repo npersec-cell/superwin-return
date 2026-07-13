@@ -155,9 +155,13 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
+  const [selectedLeaderboardEntry, setSelectedLeaderboardEntry] = useState<{ userId: string; displayName: string } | null>(null);
   const profileRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   async function handleOpenProfile(userId: string, displayName: string) {
+    // Track which user opened the profile for retry
+    setSelectedLeaderboardEntry({ userId, displayName });
+    
     // Clear any existing refresh interval
     if (profileRefreshRef.current) { clearInterval(profileRefreshRef.current); profileRefreshRef.current = null; }
 
@@ -231,6 +235,13 @@ export default function LeaderboardPage() {
   function closeProfile() {
     if (profileRefreshRef.current) { clearInterval(profileRefreshRef.current); profileRefreshRef.current = null; }
     setSelectedProfile(null);
+  }
+
+  // Retry function for Profile Modal
+  function retryProfile() {
+    if (selectedLeaderboardEntry) {
+      handleOpenProfile(selectedLeaderboardEntry.userId, selectedLeaderboardEntry.displayName);
+    }
   }
 
   useEffect(() => {
@@ -675,7 +686,7 @@ export default function LeaderboardPage() {
       </div>
 
       {selectedLiveBet && <LiveBetModal bet={selectedLiveBet} onClose={() => setSelectedLiveBet(null)} />}
-      {selectedProfile && <ProfileModal profile={selectedProfile} onClose={closeProfile} />}
+      {selectedProfile && <ProfileModal profile={selectedProfile} onClose={closeProfile} onRetry={retryProfile} />}
     </div>
   );
 }
@@ -753,8 +764,7 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
   );
 }
 
-function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; onClose: () => void }) {
-  // Check if profile has valid data (not just zeros from initial state)
+function ProfileModal({ profile, onClose, onRetry }: { profile: UserProfileStats | null; onClose: () => void; onRetry: () => void }) {
   const hasValidData = profile && !profile.loading && profile.overallRank > 0;
   
   return (
@@ -766,12 +776,10 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
         </div>
         <div className="modal-body" style={{ gap: "12px", minHeight: "200px" }}>
           {profile?.loading ? (
-            // Show spinner while loading
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "180px" }}>
               <div className="spinner" />
             </div>
           ) : hasValidData ? (
-            // Show data only when we have valid loaded data
             <>
               {/* RANK - Full Width, Top */}
               <div className="info-block" style={{ padding: "14px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", textAlign: "center" }}>
@@ -893,9 +901,16 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
               </div>
             </>
           ) : (
-            // Show error message when data failed to load
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "180px", color: "var(--muted)" }}>
-              <span style={{ fontSize: "12px" }}>Failed to load profile data</span>
+            // Show Retry button when data failed to load
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "180px", flexDirection: "column", gap: "12px" }}>
+              <span style={{ fontSize: "12px", color: "var(--muted)" }}>Failed to load profile data</span>
+              <button 
+                className="button" 
+                onClick={onRetry}
+                style={{ padding: "8px 16px", background: "var(--yellow)", color: "var(--bg)", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600" }}
+              >
+                Retry
+              </button>
             </div>
           )}
         </div>
