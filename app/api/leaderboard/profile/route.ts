@@ -150,6 +150,20 @@ export async function GET(request: NextRequest) {
       profitScore: 0, predictionCount: 0, highestSingleWin: 0, avgReloadPerDay: 0
     };
 
+    // Debug log - comprehensive
+    console.log("[Profile] DEBUG:", JSON.stringify({
+      userId,
+      totalUsers,
+      totalActiveUsers,
+      sortedOverallLength: sortedOverall.length,
+      userPosition,
+      overallRank,
+      overallScore,
+      userExistsInArray: sortedOverall.some(u => u.userId === userId),
+      top5Users: sortedOverall.slice(0, 5).map(u => ({ userId: u.userId.substring(0, 8), overall: u.overall })),
+      targetUserExists: !!targetUser
+    }, null, 2));
+
     // Get target user
     const targetUser = users?.find(u => u.id === userId);
     if (!targetUser) {
@@ -204,6 +218,17 @@ export async function GET(request: NextRequest) {
 
     // Calculate rank tier using the EXACT rank from sorted array
     const rankInfo = getRankFromPosition(overallRank, totalUsers);
+    
+    // Debug log
+    console.log("[Profile] DEBUG:", {
+      userId,
+      userPosition,
+      overallRank,
+      totalUsers,
+      totalActiveUsers,
+      overallScore,
+      hasActivity: userStatsData.predictionCount > 0
+    });
 
     return NextResponse.json({
       ok: true,

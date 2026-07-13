@@ -765,6 +765,9 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
 }
 
 function ProfileModal({ profile, onClose, onRetry }: { profile: UserProfileStats | null; onClose: () => void; onRetry: () => void }) {
+  // Debug log
+  console.log("[ProfileModal] profile:", profile);
+  
   const hasValidData = profile && !profile.loading && profile.overallRank > 0;
   
   return (
