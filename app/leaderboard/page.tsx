@@ -204,11 +204,19 @@ export default function LeaderboardPage() {
       try {
         const response = await fetch(`/api/leaderboard/profile?userId=${userId}&_t=${Date.now()}`);
         const payload = await response.json();
-        // Debug log
+        // Debug log - check the exact structure
         console.log("[Profile] FETCH_RESPONSE:", JSON.stringify(payload, null, 2));
+        console.log("[Profile] payload.ok:", payload.ok);
+        console.log("[Profile] payload.data:", payload.data);
+        console.log("[Profile] payload.data?.overallRank:", payload.data?.overallRank);
         
         // Check if response is successful AND has valid data
         if (response.ok && payload.ok && payload.data) {
+          console.log("[Profile] Setting profile with data:", {
+            overallRank: payload.data.overallRank,
+            rankName: payload.data.rankName,
+            overallScore: payload.data.overallScore
+          });
           setSelectedProfile(prev => ({ 
             ...payload.data, 
             loading: false,
@@ -216,7 +224,7 @@ export default function LeaderboardPage() {
           }));
         } else {
           // If API returned error, log it and update loading state
-          console.error("[Profile] API ERROR:", payload.error);
+          console.error("[Profile] API ERROR - payload:", payload);
           setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
         }
       } catch (err) {
@@ -765,8 +773,8 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
 }
 
 function ProfileModal({ profile, onClose, onRetry }: { profile: UserProfileStats | null; onClose: () => void; onRetry: () => void }) {
-  // Debug log
-  console.log("[ProfileModal] profile:", profile);
+  // Debug log - check if overallRank has a value
+  console.log("[ProfileModal] profile.overallRank:", profile?.overallRank, "typeof:", typeof profile?.overallRank);
   
   const hasValidData = profile && !profile.loading && profile.overallRank > 0;
   
