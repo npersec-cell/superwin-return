@@ -758,13 +758,14 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
             <>
               {/* RANK - Full Width, Top */}
               <div className="info-block" style={{ padding: "14px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", textAlign: "center" }}>
-                <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>RANK</span>
+                <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>OVERALL RANK</span>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginTop: "8px" }}>
                   <img src={profile.rankIcon} alt="" width={28} height={28} style={{ objectFit: "contain" }} />
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                     <strong style={{ fontSize: "22px", color: "var(--yellow)", fontWeight: 700 }}>
-                      {profile.rankName}
+                      #{profile.overallRank}
                     </strong>
+                    <span style={{ fontSize: "12px", color: "var(--muted)" }}>{profile.rankName}</span>
                   </div>
                 </div>
               </div>
@@ -785,9 +786,6 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
                   <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
                     {profile.overallScore}
                   </strong>
-                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
-                    #{profile.overallRank}
-                  </span>
                 </div>
                 <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
                   <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Orange Ammo</span>
