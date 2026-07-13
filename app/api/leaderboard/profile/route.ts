@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/db";
-import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -47,67 +46,50 @@ export async function GET(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
 
     // ── Fetch rank data from API v2 (SINGLE SOURCE OF TRUTH) ──
-    // Use VERCEL_URL for production, fallback to localhost for dev
     const baseURL = process.env.VERCEL_URL 
       ? `https://${process.env.VERCEL_URL}`
       : "http://localhost:3000";
     
     let v2Data: any = null;
     try {
-      // Try with internal header first
-      const response = await fetch(`${baseURL}/api/leaderboard/v2?userId=${userId}&t=${Date.now()}`, {
-        headers: {
-          'X-VerCEL-Internal': 'true'
-        }
-      });
+      const response = await fetch(`${baseURL}/api/leaderboard/v2?t=${Date.now()}`);
       v2Data = await response.json();
-      
-      // If internal call failed, try without the header
-      if (!response.ok || !v2Data.userRankData) {
-        const response2 = await fetch(`${baseURL}/api/leaderboard/v2?userId=${userId}&t=${Date.now()}`);
-        v2Data = await response2.json();
-      }
     } catch (error) {
       console.error("[Profile] Error fetching from API v2:", error);
-      // If v2 API call fails, return error
       return NextResponse.json({ ok: false, error: "Failed to fetch rank data from leaderboard" }, { status: 500 });
     }
 
-    // Get rank data directly from v2 API
-    const userRankData = v2Data.userRankData;
-    const leaderboards = v2Data.leaderboards;
+    // Extract data safely
+    const userRankData = v2Data.userRankData || {};
+    const leaderboards = v2Data.leaderboards || {};
     const totalUsers = v2Data.totalUsers || 0;
     const totalActiveUsers = v2Data.totalActiveUsers || 0;
 
-    // Find user in overall leaderboard (ACTIVE USERS only - this matches Leaderboard table)
-    const overallLeaderboard = leaderboards?.overall || [];
+    // Find user in overall leaderboard (ACTIVE USERS only)
+    const overallLeaderboard = leaderboards.overall || [];
+    const activeUserCount = overallLeaderboard.length;
     const userInOverall = overallLeaderboard.find((u: any) => u.userId === userId);
     
-    if (!userInOverall && !userRankData) {
-      // User not found in leaderboard
-      return NextResponse.json({ ok: false, error: "User not found in leaderboard" }, { status: 404 });
-    }
+    // Get rank from leaderboard or userRankData
+    const overallRank = userInOverall ? userInOverall.rank : (userRankData.overallRank || 0);
+    const overallScore = userInOverall ? userInOverall.value : (userRankData.overallScore || 0);
+    
+    // Extract other rank info
+    const profitScoreRank = userRankData.profitScoreRank || 0;
+    const predictionCountRank = userRankData.predictionCountRank || 0;
+    const highestSingleWinRank = userRankData.highestSingleWinRank || 0;
+    const activeRank = userRankData.activeRank || 0;
+    const avgReloadPerDay = userRankData.avgReloadPerDay || 0;
+    const predictionCount = userRankData.predictionCount || 0;
+    const highestSingleWin = userRankData.highestSingleWin || 0;
 
-    // Use rank from overall leaderboard (ACTIVE USERS only) - this matches Leaderboard table exactly
-    const overallRank = userInOverall ? userInOverall.rank : (userRankData?.overallRank || 0);
-    const overallScore = userInOverall ? userInOverall.value : (userRankData?.overallScore || 0);
-    
-    // Extract other rank info from userRankData
-    const profitScoreRank = userRankData?.profitScoreRank || 0;
-    const predictionCountRank = userRankData?.predictionCountRank || 0;
-    const highestSingleWinRank = userRankData?.highestSingleWinRank || 0;
-    const activeRank = userRankData?.activeRank || 0;
-    
-    // Use active users count for rank tier calculation (matches Leaderboard table)
-    const activeUserCount = overallLeaderboard.length;
-    
-    // Calculate rank tier from overallRank using ACTIVE USERS count (matches Leaderboard table)
+    // Calculate rank tier
     const rankInfo = getRankFromPosition(overallRank, activeUserCount);
 
     // ── Fetch user basic info ──
     const { data: targetUser, error: userError } = await supabase
       .from("users")
-      .select("display_name, email, lifetime_profit, reload_count, created_at")
+      .select("display_name, email, lifetime_profit")
       .eq("id", userId)
       .single();
 
@@ -117,7 +99,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ── Fetch user's settled entries for history display ──
-    const { data: historyEntries, error: historyEntriesError } = await supabase
+    const { data: historyEntries } = await supabase
       .from("prediction_entries")
       .select(`
         id,
@@ -135,13 +117,8 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq("user_id", userId)
-      .in("status", ["won", "lost", "refunded"])
+      .in("status", ["won", "lost"])
       .order("created_at", { ascending: false });
-
-    if (historyEntriesError) {
-      console.error("[Profile] Error fetching prediction_entries:", historyEntriesError);
-      return NextResponse.json({ ok: false, error: "Failed to fetch entries" }, { status: 500 });
-    }
 
     // ── Calculate history stats from entries ──
     let wonCount = 0;
@@ -196,7 +173,7 @@ export async function GET(request: NextRequest) {
         pick: pickText,
         amount: e.amount,
         payout: e.payout_amount || 0,
-        status: isWon ? "won" : ("lost" as "won" | "lost"),
+        status: isWon ? "won" : "lost",
         net,
         date: new Date(pred.resolved_at || e.created_at).toLocaleDateString("en-GB", {
           day: "numeric",
@@ -205,18 +182,14 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // ── Calculate stats from user table ──
+    // ── Get profit score from user table ──
     const profitScore = targetUser.lifetime_profit || 0;
-    const avgReloadPerDay = userRankData?.avgReloadPerDay || 0;
-    const predictionCount = userRankData?.predictionCount || 0;
-    const highestSingleWin = userRankData?.highestSingleWin || 0;
 
     return NextResponse.json({
       ok: true,
       data: {
-        name: targetUser.display_name || targetUser.email.split("@")[0],
+        name: targetUser.display_name || targetUser.email?.split("@")[0] || "User",
         displayName: targetUser.display_name || null,
-        // Basic stats (from user table + v2 API)
         profitScore,
         allTimeProfit: profitScore,
         predictionCount,
@@ -226,21 +199,18 @@ export async function GET(request: NextRequest) {
         lostCount,
         totalSettled,
         avgReloadPerDay,
-        // Rank data (from overall leaderboard - ACTIVE USERS only, matches Leaderboard table)
         rank: overallRank,
-        rankPercentile: overallRank / activeUserCount,
+        rankPercentile: activeUserCount > 0 ? overallRank / activeUserCount : 0,
         rankName: rankInfo.name,
         rankIcon: rankInfo.icon,
         totalUsers,
         totalActiveUsers,
-        // Leaderboard ranks (from v2 API)
         overallScore,
         overallRank,
         mostOrangeAmmoRank: profitScoreRank,
         mostPredictionsRank: predictionCountRank,
         highestSingleWinRank,
         mostActiveRank: activeRank,
-        // Badge (optional - can be added later)
         badge: "",
         badgeDesc: "",
         history
@@ -254,6 +224,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Profile] Error:", error);
-    return createSafeErrorResponse(error);
+    return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
   }
 }
