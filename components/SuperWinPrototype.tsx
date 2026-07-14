@@ -448,6 +448,14 @@ export default function SuperWinPrototype() {
   const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
+  // Store leaderboard values for each category (for fallback in ProfileModal)
+  const [leaderboardValueMap, setLeaderboardValueMap] = useState<{
+    mostOrangeAmmo: Map<string, number>;
+    mostPredictions: Map<string, number>;
+    highestSingleWin: Map<string, number>;
+    mostActive: Map<string, number>;
+  }>({ mostOrangeAmmo: new Map(), mostPredictions: new Map(), highestSingleWin: new Map(), mostActive: new Map() });
 
   // Auto-refresh profile data while modal is open
   const profileRefreshRef = useRef<NodeJS.Timeout | null>(null);
@@ -822,6 +830,42 @@ export default function SuperWinPrototype() {
         }));
         setLeaderboardRows(rows);
         setLeaderboardTotalUsers(payload.totalUsers || 0);
+        
+        // Build leaderboard value maps for fallback in ProfileModal
+        const valueMap: {
+          mostOrangeAmmo: Map<string, number>;
+          mostPredictions: Map<string, number>;
+          highestSingleWin: Map<string, number>;
+          mostActive: Map<string, number>;
+        } = {
+          mostOrangeAmmo: new Map(),
+          mostPredictions: new Map(),
+          highestSingleWin: new Map(),
+          mostActive: new Map()
+        };
+        
+        if (payload.leaderboards?.mostOrangeAmmo) {
+          payload.leaderboards.mostOrangeAmmo.forEach((item: { userId: string; value: number }) => {
+            valueMap.mostOrangeAmmo.set(item.userId, item.value);
+          });
+        }
+        if (payload.leaderboards?.mostPredictions) {
+          payload.leaderboards.mostPredictions.forEach((item: { userId: string; value: number }) => {
+            valueMap.mostPredictions.set(item.userId, item.value);
+          });
+        }
+        if (payload.leaderboards?.highestSingleWin) {
+          payload.leaderboards.highestSingleWin.forEach((item: { userId: string; value: number }) => {
+            valueMap.highestSingleWin.set(item.userId, item.value);
+          });
+        }
+        if (payload.leaderboards?.mostActive) {
+          payload.leaderboards.mostActive.forEach((item: { userId: string; value: number }) => {
+            valueMap.mostActive.set(item.userId, item.value);
+          });
+        }
+        
+        setLeaderboardValueMap(valueMap);
       }
     } catch {
       // fallback
@@ -832,30 +876,36 @@ export default function SuperWinPrototype() {
     // Clear any existing refresh interval
     if (profileRefreshRef.current) { clearInterval(profileRefreshRef.current); profileRefreshRef.current = null; }
 
-    // show modal immediately with loading state
+    // Get values from leaderboard data (more reliable than Profile API)
+    const coinBalanceFromLeaderboard = leaderboardValueMap.mostOrangeAmmo.get(userId) || 0;
+    const predictionCountFromLeaderboard = leaderboardValueMap.mostPredictions.get(userId) || 0;
+    const highestSingleWinFromLeaderboard = leaderboardValueMap.highestSingleWin.get(userId) || 0;
+    const avgReloadPerDayFromLeaderboard = leaderboardValueMap.mostActive.get(userId) || 0;
+
+    // Show modal immediately with loading state, use leaderboard values as initial
     setSelectedProfile({
       name: userName,
       // Overall leaderboard
       overallScore: 0,
       overallRank: 0,
-      // Most Orange Ammo
-      profitScore: 0,
+      // Most Orange Ammo - use value from leaderboard
+      profitScore: coinBalanceFromLeaderboard,
       mostOrangeAmmoRank: 0,
       // Most Predictions
-      predictionCount: 0,
+      predictionCount: predictionCountFromLeaderboard,
       mostPredictionsRank: 0,
       // Highest Single Win
-      highestSingleWin: 0,
+      highestSingleWin: highestSingleWinFromLeaderboard,
       highestSingleWinRank: 0,
       // Most Active
-      avgReloadPerDay: 0,
+      avgReloadPerDay: avgReloadPerDayFromLeaderboard,
       mostActiveRank: 0,
       // Other stats
       rank: 0,
       rankPercentile: 0,
       rankName: "Bronze",
       rankIcon: "/ranks/bronze.png",
-      totalUsers: 0,
+      totalUsers: leaderboardTotalUsers,
       allTimeProfit: 0,
       winRate: 0,
       wonCount: 0,
@@ -873,7 +923,26 @@ export default function SuperWinPrototype() {
         const response = await fetch(`/api/leaderboard/profile?userId=${userId}&_t=${Date.now()}`);
         const payload = await response.json();
         if (response.ok && payload.ok && payload.data) {
-          setSelectedProfile({ ...payload.data, loading: false });
+          // Use leaderboard values as fallback if Profile API returns NaN or invalid values
+          const profileData = payload.data;
+          const safeProfile = {
+            ...profileData,
+            // Use leaderboard values if Profile API returns NaN or null
+            profitScore: Number.isNaN(profileData.profitScore) || profileData.profitScore === null 
+              ? coinBalanceFromLeaderboard 
+              : Number(profileData.profitScore),
+            predictionCount: Number.isNaN(profileData.predictionCount) || profileData.predictionCount === null 
+              ? predictionCountFromLeaderboard 
+              : Number(profileData.predictionCount),
+            highestSingleWin: Number.isNaN(profileData.highestSingleWin) || profileData.highestSingleWin === null 
+              ? highestSingleWinFromLeaderboard 
+              : Number(profileData.highestSingleWin),
+            avgReloadPerDay: Number.isNaN(profileData.avgReloadPerDay) || profileData.avgReloadPerDay === null 
+              ? avgReloadPerDayFromLeaderboard 
+              : Number(profileData.avgReloadPerDay),
+            loading: false,
+          };
+          setSelectedProfile(safeProfile);
         } else {
           setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
         }
