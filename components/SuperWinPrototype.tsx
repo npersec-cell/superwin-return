@@ -25,7 +25,7 @@ type Question = {
 type HistoryItem = {
   date: string;
   time: string;
-  action: "Reload" | "Predict" | "Payout" | "Refund";
+  action: "Reload" | "Payout" | "Refund";
   detail: string;
   amount: number;
 };
@@ -2157,7 +2157,7 @@ function HistoryModal({
         <div className="modal-head"><h3>Coin History</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body history-modal-body">
           <div className="filter-row">
-            {(["All", "Predict", "Reload", "Payout"] as const).map((filter) => (
+            {(["All", "Reload", "Payout"] as const).map((filter) => (
               <button key={filter} className={`button ${historyFilter === filter ? "active" : ""}`} onClick={() => { setHistoryFilter(filter); setHistoryPage(1); }}>{filter}</button>
             ))}
           </div>
