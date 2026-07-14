@@ -409,7 +409,7 @@ export default function SuperWinPrototype() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
-  const historyPageSize = 7;
+  const historyPageSize = 10;
   const [historyTotalPages, setHistoryTotalPages] = useState(1);
   const [runningPage, setRunningPage] = useState(1);
   const runningPageSize = 10;

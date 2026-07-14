@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       .select("id, type, amount, balance_after, detail, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(200);
+      .limit(300);
 
     if (error) {
       throw new Error(error.message || "Failed to load history");

@@ -219,9 +219,9 @@ input { width: 100%; min-width: 0; }
 .goog-te-gadget { color: transparent !important; font-family: inherit !important; }
 .filter-row { flex-wrap: wrap; justify-content: center; }
 .history-row { display: grid; grid-template-columns: 82px 76px 90px 1fr auto; gap: 8px; align-items: start; padding: 8px; border-radius: 6px; background: var(--bg); font-size: 11px; }
-.history-row-simple { display: grid; grid-template-columns: 80px 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 6px; background: var(--bg); font-size: 12px; }
+.history-row-simple { display: grid; grid-template-columns: 80px 1fr auto; gap: 12px; align-items: start; padding: 10px 12px; border-radius: 6px; background: var(--bg); font-size: 12px; }
 .history-date { color: var(--muted); font-size: 11px; }
-.history-detail-simple { color: var(--text); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history-detail-simple { color: var(--text); font-size: 12px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .history-amount { font-size: 13px; font-weight: 600; }
 .history-footer { display: flex; align-items: center; justify-content: center; gap: 8px; padding-top: 4px; }
 .running-list { display: grid; gap: 6px; }
