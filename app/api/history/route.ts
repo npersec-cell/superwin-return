@@ -124,18 +124,38 @@ export async function GET(request: NextRequest) {
 
     // Build the response
     const rows = (ledgerData || []).map((row) => {
-      const entry = row.ref_type === "prediction_entry" && row.ref_id 
-        ? entryMap.get(row.ref_id) 
-        : null;
-      
       let detail = row.detail || "";
       
-      if (entry) {
-        const prediction = predictionMap.get(entry.prediction_id);
-        const option = optionMap.get(entry.option_id);
-        
-        if (prediction && option) {
-          detail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Answer: ${option.label}`;
+      // Case 1: ref_type = 'prediction_entry' - find entry by ref_id
+      if (row.ref_type === "prediction_entry" && row.ref_id) {
+        const entry = entryMap.get(row.ref_id);
+        if (entry) {
+          const prediction = predictionMap.get(entry.prediction_id);
+          const option = optionMap.get(entry.option_id);
+          
+          if (prediction && option) {
+            detail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Answer: ${option.label}`;
+          }
+        }
+      }
+      
+      // Case 2: ref_type = 'prediction' - find prediction by ref_id, then find entry by prediction_id
+      if (row.ref_type === "prediction" && row.ref_id && !detail) {
+        const prediction = predictionMap.get(row.ref_id);
+        if (prediction) {
+          // Find entry for this prediction that has matching amount
+          const matchedEntry = [...entryMap.entries()].find(([id, entry]) => {
+            return entry.prediction_id === row.ref_id && entry.amount === Math.abs(row.amount);
+          });
+          
+          if (matchedEntry) {
+            const [, entry] = matchedEntry;
+            const option = optionMap.get(entry.option_id);
+            
+            if (option) {
+              detail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Answer: ${option.label}`;
+            }
+          }
         }
       }
       
