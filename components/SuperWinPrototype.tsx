@@ -1642,6 +1642,19 @@ export default function SuperWinPrototype() {
                   );
                 })}
               </div>
+              <div style={{ padding: "8px 12px", borderTop: "1px solid var(--hairline)" }}>
+                <a href="/leaderboard" style={{ 
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "11px",
+                  color: "var(--yellow)",
+                  fontWeight: 600,
+                  textDecoration: "none"
+                }}>
+                  📊 View Full Leaderboard →
+                </a>
+              </div>
             </section>
             
             {/* LIVE PREDICT - กำลังรอผล */}
