@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import NumberWarBoard from "./NumberWarBoard";
 
 type AdminPrediction = {
   id: string;
@@ -275,7 +274,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   }
 
   // แท็บเมนูหลังบ้าน
-  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "numberwar" | "contests">("dashboard");
+  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "contests">("dashboard");
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [userSort, setUserSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
@@ -1615,7 +1614,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "questions" ? "active" : ""}`} onClick={() => setActiveTab("questions")} style={{ borderRadius: "999px" }}>สร้างคำถามใหม่</button>
           <button className={`button ${activeTab === "running" ? "active" : ""}`} onClick={() => setActiveTab("running")} style={{ borderRadius: "999px" }}>จัดการคำถาม</button>
           <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => setActiveTab("settings")} style={{ borderRadius: "999px" }}>ตั้งค่าหน้าเว็บ</button>
-          <button className={`button ${activeTab === "numberwar" ? "active" : ""}`} onClick={() => setActiveTab("numberwar")} style={{ borderRadius: "999px" }}>Number War</button>
           <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>แอดมิน ({admins.length})</button>
           <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>แจ้งปัญหา ({reports.length})</button>
           <button className={`button ${activeTab === "users" ? "active" : ""}`} onClick={() => setActiveTab("users")} style={{ borderRadius: "999px" }}>จัดการผู้ใช้ ({users.length})</button>
@@ -3169,13 +3167,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
               )}
             </section>
           )}
-
-          {activeTab === "numberwar" && (
-            <section className="panel" style={{ width: "100%", maxWidth: "1000px", margin: "0 auto" }}>
-              <NumberWarBoard />
-            </section>
-          )}
-
 
           {activeTab === "reports" && (
             <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "16px", margin: "0 auto" }}>

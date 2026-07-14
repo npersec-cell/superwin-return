@@ -1770,25 +1770,6 @@ export default function SuperWinPrototype() {
               </section>
             )}
             
-            <section className="panel" style={{ border: "1px solid var(--yellow)", background: "linear-gradient(135deg, rgba(255,225,0,0.06) 0%, var(--card) 60%)" }}>
-              <div className="panel-head">
-                <h3 style={{ color: "var(--yellow)" }}>NUMBER WAR</h3>
-                <span className="micro" style={{ color: "var(--yellow)", opacity: 0.8 }}>คำถามรางวัลพิเศษ</span>
-              </div>
-              <div style={{ padding: "14px 16px", display: "grid", gap: "10px" }}>
-                <p style={{ fontSize: "12px", color: "var(--text)", lineHeight: 1.5, margin: 0 }}>
-                  ทายคะแนนจริงจากการแข่งขัน ลุ้นของรางวัลสุดพิเศษ!
-                </p>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--muted)" }}>
-                  เริ่มต้นใช้เพียง 10
-                  <img src="/ammo-556-icon.webp" alt="coin" style={{ width: "14px", height: "14px", objectFit: "contain", display: "inline-block" }} />
-                </div>
-                <Link href="/number-war" className="button gold" style={{ width: "100%", height: "36px", fontSize: "12px", fontWeight: 700, borderRadius: "8px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
-                  เข้าร่วมเลย →
-                </Link>
-              </div>
-            </section>
-
             {/* Contest Box - กิจกรรมชิงรางวัล */}
             {contest && contest.status === "active" && (
               <section className="panel" style={{ border: "1px solid var(--yellow)", background: "linear-gradient(135deg, rgba(255,225,0,0.06) 0%, var(--card) 60%)" }}>
