@@ -40,3 +40,24 @@ export function createSupabaseAdminClient() {
     }
   });
 }
+
+// Server-side Supabase client with auth from request headers
+export async function getSupabaseServerClient(request: Request) {
+  const config = getSupabaseConfig();
+  if (!config.url || !config.anonKey) {
+    throw new Error("Supabase public environment variables are missing");
+  }
+
+  // Extract auth headers from request
+  const authHeader = request.headers.get("authorization") || "";
+  const cookieHeader = request.headers.get("cookie") || "";
+
+  return createClient(config.url, config.anonKey, {
+    global: {
+      headers: {
+        Authorization: authHeader,
+        Cookie: cookieHeader,
+      },
+    },
+  });
+}

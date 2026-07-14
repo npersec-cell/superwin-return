@@ -275,13 +275,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   }
 
   // แท็บเมนูหลังบ้าน
-  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "numberwar">("dashboard");
+  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "numberwar" | "contests">("dashboard");
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [userSort, setUserSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
   const [userPage, setUserPage] = useState(1);
   const [reports, setReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
+  const [contests, setContests] = useState<any[]>([]);
+  const [contestsLoading, setContestsLoading] = useState(false);
 
   const [localOrder, setLocalOrder] = useState<string[]>([]);
 
@@ -449,6 +451,21 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       // Ignored
     } finally {
       setReportsLoading(false);
+    }
+  }
+
+  async function loadContests() {
+    try {
+      setContestsLoading(true);
+      const response = await fetch("/api/admin/contests");
+      const payload = await response.json();
+      if (response.ok && payload.ok && payload.data) {
+        setContests(payload.data);
+      }
+    } catch {
+      // Ignored
+    } finally {
+      setContestsLoading(false);
     }
   }
 
@@ -1496,6 +1513,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>แอดมิน ({admins.length})</button>
           <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>แจ้งปัญหา ({reports.length})</button>
           <button className={`button ${activeTab === "users" ? "active" : ""}`} onClick={() => setActiveTab("users")} style={{ borderRadius: "999px" }}>จัดการผู้ใช้ ({users.length})</button>
+          <button className={`button ${activeTab === "contests" ? "active" : ""}`} onClick={() => { setActiveTab("contests"); loadContests().catch(() => undefined); }} style={{ borderRadius: "999px" }}>🎁 กิจกรรมชิงรางวัล ({contests.length})</button>
         </div>
 
         <section className="admin-content" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", width: "100%", maxWidth: "100%", justifyItems: "center", alignContent: "start", margin: "0 auto" }}>
@@ -2598,6 +2616,220 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
                 )}
               </section>
+            </section>
+          )}
+
+          {activeTab === "contests" && (
+            <section className="panel" style={{ width: "100%", maxWidth: "900px", margin: "0 auto", background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h3>🎁 กิจกรรมชิงรางวัล</h3>
+                <div>
+                  <button className="button gold" onClick={async () => {
+                    const name = prompt("ชื่อกิจกรรม:");
+                    if (!name) return;
+                    const prize = prompt("รางวัล Top 1:");
+                    if (!prize) return;
+                    const endTime = prompt("วันเวลาสิ้นสุด (YYYY-MM-DD HH:mm):", new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16).replace("T", " "));
+                    if (!endTime) return;
+                    try {
+                      const response = await fetch("/api/admin/contests", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name, description: "", end_time: endTime.replace(" ", "T") + ":00", prize }),
+                      });
+                      const payload = await response.json();
+                      if (payload.ok) {
+                        loadContests();
+                        alert("สร้างกิจกรรมสำเร็จ");
+                      } else {
+                        alert("สร้างกิจกรรมไม่สำเร็จ: " + payload.error);
+                      }
+                    } catch (e) {
+                      alert("สร้างกิจกรรมไม่สำเร็จ");
+                    }
+                  }} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
+                    + สร้างกิจกรรม
+                  </button>
+                </div>
+              </div>
+
+              {contestsLoading ? (
+                <div style={{ textAlign: "center", padding: "20px", color: "var(--text-weak)" }}>กำลังโหลด...</div>
+              ) : contests.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "30px", color: "var(--text-weak)", border: "1px dashed var(--hairline)", borderRadius: "8px" }}>
+                  <strong>ยังไม่มีกิจกรรมชิงรางวัล</strong>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: "12px" }}>
+                  {contests.map((contest) => (
+                    <div key={contest.id} style={{ border: "1px solid var(--hairline)", borderRadius: "8px", padding: "12px", background: "var(--bg)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }}>
+                        <div>
+                          <strong style={{ color: "var(--yellow)", fontSize: "14px" }}>{contest.name}</strong>
+                          {contest.status === "active" && (
+                            <span style={{ marginLeft: "8px", fontSize: "10px", padding: "2px 6px", background: "var(--green)", color: "white", borderRadius: "4px" }}>กำลังจัด</span>
+                          )}
+                          {contest.status === "ended" && (
+                            <span style={{ marginLeft: "8px", fontSize: "10px", padding: "2px 6px", background: "var(--muted)", color: "white", borderRadius: "4px" }}>สิ้นสุดแล้ว</span>
+                          )}
+                          {contest.status === "cancelled" && (
+                            <span style={{ marginLeft: "8px", fontSize: "10px", padding: "2px 6px", background: "var(--red)", color: "white", borderRadius: "4px" }}>ยกเลิก</span>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          {contest.status === "active" && (
+                            <>
+                              <button className="button" onClick={async () => {
+                                if (confirm("ยืนยันสิ้นสุดกิจกรรมนี้? ผู้ชนะจะได้รับรางวัลตามที่อยู่ที่กรอก")) {
+                                  try {
+                                    // Set winner to top 1 from leaderboard
+                                    const leaderboardRes = await fetch("/api/leaderboard/v2");
+                                    const leaderboardData = await leaderboardRes.json();
+                                    if (leaderboardData.ok && leaderboardData.data && leaderboardData.data.length > 0) {
+                                      const top1UserId = leaderboardData.data[0].id;
+                                      const updateRes = await fetch(`/api/admin/contests/${contest.id}`, {
+                                        method: "PATCH",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ status: "ended", winner_user_id: top1UserId }),
+                                      });
+                                      const updatePayload = await updateRes.json();
+                                      if (updatePayload.ok) {
+                                        loadContests();
+                                        alert("สิ้นสุดกิจกรรมแล้ว! ผู้ชนะ: Top 1");
+                                      } else {
+                                        alert("ไม่สำเร็จ: " + updatePayload.error);
+                                      }
+                                    }
+                                  } catch (e) {
+                                    alert("ไม่สำเร็จ");
+                                  }
+                                }
+                              }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px" }}>
+                                🏆 ตั้ง Top 1 เป็นผู้ชนะ
+                              </button>
+                              <button className="button" onClick={async () => {
+                                if (confirm("ยืนยันยกเลิกกิจกรรมนี้?")) {
+                                  try {
+                                    const updateRes = await fetch(`/api/admin/contests/${contest.id}`, {
+                                      method: "PATCH",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ status: "cancelled" }),
+                                    });
+                                    const updatePayload = await updateRes.json();
+                                    if (updatePayload.ok) {
+                                      loadContests();
+                                    }
+                                  } catch (e) {
+                                    // Ignored
+                                  }
+                                }
+                              }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px", color: "#ff4d4f", borderColor: "#ff4d4f" }}>
+                                ❌ ยกเลิก
+                              </button>
+                            </>
+                          )}
+                          {contest.status === "ended" && (
+                            <>
+                              <button className="button" onClick={async () => {
+                                const newWinnerId = prompt("กรอก User ID ใหม่ของผู้ชนะ:");
+                                if (!newWinnerId) return;
+                                try {
+                                  const updateRes = await fetch(`/api/admin/contests/${contest.id}`, {
+                                    method: "PATCH",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ winner_user_id: newWinnerId }),
+                                  });
+                                  const updatePayload = await updateRes.json();
+                                  if (updatePayload.ok) {
+                                    loadContests();
+                                    alert("อัปเดตผู้ชนะแล้ว");
+                                  } else {
+                                    alert("ไม่สำเร็จ: " + updatePayload.error);
+                                  }
+                                } catch (e) {
+                                  alert("ไม่สำเร็จ");
+                                }
+                              }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px" }}>
+                                🔄 เปลี่ยนผู้ชนะ
+                              </button>
+                              <button className="button" onClick={async () => {
+                                if (confirm("ยืนยันลบกิจกรรมนี้?")) {
+                                  try {
+                                    const updateRes = await fetch(`/api/admin/contests/${contest.id}`, {
+                                      method: "DELETE",
+                                    });
+                                    const updatePayload = await updateRes.json();
+                                    if (updatePayload.ok) {
+                                      loadContests();
+                                    }
+                                  } catch (e) {
+                                    // Ignored
+                                  }
+                                }
+                              }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px", color: "#ff4d4f", borderColor: "#ff4d4f" }}>
+                                🗑️ ลบ
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {contest.description && (
+                        <div style={{ fontSize: "11px", color: "var(--text)", marginBottom: "8px" }}>
+                          {contest.description}
+                        </div>
+                      )}
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "11px" }}>
+                        <div>
+                          <span style={{ color: "var(--muted)" }}>วันเวลาสิ้นสุด:</span>
+                          <strong style={{ marginLeft: "4px", color: "var(--text-strong)" }}>
+                            {new Date(contest.end_time).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}
+                          </strong>
+                        </div>
+                        <div>
+                          <span style={{ color: "var(--muted)" }}>รางวัล:</span>
+                          <strong style={{ marginLeft: "4px", color: "var(--yellow)" }}>{contest.prize}</strong>
+                        </div>
+                      </div>
+
+                      {contest.winner_user_id && (
+                        <div style={{ marginTop: "12px", padding: "8px", background: "rgba(255, 225, 0, 0.1)", borderRadius: "6px", border: "1px solid rgba(255, 225, 0, 0.3)" }}>
+                          <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "4px" }}>
+                            🏆 ผู้ชนะ:
+                            <strong style={{ color: "var(--yellow)", marginLeft: "4px" }}>
+                              {contest.winner?.display_name || contest.winner?.shipping_name || "Unknown"}
+                            </strong>
+                          </div>
+                          {contest.winner && contest.winner.shipping_address ? (
+                            <div style={{ fontSize: "10px", color: "var(--text)", whiteSpace: "pre-wrap" }}>
+                              ✅ ที่อยู่สำหรับจัดส่ง:
+                              <div style={{ marginTop: "4px", color: "var(--text-strong)" }}>
+                                {contest.winner.shipping_name}<br />
+                                {contest.winner.shipping_address}<br />
+                                {contest.winner.shipping_zipcode}<br />
+                                {contest.winner.shipping_phone}
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: "10px", color: "var(--red)" }}>
+                              ⚠️ ผู้ชนะยังไม่ได้กรอกที่อยู่!
+                              <button className="button" style={{ marginLeft: "6px", fontSize: "9px", padding: "2px 6px", height: "20px" }} onClick={() => {
+                                if (confirm("ส่งข้อความแจ้งเตือนให้ผู้ชนะกรอกที่อยู่?")) {
+                                  // Just show alert for now
+                                  alert("ข้อความแจ้งเตือนจะถูกส่งให้ผู้ชนะ");
+                                }
+                              }}>
+                                แจ้งเตือน
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
