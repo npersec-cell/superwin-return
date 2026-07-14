@@ -57,6 +57,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "No users found to determine winner" });
     }
 
+    // Get winner user details
+    const { data: winnerUser } = await supabase
+      .from("users")
+      .select("id, display_name, email, shipping_name, shipping_address, shipping_zipcode, shipping_phone")
+      .eq("id", winnerUserId)
+      .single();
+
     // Update contest: set status to ended, set winner
     const { data, error: updateError } = await supabase
       .from("contests")
@@ -76,7 +83,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       ok: true, 
       data,
-      message: ` Contest ended! Winner: ${data.winner_user_id}`
+      winner: winnerUser,
+      message: ` Contest ended! Winner: ${winnerUser?.display_name || winnerUserId}`
     });
   } catch (e: any) {
     const message = e?.message || "Server error";

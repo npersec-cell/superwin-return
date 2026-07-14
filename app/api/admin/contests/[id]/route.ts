@@ -73,6 +73,13 @@ export async function PATCH(
         return NextResponse.json({ ok: false, error: "No users found to determine winner" });
       }
 
+      // Get winner user details
+      const { data: winnerUser } = await supabase
+        .from("users")
+        .select("id, display_name, email, shipping_name, shipping_address, shipping_zipcode, shipping_phone")
+        .eq("id", winnerUserId)
+        .single();
+
       const { data, error } = await supabase
         .from("contests")
         .update({
@@ -91,7 +98,8 @@ export async function PATCH(
       return NextResponse.json({ 
         ok: true, 
         data,
-        message: ` Contest ended! Winner (Top 1): ${winnerUserId}`
+        winner: winnerUser,
+        message: ` Contest ended! Winner (Top 1): ${winnerUser?.display_name || winnerUserId}`
       });
     }
 

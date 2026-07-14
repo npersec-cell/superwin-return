@@ -3021,7 +3021,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                     const updatePayload = await updateRes.json();
                                     if (updatePayload.ok) {
                                       loadContests();
-                                      alert("สิ้นสุดกิจกรรมแล้ว! ผู้ชนะ (Top 1) จะได้รับรางวัลทั้งหมด");
+                                      const winner = updatePayload.winner;
+                                      if (winner) {
+                                        alert(`สิ้นสุดกิจกรรมแล้ว!\n\n🏆 ผู้ชนะ: ${winner.display_name || winner.shipping_name || winner.id}\n\n${winner.shipping_address ? '✅ ที่อยู่สำหรับจัดส่ง:\n' + winner.shipping_name + '\n' + winner.shipping_address + '\n' + winner.shipping_zipcode + '\n' + winner.shipping_phone : '⚠️ ผู้ชนะยังไม่ได้กรอกที่อยู่!'}`);
+                                      } else {
+                                        alert("สิ้นสุดกิจกรรมแล้ว! ผู้ชนะ (Top 1) จะได้รับรางวัลทั้งหมด");
+                                      }
                                     } else {
                                       alert("ไม่สำเร็จ: " + updatePayload.error);
                                     }
