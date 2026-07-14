@@ -1829,7 +1829,7 @@ export default function SuperWinPrototype() {
           </div>
         </section>
       )}
-      {openModal === "history" && <HistoryModal history={history} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} setHistoryPage={(page) => { setHistoryPage(page); }} onClose={() => setOpenModal(null)} />}
+      {openModal === "history" && <HistoryModal history={history} running={running} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} setHistoryPage={(page) => { setHistoryPage(page); }} onClose={() => setOpenModal(null)} />}
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={closeProfile} />
       )}
@@ -2120,6 +2120,7 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
 
 function HistoryModal({
   history,
+  running,
   historyLoading,
   historyPage,
   historyPageSize,
@@ -2127,12 +2128,22 @@ function HistoryModal({
   onClose
 }: {
   history: HistoryItem[];
+  running: RunningPrediction[];
   historyLoading: boolean;
   historyPage: number;
   historyPageSize: number;
   setHistoryPage: (page: number) => void;
   onClose: () => void;
 }) {
+  // Create map of running predictions by question
+  const runningByQuestion = useMemo(() => {
+    const map = new Map<string, RunningPrediction>();
+    for (const item of running) {
+      map.set(item.question, item);
+    }
+    return map;
+  }, [running]);
+
   const totalPages = Math.max(1, Math.ceil(history.length / historyPageSize));
   const start = (historyPage - 1) * historyPageSize;
   const rows = history.slice(start, start + historyPageSize);
@@ -2147,13 +2158,27 @@ function HistoryModal({
               <div className="history-row-simple" style={{ justifyContent: "center", padding: "24px 0" }}>
                 <span className="micro" style={{ color: "var(--muted)" }}>Loading...</span>
               </div>
-            ) : rows.length ? rows.map((row, index) => (
-              <div key={`${row.date}-${row.time}-${index}`} className="history-row-simple">
-                <span className="history-date">{row.date}</span>
-                <span className="history-detail-simple">{row.detail || row.action}</span>
-                <b className={`history-amount ${row.amount >= 0 ? "accent-gold" : "accent-red"}`}>{money(row.amount)}</b>
-              </div>
-            )) : (
+            ) : rows.length ? rows.map((row, index) => {
+              // Try to find answer from running predictions using question from detail
+              const questionMatch = row.detail?.match(/Question:\s*(.+?)(?:\s*·|$)/i);
+              const question = questionMatch?.[1]?.trim();
+              const runningItem = question ? runningByQuestion.get(question) : undefined;
+              const answer = runningItem?.answer;
+              
+              // Replace "Status: Running" with "Answer: xxx" if found
+              let displayDetail = row.detail || row.action;
+              if (answer && displayDetail.includes("Status: Running")) {
+                displayDetail = displayDetail.replace("Status: Running", `Answer: ${answer}`);
+              }
+
+              return (
+                <div key={`${row.date}-${row.time}-${index}`} className="history-row-simple">
+                  <span className="history-date">{row.date}</span>
+                  <span className="history-detail-simple">{displayDetail}</span>
+                  <b className={`history-amount ${row.amount >= 0 ? "accent-gold" : "accent-red"}`}>{money(row.amount)}</b>
+                </div>
+              );
+            }) : (
               <div className="history-row-simple" style={{ justifyContent: "center", padding: "24px 0" }}>
                 <span className="micro" style={{ color: "var(--muted)" }}>No history</span>
               </div>
