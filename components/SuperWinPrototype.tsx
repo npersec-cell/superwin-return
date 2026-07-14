@@ -1802,11 +1802,11 @@ export default function SuperWinPrototype() {
                   </p>
                   <div style={{ fontSize: "11px" }}>
                     <div style={{ color: "var(--yellow)" }}>🏆 รางวัลทั้งหมด:</div>
-                    {contest.prize_1 && <div style={{ color: "var(--yellow)", marginTop: "2px" }}>🎁 {contest.prize_1}</div>}
+                    {contest.prize_1 && <div style={{ color: "var(--text)", marginTop: "2px" }}>🎁 {contest.prize_1}</div>}
                     {contest.prize_2 && <div style={{ color: "var(--text)", marginTop: "2px" }}>🎁 {contest.prize_2}</div>}
                     {contest.prize_3 && <div style={{ color: "var(--text)", marginTop: "2px" }}>🎁 {contest.prize_3}</div>}
-                    {contest.prize_4 && <div style={{ color: "var(--muted)", marginTop: "2px" }}>🎁 {contest.prize_4}</div>}
-                    {contest.prize_5 && <div style={{ color: "var(--muted)", marginTop: "2px" }}>🎁 {contest.prize_5}</div>}
+                    {contest.prize_4 && <div style={{ color: "var(--text)", marginTop: "2px" }}>🎁 {contest.prize_4}</div>}
+                    {contest.prize_5 && <div style={{ color: "var(--text)", marginTop: "2px" }}>🎁 {contest.prize_5}</div>}
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", fontSize: "11px" }}>
                     <div style={{ color: "var(--muted)" }}>
