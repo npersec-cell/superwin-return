@@ -25,7 +25,7 @@ type Question = {
 type HistoryItem = {
   date: string;
   time: string;
-  action: "Reload" | "Predict" | "Payout" | "Insured" | "Refund";
+  action: "Reload" | "Predict" | "Payout" | "Refund";
   detail: string;
   amount: number;
 };
@@ -48,7 +48,6 @@ type RunningPrediction = {
   returns: number;
   createdAt?: string;
   status: "Running";
-  insurance: boolean;
 };
 
 type ApiPredictionsResponse = {
@@ -78,7 +77,6 @@ type ApiRunningResponse = {
     estimatedReturnPercent: number | null;
     status: "running" | "won" | "lost" | "refunded";
     createdAt: string;
-    insurance: boolean;
   }>;
   error?: string;
 };
@@ -425,7 +423,6 @@ export default function SuperWinPrototype() {
   const claimFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [toast, setToast] = useState<Record<string, string>>({});
   const [predictingIds, setPredictingIds] = useState<Set<string>>(new Set());
-  const [insuranceEnabled, setInsuranceEnabled] = useState<Set<string>>(new Set());
   const [accountStatus, setAccountStatus] = useState<"demo" | "loading" | "synced" | "error">("demo");
   const [accountRole, setAccountRole] = useState<"user" | "admin">("user");
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
@@ -1059,8 +1056,7 @@ export default function SuperWinPrototype() {
       coins: item.amount,
       returns: item.estimatedReturnPercent || 0,
       createdAt: item.createdAt,
-      status: "Running" as const,
-      insurance: item.insurance || false
+      status: "Running" as const
     }));
     setRunning(formatted);
 
@@ -1203,8 +1199,7 @@ export default function SuperWinPrototype() {
           body: JSON.stringify({
             predictionId: question.id,
             optionId: answer.id,
-            amount,
-            insurance: insuranceEnabled.has(question.id)
+            amount
           })
         });
         const payload = (await response.json()) as ApiPredictResponse;
@@ -1214,7 +1209,6 @@ export default function SuperWinPrototype() {
         setCoins(payload.data.user.coinBalance);
         setProfit(payload.data.user.lifetimeProfit);
         setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
-        setInsuranceEnabled((prev) => { const next = new Set(prev); next.delete(question.id); return next; });
         setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${answer.name} · now running` }));
         await loadRunningPredictions();
       } catch (error) {
@@ -1240,13 +1234,11 @@ export default function SuperWinPrototype() {
         answer: answer.name,
         coins: amount,
         returns: answer.returns,
-        status: "Running" as const,
-        insurance: insuranceEnabled.has(question.id)
+        status: "Running" as const
       },
       ...current
     ].slice(0, 30));
     setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
-    setInsuranceEnabled((prev) => { const next = new Set(prev); next.delete(question.id); return next; });
     setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${answer.name} · now running` }));
   }
 
@@ -1502,51 +1494,18 @@ export default function SuperWinPrototype() {
                               </div>
                             </div>
 
-                            {/* Amount chips + Insurance */}
-                            <div className="amount-chips-new" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                              <div style={{ display: "flex", gap: "8px" }}>
-                                {[5, 10, 50, 100, 500].map((amount) => (
-                                  <button key={amount} className="chip" onClick={(event) => {
-                                    event.stopPropagation();
-                                    setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount }));
-                                  }}>{amount}</button>
-                                ))}
-                                <button className="chip" style={{ opacity: 0.6 }} onClick={(event) => {
+                            {/* Amount chips */}
+                            <div className="amount-chips-new" style={{ display: "flex", gap: "8px" }}>
+                              {[5, 10, 50, 100, 500].map((amount) => (
+                                <button key={amount} className="chip" onClick={(event) => {
                                   event.stopPropagation();
-                                  setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
-                                }}>Clear</button>
-                              </div>
-                              <div className="insurance-row" style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-                                <label style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "11px", whiteSpace: "nowrap" }}>
-                                  <img src="/vest-3.png" alt="" width={14} height={14} style={{ objectFit: "contain", opacity: 0.7 }} />
-                                  <input
-                                    type="checkbox"
-                                    checked={insuranceEnabled.has(question.id)}
-                                    onChange={(e) => {
-                                      const next = new Set(insuranceEnabled);
-                                      if (e.target.checked) {
-                                        next.add(question.id);
-                                      } else {
-                                        next.delete(question.id);
-                                      }
-                                      setInsuranceEnabled(next);
-                                    }}
-                                    disabled={coins < getInsuranceCost(coinInputs[question.id] || 0)}
-                                    style={{ cursor: "pointer", width: "14px", height: "14px" }}
-                                  />
-                                  <span>Insure -50%</span>
-                                </label>
-                                {insuranceEnabled.has(question.id) && (coinInputs[question.id] || 0) > 0 && (
-                                  <span style={{ fontSize: "10px", color: "var(--yellow)", opacity: 0.9, whiteSpace: "nowrap" }}>
-                                    -{getInsuranceCost(coinInputs[question.id] || 0)} <img src="/ammo-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", verticalAlign: "middle" }} />
-                                  </span>
-                                )}
-                                {!insuranceEnabled.has(question.id) && (coinInputs[question.id] || 0) > 0 && coins < getInsuranceCost(coinInputs[question.id] || 0) && (
-                                  <span style={{ fontSize: "10px", color: "#888", opacity: 0.7, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "3px" }}>
-                                    Need {getInsuranceCost(coinInputs[question.id] || 0) - coins} <img src="/ammo-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", verticalAlign: "middle" }} />
-                                  </span>
-                                )}
-                              </div>
+                                  setCoinInputs((current) => ({ ...current, [question.id]: Number(current[question.id] || 0) + amount }));
+                                }}>{amount}</button>
+                              ))}
+                              <button className="chip" style={{ opacity: 0.6 }} onClick={(event) => {
+                                event.stopPropagation();
+                                setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
+                              }}>Clear</button>
                             </div>
 
                             {/* Big predict button */}
@@ -1905,7 +1864,7 @@ function RunningModal({ running, runningPage, runningPageSize, setRunningPage, o
                 <div key={item.id} className="running-row">
                   <div className="running-detail">
                     <strong>{item.question}</strong>
-                    <span className="meta">{item.answer} · {item.coins} <img src="/ammo-icon.webp" alt="" width={14} height={14} style={{ objectFit: "contain", verticalAlign: "middle" }} /> · Predict time: {formattedDate}{item.insurance && <span style={{ fontSize: "10px", color: "var(--yellow)", marginLeft: "6px" }}>🛡️ Insured</span>}</span>
+                    <span className="meta">{item.answer} · {item.coins} <img src="/ammo-icon.webp" alt="" width={14} height={14} style={{ objectFit: "contain", verticalAlign: "middle" }} /> · Predict time: {formattedDate}</span>
                   </div>
                   <b className="running-label">Running</b>
                 </div>
@@ -2196,7 +2155,7 @@ function HistoryModal({
         <div className="modal-head"><h3>Coin History</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body history-modal-body">
           <div className="filter-row">
-            {(["All", "Predict", "Reload", "Payout", "Insured"] as const).map((filter) => (
+            {(["All", "Predict", "Reload", "Payout"] as const).map((filter) => (
               <button key={filter} className={`button ${historyFilter === filter ? "active" : ""}`} onClick={() => { setHistoryFilter(filter); setHistoryPage(1); }}>{filter}</button>
             ))}
           </div>

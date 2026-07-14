@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       p_prediction_id: body.predictionId,
       p_option_id: body.optionId,
       p_amount: body.amount,
-      p_insurance: body.insurance,
+      p_insurance: false, // Insurance feature removed
     });
 
     if (rpcError) {
@@ -93,7 +93,6 @@ export async function POST(request: NextRequest) {
           predictionId: body.predictionId,
           optionId: body.optionId,
           amount: resultData.amount,
-          insurance: resultData.insurance,
           question: prediction.data?.question || "",
           tournamentName: prediction.data?.tournament_name || "",
           optionLabel: option?.label || "",

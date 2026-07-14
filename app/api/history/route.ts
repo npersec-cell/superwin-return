@@ -17,7 +17,6 @@ function formatAction(type: string) {
   if (type === "predict") return "Predict";
   if (type === "payout") return "Payout";
   if (type === "refund") return "Refund";
-  if (type === "insurance" || type === "insurance_refund") return "Insured";
   return "Adjustment";
 }
 
@@ -51,8 +50,6 @@ export async function GET(request: NextRequest) {
         query = query.eq("type", "claim");
       } else if (f === "payout") {
         query = query.eq("type", "payout");
-      } else if (f === "insured") {
-        query = query.in("type", ["insurance", "insurance_refund"]);
       } else {
         query = query.eq("type", f);
       }
