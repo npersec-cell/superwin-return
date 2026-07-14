@@ -829,7 +829,7 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
                 <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
                   <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Orange Ammo</span>
                   <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {compact(profile.coinBalance || 0)}
+                    {compact(Number.isNaN(profile.coinBalance) || profile.coinBalance === null ? 0 : Number(profile.coinBalance))}
                   </strong>
                   <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
                     #{profile.mostOrangeAmmoRank || "?"}
@@ -847,7 +847,7 @@ function ProfileModal({ profile, onClose }: { profile: UserProfileStats | null; 
                 <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
                   <span style={{ fontSize: "9px", color: "var(--muted)" }}>Highest Single Win</span>
                   <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {compact(profile.highestSingleWin || 0)}
+                    {compact(Number.isNaN(profile.highestSingleWin) || profile.highestSingleWin === null ? 0 : Number(profile.highestSingleWin))}
                   </strong>
                   <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
                     #{profile.highestSingleWinRank || "?"}
