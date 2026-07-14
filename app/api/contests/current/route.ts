@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     if (error && error.code !== "PGRST116") {
       console.error("Error fetching contest:", error);
-      return NextResponse.json({ ok: false, error: "Failed to fetch contest" });
+      return NextResponse.json({ ok: false, error: error.message || "Failed to fetch contest" });
     }
 
     // If no active contest, check for recently ended contests (within 7 days)
@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
 
       if (endedError && endedError.code !== "PGRST116") {
         console.error("Error fetching ended contest:", endedError);
+        return NextResponse.json({ ok: false, error: endedError.message || "Failed to fetch contest" });
       }
 
       return NextResponse.json({ ok: true, data: endedContest || null, ended: true });
