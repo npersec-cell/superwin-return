@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
         id: row.id,
         date: formatDate(row.created_at),
         action: formatAction(row.type),
+        detail: row.detail || "",
         amount: row.amount,
         balanceAfter: row.balance_after
       };
