@@ -2666,6 +2666,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           <th style={{ padding: "6px 8px", cursor: "pointer", textAlign: "right", whiteSpace: "nowrap" }} onClick={() => { setUserPage(1); setUserSort(s => ({ key: "profitScore", dir: s.key === "profitScore" && s.dir === "asc" ? "desc" : "asc" })); }}>Profit Score ⬍</th>
                           <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>Admin</th>
                           <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserPage(1); setUserSort(s => ({ key: "createdAt", dir: s.key === "createdAt" && s.dir === "asc" ? "desc" : "asc" })); }}>สร้างเมื่อ ⬍</th>
+                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>ที่อยู่</th>
                           <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>Claim ล่าสุด</th>
                         </tr>
                       </thead>
@@ -2694,6 +2695,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                               <td style={{ padding: "8px", textAlign: "right", fontFamily: "var(--mono)", color: "var(--green)" }}>{Number(u.profitScore || 0).toLocaleString()}</td>
                               <td style={{ padding: "8px", textAlign: "center" }}>{u.isAdmin ? "✅" : "-"}</td>
                               <td style={{ padding: "8px", color: "var(--muted)", fontSize: "10px", whiteSpace: "nowrap" }}>{u.createdAt ? new Date(u.createdAt).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "-"}</td>
+                              <td style={{ padding: "8px", color: "var(--text)", fontSize: "10px", whiteSpace: "nowrap", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis" }} title={u.shippingAddress || u.shippingName || undefined}>
+                                {u.shippingName ? `${u.shippingName}${u.shippingAddress ? ', ' + u.shippingAddress.slice(0, 30) + '...' : ''}` : (u.shippingAddress ? u.shippingAddress.slice(0, 30) + '...' : '-')}
+                              </td>
                               <td style={{ padding: "8px", color: "var(--muted)", fontSize: "10px", whiteSpace: "nowrap" }}>{u.lastClaimAt ? new Date(u.lastClaimAt).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "-"}</td>
                             </tr>
                           ));

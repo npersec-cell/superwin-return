@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from("users")
-      .select("id, display_name, email, role, coin_balance, created_at, last_claim_at")
+      .select("id, display_name, email, role, coin_balance, created_at, last_claim_at, shipping_name, shipping_address, shipping_zipcode, shipping_phone")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -39,6 +39,10 @@ export async function GET(request: NextRequest) {
           profitScore: profitScore || 0,
           createdAt: u.created_at,
           lastClaimAt: u.last_claim_at,
+          shippingName: u.shipping_name,
+          shippingAddress: u.shipping_address,
+          shippingZipcode: u.shipping_zipcode,
+          shippingPhone: u.shipping_phone,
         };
       })
     );
