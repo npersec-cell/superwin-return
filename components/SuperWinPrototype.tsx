@@ -2268,5 +2268,5 @@ function HistoryModal({
         </div>
       </div>
     </section>
-  </main>
-);
+  );
+}
