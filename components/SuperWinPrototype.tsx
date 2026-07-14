@@ -718,11 +718,12 @@ export default function SuperWinPrototype() {
 
   useEffect(() => {
     const tick = () => {
-      const claimRemaining = nextClaimAt - Date.now();
-      if (claimRemaining <= 0) {
+      // Safety check: if nextClaimAt is in the past or invalid, allow claiming
+      if (nextClaimAt <= Date.now()) {
         setClaimLabel("Ready");
         setClaimFlash(false);
       } else {
+        const claimRemaining = nextClaimAt - Date.now();
         const minutes = Math.floor(claimRemaining / 60000);
         const seconds = Math.floor((claimRemaining % 60000) / 1000);
         setClaimLabel(`${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`);
@@ -1145,6 +1146,7 @@ export default function SuperWinPrototype() {
         const response = await fetch("/api/claim", { method: "POST" });
         const payload = (await response.json()) as ApiClaimResponse;
         if (!response.ok || !payload.ok || !payload.data) {
+          console.error("[Claim API Error]", payload.error);
           throw new Error(payload.error || "Claim failed");
         }
         setCoins(payload.data.user.coinBalance);
@@ -1156,7 +1158,8 @@ export default function SuperWinPrototype() {
         setClaimFlash(true);
         if (claimFlashTimer.current) clearTimeout(claimFlashTimer.current);
         claimFlashTimer.current = setTimeout(() => { setClaimFlash(false); setOpenModal(null); }, 5000);
-      } catch {
+      } catch (err) {
+        console.error("[Claim Error]", err);
         setAccountStatus("error");
       }
       return;
