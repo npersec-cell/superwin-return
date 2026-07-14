@@ -874,6 +874,11 @@ export default function SuperWinPrototype() {
   }
 
   async function handleOpenProfile(userId: string, userName: string) {
+    // Prevent double opening - if same user's modal is already open, do nothing
+    if (selectedProfile && selectedProfile.name === userName && !selectedProfile.loading) {
+      return;
+    }
+    
     // Clear any existing refresh interval
     if (profileRefreshRef.current) { clearInterval(profileRefreshRef.current); profileRefreshRef.current = null; }
 
@@ -1589,7 +1594,18 @@ export default function SuperWinPrototype() {
                     <div 
                       key={row.name} 
                       className="rank" 
-                      onClick={() => isClickable && handleOpenProfile(targetId, row.name)}
+                      onClick={(e) => {
+                        // Prevent double click / rapid clicks
+                        if (!isClickable) return;
+                        // Prevent default and stop propagation to avoid double triggers
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Check if modal is already open for this user
+                        if (selectedProfile && selectedProfile.name === (row.displayName || maskName(row.name))) {
+                          return;
+                        }
+                        handleOpenProfile(targetId, row.name);
+                      }}
                       style={{ cursor: isClickable ? "pointer" : "default" }}
                       title={isClickable ? `Click to view ${row.name}'s stats` : undefined}
                     >
