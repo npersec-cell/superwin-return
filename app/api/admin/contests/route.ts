@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 
+// Convert datetime-local input (YYYY-MM-DDTHH:mm) to ISO string with Bangkok timezone (GMT+7)
+function toBangkokISO(datetimeLocal: string): string {
+  // datetime-local format: "YYYY-MM-DDTHH:mm"
+  // Add ":00" and assume it's already in GMT+7, convert to UTC
+  const date = new Date(datetimeLocal + ":00");
+  return date.toISOString();
+}
+
 export async function GET() {
   try {
     await requireAdmin();
@@ -31,10 +39,10 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
 
     const body = await request.json();
-    const { name, description, end_time, prize } = body;
+    const { name, description, end_time, prize_1, prize_2, prize_3, prize_4, prize_5 } = body;
 
-    if (!name || !end_time || !prize) {
-      return NextResponse.json({ ok: false, error: "Missing required fields: name, end_time, prize" });
+    if (!name || !end_time || !prize_1) {
+      return NextResponse.json({ ok: false, error: "Missing required fields: name, end_time, prize_1" });
     }
 
     const { data, error } = await supabase
@@ -42,8 +50,12 @@ export async function POST(request: NextRequest) {
       .insert({
         name,
         description,
-        end_time: new Date(end_time),
-        prize,
+        end_time: toBangkokISO(end_time),
+        prize_1,
+        prize_2,
+        prize_3,
+        prize_4,
+        prize_5,
         status: "active",
       })
       .select()

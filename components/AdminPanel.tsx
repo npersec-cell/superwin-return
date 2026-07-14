@@ -287,15 +287,19 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [showNewContestForm, setShowNewContestForm] = useState(false);
   const [newContestName, setNewContestName] = useState("");
   const [newContestDescription, setNewContestDescription] = useState("");
-  const [newContestPrize, setNewContestPrize] = useState("");
   const [newContestEndTime, setNewContestEndTime] = useState(() => {
     const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     return d.toISOString().slice(0, 16);
   });
+  const [newContestPrize1, setNewContestPrize1] = useState("");
+  const [newContestPrize2, setNewContestPrize2] = useState("");
+  const [newContestPrize3, setNewContestPrize3] = useState("");
+  const [newContestPrize4, setNewContestPrize4] = useState("");
+  const [newContestPrize5, setNewContestPrize5] = useState("");
 
   async function handleCreateContest() {
-    if (!newContestName.trim() || !newContestPrize.trim() || !newContestEndTime) {
-      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+    if (!newContestName.trim() || !newContestEndTime || !newContestPrize1.trim()) {
+      alert("กรุณากรอกข้อมูลให้ครบถ้วน (ชื่อกิจกรรม, วันเวลาสิ้นสุด, รางวัลที่ 1)");
       return;
     }
     try {
@@ -305,8 +309,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({
           name: newContestName.trim(),
           description: newContestDescription.trim(),
-          end_time: new Date(newContestEndTime.replace(" ", "T") + ":00").toISOString(),
-          prize: newContestPrize.trim(),
+          end_time: newContestEndTime.replace(" ", "T") + ":00", // GMT+7
+          prize_1: newContestPrize1.trim(),
+          prize_2: newContestPrize2.trim() || null,
+          prize_3: newContestPrize3.trim() || null,
+          prize_4: newContestPrize4.trim() || null,
+          prize_5: newContestPrize5.trim() || null,
         }),
       });
       const payload = await response.json();
@@ -314,7 +322,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         setShowNewContestForm(false);
         setNewContestName("");
         setNewContestDescription("");
-        setNewContestPrize("");
+        setNewContestEndTime(() => {
+          const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+          return d.toISOString().slice(0, 16);
+        });
+        setNewContestPrize1("");
+        setNewContestPrize2("");
+        setNewContestPrize3("");
+        setNewContestPrize4("");
+        setNewContestPrize5("");
         loadContests();
       } else {
         alert("สร้างกิจกรรมไม่สำเร็จ: " + (payload.error || ""));
@@ -2697,18 +2713,62 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รางวัล Top 1 *</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รางวัลที่ 1 (🥇 Top 1) *</label>
                       <input
                         type="text"
                         className="button"
                         placeholder="เช่น: 100 USDT"
-                        value={newContestPrize}
-                        onChange={(e) => setNewContestPrize(e.target.value)}
+                        value={newContestPrize1}
+                        onChange={(e) => setNewContestPrize1(e.target.value)}
                         style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>วันเวลาสิ้นสุด *</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รางวัลที่ 2 (🥈 Top 2)</label>
+                      <input
+                        type="text"
+                        className="button"
+                        placeholder="เช่น: 50 USDT ( facultative)"
+                        value={newContestPrize2}
+                        onChange={(e) => setNewContestPrize2(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รางวัลที่ 3 (🥉 Top 3)</label>
+                      <input
+                        type="text"
+                        className="button"
+                        placeholder="เช่น: 30 USDT ( facultative)"
+                        value={newContestPrize3}
+                        onChange={(e) => setNewContestPrize3(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รางวัลที่ 4 (Top 4)</label>
+                      <input
+                        type="text"
+                        className="button"
+                        placeholder=" facultative"
+                        value={newContestPrize4}
+                        onChange={(e) => setNewContestPrize4(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รางวัลที่ 5 (Top 5)</label>
+                      <input
+                        type="text"
+                        className="button"
+                        placeholder=" facultative"
+                        value={newContestPrize5}
+                        onChange={(e) => setNewContestPrize5(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>วันเวลาสิ้นสุด * (GMT+7)</label>
                       <input
                         type="datetime-local"
                         className="button"
@@ -2865,7 +2925,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         </div>
                         <div>
                           <span style={{ color: "var(--muted)" }}>รางวัล:</span>
-                          <strong style={{ marginLeft: "4px", color: "var(--yellow)" }}>{contest.prize}</strong>
+                          <div style={{ marginLeft: "4px", marginTop: "4px" }}>
+                            {contest.prize_1 && <div style={{ color: "var(--yellow)", fontSize: "11px" }}>🥇 #1: {contest.prize_1}</div>}
+                            {contest.prize_2 && <div style={{ color: "var(--text)", fontSize: "11px" }}>🥈 #2: {contest.prize_2}</div>}
+                            {contest.prize_3 && <div style={{ color: "var(--text)", fontSize: "11px" }}>🥉 #3: {contest.prize_3}</div>}
+                            {contest.prize_4 && <div style={{ color: "var(--muted)", fontSize: "11px" }}>#4: {contest.prize_4}</div>}
+                            {contest.prize_5 && <div style={{ color: "var(--muted)", fontSize: "11px" }}>#5: {contest.prize_5}</div>}
+                            {!contest.prize_1 && !contest.prize_2 && !contest.prize_3 && !contest.prize_4 && !contest.prize_5 && <strong style={{ color: "var(--yellow)" }}>ไม่มีรางวัล</strong>}
+                          </div>
                         </div>
                       </div>
 

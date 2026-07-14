@@ -1793,19 +1793,24 @@ export default function SuperWinPrototype() {
             {contest && contest.status === "active" && (
               <section className="panel" style={{ border: "1px solid var(--yellow)", background: "linear-gradient(135deg, rgba(255,225,0,0.06) 0%, var(--card) 60%)" }}>
                 <div className="panel-head">
-                  <h3 style={{ color: "var(--yellow)" }}>🎁 กิจกรรมชิงรางวัล</h3>
-                  <span className="micro" style={{ color: "var(--yellow)", opacity: 0.8 }}>All Time Top 1 ณ เวลาสิ้นสุด</span>
+                  <h3 style={{ color: "var(--yellow)" }}>กิจกรรมชิงรางวัล</h3>
+                  <span className="micro" style={{ color: "var(--yellow)", opacity: 0.8 }}>All Time Top 5 ณ เวลาสิ้นสุด (GMT+7)</span>
                 </div>
                 <div style={{ padding: "14px 16px", display: "grid", gap: "10px" }}>
                   <p style={{ fontSize: "12px", color: "var(--text)", lineHeight: 1.5, margin: 0 }}>
-                    {contest.description || "แข่งขันเพื่อคว้ารางวัล! ผู้ที่อยู่อันดับ 1 ณ เวลาสิ้นสุดจะได้รับรางวัล"}
+                    {contest.description || "แข่งขันเพื่อคว้ารางวัล! ผู้ที่อยู่อันดับ 1-5 ณ เวลาสิ้นสุดจะได้รับรางวัล"}
                   </p>
+                  <div style={{ fontSize: "11px" }}>
+                    <div style={{ color: "var(--yellow)" }}>🏆 รางวัล:</div>
+                    {contest.prize_1 && <div style={{ color: "var(--yellow)", marginTop: "2px" }}>🥇 #1: {contest.prize_1}</div>}
+                    {contest.prize_2 && <div style={{ color: "var(--text)", marginTop: "2px" }}>🥈 #2: {contest.prize_2}</div>}
+                    {contest.prize_3 && <div style={{ color: "var(--text)", marginTop: "2px" }}>🥉 #3: {contest.prize_3}</div>}
+                    {contest.prize_4 && <div style={{ color: "var(--muted)", marginTop: "2px" }}>#4: {contest.prize_4}</div>}
+                    {contest.prize_5 && <div style={{ color: "var(--muted)", marginTop: "2px" }}>#5: {contest.prize_5}</div>}
+                  </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", fontSize: "11px" }}>
                     <div style={{ color: "var(--muted)" }}>
-                      🏆 รางวัล: <strong style={{ color: "var(--yellow)" }}>{contest.prize}</strong>
-                    </div>
-                    <div style={{ color: "var(--muted)" }}>
-                      ⏰ วันเวลาสิ้นสุด: <strong style={{ color: "var(--text-strong)" }}>{new Date(contest.end_time).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}</strong>
+                      ⏰ วันเวลาสิ้นสุด (GMT+7): <strong style={{ color: "var(--text-strong)" }}>{new Date(contest.end_time).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}</strong>
                     </div>
                   </div>
                   {/* Countdown */}
