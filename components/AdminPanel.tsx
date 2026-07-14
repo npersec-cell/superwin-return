@@ -285,6 +285,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [contests, setContests] = useState<any[]>([]);
   const [contestsLoading, setContestsLoading] = useState(false);
   const [showNewContestForm, setShowNewContestForm] = useState(false);
+  const [showEditContestForm, setShowEditContestForm] = useState(false);
+  const [editingContestId, setEditingContestId] = useState<string | null>(null);
   const [newContestName, setNewContestName] = useState("");
   const [newContestDescription, setNewContestDescription] = useState("");
   const [newContestEndTime, setNewContestEndTime] = useState(() => {
@@ -337,6 +339,55 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       }
     } catch {
       alert("สร้างกิจกรรมไม่สำเร็จ");
+    }
+  }
+
+  async function handleEditContest() {
+    if (!newContestName.trim() || !newContestEndTime || !newContestPrize1.trim()) {
+      alert("กรุณากรอกข้อมูลให้ครบถ้วน (ชื่อกิจกรรม, วันเวลาสิ้นสุด, รางวัลที่ 1)");
+      return;
+    }
+    if (!editingContestId) {
+      alert("ไม่พบกิจกรรมที่จะแก้ไข");
+      return;
+    }
+    try {
+      const response = await fetch("/api/admin/contests", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingContestId,
+          name: newContestName.trim(),
+          description: newContestDescription.trim(),
+          end_time: newContestEndTime.replace(" ", "T") + ":00", // GMT+7
+          prize_1: newContestPrize1.trim(),
+          prize_2: newContestPrize2.trim() || null,
+          prize_3: newContestPrize3.trim() || null,
+          prize_4: newContestPrize4.trim() || null,
+          prize_5: newContestPrize5.trim() || null,
+        }),
+      });
+      const payload = await response.json();
+      if (payload.ok) {
+        setShowEditContestForm(false);
+        setEditingContestId(null);
+        setNewContestName("");
+        setNewContestDescription("");
+        setNewContestEndTime(() => {
+          const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+          return d.toISOString().slice(0, 16);
+        });
+        setNewContestPrize1("");
+        setNewContestPrize2("");
+        setNewContestPrize3("");
+        setNewContestPrize4("");
+        setNewContestPrize5("");
+        loadContests();
+      } else {
+        alert("แก้ไขกิจกรรมไม่สำเร็จ: " + (payload.error || ""));
+      }
+    } catch {
+      alert("แก้ไขกิจกรรมไม่สำเร็จ");
     }
   }
 
@@ -2781,11 +2832,131 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       />
                     </div>
                     <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                      <button type="button" className="button" onClick={() => setShowNewContestForm(false)} style={{ flex: 1, height: "30px", fontSize: "11px" }}>
+                      <button type="button" className="button" onClick={() => {
+                        setShowNewContestForm(false);
+                        setShowEditContestForm(false);
+                        setEditingContestId(null);
+                      }} style={{ flex: 1, height: "30px", fontSize: "11px" }}>
                         ยกเลิก
                       </button>
-                      <button type="button" className="button gold" onClick={handleCreateContest} style={{ flex: 1, height: "30px", fontSize: "11px" }}>
-                        สร้าง
+                      {editingContestId ? (
+                        <button type="button" className="button gold" onClick={handleEditContest} style={{ flex: 1, height: "30px", fontSize: "11px" }}>
+                          บันทึก
+                        </button>
+                      ) : (
+                        <button type="button" className="button gold" onClick={handleCreateContest} style={{ flex: 1, height: "30px", fontSize: "11px" }}>
+                          สร้าง
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Edit Contest Modal */}
+              {showEditContestForm && editingContestId && (
+                <section style={{ border: "1px solid var(--yellow)", background: "rgba(255,225,0,0.05)", borderRadius: "8px", padding: "12px", marginBottom: "16px" }}>
+                  <h4 style={{ color: "var(--yellow)", marginBottom: "12px", fontSize: "12px" }}>✏️ แก้ไขกิจกรรม</h4>
+                  <div style={{ display: "grid", gap: "10px" }}>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>ชื่อกิจกรรม *</label>
+                      <input
+                        type="text"
+                        className="button"
+                        placeholder="ชื่อกิจกรรม"
+                        value={newContestName}
+                        onChange={(e) => setNewContestName(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รายละเอียด</label>
+                      <input
+                        type="text"
+                        className="button"
+                        placeholder="รายละเอียด ( facultative)"
+                        value={newContestDescription}
+                        onChange={(e) => setNewContestDescription(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🏆 รางวัลที่ 1 *</label>
+                      <input
+                        type="text"
+                        className="button"
+                        placeholder="เช่น: ตั๋ว concert, เสื้อ, ถ้วย..."
+                        value={newContestPrize1}
+                        onChange={(e) => setNewContestPrize1(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 2</label>
+                      <input
+                        type="text"
+                        className="button"
+                        placeholder=" facultative"
+                        value={newContestPrize2}
+                        onChange={(e) => setNewContestPrize2(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 3</label>
+                      <input
+                        type="text"
+                        className="button"
+                        placeholder=" facultative"
+                        value={newContestPrize3}
+                        onChange={(e) => setNewContestPrize3(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 4</label>
+                      <input
+                        type="text"
+                        className="button"
+                        placeholder=" facultative"
+                        value={newContestPrize4}
+                        onChange={(e) => setNewContestPrize4(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 5</label>
+                      <input
+                        type="text"
+                        className="button"
+                        placeholder=" facultative"
+                        value={newContestPrize5}
+                        onChange={(e) => setNewContestPrize5(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div style={{ color: "var(--yellow)", fontSize: "10px", padding: "4px 8px", background: "rgba(255,225,0,0.05)", borderRadius: "4px" }}>
+                      ⚠️ ผู้ชนะ (Top 1) จะได้รับรางวัลทั้งหมด 5 อย่าง
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>วันเวลาสิ้นสุด * (GMT+7)</label>
+                      <input
+                        type="datetime-local"
+                        className="button"
+                        value={newContestEndTime}
+                        onChange={(e) => setNewContestEndTime(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                      <button type="button" className="button" onClick={() => {
+                        setShowEditContestForm(false);
+                        setEditingContestId(null);
+                      }} style={{ flex: 1, height: "30px", fontSize: "11px" }}>
+                        ยกเลิก
+                      </button>
+                      <button type="button" className="button gold" onClick={handleEditContest} style={{ flex: 1, height: "30px", fontSize: "11px" }}>
+                        บันทึก
                       </button>
                     </div>
                   </div>
@@ -2818,47 +2989,20 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         <div style={{ display: "flex", gap: "6px" }}>
                           {contest.status === "active" && (
                             <>
-                              <button className="button" onClick={async () => {
+                              <button className="button" onClick={() => {
                                 // Open edit modal
-                                const newName = prompt("ชื่อกิจกรรม:", contest.name);
-                                const newDesc = prompt("รายละเอียด ( facultative ):", contest.description || "");
-                                const newEndTime = prompt("วันเวลาสิ้นสุด ( YYYY-MM-DDTHH:mm , Bangkok timezone ):", 
-                                  new Date(new Date(contest.end_time).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 16));
-                                const prize1 = prompt("รางวัลที่ 1:", contest.prize_1);
-                                const prize2 = prompt("รางวัลที่ 2:", contest.prize_2);
-                                const prize3 = prompt("รางวัลที่ 3:", contest.prize_3);
-                                const prize4 = prompt("รางวัลที่ 4:", contest.prize_4);
-                                const prize5 = prompt("รางวัลที่ 5:", contest.prize_5);
-                                if (!newName || !newEndTime || !prize1) {
-                                  alert("กรุณากรอกข้อมูลให้ครบ (ชื่อ, วันเวลาสิ้นสุด, รางวัลที่ 1)");
-                                  return;
-                                }
-                                try {
-                                  const res = await fetch("/api/admin/contests", {
-                                    method: "PUT",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({
-                                      id: contest.id,
-                                      name: newName,
-                                      description: newDesc,
-                                      end_time: newEndTime,
-                                      prize_1: prize1,
-                                      prize_2: prize2,
-                                      prize_3: prize3,
-                                      prize_4: prize4,
-                                      prize_5: prize5,
-                                    }),
-                                  });
-                                  const payload = await res.json();
-                                  if (payload.ok) {
-                                    loadContests();
-                                    alert("แก้ไขกิจกรรมสำเร็จ");
-                                  } else {
-                                    alert("แก้ไขกิจกรรมไม่สำเร็จ: " + (payload.error || ""));
-                                  }
-                                } catch (e) {
-                                  alert("แก้ไขกิจกรรมไม่สำเร็จ");
-                                }
+                                setEditingContestId(contest.id);
+                                setNewContestName(contest.name || "");
+                                setNewContestDescription(contest.description || "");
+                                // Convert UTC to GMT+7 for datetime-local
+                                const localDate = new Date(new Date(contest.end_time).getTime() + 7 * 60 * 60 * 1000);
+                                setNewContestEndTime(localDate.toISOString().slice(0, 16));
+                                setNewContestPrize1(contest.prize_1 || "");
+                                setNewContestPrize2(contest.prize_2 || "");
+                                setNewContestPrize3(contest.prize_3 || "");
+                                setNewContestPrize4(contest.prize_4 || "");
+                                setNewContestPrize5(contest.prize_5 || "");
+                                setShowEditContestForm(true);
                               }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px" }}>
                                 ✏️ แก้ไข
                               </button>
