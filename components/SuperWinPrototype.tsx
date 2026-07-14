@@ -2288,13 +2288,13 @@ function HistoryModal({
         </div>
       </div>
     </section>
-
-    {/* Winner Notification Popup */}
-    {winnerNotification && (
-      <WinnerNotificationPopup 
-        contest={winnerNotification} 
-        onClose={() => setWinnerNotification(null)} 
-      />
-    )}
   </main>
+
+  {/* Winner Notification Popup */}
+  {winnerNotification && (
+    <WinnerNotificationPopup 
+      contest={winnerNotification} 
+      onClose={() => setWinnerNotification(null)} 
+    />
+  )}
 );
