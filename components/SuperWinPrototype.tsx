@@ -1907,38 +1907,36 @@ function ProfileModal({
         </div>
         <div className="modal-body" style={{ gap: "12px", minHeight: "200px" }}>
           {profile.loading ? (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "160px" }}>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "180px" }}>
               <div className="spinner" />
             </div>
-          ) : (
+          ) : profile ? (
             <>
-              {/* Quick Stats Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>WIN RATE</span>
-                  <strong style={{ display: "block", fontSize: "18px", color: "var(--yellow)", marginTop: "4px" }}>
-                    {profile.winRate}%
-                  </strong>
-                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    {profile.wonCount} won · {profile.lostCount} lost
-                  </span>
-                </div>
-                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>RANK</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
-                    <img src={profile.rankIcon} alt="" width={20} height={20} style={{ objectFit: "contain" }} />
-                    <strong style={{ fontSize: "16px", color: "var(--yellow)" }}>
-                      {profile.rankName}
+              {/* RANK - Full Width, Top */}
+              <div className="info-block" style={{ padding: "14px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", textAlign: "center" }}>
+                <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>OVERALL RANK</span>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginTop: "8px" }}>
+                  <img src={profile.rankIcon} alt="" width={28} height={28} style={{ objectFit: "contain" }} />
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <strong style={{ fontSize: "22px", color: "var(--yellow)", fontWeight: 700 }}>
+                      #{profile.overallRank}
                     </strong>
+                    <span style={{ fontSize: "12px", color: "var(--muted)" }}>{profile.rankName}</span>
                   </div>
-                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    #{profile.rank} ของ {profile.totalUsers} คน
-                  </span>
                 </div>
               </div>
 
-              {/* Leaderboard Stats Grid - 6 columns, 2 rows */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px" }}>
+              {/* Stats Grid - 6 columns, 2 rows */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px" }}>
+                <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>WIN RATE</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px" }}>
+                    {profile.winRate}%
+                  </strong>
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                    {profile.wonCount} won · {profile.lostCount} lost
+                  </span>
+                </div>
                 <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
                   <span style={{ fontSize: "9px", color: "var(--muted)" }}>Overall</span>
                   <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
@@ -2004,29 +2002,19 @@ function ProfileModal({
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           {(() => {
-                            // ใช้ net จาก API ถ้ามี (คำนวณจาก DB แล้ว), ถ้าไม่มี fallback คำนวณเอง
                             const net = (h as any).net !== undefined
                               ? (h as any).net
-                              : (h.status === "won" ? h.payout - h.amount : -h.amount);
-                            const isPositive = net >= 0;
+                              : ((h as any).payoutAmount || 0) - (h as any).amount || 0;
+                            const isWin = net > 0;
                             return (
-                              <span className="pill" style={{
-                                fontSize: "9px",
-                                height: "18px",
-                                padding: "0 6px",
-                                background: isPositive ? "rgba(14, 203, 129, 0.12)" : "rgba(240, 84, 84, 0.12)",
-                                color: isPositive ? "var(--green)" : "var(--red)",
-                                borderColor: isPositive ? "rgba(14, 203, 129, 0.4)" : "rgba(240, 84, 84, 0.4)",
-                                borderRadius: "4px",
-                                fontWeight: "bold"
-                              }}>
-                                {isPositive ? `+${net}` : `${net}`}
-                              </span>
+                              <>
+                                <span style={{ fontSize: "9px", color: "var(--muted)" }}>{h.status}</span>
+                                <strong style={{ display: "block", fontSize: "12px", color: isWin ? "var(--yellow)" : "var(--text-weak)", fontFamily: "JetBrains Mono, monospace" }}>
+                                  {compact(net)}
+                                </strong>
+                              </>
                             );
                           })()}
-                          <span className="meta" style={{ display: "block", fontSize: "8px", marginTop: "2px" }}>
-                            {h.date}
-                          </span>
                         </div>
                       </div>
                     ))}
@@ -2034,7 +2022,7 @@ function ProfileModal({
                 )}
               </div>
             </>
-          )}
+          ) : null}
         </div>
       </div>
     </section>
