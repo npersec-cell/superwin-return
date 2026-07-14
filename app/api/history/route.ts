@@ -20,54 +20,37 @@ function formatAction(type: string) {
   return "Adjustment";
 }
 
-function formatDateParts(value: string) {
+function formatDate(value: string) {
   const date = new Date(value);
-  return {
-    month: date.toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "Asia/Bangkok" }),
-    date: date.toLocaleString("en-GB", { day: "2-digit", month: "short", timeZone: "Asia/Bangkok" }),
-    time: date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" })
-  };
+  return date.toLocaleDateString("en-US", { 
+    month: "short", 
+    day: "numeric",
+    year: "numeric",
+    timeZone: "Asia/Bangkok" 
+  });
 }
 
 export async function GET(request: NextRequest) {
   try {
     const user = await requireUser(request);
     const supabase = createSupabaseAdminClient();
-    const searchParams = request.nextUrl.searchParams;
-    const filter = searchParams.get("filter") || "All";
 
-    // ดึงประวัติล่าสุด (ไม่ลบข้อมูลเก่า — ใช้สำหรับ Leaderboard ด้วย)
-    let query = supabase
+    const { data, error } = await supabase
       .from("coin_ledger")
       .select("id, type, amount, balance_after, detail, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(700);
-
-    if (filter !== "All") {
-      const f = filter.toLowerCase();
-      if (f === "reload") {
-        query = query.eq("type", "claim");
-      } else if (f === "payout") {
-        query = query.eq("type", "payout");
-      } else {
-        query = query.eq("type", f);
-      }
-    }
-
-    const { data, error } = await query.returns<LedgerRow[]>();
+      .limit(200);
 
     if (error) {
       throw new Error(error.message || "Failed to load history");
     }
 
     const rows = (data || []).map((row) => {
-      const parts = formatDateParts(row.created_at);
       return {
         id: row.id,
-        ...parts,
+        date: formatDate(row.created_at),
         action: formatAction(row.type),
-        detail: row.detail || `${formatAction(row.type)} record`,
         amount: row.amount,
         balanceAfter: row.balance_after
       };

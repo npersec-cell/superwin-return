@@ -407,7 +407,6 @@ export default function SuperWinPrototype() {
   const [coinInputs, setCoinInputs] = useState<Record<string, number>>({});
   const [running, setRunning] = useState<RunningPrediction[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [historyFilter, setHistoryFilter] = useState<"All" | HistoryItem["action"]>("All");
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
   const historyPageSize = 7;
@@ -1073,11 +1072,11 @@ export default function SuperWinPrototype() {
     });
   }
 
-  async function loadHistory(filter = historyFilter) {
+  async function loadHistory() {
     if (!devBypass && !isSignedIn) return;
     setHistoryLoading(true);
     try {
-      const response = await fetch(`/api/history?filter=${encodeURIComponent(filter)}`);
+      const response = await fetch("/api/history");
       const payload = (await response.json()) as ApiHistoryResponse;
       if (!response.ok || !payload.ok || !payload.data) {
         throw new Error(payload.error || "Failed to load history");
@@ -1830,7 +1829,7 @@ export default function SuperWinPrototype() {
           </div>
         </section>
       )}
-      {openModal === "history" && <HistoryModal history={history} historyFilter={historyFilter} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} setHistoryPage={(page) => { setHistoryPage(page); }} setHistoryFilter={(value) => { setHistoryFilter(value); loadHistory(value); }} onClose={() => setOpenModal(null)} />}
+      {openModal === "history" && <HistoryModal history={history} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} setHistoryPage={(page) => { setHistoryPage(page); }} onClose={() => setOpenModal(null)} />}
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={closeProfile} />
       )}
@@ -2119,60 +2118,44 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
   );
 }
 
-function renderHistoryDetail(detail: string) {
-  return detail.split(" · ")
-    .filter((part) => !part.toLowerCase().includes("approx return"))
-    .map((part) => (
-      <span key={part}>{part}</span>
-    ));
-}
-
 function HistoryModal({
   history,
-  historyFilter,
   historyLoading,
   historyPage,
   historyPageSize,
   setHistoryPage,
-  setHistoryFilter,
   onClose
 }: {
   history: HistoryItem[];
-  historyFilter: "All" | HistoryItem["action"];
   historyLoading: boolean;
   historyPage: number;
   historyPageSize: number;
   setHistoryPage: (page: number) => void;
-  setHistoryFilter: (value: "All" | HistoryItem["action"]) => void;
   onClose: () => void;
 }) {
-  const filtered = historyFilter === "All" ? history : history.filter((item) => item.action === historyFilter);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / historyPageSize));
+  const totalPages = Math.max(1, Math.ceil(history.length / historyPageSize));
   const start = (historyPage - 1) * historyPageSize;
-  const rows = filtered.slice(start, start + historyPageSize);
+  const rows = history.slice(start, start + historyPageSize);
 
   return (
     <section className="modal" aria-label="Coin history" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal-card history-modal-card">
         <div className="modal-head"><h3>Coin History</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body history-modal-body">
-          <div className="filter-row">
-            {(["All", "Reload", "Payout"] as const).map((filter) => (
-              <button key={filter} className={`button ${historyFilter === filter ? "active" : ""}`} onClick={() => { setHistoryFilter(filter); setHistoryPage(1); }}>{filter}</button>
-            ))}
-          </div>
           <div className="history-list-scroll">
             {historyLoading ? (
-              <div className="history-row" style={{ justifyContent: "center", padding: "24px 0" }}>
+              <div className="history-row-simple" style={{ justifyContent: "center", padding: "24px 0" }}>
                 <span className="micro" style={{ color: "var(--muted)" }}>Loading...</span>
               </div>
             ) : rows.length ? rows.map((row, index) => (
-              <div key={`${row.date}-${row.time}-${index}`} className="history-row">
-                <span>{row.date}</span><span>{row.time}</span><span>{row.action}</span><span className="history-detail">{renderHistoryDetail(row.detail)}</span><b className={row.amount >= 0 ? "accent-gold" : "accent-red"}>{money(row.amount)}</b>
+              <div key={`${row.date}-${row.time}-${index}`} className="history-row-simple">
+                <span className="history-date">{row.date}</span>
+                <span className="history-type">{row.action}</span>
+                <b className={row.amount >= 0 ? "accent-gold" : "accent-red"}>{money(row.amount)}</b>
               </div>
             )) : (
-              <div className="history-row" style={{ justifyContent: "center", padding: "24px 0" }}>
-                <span className="micro" style={{ color: "var(--muted)" }}>No {historyFilter} history</span>
+              <div className="history-row-simple" style={{ justifyContent: "center", padding: "24px 0" }}>
+                <span className="micro" style={{ color: "var(--muted)" }}>No history</span>
               </div>
             )}
           </div>
