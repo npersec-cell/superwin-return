@@ -192,7 +192,7 @@ type UserProfileStats = {
   rankName: string;
   rankIcon: string;
   totalUsers: number;
-  allTimeProfit: number;
+  allTimeProfit?: number;  // Optional - not used in leaderboard stats
   winRate: number;
   wonCount: number;
   lostCount: number;
@@ -906,7 +906,6 @@ export default function SuperWinPrototype() {
       rankName: "Bronze",
       rankIcon: "/ranks/bronze.png",
       totalUsers: leaderboardTotalUsers,
-      allTimeProfit: 0,
       winRate: 0,
       wonCount: 0,
       lostCount: 0,
@@ -1936,58 +1935,49 @@ function ProfileModal({
                 </div>
               </div>
 
-              {/* Leaderboard Stats Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Overall</span>
-                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {profile.overallScore}
+              {/* Leaderboard Stats Grid - 6 columns, 2 rows */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px" }}>
+                <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Overall</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
+                    {profile.overallScore ?? 0}
                   </strong>
-                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    #{profile.overallRank}
+                </div>
+                <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Orange Ammo</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
+                    {compact(Number.isNaN(profile.profitScore) || profile.profitScore === null ? 0 : Number(profile.profitScore))}
+                  </strong>
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                    #{profile.mostOrangeAmmoRank || "?"}
                   </span>
                 </div>
-                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Most Orange Ammo</span>
-                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {compact(profile.profitScore)}
+                <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Predictions</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
+                    {profile.predictionCount ?? 0}
                   </strong>
-                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    #{profile.mostOrangeAmmoRank}
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                    #{profile.mostPredictionsRank || "?"}
                   </span>
                 </div>
-                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Most Predictions</span>
-                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {profile.predictionCount}
+                <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Highest Single Win</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
+                    {compact(Number.isNaN(profile.highestSingleWin) || profile.highestSingleWin === null ? 0 : Number(profile.highestSingleWin))}
                   </strong>
-                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    #{profile.mostPredictionsRank}
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                    #{profile.highestSingleWinRank || "?"}
                   </span>
                 </div>
-                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Highest Single Win</span>
-                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {compact(profile.highestSingleWin)}
+                <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                  <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Active (avg/day)</span>
+                  <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
+                    {(profile.avgReloadPerDay ?? 0).toFixed(1)}
                   </strong>
-                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    #{profile.highestSingleWinRank}
+                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                    #{profile.mostActiveRank || "?"}
                   </span>
-                </div>
-                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Most Active (avg/day)</span>
-                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {(profile.avgReloadPerDay || 0).toFixed(1)}
-                  </strong>
-                  <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", marginTop: "2px", display: "block" }}>
-                    #{profile.mostActiveRank}
-                  </span>
-                </div>
-                <div className="info-block" style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>All Time Profit</span>
-                  <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {compact(profile.allTimeProfit)}
-                  </strong>
                 </div>
               </div>
 
