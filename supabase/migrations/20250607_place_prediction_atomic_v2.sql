@@ -20,6 +20,7 @@ AS $func$
 DECLARE
   v_user RECORD;
   v_prediction RECORD;
+  v_selected_option RECORD;
   v_option_exists boolean;
   v_insurance_cost integer := 0;
   v_entry_id uuid;
@@ -68,12 +69,11 @@ BEGIN
   END IF;
 
   -- ========== 3. Validate option ==========
-  SELECT EXISTS (
-    SELECT 1 FROM prediction_options
-    WHERE id = p_option_id AND prediction_id = p_prediction_id
-  ) INTO v_option_exists;
+  SELECT id, label INTO v_selected_option
+  FROM prediction_options
+  WHERE id = p_option_id AND prediction_id = p_prediction_id;
 
-  IF NOT v_option_exists THEN
+  IF NOT FOUND THEN
     RETURN jsonb_build_object('ok', false, 'error', 'Option not found');
   END IF;
 
@@ -143,7 +143,7 @@ BEGIN
 
   -- ========== 10. Insert coin_ledger entries ==========
   -- Ledger: bet deduction
-  INSERT INTO coin_ledger (user_id, type, amount, balance_after, ref_type, ref_id, detail)
+  INSERT INTO coin_ledger (user_id, type, amount, balance_after, ref_type, ref_id, detail, tournament_name, question, answer)
   VALUES (
     p_user_id,
     'predict',
@@ -151,12 +151,15 @@ BEGIN
     v_coin_balance_after,
     'prediction_entry',
     v_entry_id,
-    'Tournament: ' || v_prediction.tournament_name || ' · Question: ' || v_prediction.question || ' · Status: Running'
+    'Tournament: ' || v_prediction.tournament_name || ' · Question: ' || v_prediction.question || ' · Answer: ' || v_selected_option.label,
+    v_prediction.tournament_name,
+    v_prediction.question,
+    v_selected_option.label
   );
 
   -- Ledger: insurance cost (if applicable)
   IF p_insurance AND v_insurance_cost > 0 THEN
-    INSERT INTO coin_ledger (user_id, type, amount, balance_after, ref_type, ref_id, detail)
+    INSERT INTO coin_ledger (user_id, type, amount, balance_after, ref_type, ref_id, detail, tournament_name, question, answer)
     VALUES (
       p_user_id,
       'insurance',
@@ -164,7 +167,10 @@ BEGIN
       v_profit_score_after,
       'prediction_entry',
       v_entry_id,
-      'Tournament: ' || v_prediction.tournament_name || ' · Insurance Cost: ' || v_insurance_cost || ' green ammo'
+      'Tournament: ' || v_prediction.tournament_name || ' · Question: ' || v_prediction.question || ' · Answer: ' || v_selected_option.label || ' · Insurance Cost: ' || v_insurance_cost,
+      v_prediction.tournament_name,
+      v_prediction.question,
+      v_selected_option.label
     );
   END IF;
 

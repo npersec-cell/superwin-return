@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     // Get ledger entries
     const { data: ledgerData, error } = await supabase
       .from("coin_ledger")
-      .select("id, type, amount, balance_after, detail, ref_type, ref_id, created_at")
+      .select("id, type, amount, balance_after, detail, ref_type, ref_id, created_at, tournament_name, question, answer")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(300);
@@ -126,8 +126,11 @@ export async function GET(request: NextRequest) {
     const rows = (ledgerData || []).map((row) => {
       let detail = row.detail || "";
       
-      // Case 1: ref_type = 'prediction_entry' - find entry by ref_id
-      if (row.ref_type === "prediction_entry" && row.ref_id) {
+      // Use new columns if available
+      if (row.tournament_name && row.question && row.answer) {
+        detail = `Tournament: ${row.tournament_name} · Question: ${row.question} · Answer: ${row.answer}`;
+      } else if (row.ref_type === "prediction_entry" && row.ref_id) {
+        // Legacy: find entry by ref_id
         const entry = entryMap.get(row.ref_id);
         if (entry) {
           const prediction = predictionMap.get(entry.prediction_id);
@@ -137,25 +140,11 @@ export async function GET(request: NextRequest) {
             detail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Answer: ${option.label}`;
           }
         }
-      }
-      
-      // Case 2: ref_type = 'prediction' - find prediction by ref_id, then find entry by prediction_id
-      if (row.ref_type === "prediction" && row.ref_id && !detail) {
+      } else if (row.ref_type === "prediction" && row.ref_id) {
+        // Legacy: find prediction by ref_id
         const prediction = predictionMap.get(row.ref_id);
         if (prediction) {
-          // Find entry for this prediction that has matching amount
-          const matchedEntry = [...entryMap.entries()].find(([id, entry]) => {
-            return entry.prediction_id === row.ref_id && entry.amount === Math.abs(row.amount);
-          });
-          
-          if (matchedEntry) {
-            const [, entry] = matchedEntry;
-            const option = optionMap.get(entry.option_id);
-            
-            if (option) {
-              detail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Answer: ${option.label}`;
-            }
-          }
+          detail = `Tournament: ${prediction.tournament_name} · Question: ${prediction.question} · Answer: Unknown`;
         }
       }
       
