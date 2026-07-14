@@ -34,10 +34,10 @@ export async function GET() {
     }
 
     // 2. Cache ไม่มี หรือหมดอายุ → คำนวณใหม่
-    // ดึง users ทั้งหมด (ไม่เอา profit_score จากตาราง users แล้ว)
+    // ดึง users ทั้งหมด (ใช้ coin_balance ซึ่งยังมีอยู่)
     const { data: allUsers, error: errUsers } = await supabase
       .from("users")
-      .select("id, display_name, email, avatar_url, role, lifetime_profit");
+      .select("id, display_name, email, avatar_url, role, lifetime_profit, coin_balance");
 
     if (errUsers) throw new Error(errUsers.message);
 
@@ -54,30 +54,19 @@ export async function GET() {
       );
     });
 
-    // 3. คำนวณ profit_score แบบ real-time สำหรับแต่ละ user
-    const usersWithProfitScore = await Promise.all(
-      filteredUsers.map(async (u) => {
-        const { data: profitScore, error: profitError } = await supabase
-          .rpc('calculate_user_profit_score', { p_user_id: u.id });
-        
-        if (profitError) {
-          console.error('[Leaderboard] Error calculating profit_score for user', u.id, profitError);
-        }
+    // 3. ใช้ coin_balance (Orange Ammo) แทน profit_score (ถูกลบไปแล้ว)
+    const usersWithScore = filteredUsers.map((u) => ({
+      id: u.id,
+      name: u.display_name || u.email.split("@")[0],
+      displayName: u.display_name || null,
+      profit: u.lifetime_profit || 0,
+      profitScore: u.coin_balance || 0, // Use coin_balance as the score
+      avatarUrl: u.avatar_url || null,
+      isReal: true,
+    }));
 
-        return {
-          id: u.id,
-          name: u.display_name || u.email.split("@")[0],
-          displayName: u.display_name || null,
-          profit: u.lifetime_profit || 0,
-          profitScore: profitScore || 0,
-          avatarUrl: u.avatar_url || null,
-          isReal: true,
-        };
-      })
-    );
-
-    // 4. เรียงตาม profitScore มาก → น้อย แล้วเอา top 10
-    const sorted = usersWithProfitScore.sort((a, b) => b.profitScore - a.profitScore).slice(0, 10);
+    // 4. เรียงตาม profitScore (coin_balance) มาก → น้อย แล้วเอา top 10
+    const sorted = usersWithScore.sort((a, b) => b.profitScore - a.profitScore).slice(0, 10);
 
     // 5. บันทึกลง Cache (UPSERT)
     const expiresAt = new Date(Date.now() + CACHE_TTL_SECONDS * 1000).toISOString();

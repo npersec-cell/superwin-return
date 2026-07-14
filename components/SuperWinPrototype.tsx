@@ -214,7 +214,6 @@ type ApiMeResponse = {
     role: "user" | "admin";
     coinBalance: number;
     lifetimeProfit: number;
-    profitScore: number;
     nextClaimAt: string | null;
   };
   error?: string;

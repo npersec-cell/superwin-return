@@ -118,7 +118,7 @@ async function tryDevBypass(request?: Request): Promise<AppUser | null> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("users")
-    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, address_completed, status, avatar_url")
+    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, last_claim_at, next_claim_at, address_completed, status, avatar_url")
     .eq("id", devUserId)
     .maybeSingle<UserRow>();
 
@@ -149,7 +149,7 @@ async function clerkAuth(request?: Request): Promise<AppUser | null> {
 
   const { data: existing, error: selectError } = await supabase
     .from("users")
-    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, address_completed, status, avatar_url")
+    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, last_claim_at, next_claim_at, address_completed, status, avatar_url")
     .eq("clerk_user_id", userId)
     .maybeSingle<UserRow>();
 
@@ -176,7 +176,7 @@ async function clerkAuth(request?: Request): Promise<AppUser | null> {
           updated_at: new Date().toISOString()
         })
         .eq("id", existing.id)
-        .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, profit_score, last_claim_at, next_claim_at, address_completed, status, avatar_url")
+        .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, last_claim_at, next_claim_at, address_completed, status, avatar_url")
         .single<UserRow>();
 
       if (updateError) {

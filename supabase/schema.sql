@@ -11,7 +11,6 @@ create table if not exists public.users (
   role text not null default 'user' check (role in ('user', 'admin')),
   coin_balance integer not null default 1000 check (coin_balance >= 0),
   lifetime_profit integer not null default 0,
-  profit_score integer not null default 0,
   last_claim_at timestamptz,
   next_claim_at timestamptz,
   status text not null default 'active' check (status in ('active', 'suspended', 'banned')),
