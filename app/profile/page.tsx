@@ -112,23 +112,28 @@ export default function ProfilePage() {
   const profileRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Load profile data using the same API as Leaderboard
-  async function loadProfile(userId?: string) {
+  async function loadProfile() {
     try {
       // Get current user's ID from /api/me first
-      let currentUserId = userId;
-      if (!currentUserId) {
-        const meRes = await fetch("/api/me");
-        const meData = await meRes.json();
-        if (meData.ok && meData.data) {
-          currentUserId = meData.data.id;
-          setForm({ displayName: meData.data.displayName || "" });
-        }
+      const meRes = await fetch("/api/me");
+      const meData = await meRes.json();
+      if (!meData.ok || !meData.data) {
+        console.error("Cannot get user data from /api/me");
+        setError("Cannot load profile: user not authenticated");
+        setLoading(false);
+        return;
       }
+      
+      const currentUserId = meData.data.id;
       
       if (!currentUserId) {
         setError("Cannot load profile: user not authenticated");
+        setLoading(false);
         return;
       }
+      
+      // Set display name for form
+      setForm({ displayName: meData.data.displayName || "" });
       
       // Fetch profile data using the same API as Leaderboard
       const response = await fetch(`/api/leaderboard/profile?userId=${currentUserId}&_t=${Date.now()}`);
@@ -141,11 +146,14 @@ export default function ProfilePage() {
         });
         setError(null);
       } else {
+        console.error("Profile API error:", payload);
         setError(payload.error || "Failed to load profile");
       }
     } catch (e) {
       console.error("Error loading profile:", e);
       setError("Failed to load profile");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -153,7 +161,7 @@ export default function ProfilePage() {
     loadProfile();
     
     // Auto-refresh every 15 seconds
-    profileRefreshRef.current = setInterval(() => loadProfile(), 15000);
+    profileRefreshRef.current = setInterval(loadProfile, 15000);
     
     return () => {
       if (profileRefreshRef.current) {
