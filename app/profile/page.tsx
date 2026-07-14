@@ -101,12 +101,22 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null); // "admin" or null
+  
   const [form, setForm] = useState({
     displayName: "",
+    shippingName: "",
+    shippingAddress: "",
+    shippingZipcode: "",
+    shippingPhone: "",
   });
   const [dnMessage, setDnMessage] = useState("");
   const [dnError, setDnError] = useState("");
   const [dnSaving, setDnSaving] = useState(false);
+  const [addressMessage, setAddressMessage] = useState("");
+  const [addressError, setAddressError] = useState("");
+  const [addressSaving, setAddressSaving] = useState(false);
   
   // Refresh interval
   const profileRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -124,6 +134,8 @@ export default function ProfilePage() {
         return;
       }
       
+      setIsSignedIn(true);
+      setUserRole(meData.data.role || null);
       const currentUserId = meData.data.id;
       
       if (!currentUserId) {
@@ -133,9 +145,16 @@ export default function ProfilePage() {
       }
       
       // Set display name for form
-      setForm({ displayName: meData.data.displayName || "" });
+      setForm({ 
+        displayName: meData.data.displayName || "",
+        shippingName: meData.data.shippingName || "",
+        shippingAddress: meData.data.shippingAddress || "",
+        shippingZipcode: meData.data.shippingZipcode || "",
+        shippingPhone: meData.data.shippingPhone || "",
+      });
       
       // Fetch profile data using the same API as Leaderboard
+      // For admin, we still call the API but will hide rank display
       const response = await fetch(`/api/leaderboard/profile?userId=${currentUserId}&_t=${Date.now()}`);
       const payload = await response.json();
       if (response.ok && payload.ok && payload.data) {
@@ -191,7 +210,7 @@ export default function ProfilePage() {
       const data = await res.json();
       if (data.ok) {
         setDnMessage("บันทึกชื่อเล่นสำเร็จ!");
-        setForm({ displayName: raw || "" });
+        setForm({ ...form, displayName: raw || "" });
       } else {
         setDnError(data.error || "ไม่สามารถบันทึกชื่อเล่นได้");
       }
@@ -201,6 +220,43 @@ export default function ProfilePage() {
       setDnSaving(false);
     }
   }
+
+  async function saveAddress() {
+    setAddressError("");
+    setAddressMessage("");
+
+    if (!form.shippingName.trim() || !form.shippingAddress.trim() || !form.shippingZipcode.trim() || !form.shippingPhone.trim()) {
+      setAddressError("กรุณากรอกข้อมูลให้ครบทุกช่อง");
+      return;
+    }
+
+    setAddressSaving(true);
+    try {
+      const res = await fetch("/api/me/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shippingName: form.shippingName,
+          shippingAddress: form.shippingAddress,
+          shippingZipcode: form.shippingZipcode,
+          shippingPhone: form.shippingPhone,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setAddressMessage("บันทึกข้อมูลสำเร็จ!");
+      } else {
+        setAddressError(data.error || "ไม่สามารถบันทึกข้อมูลได้");
+      }
+    } catch {
+      setAddressError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setAddressSaving(false);
+    }
+  }
+
+  // Check if user is admin
+  const isAdmin = userRole === "admin";
 
   if (loading) {
     return (
@@ -285,21 +341,33 @@ export default function ProfilePage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
           {/* Left Column: Stats & History */}
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {/* RANK - Full Width, Top */}
-            <div className="info-block" style={{ padding: "14px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", textAlign: "center" }}>
-              <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>OVERALL RANK</span>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginTop: "8px" }}>
-                <img src={profile.rankIcon} alt="" width={28} height={28} style={{ objectFit: "contain" }} />
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <strong style={{ fontSize: "22px", color: "var(--yellow)", fontWeight: 700 }}>
-                    #{profile.overallRank}
-                  </strong>
-                  <span style={{ fontSize: "12px", color: "var(--muted)" }}>{profile.rankName}</span>
+            {/* RANK - Full Width, Top (Hide for admin) */}
+            {!isAdmin && (
+              <div className="info-block" style={{ padding: "14px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", textAlign: "center" }}>
+                <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>OVERALL RANK</span>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginTop: "8px" }}>
+                  <img src={profile.rankIcon} alt="" width={28} height={28} style={{ objectFit: "contain" }} />
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <strong style={{ fontSize: "22px", color: "var(--yellow)", fontWeight: 700 }}>
+                      #{profile.overallRank}
+                    </strong>
+                    <span style={{ fontSize: "12px", color: "var(--muted)" }}>{profile.rankName}</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+            
+            {/* Admin placeholder */}
+            {isAdmin && (
+              <div style={{ padding: "14px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", textAlign: "center", color: "var(--muted)" }}>
+                <span style={{ fontSize: "11px" }}>ADMIN ACCOUNT</span>
+                <div style={{ fontSize: "12px", marginTop: "4px" }}>
+                  บัญชีผู้ดูแลระบบไม่เข้าร่วมจัดอันดับ
+                </div>
+              </div>
+            )}
 
-            {/* Stats Grid - 6 columns, 2 rows */}
+            {/* Stats Grid - 6 columns, 2 rows (Hide ranks for admin) */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px" }}>
               <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
                 <span style={{ fontSize: "9px", color: "var(--muted)" }}>WIN RATE</span>
@@ -321,36 +389,36 @@ export default function ProfilePage() {
                 <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
                   {compact(Number.isNaN(profile.coinBalance) || profile.coinBalance === null ? 0 : Number(profile.coinBalance))}
                 </strong>
-                <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                {!isAdmin && <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
                   #{profile.mostOrangeAmmoRank || "?"}
-                </span>
+                </span>}
               </div>
               <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
                 <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Predictions</span>
                 <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
                   {profile.predictionCount ?? 0}
                 </strong>
-                <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                {!isAdmin && <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
                   #{profile.mostPredictionsRank || "?"}
-                </span>
+                </span>}
               </div>
               <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
                 <span style={{ fontSize: "9px", color: "var(--muted)" }}>Highest Single Win</span>
                 <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
                   {compact(Number.isNaN(profile.highestSingleWin) || profile.highestSingleWin === null ? 0 : Number(profile.highestSingleWin))}
                 </strong>
-                <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                {!isAdmin && <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
                   #{profile.highestSingleWinRank || "?"}
-                </span>
+                </span>}
               </div>
               <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
                 <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Active (avg/day)</span>
                 <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
                   {(profile.avgReloadPerDay ?? 0).toFixed(1)}
                 </strong>
-                <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                {!isAdmin && <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
                   #{profile.mostActiveRank || "?"}
-                </span>
+                </span>}
               </div>
             </div>
 
@@ -401,6 +469,110 @@ export default function ProfilePage() {
               {dnMessage && (
                 <div style={{ marginTop: "8px", padding: "8px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", borderRadius: "6px", color: "var(--green)", fontSize: "11px" }}>
                   {dnMessage}
+                </div>
+              )}
+            </div>
+
+            {/* Address Form */}
+            <div style={{ padding: "12px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+              <div style={{ fontSize: "11px", fontWeight: 600, marginBottom: "8px", color: "var(--text)" }}>
+                ข้อมูลจัดส่ง <span style={{ color: "var(--muted)", fontWeight: 400 }}>· สำหรับรับรางวัล</span>
+              </div>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px" }}>
+                <input
+                  type="text"
+                  value={form.shippingName}
+                  onChange={(e) => setForm((f) => ({ ...f, shippingName: e.target.value }))}
+                  placeholder="ชื่อ-นามสกุล"
+                  style={{
+                    flex: 1,
+                    height: "32px",
+                    background: "var(--bg-deeper)",
+                    border: "1px solid var(--hairline)",
+                    borderRadius: "6px",
+                    padding: "0 12px",
+                    color: "var(--text)",
+                    fontSize: "12px",
+                    outline: "none",
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px" }}>
+                <input
+                  type="text"
+                  value={form.shippingAddress}
+                  onChange={(e) => setForm((f) => ({ ...f, shippingAddress: e.target.value }))}
+                  placeholder="ที่อยู่จัดส่ง"
+                  style={{
+                    flex: 1,
+                    height: "32px",
+                    background: "var(--bg-deeper)",
+                    border: "1px solid var(--hairline)",
+                    borderRadius: "6px",
+                    padding: "0 12px",
+                    color: "var(--text)",
+                    fontSize: "12px",
+                    outline: "none",
+                  }}
+                />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
+                <div>
+                  <input
+                    type="text"
+                    value={form.shippingZipcode}
+                    onChange={(e) => setForm((f) => ({ ...f, shippingZipcode: e.target.value }))}
+                    placeholder="รหัสไปรษณีย์"
+                    style={{
+                      width: "100%",
+                      height: "32px",
+                      background: "var(--bg-deeper)",
+                      border: "1px solid var(--hairline)",
+                      borderRadius: "6px",
+                      padding: "0 12px",
+                      color: "var(--text)",
+                      fontSize: "12px",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={form.shippingPhone}
+                    onChange={(e) => setForm((f) => ({ ...f, shippingPhone: e.target.value }))}
+                    placeholder="เบอร์โทรศัพท์"
+                    style={{
+                      width: "100%",
+                      height: "32px",
+                      background: "var(--bg-deeper)",
+                      border: "1px solid var(--hairline)",
+                      borderRadius: "6px",
+                      padding: "0 12px",
+                      color: "var(--text)",
+                      fontSize: "12px",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                className="button"
+                onClick={saveAddress}
+                disabled={addressSaving}
+                style={{ width: "100%", height: "32px", fontSize: "11px", fontWeight: 600, borderRadius: "6px", opacity: addressSaving ? 0.6 : 1 }}
+              >
+                {addressSaving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
+              </button>
+              {addressError && (
+                <div style={{ marginTop: "8px", padding: "8px", background: "rgba(240, 84, 84, 0.1)", border: "1px solid var(--red)", borderRadius: "6px", color: "var(--red)", fontSize: "11px" }}>
+                  {addressError}
+                </div>
+              )}
+              {addressMessage && (
+                <div style={{ marginTop: "8px", padding: "8px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", borderRadius: "6px", color: "var(--green)", fontSize: "11px" }}>
+                  {addressMessage}
                 </div>
               )}
             </div>
