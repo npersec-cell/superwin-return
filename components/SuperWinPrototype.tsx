@@ -1280,7 +1280,7 @@ export default function SuperWinPrototype() {
                     {claimFlash ? `+${claimResult}` : "Reload"}
                   </button>
                   <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
-                  <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory("All"); }}>History</button>
+                  <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory(); }}>History</button>
                   {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
                 </span>
 
