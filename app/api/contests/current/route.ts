@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseAnonClient } from "@/lib/db";
+import { createSupabaseAdminClient } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createSupabaseAnonClient();
+    const supabase = createSupabaseAdminClient();
 
     // Get current active contest
     const { data: contest, error } = await supabase
