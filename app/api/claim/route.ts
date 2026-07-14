@@ -110,7 +110,6 @@ export async function POST(request: NextRequest) {
         user: {
           coinBalance: updatedUser.coin_balance,
           lifetimeProfit: updatedUser.lifetime_profit,
-          profitScore: user.profitScore, // Use calculated profit_score from requireUser()
           lastClaimAt: updatedUser.last_claim_at,
           nextClaimAt: updatedUser.next_claim_at
         },

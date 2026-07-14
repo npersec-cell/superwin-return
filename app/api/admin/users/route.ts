@@ -20,32 +20,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
-    // Calculate profit_score for each user (real-time)
-    const users = await Promise.all(
-      (data || []).map(async (u) => {
-        const { data: profitScore, error: profitError } = await supabase
-          .rpc('calculate_user_profit_score', { p_user_id: u.id });
-        
-        if (profitError) {
-          console.error('[Admin Users] Error calculating profit_score for user', u.id, profitError);
-        }
-        
-        return {
-          id: u.id,
-          name: u.display_name,
-          email: u.email,
-          isAdmin: u.role === "admin",
-          coinBalance: u.coin_balance,
-          profitScore: profitScore || 0,
-          createdAt: u.created_at,
-          lastClaimAt: u.last_claim_at,
-          shippingName: u.shipping_name,
-          shippingAddress: u.shipping_address,
-          shippingZipcode: u.shipping_zipcode,
-          shippingPhone: u.shipping_phone,
-        };
-      })
-    );
+    const users = (data || []).map((u) => ({
+      id: u.id,
+      name: u.display_name,
+      email: u.email,
+      isAdmin: u.role === "admin",
+      coinBalance: u.coin_balance,
+      createdAt: u.created_at,
+      lastClaimAt: u.last_claim_at,
+      shippingName: u.shipping_name,
+      shippingAddress: u.shipping_address,
+      shippingZipcode: u.shipping_zipcode,
+      shippingPhone: u.shipping_phone,
+    }));
 
     return NextResponse.json({ ok: true, data: users });
   } catch (error) {

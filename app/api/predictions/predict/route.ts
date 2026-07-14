@@ -86,7 +86,6 @@ export async function POST(request: NextRequest) {
       data: {
         user: {
           coinBalance: resultData.coinBalanceAfter,
-          profitScore: resultData.profitScoreAfter,
           lifetimeProfit: resultData.lifetimeProfitAfter,
         },
         entry: {

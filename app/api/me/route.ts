@@ -26,7 +26,6 @@ export async function GET(request: NextRequest) {
         role: user.role,
         coinBalance: user.coinBalance,
         lifetimeProfit: user.lifetimeProfit,
-        profitScore: user.profitScore,
         lastClaimAt: user.lastClaimAt,
         nextClaimAt: user.nextClaimAt,
         status: user.status,

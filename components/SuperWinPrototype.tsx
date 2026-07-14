@@ -86,7 +86,7 @@ type ApiRunningResponse = {
 type ApiPredictResponse = {
   ok: boolean;
   data?: {
-    user: { coinBalance: number; profitScore: number; lifetimeProfit: number };
+    user: { coinBalance: number; lifetimeProfit: number };
     entry: {
       id: string;
       predictionId: string;
@@ -118,17 +118,6 @@ function maskName(name: string): string {
   // Censor last 2 chars with "xx"
   if (name.length <= 2) return name + "xx";
   return name.slice(0, -2) + "xx";
-}
-
-function getRankInfo(profitScore: number) {
-  if (profitScore >= 100000) return { name: "Crown", icon: "/ranks/crown.png" };
-  if (profitScore >= 50000) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
-  if (profitScore >= 20000) return { name: "Ace", icon: "/ranks/ace.png" };
-  if (profitScore >= 10000) return { name: "Diamond", icon: "/ranks/diamond.png" };
-  if (profitScore >= 5000) return { name: "Platinum", icon: "/ranks/platinum.png" };
-  if (profitScore >= 1000) return { name: "Gold", icon: "/ranks/gold.png" };
-  if (profitScore >= 100) return { name: "Silver", icon: "/ranks/silver.png" };
-  return { name: "Bronze", icon: "/ranks/bronze.png" };
 }
 
 // Get rank based on position (1-based) and total users
@@ -175,7 +164,6 @@ type UserProfileStats = {
   overallScore: number;
   overallRank: number;
   // Most Orange Ammo (coinBalance)
-  profitScore: number;
   coinBalance: number;  // Actual coin balance value
   mostOrangeAmmoRank: number;
   // Most Predictions
@@ -195,7 +183,7 @@ type UserProfileStats = {
   totalUsers: number;
   allTimeProfit?: number;  // Optional - not used in leaderboard stats
   winRate: number;
-  wonCount: number;
+  winCount: number;
   lostCount: number;
   totalSettled: number;
   badge: string;
@@ -241,7 +229,6 @@ type ApiClaimResponse = {
     user: {
       coinBalance: number;
       lifetimeProfit: number;
-      profitScore: number;
       lastClaimAt: string | null;
       nextClaimAt: string | null;
     };
@@ -369,7 +356,6 @@ type LeaderboardRow = {
   name: string;
   displayName?: string | null;
   profit: number;
-  profitScore: number;
   rank: number;
   isReal?: boolean;
   avatarUrl?: string | null;
@@ -414,7 +400,6 @@ export default function SuperWinPrototype() {
   const [mounted, setMounted] = useState(false);
   const [coins, setCoins] = useState(500);
   const [profit, setProfit] = useState(0);
-  const [profitScore, setProfitScore] = useState(0);
   const [winRate, setWinRate] = useState(0);
   const [nextClaimAt, setNextClaimAt] = useState(0);
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
@@ -524,7 +509,6 @@ export default function SuperWinPrototype() {
           setDevUser(data.user);
           setCoins(data.user.coinBalance ?? 500);
           setProfit(data.user.lifetimeProfit ?? 0);
-          setProfitScore(data.user.profitScore ?? 0);
           setCurrentUserId(data.user.id);
           setAccountStatus("synced");
           setAccountRole(data.user.role || "user");
@@ -590,7 +574,6 @@ export default function SuperWinPrototype() {
     setMounted(true);
     setCoins(Number(localStorage.getItem("sr_coins")) || 500);
     setProfit(Number(localStorage.getItem("sr_profit")) || 0);
-    setProfitScore(Number(localStorage.getItem("sr_profit_score")) || 0);
     setNextClaimAt(Number(localStorage.getItem("sr_next_claim")) || 0);
     setRunning(safeJson("sr_running", []));
     loadOpenPredictions().catch(() => undefined);
@@ -692,7 +675,6 @@ export default function SuperWinPrototype() {
         if (cancelled) return;
         setCoins(user.coinBalance);
         setProfit(user.lifetimeProfit);
-        setProfitScore(user.profitScore || 0);
         setNextClaimAt(user.nextClaimAt ? new Date(user.nextClaimAt).getTime() : 0);
         setAccountRole(user.role);
         setCurrentUserId(user.id);
@@ -769,18 +751,16 @@ export default function SuperWinPrototype() {
     if (isSignedIn && currentUserId && accountRole !== "admin") {
       rows = rows.map((row) => {
         if (row.id === currentUserId) {
-          return { ...row, id: currentUserId, name: "You", profitScore, rank: row.rank } as LeaderboardRow;
+          return { ...row, id: currentUserId, name: "You", rank: row.rank } as LeaderboardRow;
         }
         return row;
       });
       if (!rows.some((row) => row.id === currentUserId || row.name === "You")) {
-        rows.push({ id: currentUserId, name: "You", profit: 0, profitScore, rank: 0, isReal: true });
+        rows.push({ id: currentUserId, name: "You", profit: 0, rank: 0, isReal: true });
       }
-    } else if (accountRole !== "admin") {
-      rows = rows.map((row) => (row.name === "You" ? { ...row, profitScore } as LeaderboardRow : row));
     }
-    return rows.sort((a, b) => b.profitScore - a.profitScore).slice(0, 10);
-  }, [leaderboardRows, profitScore, isSignedIn, currentUserId, accountRole]);
+    return rows.slice(0, 10);
+  }, [leaderboardRows, isSignedIn, currentUserId, accountRole]);
 
   const userRank = leaderboard.findIndex((row) => row.name === "You") + 1;
 
@@ -832,7 +812,6 @@ export default function SuperWinPrototype() {
           name: item.displayName,
           displayName: item.displayName,
           profit: 0,
-          profitScore: item.value, // Use overall score
           rank: item.rank,
           avatarUrl: item.avatarUrl
         }));
@@ -902,7 +881,6 @@ export default function SuperWinPrototype() {
       overallScore: 0,
       overallRank: 0,
       // Most Orange Ammo
-      profitScore: coinBalanceFromLeaderboard ?? 0,
       coinBalance: coinBalanceFromLeaderboard ?? 0,
       mostOrangeAmmoRank: 0,
       // Most Predictions
@@ -921,7 +899,7 @@ export default function SuperWinPrototype() {
       rankIcon: "/ranks/bronze.png",
       totalUsers: leaderboardTotalUsers,
       winRate: 0,
-      wonCount: 0,
+      winCount: 0,
       lostCount: 0,
       totalSettled: 0,
       badge: "",
@@ -941,9 +919,6 @@ export default function SuperWinPrototype() {
           const safeProfile = {
             ...profileData,
             // Use Profile API value, fallback to leaderboard value if NaN
-            profitScore: (Number.isNaN(profileData.profitScore) || profileData.profitScore === null)
-              ? (coinBalanceFromLeaderboard ?? 0)
-              : Number(profileData.profitScore),
             predictionCount: (Number.isNaN(profileData.predictionCount) || profileData.predictionCount === null)
               ? (predictionCountFromLeaderboard ?? 0)
               : Number(profileData.predictionCount),
@@ -1001,7 +976,6 @@ export default function SuperWinPrototype() {
         const user = payload.data;
         setCoins(user.coinBalance);
         setProfit(user.lifetimeProfit);
-        setProfitScore(user.profitScore || 0);
         setNextClaimAt(user.nextClaimAt ? new Date(user.nextClaimAt).getTime() : 0);
         setAccountRole(user.role);
         setCurrentUserId(user.id);
@@ -1236,7 +1210,6 @@ export default function SuperWinPrototype() {
           throw new Error(payload.error || "Prediction failed");
         }
         setCoins(payload.data.user.coinBalance);
-        setProfitScore(payload.data.user.profitScore);
         setProfit(payload.data.user.lifetimeProfit);
         setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
         setInsuranceEnabled((prev) => { const next = new Set(prev); next.delete(question.id); return next; });
@@ -1304,10 +1277,6 @@ export default function SuperWinPrototype() {
                     <span>{coins.toLocaleString()}</span>
                     <img src="/ammo-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} />
                   </span>
-                  <span className="button gold" style={{ display: "flex", alignItems: "center", gap: "3px", cursor: "default" }}>
-                    <span>{profitScore.toLocaleString()}</span>
-                    <img src="/ammo-556-icon.webp" alt="" width={12} height={12} style={{ objectFit: "contain", opacity: 0.8 }} />
-                  </span>
                 </span>
 
                 {/* Action buttons */}
@@ -1364,8 +1333,8 @@ export default function SuperWinPrototype() {
               <b className="value" style={{ opacity: 0.5 }}>Admin</b>
             ) : (
               <div style={{ position: "relative", display: "inline-block" }}>
-                <img src={getRankInfo(profitScore).icon} alt="" width={21} height={21} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "4px", objectFit: "contain" }} />
-                <b className="value">{getRankInfo(profitScore).name}</b>
+                <img src="/ranks/bronze.png" alt="" width={21} height={21} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "4px", objectFit: "contain" }} />
+                <b className="value">Bronze</b>
               </div>
             )}
           </div>
@@ -1560,19 +1529,19 @@ export default function SuperWinPrototype() {
                                       }
                                       setInsuranceEnabled(next);
                                     }}
-                                    disabled={profitScore < getInsuranceCost(coinInputs[question.id] || 0)}
+                                    disabled={coins < getInsuranceCost(coinInputs[question.id] || 0)}
                                     style={{ cursor: "pointer", width: "14px", height: "14px" }}
                                   />
                                   <span>Insure -50%</span>
                                 </label>
                                 {insuranceEnabled.has(question.id) && (coinInputs[question.id] || 0) > 0 && (
                                   <span style={{ fontSize: "10px", color: "var(--yellow)", opacity: 0.9, whiteSpace: "nowrap" }}>
-                                    -{getInsuranceCost(coinInputs[question.id] || 0)} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", verticalAlign: "middle" }} />
+                                    -{getInsuranceCost(coinInputs[question.id] || 0)} <img src="/ammo-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", verticalAlign: "middle" }} />
                                   </span>
                                 )}
-                                {!insuranceEnabled.has(question.id) && (coinInputs[question.id] || 0) > 0 && profitScore < getInsuranceCost(coinInputs[question.id] || 0) && (
+                                {!insuranceEnabled.has(question.id) && (coinInputs[question.id] || 0) > 0 && coins < getInsuranceCost(coinInputs[question.id] || 0) && (
                                   <span style={{ fontSize: "10px", color: "#888", opacity: 0.7, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "3px" }}>
-                                    Need {getInsuranceCost(coinInputs[question.id] || 0) - profitScore} <img src="/ammo-556-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", verticalAlign: "middle" }} />
+                                    Need {getInsuranceCost(coinInputs[question.id] || 0) - coins} <img src="/ammo-icon.webp" alt="" width={10} height={10} style={{ objectFit: "contain", verticalAlign: "middle" }} />
                                   </span>
                                 )}
                               </div>
@@ -1659,7 +1628,7 @@ export default function SuperWinPrototype() {
                           {getRankFromPosition(row.rank, leaderboardTotalUsers).name}
                         </span>
                       </div>
-                      <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{compact(row.profitScore || 0)}</b>
+                      <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{compact(row.rank || 0)}</b>
                     </div>
                   );
                 })}
@@ -2011,7 +1980,7 @@ function ProfileModal({
                     {profile.winRate}%
                   </strong>
                   <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
-                    {profile.wonCount} won · {profile.lostCount} lost
+                    {profile.winCount} won · {profile.lostCount} lost
                   </span>
                 </div>
                 <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
