@@ -5,9 +5,10 @@ import { useState } from "react";
 interface WinnerNotificationProps {
   contest: any;
   onClose: () => void;
+  visible: boolean;
 }
 
-export default function WinnerNotificationPopup({ contest, onClose }: WinnerNotificationProps) {
+export default function WinnerNotificationPopup({ contest, onClose, visible }: WinnerNotificationProps) {
   return (
     <div style={{ 
       position: "fixed", 
@@ -16,11 +17,11 @@ export default function WinnerNotificationPopup({ contest, onClose }: WinnerNoti
       right: 0, 
       bottom: 0, 
       background: "rgba(0,0,0,0.7)", 
-      display: "flex", 
+      display: visible ? "flex" : "none",
       alignItems: "center", 
       justifyContent: "center", 
       zIndex: 10000,
-      animation: "fadeIn 0.2s ease-out"
+      animation: visible ? "fadeIn 0.2s ease-out" : "none"
     }}>
       <div style={{
         background: "var(--card)",

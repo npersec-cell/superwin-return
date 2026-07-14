@@ -3,7 +3,6 @@
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import WinnerNotificationPopup from "./WinnerNotificationPopup";
 
 type PredictionOption = {
   id: string;
@@ -466,7 +465,6 @@ export default function SuperWinPrototype() {
   const marqueeContainerRef = useRef<HTMLDivElement | null>(null);
 
   const [showReportForm, setShowReportForm] = useState(false);
-  const [winnerNotification, setWinnerNotification] = useState<any>(null);
   const [reportMessage, setReportMessage] = useState("");
   const [captchaQuestion, setCaptchaQuestion] = useState("");
   const [contest, setContest] = useState<any>(null);
@@ -646,24 +644,6 @@ export default function SuperWinPrototype() {
   // Load contest
   useEffect(() => {
     loadContest();
-  }, []);
-
-  // Check for winner notification
-  useEffect(() => {
-    async function checkWinner() {
-      try {
-        const response = await fetch("/api/contests/winners");
-        const payload = await response.json();
-        if (payload.ok && payload.data && payload.data.length > 0) {
-          // Show notification for the most recent contest
-          const recentWinner = payload.data[0];
-          setWinnerNotification(recentWinner);
-        }
-      } catch {
-        // Ignored
-      }
-    }
-    checkWinner();
   }, []);
 
   useEffect(() => {
@@ -2289,12 +2269,4 @@ function HistoryModal({
       </div>
     </section>
   </main>
-
-  {/* Winner Notification Popup */}
-  {winnerNotification && (
-    <WinnerNotificationPopup 
-      contest={winnerNotification} 
-      onClose={() => setWinnerNotification(null)} 
-    />
-  )}
 );
