@@ -187,6 +187,9 @@ export default function LeaderboardPage() {
 
     // Get values from leaderboard data (more reliable than Profile API)
     const coinBalanceFromLeaderboard = leaderboardValueMap.mostOrangeAmmo.get(userId) || 0;
+    const predictionCountFromLeaderboard = leaderboardValueMap.mostPredictions.get(userId) || 0;
+    const highestWinFromLeaderboard = leaderboardValueMap.highestSingleWin.get(userId) || 0;
+    const avgReloadFromLeaderboard = leaderboardValueMap.mostActive.get(userId) || 0;
 
     // Show modal immediately with loading state
     setSelectedProfile({
@@ -198,13 +201,13 @@ export default function LeaderboardPage() {
       coinBalance: coinBalanceFromLeaderboard,
       mostOrangeAmmoRank: 0,
       // Most Predictions
-      predictionCount: 0,
+      predictionCount: predictionCountFromLeaderboard,
       mostPredictionsRank: 0,
       // Highest Single Win
-      highestSingleWin: 0,
+      highestSingleWin: highestWinFromLeaderboard,
       highestSingleWinRank: 0,
       // Most Active
-      avgReloadPerDay: 0,
+      avgReloadPerDay: avgReloadFromLeaderboard,
       mostActiveRank: 0,
       // Other stats
       rank: 0,
@@ -227,12 +230,17 @@ export default function LeaderboardPage() {
         const response = await fetch(`/api/leaderboard/profile?userId=${userId}&_t=${Date.now()}`);
         const payload = await response.json();
         if (response.ok && payload.ok && payload.data) {
-          // Use coinBalance from leaderboard if Profile API returns NaN
-          const finalProfile = { ...payload.data, loading: false };
-          if (finalProfile.coinBalance !== finalProfile.coinBalance) {
-            // NaN check - use leaderboard value
-            finalProfile.coinBalance = coinBalanceFromLeaderboard;
-          }
+          // Use coinBalance from leaderboard if Profile API returns NaN or invalid value
+          const profileData = payload.data;
+          const finalProfile = {
+            ...profileData,
+            loading: false,
+            // Force use leaderboard values for numeric stats to avoid NaN issues
+            coinBalance: Number.isNaN(profileData.coinBalance) || profileData.coinBalance === null ? coinBalanceFromLeaderboard : profileData.coinBalance,
+            predictionCount: Number.isNaN(profileData.predictionCount) || profileData.predictionCount === null ? predictionCountFromLeaderboard : profileData.predictionCount,
+            highestSingleWin: Number.isNaN(profileData.highestSingleWin) || profileData.highestSingleWin === null ? highestWinFromLeaderboard : profileData.highestSingleWin,
+            avgReloadPerDay: Number.isNaN(profileData.avgReloadPerDay) || profileData.avgReloadPerDay === null ? avgReloadFromLeaderboard : profileData.avgReloadPerDay,
+          };
           setSelectedProfile(finalProfile);
         } else {
           setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
