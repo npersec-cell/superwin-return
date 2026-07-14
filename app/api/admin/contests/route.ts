@@ -2,11 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 
-// Convert datetime-local input (YYYY-MM-DDTHH:mm) to ISO string with Bangkok timezone (GMT+7)
-function toBangkokISO(datetimeLocal: string): string {
+// Convert datetime-local input (YYYY-MM-DDTHH:mm) to ISO string
+// datetime-local is in the user's browser timezone, we need to convert to UTC
+function toISO(datetimeLocal: string): string {
   // datetime-local format: "YYYY-MM-DDTHH:mm"
-  // Add ":00" and assume it's already in GMT+7, convert to UTC
-  const date = new Date(datetimeLocal + ":00");
+  // Parse and convert to ISO string (UTC)
+  const [datePart, timePart] = datetimeLocal.split("T");
+  const [year, month, day] = datePart.split("-");
+  const [hour, minute] = timePart.split(":");
+  
+  const date = new Date(
+    parseInt(year),
+    parseInt(month) - 1, // Month is 0-based
+    parseInt(day),
+    parseInt(hour),
+    parseInt(minute),
+    0
+  );
+  
   return date.toISOString();
 }
 
@@ -50,7 +63,7 @@ export async function POST(request: NextRequest) {
       .insert({
         name,
         description,
-        end_time: toBangkokISO(end_time),
+        end_time: toISO(end_time),
         prize_1,
         prize_2,
         prize_3,
