@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 
+// Helper function to get user rank based on total_points
+async function getUserRank(supabase: any): Promise<string | null> {
+  try {
+    const { data: users, error } = await supabase
+      .from("users")
+      .select("id, display_name, total_points")
+      .order("total_points", { ascending: false });
+
+    if (error || !users || users.length === 0) {
+      return null;
+    }
+
+    return users[0]?.id || null;
+  } catch (e) {
+    console.error("Error getting user rank:", e);
+    return null;
+  }
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -42,14 +61,73 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    // Determine update fields
+    // Handle special actions
+    if (body.action === "end_contest") {
+      // End contest and auto-detect winner (top 1)
+      if (body.status !== "ended") {
+        return NextResponse.json({ ok: false, error: "action=end_contest requires status=ended" });
+      }
+
+      const winnerUserId = await getUserRank(supabase);
+      if (!winnerUserId) {
+        return NextResponse.json({ ok: false, error: "No users found to determine winner" });
+      }
+
+      const { data, error } = await supabase
+        .from("contests")
+        .update({
+          status: "ended",
+          winner_user_id: winnerUserId,
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error ending contest:", error);
+        return NextResponse.json({ ok: false, error: "Failed to end contest" });
+      }
+
+      return NextResponse.json({ 
+        ok: true, 
+        data,
+        message: ` Contest ended! Winner (Top 1): ${winnerUserId}`
+      });
+    }
+
+    if (body.action === "set_winner") {
+      // Manually set winner
+      if (!body.winner_user_id) {
+        return NextResponse.json({ ok: false, error: "winner_user_id is required" });
+      }
+
+      const { data, error } = await supabase
+        .from("contests")
+        .update({ winner_user_id: body.winner_user_id })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error setting winner:", error);
+        return NextResponse.json({ ok: false, error: "Failed to set winner" });
+      }
+
+      return NextResponse.json({ ok: true, data });
+    }
+
+    // Regular update
     const updateFields: any = {};
     
     if (body.status) updateFields.status = body.status;
     if (body.name !== undefined) updateFields.name = body.name;
     if (body.description !== undefined) updateFields.description = body.description;
     if (body.end_time !== undefined) updateFields.end_time = new Date(body.end_time);
-    if (body.prize !== undefined) updateFields.prize = body.prize;
+    if (body.prize_1 !== undefined) updateFields.prize_1 = body.prize_1;
+    if (body.prize_2 !== undefined) updateFields.prize_2 = body.prize_2;
+    if (body.prize_3 !== undefined) updateFields.prize_3 = body.prize_3;
+    if (body.prize_4 !== undefined) updateFields.prize_4 = body.prize_4;
+    if (body.prize_5 !== undefined) updateFields.prize_5 = body.prize_5;
     if (body.winner_user_id !== undefined) updateFields.winner_user_id = body.winner_user_id;
 
     const { data, error } = await supabase

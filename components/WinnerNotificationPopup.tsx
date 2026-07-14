@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 interface WinnerNotificationProps {
   contest: any;
   onClose: () => void;
@@ -9,6 +7,15 @@ interface WinnerNotificationProps {
 }
 
 export default function WinnerNotificationPopup({ contest, onClose, visible }: WinnerNotificationProps) {
+  // Get all prizes (prize_1 to prize_5)
+  const prizes = [
+    contest.prize_1,
+    contest.prize_2,
+    contest.prize_3,
+    contest.prize_4,
+    contest.prize_5,
+  ].filter(Boolean);
+
   return (
     <div style={{ 
       position: "fixed", 
@@ -28,17 +35,42 @@ export default function WinnerNotificationPopup({ contest, onClose, visible }: W
         border: "1px solid var(--yellow)",
         borderRadius: "12px",
         padding: "24px",
-        maxWidth: "400px",
+        maxWidth: "450px",
         textAlign: "center",
         boxShadow: "0 8px 32px rgba(0,0,0,0.5)"
       }}>
         <div style={{ fontSize: "48px", marginBottom: "12px" }}>🏆</div>
         <h3 style={{ color: "var(--yellow)", marginBottom: "8px" }}>คุณได้รับรางวัลแล้ว!</h3>
-        <p style={{ color: "var(--text)", marginBottom: "12px", lineHeight: 1.5 }}>
-          🎁 <strong style={{ color: "var(--yellow)" }}>{contest.prize}</strong>
-          <br />
-          จากกิจกรรม "{contest.name}"
+        <p style={{ color: "var(--text)", marginBottom: "12px" }}>
+          คุณได้รับรางวัลจากกิจกรรม "{contest.name}"
         </p>
+        
+        {/* Show all prizes */}
+        {prizes.length > 0 && (
+          <div style={{ 
+            background: "rgba(255, 225, 0, 0.05)",
+            border: "1px solid rgba(255, 225, 0, 0.2)",
+            borderRadius: "8px",
+            padding: "12px",
+            textAlign: "left",
+            marginBottom: "12px"
+          }}>
+            <div style={{ color: "var(--yellow)", fontWeight: "bold", marginBottom: "8px" }}>
+              🎁 รางวัลที่ได้รับ ({prizes.length} รายการ):
+            </div>
+            {prizes.map((prize: string, idx: number) => (
+              <div key={idx} style={{ 
+                color: "var(--text)", 
+                padding: "4px 0",
+                lineHeight: 1.4
+              }}>
+                • {prize}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Shipping Address Status */}
         {contest.winner?.shipping_address ? (
           <div style={{ 
             padding: "12px", 
@@ -68,6 +100,7 @@ export default function WinnerNotificationPopup({ contest, onClose, visible }: W
             ⚠️ โปรดกรอกที่อยู่เพื่อรับรางวัล!
           </div>
         )}
+        
         <a 
           href="/profile" 
           target="_blank" 

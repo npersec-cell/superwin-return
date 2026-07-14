@@ -2713,40 +2713,40 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รางวัลที่ 1 (🥇 Top 1) *</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🏆 รางวัลที่ 1 *</label>
                       <input
                         type="text"
                         className="button"
-                        placeholder="เช่น: 100 USDT"
+                        placeholder="เช่น: ตั๋ว concert, เสื้อ, ถ้วย..."
                         value={newContestPrize1}
                         onChange={(e) => setNewContestPrize1(e.target.value)}
                         style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รางวัลที่ 2 (🥈 Top 2)</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 2</label>
                       <input
                         type="text"
                         className="button"
-                        placeholder="เช่น: 50 USDT ( facultative)"
+                        placeholder=" facultative"
                         value={newContestPrize2}
                         onChange={(e) => setNewContestPrize2(e.target.value)}
                         style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รางวัลที่ 3 (🥉 Top 3)</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 3</label>
                       <input
                         type="text"
                         className="button"
-                        placeholder="เช่น: 30 USDT ( facultative)"
+                        placeholder=" facultative"
                         value={newContestPrize3}
                         onChange={(e) => setNewContestPrize3(e.target.value)}
                         style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รางวัลที่ 4 (Top 4)</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 4</label>
                       <input
                         type="text"
                         className="button"
@@ -2757,7 +2757,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รางวัลที่ 5 (Top 5)</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 5</label>
                       <input
                         type="text"
                         className="button"
@@ -2766,6 +2766,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         onChange={(e) => setNewContestPrize5(e.target.value)}
                         style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
                       />
+                    </div>
+                    <div style={{ color: "var(--yellow)", fontSize: "10px", padding: "4px 8px", background: "rgba(255,225,0,0.05)", borderRadius: "4px" }}>
+                      ⚠️ ผู้ชนะ (Top 1) จะได้รับรางวัลทั้งหมด 5 อย่าง
                     </div>
                     <div>
                       <label style={{ fontSize: "10px", color: "var(--muted)" }}>วันเวลาสิ้นสุด * (GMT+7)</label>
@@ -2815,33 +2818,27 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         <div style={{ display: "flex", gap: "6px" }}>
                           {contest.status === "active" && (
                             <>
-                              <button className="button" onClick={async () => {
-                                if (confirm("ยืนยันสิ้นสุดกิจกรรมนี้? ผู้ชนะจะได้รับรางวัลตามที่อยู่ที่กรอก")) {
+                              <button className="button gold" onClick={async () => {
+                                if (confirm(`ยืนยันสิ้นสุดกิจกรรมนี้?\nระบบจะตรวจสอบ Rank 1 ใน Leaderboard ณ ขณะนี้ และตั้งเป็นผู้ชนะ\nผู้ชนะจะได้รับรางวัลทั้งหมด ${[contest.prize_1, contest.prize_2, contest.prize_3, contest.prize_4, contest.prize_5].filter(Boolean).length} อย่าง`)) {
                                   try {
-                                    // Set winner to top 1 from leaderboard
-                                    const leaderboardRes = await fetch("/api/leaderboard/v2");
-                                    const leaderboardData = await leaderboardRes.json();
-                                    if (leaderboardData.ok && leaderboardData.data && leaderboardData.data.length > 0) {
-                                      const top1UserId = leaderboardData.data[0].id;
-                                      const updateRes = await fetch(`/api/admin/contests/${contest.id}`, {
-                                        method: "PATCH",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ status: "ended", winner_user_id: top1UserId }),
-                                      });
-                                      const updatePayload = await updateRes.json();
-                                      if (updatePayload.ok) {
-                                        loadContests();
-                                        alert("สิ้นสุดกิจกรรมแล้ว! ผู้ชนะ: Top 1");
-                                      } else {
-                                        alert("ไม่สำเร็จ: " + updatePayload.error);
-                                      }
+                                    const updateRes = await fetch(`/api/admin/contests/${contest.id}`, {
+                                      method: "PATCH",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ action: "end_contest", status: "ended" }),
+                                    });
+                                    const updatePayload = await updateRes.json();
+                                    if (updatePayload.ok) {
+                                      loadContests();
+                                      alert("สิ้นสุดกิจกรรมแล้ว! ผู้ชนะ (Top 1) จะได้รับรางวัลทั้งหมด");
+                                    } else {
+                                      alert("ไม่สำเร็จ: " + updatePayload.error);
                                     }
                                   } catch (e) {
                                     alert("ไม่สำเร็จ");
                                   }
                                 }
                               }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px" }}>
-                                🏆 ตั้ง Top 1 เป็นผู้ชนะ
+                                🏆 สิ้นสุดกิจกรรม (Top 1 ได้รางวัลทั้งหมด)
                               </button>
                               <button className="button" onClick={async () => {
                                 if (confirm("ยืนยันยกเลิกกิจกรรมนี้?")) {
@@ -2924,13 +2921,13 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           </strong>
                         </div>
                         <div>
-                          <span style={{ color: "var(--muted)" }}>รางวัล:</span>
+                          <span style={{ color: "var(--muted)" }}>🏆 รางวัลทั้งหมด (Top 1 ได้ทั้งหมด):</span>
                           <div style={{ marginLeft: "4px", marginTop: "4px" }}>
-                            {contest.prize_1 && <div style={{ color: "var(--yellow)", fontSize: "11px" }}>🥇 #1: {contest.prize_1}</div>}
-                            {contest.prize_2 && <div style={{ color: "var(--text)", fontSize: "11px" }}>🥈 #2: {contest.prize_2}</div>}
-                            {contest.prize_3 && <div style={{ color: "var(--text)", fontSize: "11px" }}>🥉 #3: {contest.prize_3}</div>}
-                            {contest.prize_4 && <div style={{ color: "var(--muted)", fontSize: "11px" }}>#4: {contest.prize_4}</div>}
-                            {contest.prize_5 && <div style={{ color: "var(--muted)", fontSize: "11px" }}>#5: {contest.prize_5}</div>}
+                            {contest.prize_1 && <div style={{ color: "var(--yellow)", fontSize: "11px" }}>🎁 {contest.prize_1}</div>}
+                            {contest.prize_2 && <div style={{ color: "var(--text)", fontSize: "11px" }}>🎁 {contest.prize_2}</div>}
+                            {contest.prize_3 && <div style={{ color: "var(--text)", fontSize: "11px" }}>🎁 {contest.prize_3}</div>}
+                            {contest.prize_4 && <div style={{ color: "var(--muted)", fontSize: "11px" }}>🎁 {contest.prize_4}</div>}
+                            {contest.prize_5 && <div style={{ color: "var(--muted)", fontSize: "11px" }}>🎁 {contest.prize_5}</div>}
                             {!contest.prize_1 && !contest.prize_2 && !contest.prize_3 && !contest.prize_4 && !contest.prize_5 && <strong style={{ color: "var(--yellow)" }}>ไม่มีรางวัล</strong>}
                           </div>
                         </div>
