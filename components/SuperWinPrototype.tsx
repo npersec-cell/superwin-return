@@ -174,8 +174,9 @@ type UserProfileStats = {
   // Overall leaderboard
   overallScore: number;
   overallRank: number;
-  // Most Orange Ammo (profitScore)
+  // Most Orange Ammo (coinBalance)
   profitScore: number;
+  coinBalance: number;  // Actual coin balance value
   mostOrangeAmmoRank: number;
   // Most Predictions
   predictionCount: number;
@@ -876,29 +877,30 @@ export default function SuperWinPrototype() {
     // Clear any existing refresh interval
     if (profileRefreshRef.current) { clearInterval(profileRefreshRef.current); profileRefreshRef.current = null; }
 
-    // Get values from leaderboard data (more reliable than Profile API)
-    const coinBalanceFromLeaderboard = leaderboardValueMap.mostOrangeAmmo.get(userId) || 0;
-    const predictionCountFromLeaderboard = leaderboardValueMap.mostPredictions.get(userId) || 0;
-    const highestSingleWinFromLeaderboard = leaderboardValueMap.highestSingleWin.get(userId) || 0;
-    const avgReloadPerDayFromLeaderboard = leaderboardValueMap.mostActive.get(userId) || 0;
+    // Get values from leaderboard data (for users in top 20 only)
+    const coinBalanceFromLeaderboard = leaderboardValueMap.mostOrangeAmmo.get(userId);
+    const predictionCountFromLeaderboard = leaderboardValueMap.mostPredictions.get(userId);
+    const highestSingleWinFromLeaderboard = leaderboardValueMap.highestSingleWin.get(userId);
+    const avgReloadPerDayFromLeaderboard = leaderboardValueMap.mostActive.get(userId);
 
-    // Show modal immediately with loading state, use leaderboard values as initial
+    // Show modal immediately with loading state
     setSelectedProfile({
       name: userName,
       // Overall leaderboard
       overallScore: 0,
       overallRank: 0,
-      // Most Orange Ammo - use value from leaderboard
-      profitScore: coinBalanceFromLeaderboard,
+      // Most Orange Ammo
+      profitScore: coinBalanceFromLeaderboard ?? 0,
+      coinBalance: coinBalanceFromLeaderboard ?? 0,
       mostOrangeAmmoRank: 0,
       // Most Predictions
-      predictionCount: predictionCountFromLeaderboard,
+      predictionCount: predictionCountFromLeaderboard ?? 0,
       mostPredictionsRank: 0,
       // Highest Single Win
-      highestSingleWin: highestSingleWinFromLeaderboard,
+      highestSingleWin: highestSingleWinFromLeaderboard ?? 0,
       highestSingleWinRank: 0,
       // Most Active
-      avgReloadPerDay: avgReloadPerDayFromLeaderboard,
+      avgReloadPerDay: avgReloadPerDayFromLeaderboard ?? 0,
       mostActiveRank: 0,
       // Other stats
       rank: 0,
@@ -922,22 +924,22 @@ export default function SuperWinPrototype() {
         const response = await fetch(`/api/leaderboard/profile?userId=${userId}&_t=${Date.now()}`);
         const payload = await response.json();
         if (response.ok && payload.ok && payload.data) {
-          // Use leaderboard values as fallback if Profile API returns NaN or invalid values
+          // Use Profile API values primarily, only use leaderboard values if Profile API returns NaN
           const profileData = payload.data;
           const safeProfile = {
             ...profileData,
-            // Use leaderboard values if Profile API returns NaN or null
-            profitScore: Number.isNaN(profileData.profitScore) || profileData.profitScore === null 
-              ? coinBalanceFromLeaderboard 
+            // Use Profile API value, fallback to leaderboard value if NaN
+            profitScore: (Number.isNaN(profileData.profitScore) || profileData.profitScore === null)
+              ? (coinBalanceFromLeaderboard ?? 0)
               : Number(profileData.profitScore),
-            predictionCount: Number.isNaN(profileData.predictionCount) || profileData.predictionCount === null 
-              ? predictionCountFromLeaderboard 
+            predictionCount: (Number.isNaN(profileData.predictionCount) || profileData.predictionCount === null)
+              ? (predictionCountFromLeaderboard ?? 0)
               : Number(profileData.predictionCount),
-            highestSingleWin: Number.isNaN(profileData.highestSingleWin) || profileData.highestSingleWin === null 
-              ? highestSingleWinFromLeaderboard 
+            highestSingleWin: (Number.isNaN(profileData.highestSingleWin) || profileData.highestSingleWin === null)
+              ? (highestSingleWinFromLeaderboard ?? 0)
               : Number(profileData.highestSingleWin),
-            avgReloadPerDay: Number.isNaN(profileData.avgReloadPerDay) || profileData.avgReloadPerDay === null 
-              ? avgReloadPerDayFromLeaderboard 
+            avgReloadPerDay: (Number.isNaN(profileData.avgReloadPerDay) || profileData.avgReloadPerDay === null)
+              ? (avgReloadPerDayFromLeaderboard ?? 0)
               : Number(profileData.avgReloadPerDay),
             loading: false,
           };
@@ -1946,7 +1948,7 @@ function ProfileModal({
                 <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
                   <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Orange Ammo</span>
                   <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
-                    {compact(Number.isNaN(profile.profitScore) || profile.profitScore === null ? 0 : Number(profile.profitScore))}
+                    {compact(Number.isNaN(profile.coinBalance) || profile.coinBalance === null ? 0 : Number(profile.coinBalance))}
                   </strong>
                   <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
                     #{profile.mostOrangeAmmoRank || "?"}
