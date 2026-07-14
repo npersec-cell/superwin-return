@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("Error creating contest:", error);
-      return NextResponse.json({ ok: false, error: "Failed to create contest" });
+      return NextResponse.json({ ok: false, error: error.message || "Failed to create contest" });
     }
 
     return NextResponse.json({ ok: true, data });
