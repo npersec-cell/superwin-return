@@ -1643,7 +1643,7 @@ export default function SuperWinPrototype() {
                 })}
               </div>
               <div style={{ padding: "8px 12px", borderTop: "1px solid var(--hairline)" }}>
-                <a href="/leaderboard" style={{ 
+                <a href="/leaderboard" target="_blank" rel="noopener noreferrer" style={{ 
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "4px",
