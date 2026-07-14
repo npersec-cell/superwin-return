@@ -356,6 +356,7 @@ type LeaderboardRow = {
   name: string;
   displayName?: string | null;
   profit: number;
+  overallScore: number;
   rank: number;
   isReal?: boolean;
   avatarUrl?: string | null;
@@ -751,12 +752,12 @@ export default function SuperWinPrototype() {
     if (isSignedIn && currentUserId && accountRole !== "admin") {
       rows = rows.map((row) => {
         if (row.id === currentUserId) {
-          return { ...row, id: currentUserId, name: "You", rank: row.rank } as LeaderboardRow;
+          return { ...row, id: currentUserId, name: "You", overallScore: row.overallScore, rank: row.rank } as LeaderboardRow;
         }
         return row;
       });
       if (!rows.some((row) => row.id === currentUserId || row.name === "You")) {
-        rows.push({ id: currentUserId, name: "You", profit: 0, rank: 0, isReal: true });
+        rows.push({ id: currentUserId, name: "You", profit: 0, overallScore: 0, rank: 0, isReal: true });
       }
     }
     return rows.slice(0, 10);
@@ -812,6 +813,7 @@ export default function SuperWinPrototype() {
           name: item.displayName,
           displayName: item.displayName,
           profit: 0,
+          overallScore: item.value,
           rank: item.rank,
           avatarUrl: item.avatarUrl
         }));
@@ -1628,7 +1630,7 @@ export default function SuperWinPrototype() {
                           {getRankFromPosition(row.rank, leaderboardTotalUsers).name}
                         </span>
                       </div>
-                      <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{compact(row.rank || 0)}</b>
+                      <b style={{ display: "flex", alignItems: "center", gap: "3px" }}>{compact(row.overallScore || 0)}</b>
                     </div>
                   );
                 })}
