@@ -8,10 +8,7 @@ export async function GET(request: NextRequest) {
     // Get current active contest
     const { data: contest, error } = await supabase
       .from("contests")
-      .select(`
-        *,
-        winner:winner_user_id(users!id:id, users!id:display_name, users!id:shipping_name, users!id:shipping_address, users!id:shipping_zipcode, users!id:shipping_phone)
-      `)
+      .select("*")
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(1)
@@ -29,10 +26,7 @@ export async function GET(request: NextRequest) {
       
       const { data: endedContest, error: endedError } = await supabase
         .from("contests")
-        .select(`
-          *,
-          winner:winner_user_id(users!id:id, users!id:display_name, users!id:shipping_name, users!id:shipping_address, users!id:shipping_zipcode, users!id:shipping_phone)
-        `)
+        .select("*")
         .eq("status", "ended")
         .gte("end_time", sevenDaysAgo.toISOString())
         .order("end_time", { ascending: false })
