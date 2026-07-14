@@ -284,6 +284,45 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [reportsLoading, setReportsLoading] = useState(false);
   const [contests, setContests] = useState<any[]>([]);
   const [contestsLoading, setContestsLoading] = useState(false);
+  const [showNewContestForm, setShowNewContestForm] = useState(false);
+  const [newContestName, setNewContestName] = useState("");
+  const [newContestDescription, setNewContestDescription] = useState("");
+  const [newContestPrize, setNewContestPrize] = useState("");
+  const [newContestEndTime, setNewContestEndTime] = useState(() => {
+    const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    return d.toISOString().slice(0, 16);
+  });
+
+  async function handleCreateContest() {
+    if (!newContestName.trim() || !newContestPrize.trim() || !newContestEndTime) {
+      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
+    try {
+      const response = await fetch("/api/admin/contests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newContestName.trim(),
+          description: newContestDescription.trim(),
+          end_time: new Date(newContestEndTime.replace(" ", "T") + ":00").toISOString(),
+          prize: newContestPrize.trim(),
+        }),
+      });
+      const payload = await response.json();
+      if (payload.ok) {
+        setShowNewContestForm(false);
+        setNewContestName("");
+        setNewContestDescription("");
+        setNewContestPrize("");
+        loadContests();
+      } else {
+        alert("สร้างกิจกรรมไม่สำเร็จ: " + (payload.error || ""));
+      }
+    } catch {
+      alert("สร้างกิจกรรมไม่สำเร็จ");
+    }
+  }
 
   const [localOrder, setLocalOrder] = useState<string[]>([]);
 
@@ -1513,7 +1552,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>แอดมิน ({admins.length})</button>
           <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>แจ้งปัญหา ({reports.length})</button>
           <button className={`button ${activeTab === "users" ? "active" : ""}`} onClick={() => setActiveTab("users")} style={{ borderRadius: "999px" }}>จัดการผู้ใช้ ({users.length})</button>
-          <button className={`button ${activeTab === "contests" ? "active" : ""}`} onClick={() => { setActiveTab("contests"); loadContests().catch(() => undefined); }} style={{ borderRadius: "999px" }}>🎁 กิจกรรมชิงรางวัล ({contests.length})</button>
+          <button className={`button ${activeTab === "contests" ? "active" : ""}`} onClick={() => { setActiveTab("contests"); loadContests().catch(() => undefined); }} style={{ borderRadius: "999px" }}>กิจกรรมชิงรางวัล ({contests.length})</button>
         </div>
 
         <section className="admin-content" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", width: "100%", maxWidth: "100%", justifyItems: "center", alignContent: "start", margin: "0 auto" }}>
@@ -2622,36 +2661,73 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           {activeTab === "contests" && (
             <section className="panel" style={{ width: "100%", maxWidth: "900px", margin: "0 auto", background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <h3>🎁 กิจกรรมชิงรางวัล</h3>
+                <h3>กิจกรรมชิงรางวัล</h3>
                 <div>
-                  <button className="button gold" onClick={async () => {
-                    const name = prompt("ชื่อกิจกรรม:");
-                    if (!name) return;
-                    const prize = prompt("รางวัล Top 1:");
-                    if (!prize) return;
-                    const endTime = prompt("วันเวลาสิ้นสุด (YYYY-MM-DD HH:mm):", new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16).replace("T", " "));
-                    if (!endTime) return;
-                    try {
-                      const response = await fetch("/api/admin/contests", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name, description: "", end_time: endTime.replace(" ", "T") + ":00", prize }),
-                      });
-                      const payload = await response.json();
-                      if (payload.ok) {
-                        loadContests();
-                        alert("สร้างกิจกรรมสำเร็จ");
-                      } else {
-                        alert("สร้างกิจกรรมไม่สำเร็จ: " + payload.error);
-                      }
-                    } catch (e) {
-                      alert("สร้างกิจกรรมไม่สำเร็จ");
-                    }
-                  }} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
+                  <button className="button gold" onClick={() => setShowNewContestForm(true)} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
                     + สร้างกิจกรรม
                   </button>
                 </div>
               </div>
+
+              {/* New Contest Form */}
+              {showNewContestForm && (
+                <section style={{ border: "1px solid var(--yellow)", background: "rgba(255,225,0,0.05)", borderRadius: "8px", padding: "12px", marginBottom: "16px" }}>
+                  <h4 style={{ color: "var(--yellow)", marginBottom: "12px", fontSize: "12px" }}>+ สร้างกิจกรรมใหม่</h4>
+                  <div style={{ display: "grid", gap: "10px" }}>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>ชื่อกิจกรรม *</label>
+                      <input
+                        type="text"
+                        className="button"
+                        placeholder="เช่น: แข่งขันเดือนกรกฎาคม"
+                        value={newContestName}
+                        onChange={(e) => setNewContestName(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รายละเอียด</label>
+                      <input
+                        type="text"
+                        className="button"
+                        placeholder="รายละเอียดเพิ่มเติม ( facultative)"
+                        value={newContestDescription}
+                        onChange={(e) => setNewContestDescription(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รางวัล Top 1 *</label>
+                      <input
+                        type="text"
+                        className="button"
+                        placeholder="เช่น: 100 USDT"
+                        value={newContestPrize}
+                        onChange={(e) => setNewContestPrize(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>วันเวลาสิ้นสุด *</label>
+                      <input
+                        type="datetime-local"
+                        className="button"
+                        value={newContestEndTime}
+                        onChange={(e) => setNewContestEndTime(e.target.value)}
+                        style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
+                      />
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                      <button type="button" className="button" onClick={() => setShowNewContestForm(false)} style={{ flex: 1, height: "30px", fontSize: "11px" }}>
+                        ยกเลิก
+                      </button>
+                      <button type="button" className="button gold" onClick={handleCreateContest} style={{ flex: 1, height: "30px", fontSize: "11px" }}>
+                        สร้าง
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              )}
 
               {contestsLoading ? (
                 <div style={{ textAlign: "center", padding: "20px", color: "var(--text-weak)" }}>กำลังโหลด...</div>
