@@ -2007,14 +2007,23 @@ function ProfileModal({
                               : ((h as any).payoutAmount || 0) - (h as any).amount || 0;
                             const isWin = net > 0;
                             return (
-                              <>
-                                <span style={{ fontSize: "9px", color: "var(--muted)" }}>{h.status}</span>
-                                <strong style={{ display: "block", fontSize: "12px", color: isWin ? "var(--yellow)" : "var(--text-weak)", fontFamily: "JetBrains Mono, monospace" }}>
-                                  {compact(net)}
-                                </strong>
-                              </>
+                              <span className="pill" style={{
+                                fontSize: "9px",
+                                height: "18px",
+                                padding: "0 6px",
+                                background: isWin ? "rgba(14, 203, 129, 0.12)" : "rgba(240, 84, 84, 0.12)",
+                                color: isWin ? "var(--green)" : "var(--red)",
+                                borderColor: isWin ? "rgba(14, 203, 129, 0.4)" : "rgba(240, 84, 84, 0.4)",
+                                borderRadius: "4px",
+                                fontWeight: "bold"
+                              }}>
+                                {isWin ? `+${compact(net)}` : `-${compact(Math.abs(net))}`}
+                              </span>
                             );
                           })()}
+                          <span className="meta" style={{ display: "block", fontSize: "8px", marginTop: "2px" }}>
+                            {h.date}
+                          </span>
                         </div>
                       </div>
                     ))}
