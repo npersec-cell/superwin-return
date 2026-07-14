@@ -55,14 +55,14 @@ export async function POST(request: NextRequest) {
 
     if (rpcError) {
       // Try to parse error message from DB function
-      const errorMessage = rpcError.message || "Prediction failed";
+      const errorMessage = rpcError.message || "Unable to place prediction";
       return NextResponse.json({ ok: false, error: errorMessage }, { status: 400 });
     }
 
     // Parse result from function
     const result = data as any;
     if (!result?.ok) {
-      const errorMsg = result?.error || "Prediction failed";
+      const errorMsg = result?.error || "Unable to place prediction";
       return NextResponse.json({ ok: false, error: errorMsg }, { status: 400 });
     }
 
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     return applyRateLimitHeaders(response, rateLimitResult);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Prediction failed";
+    const message = error instanceof Error ? error.message : "Unable to place prediction";
     const status = message === "Unauthorized" ? 401 : 500;
     return NextResponse.json({ ok: false, error: message }, { status });
   }

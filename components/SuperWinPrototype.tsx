@@ -1205,7 +1205,7 @@ export default function SuperWinPrototype() {
         });
         const payload = (await response.json()) as ApiPredictResponse;
         if (!response.ok || !payload.ok || !payload.data) {
-          throw new Error(payload.error || "Prediction failed");
+          throw new Error(payload.error || "Unable to place prediction");
         }
         setCoins(payload.data.user.coinBalance);
         setProfit(payload.data.user.lifetimeProfit);
@@ -1213,7 +1213,7 @@ export default function SuperWinPrototype() {
         setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${answer.name} · now running` }));
         await loadRunningPredictions();
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Prediction failed";
+        const message = error instanceof Error ? error.message : "Unable to place prediction";
         setToast((current) => ({ ...current, [question.id]: message }));
       } finally {
         setPredictingIds((current) => {
