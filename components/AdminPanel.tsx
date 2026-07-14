@@ -2818,6 +2818,50 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         <div style={{ display: "flex", gap: "6px" }}>
                           {contest.status === "active" && (
                             <>
+                              <button className="button" onClick={async () => {
+                                // Open edit modal
+                                const newName = prompt("ชื่อกิจกรรม:", contest.name);
+                                const newDesc = prompt("รายละเอียด ( facultative ):", contest.description || "");
+                                const newEndTime = prompt("วันเวลาสิ้นสุด ( YYYY-MM-DDTHH:mm , Bangkok timezone ):", 
+                                  new Date(new Date(contest.end_time).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 16));
+                                const prize1 = prompt("รางวัลที่ 1:", contest.prize_1);
+                                const prize2 = prompt("รางวัลที่ 2:", contest.prize_2);
+                                const prize3 = prompt("รางวัลที่ 3:", contest.prize_3);
+                                const prize4 = prompt("รางวัลที่ 4:", contest.prize_4);
+                                const prize5 = prompt("รางวัลที่ 5:", contest.prize_5);
+                                if (!newName || !newEndTime || !prize1) {
+                                  alert("กรุณากรอกข้อมูลให้ครบ (ชื่อ, วันเวลาสิ้นสุด, รางวัลที่ 1)");
+                                  return;
+                                }
+                                try {
+                                  const res = await fetch("/api/admin/contests", {
+                                    method: "PUT",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({
+                                      id: contest.id,
+                                      name: newName,
+                                      description: newDesc,
+                                      end_time: newEndTime,
+                                      prize_1: prize1,
+                                      prize_2: prize2,
+                                      prize_3: prize3,
+                                      prize_4: prize4,
+                                      prize_5: prize5,
+                                    }),
+                                  });
+                                  const payload = await res.json();
+                                  if (payload.ok) {
+                                    loadContests();
+                                    alert("แก้ไขกิจกรรมสำเร็จ");
+                                  } else {
+                                    alert("แก้ไขกิจกรรมไม่สำเร็จ: " + (payload.error || ""));
+                                  }
+                                } catch (e) {
+                                  alert("แก้ไขกิจกรรมไม่สำเร็จ");
+                                }
+                              }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px" }}>
+                                ✏️ แก้ไข
+                              </button>
                               <button className="button gold" onClick={async () => {
                                 if (confirm(`ยืนยันสิ้นสุดกิจกรรมนี้?\nระบบจะตรวจสอบ Rank 1 ใน Leaderboard ณ ขณะนี้ และตั้งเป็นผู้ชนะ\nผู้ชนะจะได้รับรางวัลทั้งหมด ${[contest.prize_1, contest.prize_2, contest.prize_3, contest.prize_4, contest.prize_5].filter(Boolean).length} อย่าง`)) {
                                   try {
