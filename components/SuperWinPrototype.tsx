@@ -1177,6 +1177,12 @@ export default function SuperWinPrototype() {
   async function confirmPrediction(question: Question) {
     const amount = Number(coinInputs[question.id] || 0);
     const answer = selectedOption(question);
+    const lockedOptionName = getLockedOptionName(question);
+    const isLocked = lockedOptionName !== null;
+    const lockedOption = question.options.find((o) => o.name === lockedOptionName) || answer;
+    // Use locked option's id if locked, otherwise use user's selected option
+    const optionToSend = isLocked ? lockedOption : answer;
+    
     if (!(devBypass || isSignedIn)) {
       setToast((current) => ({ ...current, [question.id]: "Login first" }));
       return;
@@ -1199,7 +1205,7 @@ export default function SuperWinPrototype() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             predictionId: question.id,
-            optionId: answer.id,
+            optionId: optionToSend.id,
             amount
           })
         });
