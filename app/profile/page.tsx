@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 function compact(n: number): string {
@@ -15,150 +15,153 @@ function maskName(name: string): string {
   return name.slice(0, -2) + "xx";
 }
 
-interface UserInfo {
-  id: string;
-  email: string;
-  displayName: string | null;
-  profitScore: number;
-  addressCompleted: boolean;
-  shippingName?: string;
-  shippingAddress?: string;
-  shippingZipcode?: string;
-  shippingPhone?: string;
+function getRankFromPosition(rank: number, totalUsers: number): { name: string; icon: string } {
+  if (totalUsers === 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
+  
+  // Crown: #1 only (the absolute best)
+  if (rank === 1) return { name: "Crown", icon: "/ranks/crown.png" };
+  
+  // Helper to check minimum count for each rank tier
+  function minForTier(tierPercent: number): number {
+    return Math.max(1, Math.ceil(totalUsers * tierPercent / 100));
+  }
+  
+  // Conqueror: Top 3% OR at least 2 people
+  const minConqueror = Math.max(2, minForTier(3));
+  if (rank <= minConqueror) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
+  
+  // Ace: Top 8% OR at least 3 people
+  const minAce = Math.max(3, minForTier(8));
+  if (rank <= minAce) return { name: "Ace", icon: "/ranks/ace.png" };
+  
+  // Diamond: Top 15% OR at least 5 people
+  const minDiamond = Math.max(5, minForTier(15));
+  if (rank <= minDiamond) return { name: "Diamond", icon: "/ranks/diamond.png" };
+  
+  // Calculate percentile: higher = better (100 = top)
+  const percentile = ((totalUsers - rank) / totalUsers) * 100;
+  
+  // Platinum: Top 25%
+  if (percentile >= 50) return { name: "Platinum", icon: "/ranks/platinum.png" };
+  // Gold: Top 40%
+  if (percentile >= 40) return { name: "Gold", icon: "/ranks/gold.png" };
+  // Silver: 40-70%
+  if (percentile >= 15) return { name: "Silver", icon: "/ranks/silver.png" };
+  // Bronze: Bottom 30%
+  return { name: "Bronze", icon: "/ranks/bronze.png" };
 }
 
-interface UserRankData {
+interface UserProfileStats {
+  name: string;
+  displayName?: string | null;
+  // Overall leaderboard
+  overallScore: number;
   overallRank: number;
-  profitScore: number;
-  profitScoreRank: number;
+  // Most Orange Ammo (coinBalance)
+  coinBalance: number;
+  mostOrangeAmmoRank: number;
+  // Most Predictions
   predictionCount: number;
-  predictionCountRank: number;
+  mostPredictionsRank: number;
+  // Highest Single Win
   highestSingleWin: number;
   highestSingleWinRank: number;
+  // Most Active
   avgReloadPerDay: number;
-  activeRank: number;
+  mostActiveRank: number;
+  // Other stats
+  rank: number;
+  rankPercentile: number;
+  rankName: string;
+  rankIcon: string;
   totalUsers: number;
-  totalActiveUsers?: number;
-  userHasActivity?: boolean;
+  winRate: number;
+  wonCount: number;
+  lostCount: number;
+  totalSettled: number;
+  badge: string;
+  badgeDesc: string;
+  loading?: boolean;
+  history: Array<{
+    id: string;
+    tournament: string;
+    question: string;
+    pick: string;
+    amount: number;
+    payout: number;
+    status: "won" | "lost";
+    net: number;
+    date: string;
+  }>;
 }
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<UserInfo | null>(null);
-  const [rankData, setRankData] = useState<UserRankData | null>(null);
+  const [profile, setProfile] = useState<UserProfileStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-
   const [form, setForm] = useState({
-    shippingName: "",
-    shippingAddress: "",
-    shippingZipcode: "",
-    shippingPhone: "",
     displayName: "",
   });
   const [dnMessage, setDnMessage] = useState("");
   const [dnError, setDnError] = useState("");
   const [dnSaving, setDnSaving] = useState(false);
+  
+  // Refresh interval
+  const profileRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  async function loadUser() {
+  // Load profile data using the same API as Leaderboard
+  async function loadProfile(userId?: string) {
     try {
-      const res = await fetch("/api/me");
-      const data = await res.json();
-      if (data.ok) {
-        setUser(data.data);
-        setForm((f) => ({
-          ...f,
-          shippingName: data.data.shippingName || "",
-          shippingAddress: data.data.shippingAddress || "",
-          shippingZipcode: data.data.shippingZipcode || "",
-          shippingPhone: data.data.shippingPhone || "",
-          displayName: data.data.displayName || "",
-        }));
-        // ถ้ายังไม่เคยกรอก ที่อยู่ → เปิดโหมดแก้ไขให้เลย
-        if (!data.data.addressCompleted) {
-          setIsEditing(true);
+      // Get current user's ID from /api/me first
+      let currentUserId = userId;
+      if (!currentUserId) {
+        const meRes = await fetch("/api/me");
+        const meData = await meRes.json();
+        if (meData.ok && meData.data) {
+          currentUserId = meData.data.id;
+          setForm({ displayName: meData.data.displayName || "" });
         }
       }
-    } catch (err) {
-      console.error("Error loading user:", err);
-    }
-  }
-
-  async function loadRankData(userId: string) {
-    try {
-      const res = await fetch(`/api/leaderboard/v2?userId=${userId}`);
-      const data = await res.json();
-      if (data.userRankData) {
-        setRankData(data.userRankData);
+      
+      if (!currentUserId) {
+        setError("Cannot load profile: user not authenticated");
+        return;
       }
-    } catch (err) {
-      console.error("Error loading rank data:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadUser();
-  }, []);
-
-  // Load rank data after user is loaded
-  useEffect(() => {
-    if (user?.id) {
-      loadRankData(user.id);
-    }
-  }, [user]);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setMessage("");
-
-    if (!form.shippingName.trim() || !form.shippingAddress.trim() || !form.shippingZipcode.trim() || !form.shippingPhone.trim()) {
-      setError("กรุณากรอกข้อมูลให้ครบทุกช่อง");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const res = await fetch("/api/me/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          shippingName: form.shippingName,
-          shippingAddress: form.shippingAddress,
-          shippingZipcode: form.shippingZipcode,
-          shippingPhone: form.shippingPhone,
-        }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setMessage(user?.addressCompleted ? "อัปเดตข้อมูลสำเร็จ!" : "บันทึกข้อมูลสำเร็จ!");
-        setUser((prev) => prev ? { ...prev, addressCompleted: data.data.addressCompleted } : null);
-        setIsEditing(false);
-        if (!user?.addressCompleted) {
-          setTimeout(() => {
-            router.push("/number-war");
-          }, 1500);
-        }
+      
+      // Fetch profile data using the same API as Leaderboard
+      const response = await fetch(`/api/leaderboard/profile?userId=${currentUserId}&_t=${Date.now()}`);
+      const payload = await response.json();
+      if (response.ok && payload.ok && payload.data) {
+        const profileData = payload.data;
+        setProfile({
+          ...profileData,
+          loading: false,
+        });
+        setError(null);
       } else {
-        setError(data.error || "ไม่สามารถบันทึกข้อมูลได้");
+        setError(payload.error || "Failed to load profile");
       }
-    } catch (err) {
-      setError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
-    } finally {
-      setSaving(false);
+    } catch (e) {
+      console.error("Error loading profile:", e);
+      setError("Failed to load profile");
     }
   }
 
-  function handleEdit() {
-    setIsEditing(true);
-    setMessage("");
-    setError("");
-  }
+  useEffect(() => {
+    loadProfile();
+    
+    // Auto-refresh every 15 seconds
+    profileRefreshRef.current = setInterval(() => loadProfile(), 15000);
+    
+    return () => {
+      if (profileRefreshRef.current) {
+        clearInterval(profileRefreshRef.current);
+        profileRefreshRef.current = null;
+      }
+    };
+  }, []);
 
   async function saveDisplayName() {
     setDnError("");
@@ -180,7 +183,7 @@ export default function ProfilePage() {
       const data = await res.json();
       if (data.ok) {
         setDnMessage("บันทึกชื่อเล่นสำเร็จ!");
-        setUser((prev) => prev ? { ...prev, displayName: raw || null } : null);
+        setForm({ displayName: raw || "" });
       } else {
         setDnError(data.error || "ไม่สามารถบันทึกชื่อเล่นได้");
       }
@@ -194,352 +197,260 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="page">
-        <div className="app" style={{ textAlign: "center", padding: "40px" }}>
-          <div style={{ color: "var(--muted)" }}>กำลังโหลด...</div>
+        <div className="app" style={{ width: "min(820px, 100%)" }}>
+          <div className="topbar">
+            <div className="brand">
+              <img src="https://superwinhub.app/SuperWin_b.png" alt="SuperWinHub" width={24} height={24} style={{ borderRadius: 6, objectFit: "contain" }} />
+              <div className="brand-text">
+                <h1>SuperWinHub</h1>
+                <span>My Profile</span>
+              </div>
+            </div>
+            <div className="actions">
+              <button className="button" onClick={() => router.push("/")}>← Back to Home</button>
+            </div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "200px" }}>
+            <div className="spinner" />
+          </div>
         </div>
       </div>
     );
   }
 
-  const readOnly = user?.addressCompleted && !isEditing;
+  if (error) {
+    return (
+      <div className="page">
+        <div className="app" style={{ width: "min(820px, 100%)" }}>
+          <div className="topbar">
+            <div className="brand">
+              <img src="https://superwinhub.app/SuperWin_b.png" alt="SuperWinHub" width={24} height={24} style={{ borderRadius: 6, objectFit: "contain" }} />
+              <div className="brand-text">
+                <h1>SuperWinHub</h1>
+                <span>My Profile</span>
+              </div>
+            </div>
+            <div className="actions">
+              <button className="button" onClick={() => router.push("/")}>← Back to Home</button>
+            </div>
+          </div>
+          <div style={{ padding: "20px", textAlign: "center" }}>
+            <div style={{ color: "var(--red)", fontSize: "14px" }}>{error}</div>
+            <button className="button" onClick={() => router.push("/")} style={{ marginTop: "12px" }}>
+              Back to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="page">
+        <div className="app" style={{ width: "min(820px, 100%)" }}>
+          <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>
+            No profile data available
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page">
-      <div className="app" style={{ maxWidth: "480px" }}>
-        {/* Header */}
-        <div className="topbar" style={{ marginBottom: "12px" }}>
-            <div className="brand">
-              <img src="https://superwinhub.app/SuperWin_b.png" alt="" className="logo" />
-              <div className="brand-text">
-              <div style={{ fontWeight: 700, fontSize: "13px", color: "var(--yellow)" }}>
-                {readOnly ? "ข้อมูลโปรไฟล์" : "แก้ไขข้อมูลโปรไฟล์"}
-              </div>
-              <div style={{ fontSize: "10px", color: "var(--muted)" }}>
-                {readOnly ? "ข้อมูลส่วนตัวของคุณ" : "กรอกข้อมูลให้ครบถ้วน"}
-              </div>
+      <div className="app" style={{ width: "min(820px, 100%)" }}>
+        <div className="topbar">
+          <div className="brand">
+            <img src="https://superwinhub.app/SuperWin_b.png" alt="SuperWinHub" width={24} height={24} style={{ borderRadius: 6, objectFit: "contain" }} />
+            <div className="brand-text">
+              <h1>SuperWinHub</h1>
+              <span>My Profile</span>
             </div>
           </div>
-          <button className="button" onClick={() => router.push("/")} style={{ height: "34px", padding: "0 14px", fontSize: "11px" }}>
-            กลับ
-          </button>
+          <div className="actions">
+            <button className="button" onClick={() => router.push("/")}>← Back to Home</button>
+          </div>
         </div>
 
-        {/* User Info */}
-        {user && (
-          <div className="panel" style={{ padding: "14px", marginBottom: "12px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
-              <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: "var(--yellow-soft)", display: "grid", placeItems: "center", fontSize: "16px" }}>
-                👤
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: "12px" }}>{user.displayName || user.email}</div>
-                <div style={{ fontSize: "10px", color: "var(--muted)" }}>{user.email}</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Leaderboard Stats */}
-        {rankData && (
-          <div className="panel" style={{ padding: "14px", marginBottom: "12px" }}>
-            <div style={{ fontSize: "12px", fontWeight: 600, marginBottom: "10px", color: "var(--yellow)" }}>
-              🏆 สถิติใน Leaderboard
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Overall</span>
-                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  {rankData.userHasActivity 
-                    ? `#${rankData.overallRank} ของ ${rankData.totalActiveUsers || rankData.totalUsers} คน`
-                    : "ยังไม่ได้เล่น"}
-                </strong>
-              </div>
-              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Orange Ammo</span>
-                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  #{rankData.profitScoreRank} ของ {rankData.totalUsers} คน
-                </strong>
-              </div>
-              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Predictions</span>
-                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  #{rankData.predictionCountRank} ของ {rankData.totalUsers} คน
-                </strong>
-              </div>
-              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Highest Single Win</span>
-                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  #{rankData.highestSingleWinRank} ของ {rankData.totalUsers} คน
-                </strong>
-              </div>
-              <div style={{ padding: "10px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
-                <span style={{ fontSize: "10px", color: "var(--muted)" }}>Most Active (avg/day)</span>
-                <strong style={{ display: "block", fontSize: "16px", color: "var(--yellow)", marginTop: "4px", fontFamily: "JetBrains Mono, monospace" }}>
-                  #{rankData.activeRank} ของ {rankData.totalUsers} คน
-                </strong>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Display Name Editor */}
-        <div className="panel" style={{ padding: "14px", marginBottom: "12px" }}>
-          <div style={{ fontSize: "11px", fontWeight: 600, marginBottom: "8px", color: "var(--text)" }}>
-            ชื่อที่แสดงบนเว็บ (ชื่อเล่น) <span style={{ color: "var(--muted)", fontWeight: 400 }}>· ไม่เกิน 8 ตัวอักษร</span>
-          </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <input
-              type="text"
-              value={form.displayName}
-              onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
-              placeholder="ตั้งชื่อเล่น"
-              maxLength={8}
-              style={{
-                flex: 1,
-                height: "38px",
-                background: "var(--bg)",
-                border: "1px solid var(--hairline)",
-                borderRadius: "8px",
-                padding: "0 12px",
-                color: "var(--text)",
-                fontSize: "12px",
-                outline: "none",
-              }}
-            />
-            <button
-              type="button"
-              className="button gold"
-              onClick={saveDisplayName}
-              disabled={dnSaving}
-              style={{ height: "38px", padding: "0 16px", fontSize: "12px", fontWeight: 600, borderRadius: "8px", opacity: dnSaving ? 0.6 : 1 }}
-            >
-              {dnSaving ? "กำลังบันทึก..." : "บันทึก"}
-            </button>
-          </div>
-          {form.displayName.length > 0 && (
-            <div style={{ marginTop: "6px", fontSize: "10px", color: "var(--muted)" }}>
-              ตัวอย่างที่จะแสดง: <span style={{ color: "var(--yellow)", fontWeight: 600 }}>{form.displayName}</span>
-            </div>
-          )}
-          {dnError && (
-            <div style={{ marginTop: "8px", padding: "8px", background: "rgba(246, 70, 93, 0.1)", border: "1px solid var(--red)", borderRadius: "6px", color: "var(--red)", fontSize: "11px" }}>
-              {dnError}
-            </div>
-          )}
-          {dnMessage && (
-            <div style={{ marginTop: "8px", padding: "8px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", borderRadius: "6px", color: "var(--green)", fontSize: "11px" }}>
-              {dnMessage}
-            </div>
-          )}
-        </div>
-
-        {/* Address Status */}
-        <div
-          className="panel"
-          style={{
-            padding: "14px",
-            marginBottom: "12px",
-            background: user?.addressCompleted ? "rgba(14, 203, 129, 0.08)" : "rgba(239, 68, 68, 0.08)",
-            borderColor: user?.addressCompleted ? "var(--green)" : "var(--red)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <div style={{ fontSize: "20px" }}>{user?.addressCompleted ? "✅" : "⚠️"}</div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: "12px", color: user?.addressCompleted ? "var(--green)" : "var(--red)" }}>
-                  {user?.addressCompleted ? "ข้อมูลจัดส่งครบถ้วน" : "ยังไม่มีข้อมูลจัดส่ง"}
-                </div>
-                <div style={{ fontSize: "10px", color: "var(--muted)" }}>
-                  {user?.addressCompleted
-                    ? "คุณสามารถเล่น Number War และรับรางวัลได้"
-                    : "กรุณากรอกข้อมูลด้านล่างให้ครบถ้วน"}
+        {/* Profile Content - Same as Leaderboard ProfileModal */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          {/* Left Column: Stats & History */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {/* RANK - Full Width, Top */}
+            <div className="info-block" style={{ padding: "14px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", textAlign: "center" }}>
+              <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>OVERALL RANK</span>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginTop: "8px" }}>
+                <img src={profile.rankIcon} alt="" width={28} height={28} style={{ objectFit: "contain" }} />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <strong style={{ fontSize: "22px", color: "var(--yellow)", fontWeight: 700 }}>
+                    #{profile.overallRank}
+                  </strong>
+                  <span style={{ fontSize: "12px", color: "var(--muted)" }}>{profile.rankName}</span>
                 </div>
               </div>
             </div>
-            {user?.addressCompleted && !isEditing && (
-              <button
-                type="button"
-                onClick={handleEdit}
-                className="button"
-                style={{ height: "32px", padding: "0 12px", fontSize: "11px", borderRadius: "6px" }}
-              >
-                แก้ไข
-              </button>
-            )}
-          </div>
-        </div>
 
-        {/* Form */}
-        {isEditing ? (
-          <form onSubmit={handleSubmit} className="panel" style={{ padding: "16px" }}>
-            <div style={{ display: "grid", gap: "14px" }}>
-              <div>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: 600, marginBottom: "6px", color: "var(--text)" }}>
-                  ชื่อ-นามสกุล ผู้รับ <span style={{ color: "var(--red)" }}>*</span>
-                </label>
+            {/* Stats Grid - 6 columns, 2 rows */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px" }}>
+              <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                <span style={{ fontSize: "9px", color: "var(--muted)" }}>WIN RATE</span>
+                <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px" }}>
+                  {profile.winRate}%
+                </strong>
+                <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                  {profile.wonCount} won · {profile.lostCount} lost
+                </span>
+              </div>
+              <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                <span style={{ fontSize: "9px", color: "var(--muted)" }}>Overall</span>
+                <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {profile.overallScore ?? 0}
+                </strong>
+              </div>
+              <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Orange Ammo</span>
+                <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {compact(Number.isNaN(profile.coinBalance) || profile.coinBalance === null ? 0 : Number(profile.coinBalance))}
+                </strong>
+                <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                  #{profile.mostOrangeAmmoRank || "?"}
+                </span>
+              </div>
+              <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Predictions</span>
+                <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {profile.predictionCount ?? 0}
+                </strong>
+                <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                  #{profile.mostPredictionsRank || "?"}
+                </span>
+              </div>
+              <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                <span style={{ fontSize: "9px", color: "var(--muted)" }}>Highest Single Win</span>
+                <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {compact(Number.isNaN(profile.highestSingleWin) || profile.highestSingleWin === null ? 0 : Number(profile.highestSingleWin))}
+                </strong>
+                <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                  #{profile.highestSingleWinRank || "?"}
+                </span>
+              </div>
+              <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
+                <span style={{ fontSize: "9px", color: "var(--muted)" }}>Most Active (avg/day)</span>
+                <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px", fontFamily: "JetBrains Mono, monospace" }}>
+                  {(profile.avgReloadPerDay ?? 0).toFixed(1)}
+                </strong>
+                <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
+                  #{profile.mostActiveRank || "?"}
+                </span>
+              </div>
+            </div>
+
+            {/* Display Name Editor */}
+            <div style={{ padding: "12px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
+              <div style={{ fontSize: "11px", fontWeight: 600, marginBottom: "8px", color: "var(--text)" }}>
+                Display Name <span style={{ color: "var(--muted)", fontWeight: 400 }}>· max 8 chars</span>
+              </div>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                 <input
                   type="text"
-                  value={form.shippingName}
-                  onChange={(e) => setForm((f) => ({ ...f, shippingName: e.target.value }))}
-                  placeholder="ชื่อ นามสกุล"
+                  value={form.displayName}
+                  onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
+                  placeholder="Enter display name"
+                  maxLength={8}
                   style={{
-                    width: "100%",
-                    height: "40px",
-                    background: "var(--bg)",
+                    flex: 1,
+                    height: "34px",
+                    background: "var(--bg-deeper)",
                     border: "1px solid var(--hairline)",
-                    borderRadius: "8px",
+                    borderRadius: "6px",
                     padding: "0 12px",
                     color: "var(--text)",
                     fontSize: "12px",
                     outline: "none",
                   }}
-                  required
                 />
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: 600, marginBottom: "6px", color: "var(--text)" }}>
-                  ที่อยู่จัดส่ง <span style={{ color: "var(--red)" }}>*</span>
-                </label>
-                <textarea
-                  value={form.shippingAddress}
-                  onChange={(e) => setForm((f) => ({ ...f, shippingAddress: e.target.value }))}
-                  placeholder="บ้านเลขที่ หมู่บ้าน/อาคาร ซอย ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด"
-                  rows={3}
-                  style={{
-                    width: "100%",
-                    background: "var(--bg)",
-                    border: "1px solid var(--hairline)",
-                    borderRadius: "8px",
-                    padding: "10px 12px",
-                    color: "var(--text)",
-                    fontSize: "12px",
-                    outline: "none",
-                    resize: "vertical",
-                    fontFamily: "inherit",
-                  }}
-                  required
-                />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "11px", fontWeight: 600, marginBottom: "6px", color: "var(--text)" }}>
-                    รหัสไปรษณีย์ <span style={{ color: "var(--red)" }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.shippingZipcode}
-                    onChange={(e) => setForm((f) => ({ ...f, shippingZipcode: e.target.value }))}
-                    placeholder="10110"
-                    maxLength={10}
-                    style={{
-                      width: "100%",
-                      height: "40px",
-                      background: "var(--bg)",
-                      border: "1px solid var(--hairline)",
-                      borderRadius: "8px",
-                      padding: "0 12px",
-                      color: "var(--text)",
-                      fontSize: "12px",
-                      outline: "none",
-                    }}
-                    required
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "11px", fontWeight: 600, marginBottom: "6px", color: "var(--text)" }}>
-                    เบอร์โทรศัพท์ <span style={{ color: "var(--red)" }}>*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={form.shippingPhone}
-                    onChange={(e) => setForm((f) => ({ ...f, shippingPhone: e.target.value }))}
-                    placeholder="081-234-5678"
-                    maxLength={20}
-                    style={{
-                      width: "100%",
-                      height: "40px",
-                      background: "var(--bg)",
-                      border: "1px solid var(--hairline)",
-                      borderRadius: "8px",
-                      padding: "0 12px",
-                      color: "var(--text)",
-                      fontSize: "12px",
-                      outline: "none",
-                    }}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            {error && (
-              <div style={{ marginTop: "12px", padding: "10px", background: "rgba(246, 70, 93, 0.1)", border: "1px solid var(--red)", borderRadius: "8px", color: "var(--red)", fontSize: "11px" }}>
-                {error}
-              </div>
-            )}
-
-            {message && (
-              <div style={{ marginTop: "12px", padding: "10px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", borderRadius: "8px", color: "var(--green)", fontSize: "11px" }}>
-                {message}
-              </div>
-            )}
-
-            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
-              {user?.addressCompleted && (
                 <button
                   type="button"
                   className="button"
-                  onClick={() => setIsEditing(false)}
-                  style={{ flex: 1, height: "44px", borderRadius: "8px", fontSize: "13px", fontWeight: 600 }}
+                  onClick={saveDisplayName}
+                  disabled={dnSaving}
+                  style={{ height: "34px", padding: "0 14px", fontSize: "11px", fontWeight: 600, borderRadius: "6px", opacity: dnSaving ? 0.6 : 1 }}
                 >
-                  ยกเลิก
+                  {dnSaving ? "Saving..." : "Save"}
                 </button>
+              </div>
+              {form.displayName.length > 0 && (
+                <div style={{ marginTop: "6px", fontSize: "10px", color: "var(--muted)" }}>
+                  Preview: <span style={{ color: "var(--yellow)", fontWeight: 600 }}>{form.displayName}</span>
+                </div>
               )}
-              <button
-                type="submit"
-                className="button gold"
-                disabled={saving}
-                style={{
-                  flex: 1,
-                  height: "44px",
-                  borderRadius: "8px",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  opacity: saving ? 0.6 : 1,
-                }}
-              >
-                {saving ? "กำลังบันทึก..." : user?.addressCompleted ? "อัปเดตข้อมูล" : "บันทึกข้อมูลจัดส่ง"}
-              </button>
-            </div>
-          </form>
-        ) : (
-          /* Read-only view */
-          <div className="panel" style={{ padding: "16px" }}>
-            <div style={{ display: "grid", gap: "14px" }}>
-              <div>
-                <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "4px" }}>ชื่อ-นามสกุล ผู้รับ</div>
-                <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text)" }}>{user?.shippingName || "-"}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "4px" }}>ที่อยู่จัดส่ง</div>
-                <div style={{ fontSize: "12px", color: "var(--text)", lineHeight: "1.6", whiteSpace: "pre-wrap" }}>{user?.shippingAddress || "-"}</div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
-                <div>
-                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "4px" }}>รหัสไปรษณีย์</div>
-                  <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text)" }}>{user?.shippingZipcode || "-"}</div>
+              {dnError && (
+                <div style={{ marginTop: "8px", padding: "8px", background: "rgba(240, 84, 84, 0.1)", border: "1px solid var(--red)", borderRadius: "6px", color: "var(--red)", fontSize: "11px" }}>
+                  {dnError}
                 </div>
-                <div>
-                  <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "4px" }}>เบอร์โทรศัพท์</div>
-                  <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text)" }}>{user?.shippingPhone || "-"}</div>
+              )}
+              {dnMessage && (
+                <div style={{ marginTop: "8px", padding: "8px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", borderRadius: "6px", color: "var(--green)", fontSize: "11px" }}>
+                  {dnMessage}
                 </div>
-              </div>
+              )}
             </div>
           </div>
-        )}
+
+          {/* Right Column: Last 5 Settled Predictions */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {/* Last 5 Settled Predictions */}
+            <div style={{ display: "grid", gap: "6px" }}>
+              <h4 className="meta" style={{ color: "var(--yellow)", fontSize: "11px", margin: "0" }}>⚡ Last 5 Settled Predictions</h4>
+              {!profile.history || profile.history.length === 0 ? (
+                <div style={{ padding: "12px", textAlign: "center", color: "var(--muted)", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)", fontSize: "11px" }}>
+                  No settled predictions found.
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: "6px", maxHeight: "300px", overflowY: "auto" }}>
+                  {profile.history.map((h) => (
+                    <div key={h.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)", gap: "8px" }}>
+                      <div style={{ display: "grid", gap: "2px", minWidth: 0 }}>
+                        <strong style={{ fontSize: "11px", color: "var(--text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {h.question}
+                        </strong>
+                        <span className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {h.tournament}{h.pick ? (<span> · Picked: <strong style={{ color: "var(--text-strong)" }}>{h.pick}</strong></span>) : ""}
+                        </span>
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        {(() => {
+                          const net = (h as any).net !== undefined
+                            ? (h as any).net
+                            : (h.status === "won" ? h.payout - h.amount : -h.amount);
+                          const isPositive = net >= 0;
+                          return (
+                            <span className="pill" style={{
+                              fontSize: "9px",
+                              height: "18px",
+                              padding: "0 6px",
+                              background: isPositive ? "rgba(14, 203, 129, 0.12)" : "rgba(240, 84, 84, 0.12)",
+                              color: isPositive ? "var(--green)" : "var(--red)",
+                              borderColor: isPositive ? "rgba(14, 203, 129, 0.4)" : "rgba(240, 84, 84, 0.4)",
+                              borderRadius: "4px",
+                              fontWeight: "bold"
+                            }}>
+                              {isPositive ? `+${compact(net)}` : `-${compact(Math.abs(net))}`}
+                            </span>
+                          );
+                        })()}
+                        <span className="meta" style={{ display: "block", fontSize: "8px", marginTop: "2px" }}>
+                          {h.date}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
