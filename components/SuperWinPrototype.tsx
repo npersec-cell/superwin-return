@@ -2151,7 +2151,7 @@ function HistoryModal({
               <div key={`${row.date}-${row.time}-${index}`} className="history-row-simple">
                 <span className="history-date">{row.date}</span>
                 <span className="history-detail-simple">{row.detail || row.action}</span>
-                <b className={cx("history-amount", row.amount >= 0 ? "accent-gold" : "accent-red")}>{money(row.amount)}</b>
+                <b className={`history-amount ${row.amount >= 0 ? "accent-gold" : "accent-red"}`}>{money(row.amount)}</b>
               </div>
             )) : (
               <div className="history-row-simple" style={{ justifyContent: "center", padding: "24px 0" }}>
