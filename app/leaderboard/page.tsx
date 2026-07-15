@@ -636,7 +636,7 @@ export default function LeaderboardPage() {
                       overflow: "hidden",
                       textOverflow: "ellipsis"
                     }}>
-<omitted>
+                      {bet.displayName || maskName(bet.rawEmailPrefix || bet.userId?.slice(0, 8) || 'User')}
                     </span>
                     
                     <span style={{ 
