@@ -1328,12 +1328,12 @@ export default function SuperWinPrototype() {
 
         {(devBypass || isSignedIn) && (
         <section className="stats" aria-label="Account stats">
-          <div className="stat"><span className="label">Win Rate</span><b className="value">{(selectedProfile && !selectedProfile.loading ? (selectedProfile.winRate || 0) : winRate)}%</b></div>
+          <div className="stat"><span className="label">Win Rate</span><b className="value">{winRate}%</b></div>
           <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
             <span className="label">Overall Rank</span>
             {accountRole === "admin" ? (
               <b className="value" style={{ opacity: 0.5 }}>Admin</b>
-            ) : (selectedProfile && !selectedProfile.loading && selectedProfile.rankName) ? (
+            ) : selectedProfile?.rankName ? (
               <div style={{ position: "relative", display: "inline-block" }}>
                 <img src={selectedProfile.rankIcon || "/ranks/bronze.png"} alt="" width={21} height={21} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "4px", objectFit: "contain" }} />
                 <b className="value">{selectedProfile.rankName}</b>
@@ -1345,8 +1345,11 @@ export default function SuperWinPrototype() {
               </div>
             )}
           </div>
-          <div className="stat"><span className="label">Overall Score</span><b className="value">{selectedProfile && !selectedProfile.loading ? `${selectedProfile.overallScore || 0}/100` : "--"}</b></div>
-          <div className="stat"><span className="label"># Overall Rank</span><b className="value">{accountRole === "admin" ? "--" : (selectedProfile && !selectedProfile.loading ? `#${selectedProfile.overallRank}` : (userRank ? `#${userRank}` : "--"))}</b></div>
+          <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+            <span className="label">Overall #{selectedProfile?.overallRank || '--'} · {selectedProfile?.overallScore ?? 0}/100</span>
+            <b className="value" style={{ fontSize: "18px" }}>{selectedProfile?.rankName || 'Bronze'}</b>
+          </div>
+          <div className="stat"><span className="label">Next Reload</span><b className="value">{claimLabel}</b></div>
         </section>
         )}
 
