@@ -235,7 +235,8 @@ type ApiClaimResponse = {
 
 type LiveBet = {
   userId: string;
-  displayName: string;
+  displayName: string | null;
+  rawEmailPrefix?: string;
   predictionId: string;
   predictionTitle: string;
   tournamentName: string;
@@ -1679,7 +1680,7 @@ export default function SuperWinPrototype() {
                           overflow: "hidden",
                           textOverflow: "ellipsis"
                         }}>
-                          {maskName(bet.displayName || bet.userId?.slice(0, 8) || 'User')}
+                          {bet.displayName || maskName(bet.rawEmailPrefix || bet.userId?.slice(0, 8) || 'User')}
                         </span>
                         
                         <span style={{ 
@@ -2073,7 +2074,7 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <div style={{ fontSize: "11px", color: "var(--muted)" }}>User</div>
             <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--yellow)" }}>
-              {maskName(bet.displayName)}
+              {bet.displayName || maskName(bet.rawEmailPrefix || bet.userId?.slice(0, 8) || 'User')}
             </div>
           </div>
           
