@@ -64,7 +64,9 @@ export async function GET() {
     
     return {
       userId: entry.user_id,
-      displayName: user?.display_name || user?.email?.split('@')[0] || 'User',
+      // Only use real name if user has set display_name, otherwise mask email
+      displayName: user?.display_name ? user.display_name : null,
+      rawEmailPrefix: user?.email?.split('@')[0],
       predictionId: entry.prediction_id,
       predictionTitle: prediction?.question || 'Prediction',
       tournamentName: prediction?.tournament_name || 'PUBG Mobile Esports',
