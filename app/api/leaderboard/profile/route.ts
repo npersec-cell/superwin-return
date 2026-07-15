@@ -4,9 +4,13 @@ import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 export const dynamic = "force-dynamic";
 
-// Logarithmic score calculation
-function calcLogScore(value: number): number {
-  return Math.log2(value + 1);
+// Calculate percentile rank (0-100)
+// Higher value = higher percentile
+function getPercentile(value: number, allValues: number[]): number {
+  if (allValues.length === 0) return 0;
+  const sorted = [...allValues].sort((a, b) => a - b);
+  let rank = sorted.filter(v => v < value).length + 1; // 1-based
+  return ((rank / allValues.length)) * 100;
 }
 
 // Get rank tier from position with minimum counts
@@ -86,6 +90,12 @@ export async function GET(request: NextRequest) {
       overall: number;
     }>();
 
+    // Prepare arrays for percentile calculation
+    const allCoinBalances: number[] = [];
+    const allPredCounts: number[] = [];
+    const allHighestWins: number[] = [];
+    const allAvgReloads: number[] = [];
+
     for (const user of allUsers) {
       const userEntries = allEntries.filter(e => e.user_id === user.id);
       const wonEntries = userEntries.filter(e => e.status === 'won');
@@ -101,36 +111,40 @@ export async function GET(request: NextRequest) {
       const daysActive = Math.max(1, Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)));
       const avgReloadPerDay = (user.reload_count || 0) / daysActive;
       
-      // Overall score = sum of all component scores
-      // All users are included in the calculation, inactive users get 0 for activity-related scores
-      const orangeAmmoScore = calcLogScore(profitScore);
-      const predictionScore = calcLogScore(predictionCount);
-      const winScore = calcLogScore(highestSingleWin);
-      const activeScore = calcLogScore(avgReloadPerDay); // Always calculate, 0 for inactive users
-      const overall = Math.round(orangeAmmoScore + predictionScore + winScore + activeScore);
-
-      // Debug log for arther0945
-      if (user.id.includes('arther0945') || user.email?.includes('arther0945')) {
-        console.log('[DEBUG] arther0945 stats:', {
-          profitScore,
-          predictionCount,
-          highestSingleWin,
-          avgReloadPerDay,
-          orangeAmmoScore,
-          predictionScore,
-          winScore,
-          activeScore,
-          overall
-        });
-      }
+      // Collect values for percentile calculation
+      allCoinBalances.push(profitScore);
+      allPredCounts.push(predictionCount);
+      allHighestWins.push(highestSingleWin);
+      allAvgReloads.push(avgReloadPerDay);
 
       userStatsMap.set(user.id, {
         profitScore,
         predictionCount,
         highestSingleWin,
         avgReloadPerDay,
-        overall
+        overall: 0 // Will be calculated after all data is collected
       });
+    }
+
+    // Calculate Overall score using Percentile Score (0-100)
+    // Each category contributes equally (25% weight)
+    for (const userId of userStatsMap.keys()) {
+      const stats = userStatsMap.get(userId)!;
+      const profitScore = stats.profitScore;
+      const predictionCount = stats.predictionCount;
+      const highestSingleWin = stats.highestSingleWin;
+      const avgReloadPerDay = stats.avgReloadPerDay;
+      
+      // Calculate percentile for each category (0-100)
+      const orangePct = getPercentile(profitScore, allCoinBalances);
+      const predPct = getPercentile(predictionCount, allPredCounts);
+      const winPct = getPercentile(highestSingleWin, allHighestWins);
+      const activePct = getPercentile(avgReloadPerDay, allAvgReloads);
+      
+      // Average of all percentiles (0-100)
+      const overall = Math.round((orangePct + predPct + winPct + activePct) / 4);
+      
+      stats.overall = overall;
     }
 
     // Convert to array and sort
