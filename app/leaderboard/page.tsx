@@ -126,7 +126,8 @@ interface LeaderboardData {
 
 interface LiveBet {
   userId: string;
-  displayName: string;
+  displayName: string | null;
+  rawEmailPrefix?: string;
   predictionId: string;
   predictionTitle: string;
   tournamentName?: string;
