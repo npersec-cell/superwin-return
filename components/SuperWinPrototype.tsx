@@ -1345,8 +1345,8 @@ export default function SuperWinPrototype() {
               </div>
             )}
           </div>
-          <div className="stat"><span className="label">All time Rank</span><b className="value">{accountRole === "admin" ? "--" : (selectedProfile && !selectedProfile.loading && selectedProfile.overallRank ? `#${selectedProfile.overallRank}` : (userRank ? `#${userRank}` : "--"))}</b></div>
-          <div className="stat"><span className="label">Next Reload</span><b className="value">{claimLabel}</b></div>
+          <div className="stat"><span className="label">Overall Score</span><b className="value">{selectedProfile && !selectedProfile.loading ? `${selectedProfile.overallScore || 0}/100` : "--"}</b></div>
+          <div className="stat"><span className="label"># Overall Rank</span><b className="value">{accountRole === "admin" ? "--" : (selectedProfile && !selectedProfile.loading ? `#${selectedProfile.overallRank}` : (userRank ? `#${userRank}` : "--"))}</b></div>
         </section>
         )}
 
