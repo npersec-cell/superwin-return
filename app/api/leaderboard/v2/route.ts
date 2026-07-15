@@ -3,9 +3,13 @@ import { createSupabaseAdminClient } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-// Logarithmic score calculation
-function calcLogScore(value: number): number {
-  return Math.log2(value + 1);
+// Calculate percentile rank (0-100)
+// Higher value = higher percentile
+function getPercentile(value: number, allValues: number[]): number {
+  if (allValues.length === 0) return 0;
+  const sorted = [...allValues].sort((a, b) => a - b);
+  let rank = sorted.filter(v => v < value).length + 1; // 1-based
+  return ((rank / allValues.length)) * 100;
 }
 
 // Mask name function
@@ -108,24 +112,34 @@ export async function GET(request: NextRequest) {
       };
     });
     
-    // Calculate Overall score for each user using Logarithmic Score (sum, no cap)
-    // Overall = Most Orange Ammo + Most Predictions + Highest Single Win + Most Active
-    // All users are included, inactive users get 0 for activity-related scores
+    // Prepare arrays for percentile calculation
+    const allCoinBalances = leaderboardData.map(u => u.profitScore);
+    const allPredCounts = leaderboardData.map(u => u.predictionCount);
+    const allHighestWins = leaderboardData.map(u => u.highestSingleWin);
+    const allAvgReloads = leaderboardData.map(u => u.avgReloadPerDay);
+    
+    // Calculate Overall score for each user using Percentile Score (0-100)
+    // Each category contributes equally (25% weight)
+    // Overall = Average of 4 percentiles
     const leaderboardWithOverall = leaderboardData.map(user => {
-      // Calculate log score for each category
-      const orangeAmmoScore = calcLogScore(user.profitScore);  // Most Orange Ammo
-      const predictionScore = calcLogScore(user.predictionCount);  // Most Predictions
-      const winScore = calcLogScore(user.highestSingleWin);  // Highest Single Win
-      const activeScore = calcLogScore(user.avgReloadPerDay);  // Most Active (always calculate, 0 for inactive)
+      // Calculate percentile for each category (0-100)
+      const orangePct = getPercentile(user.profitScore, allCoinBalances);       // Most Orange Ammo
+      const predPct = getPercentile(user.predictionCount, allPredCounts);       // Most Predictions
+      const winPct = getPercentile(user.highestSingleWin, allHighestWins);       // Highest Single Win
+      const activePct = getPercentile(user.avgReloadPerDay, allAvgReloads);     // Most Active
       
-      // Sum of all scores (no cap, balanced, no decimals)
-      const overall = Math.round(orangeAmmoScore + predictionScore + winScore + activeScore);
+      // Average of all percentiles (0-100)
+      const overall = Math.round((orangePct + predPct + winPct + activePct) / 4);
       
       const hasActivity = user.predictionCount > 0;
       
       return {
         ...user,
         overall,
+        orangePct,
+        predPct,
+        winPct,
+        activePct,
         hasActivity
       };
     });
