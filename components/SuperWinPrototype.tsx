@@ -1225,7 +1225,9 @@ export default function SuperWinPrototype() {
         setCoins(payload.data.user.coinBalance);
         setProfit(payload.data.user.lifetimeProfit);
         setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
-        setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${answer.name} · now running` }));
+        // Show locked option name if question is locked, otherwise show user's selected option
+        const displayName = isLocked ? lockedOption.name : answer.name;
+        setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${displayName} · now running` }));
         await loadRunningPredictions();
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to place prediction";
@@ -1255,7 +1257,9 @@ export default function SuperWinPrototype() {
       ...current
     ].slice(0, 30));
     setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
-    setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${answer.name} · now running` }));
+    // Show locked option name if question is locked, otherwise show user's selected option
+    const displayName = isLocked ? lockedOption.name : answer.name;
+    setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${displayName} · now running` }));
   }
 
   function resetDemo() {
