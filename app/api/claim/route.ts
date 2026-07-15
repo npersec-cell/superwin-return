@@ -53,6 +53,19 @@ export async function POST(request: NextRequest) {
     const balanceAfter = user.coinBalance + claimAmount;
     const nowISO = new Date(now).toISOString();
 
+    // Get current claim_count
+    const { data: currentUserData, error: fetchUserError } = await supabase
+      .from("users")
+      .select("claim_count")
+      .eq("id", user.id)
+      .single();
+    
+    if (fetchUserError || !currentUserData) {
+      throw new Error("Failed to fetch user data");
+    }
+    
+    const newClaimCount = (currentUserData.claim_count || 0) + 1;
+    
     // Atomic update: only succeeds if (next_claim_at IS NULL) OR (next_claim_at <= now)
     // Correct .or() syntax: comma = OR, pipe = AND
     const { data: updated, error: updateError } = await supabase
@@ -61,6 +74,7 @@ export async function POST(request: NextRequest) {
         coin_balance: balanceAfter,
         last_claim_at: claimedAt.toISOString(),
         next_claim_at: nextClaimAt.toISOString(),
+        claim_count: newClaimCount,
         updated_at: claimedAt.toISOString()
       })
       .eq("id", user.id)

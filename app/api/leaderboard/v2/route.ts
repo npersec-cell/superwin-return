@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     // Get all users with their stats (exclude admin and test accounts)
     const { data: users, error: usersError } = await supabase
       .from('users')
-      .select('id, display_name, email, coin_balance, lifetime_profit, role, created_at, reload_count, avatar_url')
+      .select('id, display_name, email, coin_balance, lifetime_profit, role, created_at, claim_count, avatar_url')
       .neq('role', 'admin')
       .not('email', 'like', '%test%')
       .not('email', 'like', '%automated%')
@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
       profitScore: number;
       predictionCount: number;
       highestSingleWin: number;
-      avgReloadPerDay: number;
-      reloadCount: number;
+      avgClaimPerDay: number;
+      claimCount: number;
     }>();
     
     for (const u of users || []) {
@@ -64,8 +64,8 @@ export async function GET(request: NextRequest) {
         profitScore: Number(u.coin_balance) || 0,  // Use coin_balance (Orange Ammo)
         predictionCount: 0,
         highestSingleWin: 0,
-        avgReloadPerDay: 0,
-        reloadCount: u.reload_count || 0
+        avgClaimPerDay: 0,
+        claimCount: u.claim_count || 0
       });
     }
     
@@ -84,12 +84,12 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    // Calculate average reload per day for each user
+    // Calculate average claim per day for each user
     for (const [userId, stat] of userStats) {
       const user = users?.find(u => u.id === userId);
       if (user) {
         const daysSinceCreated = Math.max(1, Math.floor((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24)));
-        stat.avgReloadPerDay = stat.reloadCount / daysSinceCreated;
+        stat.avgClaimPerDay = stat.claimCount / daysSinceCreated;
       }
     }
     
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     const allCoinBalances = leaderboardData.map(u => u.profitScore);
     const allPredCounts = leaderboardData.map(u => u.predictionCount);
     const allHighestWins = leaderboardData.map(u => u.highestSingleWin);
-    const allAvgReloads = leaderboardData.map(u => u.avgReloadPerDay);
+    const allAvgClaims = leaderboardData.map(u => u.avgClaimPerDay);
     
     // Calculate Overall score for each user using Percentile Score (0-100)
     // Each category contributes equally (25% weight)
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
       const orangePct = getPercentile(user.profitScore, allCoinBalances);       // Most Orange Ammo
       const predPct = getPercentile(user.predictionCount, allPredCounts);       // Most Predictions
       const winPct = getPercentile(user.highestSingleWin, allHighestWins);       // Highest Single Win
-      const activePct = getPercentile(user.avgReloadPerDay, allAvgReloads);     // Most Active
+      const activePct = getPercentile(user.avgClaimPerDay, allAvgClaims);        // Most Active
       
       // Average of all percentiles (0-100)
       const overall = Math.round((orangePct + predPct + winPct + activePct) / 4);
@@ -211,11 +211,11 @@ export async function GET(request: NextRequest) {
       mostActive: leaderboardWithOverall
         .slice()
         .sort((a, b) => {
-          if (b.avgReloadPerDay !== a.avgReloadPerDay) return b.avgReloadPerDay - a.avgReloadPerDay;
+          if (b.avgClaimPerDay !== a.avgClaimPerDay) return b.avgClaimPerDay - a.avgClaimPerDay;
           return a.userId.localeCompare(b.userId); // stable sort by userId
         })
         .slice(0, 20)
-        .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.avgReloadPerDay }))
+        .map((u, i) => ({ rank: i + 1, userId: u.userId, displayName: u.displayName, avatarUrl: u.avatarUrl, value: u.avgClaimPerDay }))
     };
     
     // Calculate user's rank if userId is provided
@@ -259,7 +259,7 @@ export async function GET(request: NextRequest) {
         
         // Most Active rank (stable sort by userId)
         const sortedByActive = [...leaderboardWithOverall].sort((a, b) => {
-          if (b.avgReloadPerDay !== a.avgReloadPerDay) return b.avgReloadPerDay - a.avgReloadPerDay;
+          if ((b as any).avgClaimPerDay !== (a as any).avgClaimPerDay) return (b as any).avgClaimPerDay - (a as any).avgClaimPerDay;
           return a.userId.localeCompare(b.userId);
         });
         const activeRank = sortedByActive.findIndex(u => u.userId === userId) + 1;
@@ -273,7 +273,7 @@ export async function GET(request: NextRequest) {
           predictionCountRank,
           highestSingleWin: userStats.highestSingleWin,
           highestSingleWinRank,
-          avgReloadPerDay: userStats.avgReloadPerDay,
+          avgClaimPerDay: userStats.avgClaimPerDay,
           activeRank,
           totalUsers,
           totalActiveUsers: leaderboardWithOverall.filter(u => u.hasActivity).length,
