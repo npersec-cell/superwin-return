@@ -1326,22 +1326,24 @@ export default function SuperWinPrototype() {
           </div>
         )}
 
-        {(devBypass || isSignedIn) && (
+        {(devBypass || isSignedIn) && selectedProfile && !selectedProfile.loading && (
         <section className="stats" aria-label="Account stats">
-          <div className="stat"><span className="label">Win Rate</span><b className="value">{winRate}%</b></div>
+          <div className="stat"><span className="label">Win Rate</span><b className="value">{selectedProfile.winRate || 0}%</b></div>
           <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-            <span className="label">Rank</span>
+            <span className="label">Overall Rank</span>
             {accountRole === "admin" ? (
               <b className="value" style={{ opacity: 0.5 }}>Admin</b>
-            ) : (
+            ) : selectedProfile.rankName ? (
               <div style={{ position: "relative", display: "inline-block" }}>
-                <img src="/ranks/bronze.png" alt="" width={21} height={21} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "4px", objectFit: "contain" }} />
-                <b className="value">Bronze</b>
+                <img src={selectedProfile.rankIcon || "/ranks/bronze.png"} alt="" width={21} height={21} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "4px", objectFit: "contain" }} />
+                <b className="value">{selectedProfile.rankName}</b>
               </div>
+            ) : (
+              <b className="value">--</b>
             )}
           </div>
-          <div className="stat"><span className="label">All time Rank</span><b className="value">{accountRole === "admin" ? "--" : (userRank ? `#${userRank}` : "--")}</b></div>
-          <div className="stat"><span className="label">Next Reload</span><b className="value">{claimLabel}</b></div>
+          <div className="stat"><span className="label">All time Rank</span><b className="value">{accountRole === "admin" ? "--" : (selectedProfile.overallRank ? `#${selectedProfile.overallRank}` : "--")}</b></div>
+          <div className="stat"><span className="label">Avg Daily Reload</span><b className="value">{selectedProfile.avgReloadPerDay?.toFixed(1) || "0.0"}</b></div>
         </section>
         )}
 
