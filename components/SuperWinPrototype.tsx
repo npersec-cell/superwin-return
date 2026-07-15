@@ -932,9 +932,9 @@ export default function SuperWinPrototype() {
             highestSingleWin: (Number.isNaN(profileData.highestSingleWin) || profileData.highestSingleWin === null)
               ? (highestSingleWinFromLeaderboard ?? 0)
               : Number(profileData.highestSingleWin),
-            avgReloadPerDay: (Number.isNaN(profileData.avgReloadPerDay) || profileData.avgReloadPerDay === null)
+            avgReloadPerDay: (Number.isNaN(profileData.avgClaimPerDay) || profileData.avgClaimPerDay === undefined || profileData.avgClaimPerDay === null)
               ? (avgReloadPerDayFromLeaderboard ?? 0)
-              : Number(profileData.avgReloadPerDay),
+              : Number(profileData.avgClaimPerDay),
             loading: false,
           };
           setSelectedProfile(safeProfile);
