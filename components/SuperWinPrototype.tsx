@@ -400,6 +400,10 @@ export default function SuperWinPrototype() {
   const [coins, setCoins] = useState(500);
   const [profit, setProfit] = useState(0);
   const [winRate, setWinRate] = useState(0);
+  const [overallScore, setOverallScore] = useState<number | null>(null);
+  const [overallRank, setOverallRank] = useState<number | null>(null);
+  const [rankName, setRankName] = useState<string | null>(null);
+  const [rankIcon, setRankIcon] = useState<string | null>(null);
   const [nextClaimAt, setNextClaimAt] = useState(0);
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -681,6 +685,10 @@ export default function SuperWinPrototype() {
             const payload = await res.json();
             if (payload.ok && payload.data) {
               setWinRate(payload.data.winRate || 0);
+              setOverallScore(payload.data.overallScore ?? null);
+              setOverallRank(payload.data.overallRank || null);
+              setRankName(payload.data.rankName || null);
+              setRankIcon(payload.data.rankIcon || null);
             }
           })
           .catch(() => undefined);
@@ -1333,10 +1341,10 @@ export default function SuperWinPrototype() {
             <span className="label">Overall Rank</span>
             {accountRole === "admin" ? (
               <b className="value" style={{ opacity: 0.5 }}>Admin</b>
-            ) : selectedProfile?.rankName ? (
+            ) : rankName ? (
               <div style={{ position: "relative", display: "inline-block" }}>
-                <img src={selectedProfile.rankIcon || "/ranks/bronze.png"} alt="" width={21} height={21} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "4px", objectFit: "contain" }} />
-                <b className="value">{selectedProfile.rankName}</b>
+                <img src={rankIcon || "/ranks/bronze.png"} alt="" width={21} height={21} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "4px", objectFit: "contain" }} />
+                <b className="value">{rankName}</b>
               </div>
             ) : (
               <div style={{ position: "relative", display: "inline-block" }}>
@@ -1346,8 +1354,8 @@ export default function SuperWinPrototype() {
             )}
           </div>
           <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-            <span className="label">Overall #{selectedProfile?.overallRank || '--'} · {selectedProfile?.overallScore ?? 0}/100</span>
-            <b className="value" style={{ fontSize: "18px" }}>{selectedProfile?.rankName || 'Bronze'}</b>
+            <span className="label">Overall #{overallRank ?? '--'} · {overallScore ?? 0}/100</span>
+            <b className="value" style={{ fontSize: "18px" }}>{rankName || 'Bronze'}</b>
           </div>
           <div className="stat"><span className="label">Next Reload</span><b className="value">{claimLabel}</b></div>
         </section>
