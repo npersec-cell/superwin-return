@@ -1340,7 +1340,7 @@ export default function SuperWinPrototype() {
 
         {(devBypass || isSignedIn) && (
         <section className="stats" aria-label="Account stats">
-          <div className="stat"><span className="label">Win Rate</span><b className="value">{winRate}%</b></div>
+          <div className="stat" style={{ textAlign: "center" }}><span className="label">Win Rate</span><b className="value">{winRate}%</b></div>
           <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
             <span className="label">Overall Rank</span>
             {accountRole === "admin" ? (
@@ -1358,10 +1358,10 @@ export default function SuperWinPrototype() {
             )}
           </div>
           <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-            <span className="label">Overall #{overallRank ?? '--'} · {overallScore ?? 0}/100</span>
-            <b className="value" style={{ fontSize: "18px" }}>{rankName || 'Bronze'}</b>
+            <b className="value" style={{ fontSize: "18px" }}>{overallScore ?? 0}/100</b>
+            <span className="label">Overall #{overallRank ?? '--'}</span>
           </div>
-          <div className="stat"><span className="label">Next Reload</span><b className="value">{claimLabel}</b></div>
+          <div className="stat" style={{ textAlign: "center" }}><span className="label">Next Reload</span><b className="value">{claimLabel}</b></div>
         </section>
         )}
 
