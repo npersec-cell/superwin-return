@@ -154,6 +154,7 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
+  const [showOverallHelp, setShowOverallHelp] = useState(false);
   const profileRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Create a map of userId -> value for each leaderboard category
@@ -342,6 +343,27 @@ export default function LeaderboardPage() {
               <span style={{ fontSize: "15px" }}>{cat.icon}</span>
             )}
             {cat.name}
+            <button 
+              onClick={() => setShowOverallHelp(true)}
+              style={{ 
+                background: "none", 
+                border: "1px solid var(--muted)", 
+                borderRadius: "50%", 
+                width: "14px", 
+                height: "14px", 
+                fontSize: "9px", 
+                color: "var(--muted)",
+                cursor: "pointer",
+                display: "grid",
+                placeItems: "center",
+                padding: 0,
+                lineHeight: 1,
+                flexShrink: 0
+              }}
+              title="How is Overall calculated?"
+            >
+              ?
+            </button>
           </h2>
           <span className="micro" style={{ fontSize: "10px", opacity: 0.7 }}>{cat.desc}</span>
         </div>
@@ -704,6 +726,75 @@ export default function LeaderboardPage() {
 
       {selectedLiveBet && <LiveBetModal bet={selectedLiveBet} onClose={() => setSelectedLiveBet(null)} />}
       {selectedProfile && <ProfileModal profile={selectedProfile} onClose={closeProfile} />}
+      {showOverallHelp && (
+        <section className="modal" aria-label="How Overall is Calculated" onClick={(e) => e.target === e.currentTarget && setShowOverallHelp(false)}>
+          <div className="modal-card" style={{ maxWidth: "420px" }}>
+            <div className="modal-head">
+              <h3>📊 How Overall Score is Calculated</h3>
+              <button className="button" onClick={() => setShowOverallHelp(false)}>Close</button>
+            </div>
+            <div className="modal-body" style={{ gap: "14px" }}>
+              <div style={{ fontSize: "12px", color: "var(--text)", lineHeight: 1.6 }}>
+                The <strong style={{ color: "var(--yellow)" }}>Overall Score</strong> is the average of 4 category percentiles (each weighted equally at 25%):
+              </div>
+              
+              <div style={{ display: "grid", gap: "8px", padding: "10px", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                  <span style={{ color: "var(--yellow)", fontWeight: "700", minWidth: "24px" }}>🟠</span>
+                  <span style={{ flex: 1, color: "var(--text-strong)" }}>Most Orange Ammo</span>
+                  <span style={{ color: "var(--muted)", fontSize: "11px" }}>25%</span>
+                </div>
+                <div style={{ fontSize: "10px", color: "var(--muted)", paddingLeft: "32px" }}>
+                  Your coin balance — more ammo = higher percentile
+                </div>
+                
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                  <span style={{ color: "var(--yellow)", fontWeight: "700", minWidth: "24px" }}>🎯</span>
+                  <span style={{ flex: 1, color: "var(--text-strong)" }}>Most Predictions</span>
+                  <span style={{ color: "var(--muted)", fontSize: "11px" }}>25%</span>
+                </div>
+                <div style={{ fontSize: "10px", color: "var(--muted)", paddingLeft: "32px" }}>
+                  Count of unique questions predicted (1 per question max)
+                </div>
+                
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                  <span style={{ color: "var(--yellow)", fontWeight: "700", minWidth: "24px" }}>🏆</span>
+                  <span style={{ flex: 1, color: "var(--text-strong)" }}>Highest Single Win</span>
+                  <span style={{ color: "var(--muted)", fontSize: "11px" }}>25%</span>
+                </div>
+                <div style={{ fontSize: "10px", color: "var(--muted)", paddingLeft: "32px" }}>
+                  Your biggest single profit from one prediction
+                </div>
+                
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                  <span style={{ color: "var(--yellow)", fontWeight: "700", minWidth: "24px" }}>⚡</span>
+                  <span style={{ flex: 1, color: "var(--text-strong)" }}>Most Active</span>
+                  <span style={{ color: "var(--muted)", fontSize: "11px" }}>25%</span>
+                </div>
+                <div style={{ fontSize: "10px", color: "var(--muted)", paddingLeft: "32px" }}>
+                  Avg claims per day = total claims ÷ days since account created
+                </div>
+              </div>
+              
+              <div style={{ 
+                padding: "10px", 
+                background: "rgba(255, 225, 0, 0.05)", 
+                borderRadius: "6px", 
+                border: "1px solid rgba(255, 225, 0, 0.2)",
+                fontSize: "11px",
+                color: "var(--text)"
+              }}>
+                <strong style={{ color: "var(--yellow)" }}>Formula:</strong><br/>
+                Overall = (Orange Ammo %ile + Predictions %ile + Single Win %ile + Active %ile) ÷ 4
+              </div>
+              
+              <div style={{ fontSize: "11px", color: "var(--muted)", lineHeight: 1.5 }}>
+                Each category uses <strong>percentile ranking</strong> (0–100), so you're compared against all players. Being #1 in any category gives you 100 points for that category.
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
