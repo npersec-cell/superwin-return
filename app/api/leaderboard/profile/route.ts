@@ -101,7 +101,9 @@ export async function GET(request: NextRequest) {
       const wonEntries = userEntries.filter(e => e.status === 'won');
       
       const profitScore = Number(user.coin_balance) || 0;
-      const predictionCount = userEntries.length;
+      // Count unique questions only (1 per question max, regardless of how many times predicted)
+      const uniqueQuestionIds = new Set(userEntries.map(e => e.prediction_id).filter(Boolean));
+      const predictionCount = uniqueQuestionIds.size;
       const highestSingleWin = wonEntries.length > 0
         ? Math.max(...wonEntries.map(e => (e.payout_amount || 0) - e.amount))
         : 0;
@@ -170,7 +172,7 @@ export async function GET(request: NextRequest) {
       profitScore: 0,
       predictionCount: 0,
       highestSingleWin: 0,
-      avgReloadPerDay: 0,
+      avgClaimPerDay: 0,
       overall: 0
     };
 

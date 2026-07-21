@@ -241,7 +241,7 @@ export default function LeaderboardPage() {
             coinBalance: Number.isNaN(profileData.coinBalance) || profileData.coinBalance === null ? coinBalanceFromLeaderboard : profileData.coinBalance,
             predictionCount: Number.isNaN(profileData.predictionCount) || profileData.predictionCount === null ? predictionCountFromLeaderboard : profileData.predictionCount,
             highestSingleWin: Number.isNaN(profileData.highestSingleWin) || profileData.highestSingleWin === null ? highestWinFromLeaderboard : profileData.highestSingleWin,
-            avgReloadPerDay: Number.isNaN(profileData.avgReloadPerDay) || profileData.avgReloadPerDay === null ? avgReloadFromLeaderboard : profileData.avgReloadPerDay,
+            avgReloadPerDay: Number.isNaN(profileData.avgClaimPerDay) || profileData.avgClaimPerDay === null ? avgReloadFromLeaderboard : profileData.avgClaimPerDay,
           };
           setSelectedProfile(finalProfile);
         } else {

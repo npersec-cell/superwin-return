@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const userIds = users?.map(u => u.id) || [];
     const { data: entries, error: entriesError } = await supabase
       .from('prediction_entries')
-      .select('id, user_id, amount, payout_amount, status')
+      .select('id, user_id, prediction_id, amount, payout_amount, status')
       .in('user_id', userIds)
       .in('status', ['won', 'lost', 'refunded']);
     
@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
       highestSingleWin: number;
       avgClaimPerDay: number;
       claimCount: number;
+      predictedQuestionIds: Set<string>;
     }>();
     
     for (const u of users || []) {
@@ -65,7 +66,8 @@ export async function GET(request: NextRequest) {
         predictionCount: 0,
         highestSingleWin: 0,
         avgClaimPerDay: 0,
-        claimCount: u.claim_count || 0
+        claimCount: u.claim_count || 0,
+        predictedQuestionIds: new Set<string>()
       });
     }
     
@@ -73,7 +75,10 @@ export async function GET(request: NextRequest) {
     for (const entry of (entries || [])) {
       const stat = userStats.get(entry.user_id);
       if (stat) {
-        stat.predictionCount++;
+        // Count unique questions only (1 per question max, regardless of how many times predicted)
+        if (entry.prediction_id) {
+          stat.predictedQuestionIds.add(entry.prediction_id);
+        }
         // Only calculate highestSingleWin for WON entries
         if (entry.status === 'won') {
           const profit = entry.payout_amount - entry.amount;
@@ -82,6 +87,11 @@ export async function GET(request: NextRequest) {
           }
         }
       }
+    }
+    
+    // Set predictionCount to unique question count
+    for (const [_, stat] of userStats) {
+      stat.predictionCount = stat.predictedQuestionIds.size;
     }
     
     // Calculate average claim per day for each user
@@ -104,11 +114,14 @@ export async function GET(request: NextRequest) {
         displayName = emailPrefix ? maskName(emailPrefix) : 'Userxx';
       }
       
+      // Exclude internal tracking fields from response
+      const { predictedQuestionIds, ...publicStats } = stats;
+      
       return {
         userId,
         displayName,
         avatarUrl: user?.avatar_url || null,
-        ...stats
+        ...publicStats
       };
     });
     
