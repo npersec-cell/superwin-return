@@ -119,43 +119,6 @@ function maskName(name: string): string {
   return name.slice(0, -2) + "xx";
 }
 
-// Get rank based on position (1-based) and total users
-function getRankFromPosition(rank: number, totalUsers: number): { name: string; icon: string } {
-  if (!totalUsers || totalUsers === 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
-  
-  // Crown: #1 only (the absolute best)
-  if (rank === 1) return { name: "Crown", icon: "/ranks/crown.png" };
-  
-  // Helper to check minimum count for each rank tier
-  function minForTier(tierPercent: number): number {
-    return Math.max(1, Math.ceil(totalUsers * tierPercent / 100));
-  }
-  
-  // Conqueror: Top 3% OR at least 2 people
-  const minConqueror = Math.max(2, minForTier(3));
-  if (rank <= minConqueror) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
-  
-  // Ace: Top 8% OR at least 3 people
-  const minAce = Math.max(3, minForTier(8));
-  if (rank <= minAce) return { name: "Ace", icon: "/ranks/ace.png" };
-  
-  // Diamond: Top 15% OR at least 5 people
-  const minDiamond = Math.max(5, minForTier(15));
-  if (rank <= minDiamond) return { name: "Diamond", icon: "/ranks/diamond.png" };
-  
-  // Calculate percentile: higher = better (100 = top)
-  const percentile = ((totalUsers - rank) / totalUsers) * 100;
-  
-  // Platinum: Top 25%
-  if (percentile >= 50) return { name: "Platinum", icon: "/ranks/platinum.png" };
-  // Gold: Top 40%
-  if (percentile >= 40) return { name: "Gold", icon: "/ranks/gold.png" };
-  // Silver: 40-70%
-  if (percentile >= 15) return { name: "Silver", icon: "/ranks/silver.png" };
-  // Bronze: Bottom 30%
-  return { name: "Bronze", icon: "/ranks/bronze.png" };
-}
-
 type UserProfileStats = {
   name: string;
   displayName?: string | null;
@@ -367,18 +330,7 @@ function money(amount: number) {
   return `${amount >= 0 ? "+" : ""}${amount}`;
 }
 
-function compact(n: number): string {
-  if (n < 1000) return `${n}`;
-  if (n < 10000) return `${(n / 1000).toFixed(1)}k`;
-  return `${Math.round(n / 1000)}k`;
-}
-
-function getInsuranceCost(betAmount: number): number {
-  const safeAmount = Math.max(betAmount, 10);
-  const rate = Math.max(0.05, 0.20 - Math.log10(safeAmount / 10) * 0.05);
-  return Math.max(Math.floor(betAmount * rate), 1);
-}
-
+/** Safely read from localStorage with fallback */
 function safeJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
