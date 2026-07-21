@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 
-// Helper function to get user rank based on total_points
+// Helper function to get user rank based on coin_balance
 async function getUserRank(supabase: any): Promise<string | null> {
   try {
-    // Get all users with their total points, ordered by points descending
+    // Get all users with their coin balance, ordered by balance descending
     const { data: users, error } = await supabase
       .from("users")
-      .select("id, display_name, total_points")
-      .order("total_points", { ascending: false });
+      .select("id, display_name, coin_balance")
+      .neq("role", "admin")
+      .not("email", "like", "%test%")
+      .order("coin_balance", { ascending: false });
 
     if (error || !users || users.length === 0) {
       return null;
