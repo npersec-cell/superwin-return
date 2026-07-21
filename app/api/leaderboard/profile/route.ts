@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/db";
 import { createSafeErrorResponse } from "@/lib/safe-error-handler";
+import { maskName } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -152,7 +153,7 @@ export async function GET(request: NextRequest) {
     // Convert to array and sort
     const leaderboardData = allUsers.map(u => ({
       userId: u.id,
-      displayName: u.display_name || u.email.split('@')[0],
+      displayName: u.display_name || maskName(u.email.split('@')[0]),
       profitScore: userStatsMap.get(u.id)?.profitScore || 0,
       predictionCount: userStatsMap.get(u.id)?.predictionCount || 0,
       highestSingleWin: userStatsMap.get(u.id)?.highestSingleWin || 0,
@@ -323,8 +324,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       data: {
-        name: targetUser.display_name || targetUser.email.split("@")[0],
-        displayName: targetUser.display_name || null,
+        name: targetUser.display_name || maskName(targetUser.email.split("@")[0]),
+        displayName: targetUser.display_name || maskName(targetUser.email.split("@")[0]),
         // Basic stats
         coinBalance: targetStats.profitScore,
         predictionCount: targetStats.predictionCount,

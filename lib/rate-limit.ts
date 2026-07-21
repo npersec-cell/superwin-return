@@ -61,10 +61,11 @@ export async function checkRateLimit(
   
   if (error) {
     console.error('Rate limit check error:', error);
+    // Fail-safe: deny request when rate limit check fails (security-first)
     return {
-      allowed: true,
-      count: 0,
-      remaining: maxRequests,
+      allowed: false,
+      count: maxRequests,
+      remaining: 0,
       resetAt: new Date(Date.now() + windowMinutes * 60 * 1000).toISOString(),
       headers: {},
     };
