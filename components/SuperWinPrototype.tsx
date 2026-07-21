@@ -993,15 +993,8 @@ export default function SuperWinPrototype() {
   }
 
   async function loadOpenPredictions() {
-    // Track reload for leaderboard - ต้องรอให้ Clerk โหลดข้อมูลผู้ใช้เสร็จก่อน
-    if (devBypass || isSignedIn) {
-      try {
-        await fetch("/api/track-reload", { method: "POST" });
-        console.log('[SuperWinPrototype] track-reload called, isSignedIn:', isSignedIn);
-      } catch (err) {
-        console.error('[SuperWinPrototype] track-reload error:', err);
-      }
-    }
+    // NOTE: track-reload moved to isSignedIn useEffect (fires once on login)
+    // Do NOT call track-reload here — this function runs every 10s via setInterval
     
     const response = await fetch("/api/predictions/open");
     const payload = (await response.json()) as ApiPredictionsResponse;
