@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
     // Get all prediction entries for rank calculation
     const { data: allEntries, error: entriesError } = await supabase
       .from('prediction_entries')
-      .select('id, user_id, amount, payout_amount, status, created_at')
+      .select('id, user_id, prediction_id, amount, payout_amount, status, created_at')
       .in('user_id', userIds)
       .in('status', ['won', 'lost', 'refunded']);
 
