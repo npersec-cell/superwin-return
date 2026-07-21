@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 import { createSafeErrorResponse } from "@/lib/safe-error-handler";
+import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
 
 const CLAIM_COOLDOWN_MS = 60 * 60 * 1000;
 
@@ -33,6 +34,12 @@ export async function POST(request: NextRequest) {
 
     if (user.status !== "active") {
       return NextResponse.json({ ok: false, error: "Account is not active" }, { status: 403 });
+    }
+
+    // Rate limiting: max 5 claims per hour per user (prevent bot abuse)
+    const rateLimitResult = await checkRateLimit(request, RATE_LIMITS.CLAIM, user.id);
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult);
     }
 
     const now = Date.now();

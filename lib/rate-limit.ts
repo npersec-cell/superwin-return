@@ -134,6 +134,11 @@ export const RATE_LIMITS = {
     maxRequests: 30,
     windowMinutes: 10,
   },
+  CLAIM: {
+    endpoint: 'claim',
+    maxRequests: 5,
+    windowMinutes: 60, // Max 5 claims per hour (in addition to 1hr cooldown)
+  },
   RESOLVE: {
     endpoint: 'resolve',
     maxRequests: 20,
