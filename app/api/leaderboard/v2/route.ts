@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/db";
 
-export const dynamic = "force-dynamic";
+// Cache leaderboard for 30 seconds to reduce Supabase load
+// Revalidate on each request after cache expires (stale-while-revalidate)
+export const revalidate = 30;
 
 // Calculate percentile rank (0-100)
 // Higher value = higher percentile
@@ -300,6 +302,10 @@ export async function GET(request: NextRequest) {
       totalUsers,
       userRankData,
       timestamp: new Date().toISOString()
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+      }
     });
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

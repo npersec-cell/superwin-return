@@ -3,6 +3,7 @@
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { compact, maskName as maskNameUtil, safeNumber, getRankFromPosition, daysSince, getPercentile } from "@/lib/utils";
 
 type PredictionOption = {
   id: string;
@@ -426,6 +427,7 @@ export default function SuperWinPrototype() {
   const claimFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [toast, setToast] = useState<Record<string, string>>({});
   const [predictingIds, setPredictingIds] = useState<Set<string>>(new Set());
+  const [confirmHighBet, setConfirmHighBet] = useState<{ questionId: string; amount: number } | null>(null);
   const [accountStatus, setAccountStatus] = useState<"demo" | "loading" | "synced" | "error">("demo");
   const [accountRole, setAccountRole] = useState<"user" | "admin">("user");
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
@@ -1182,7 +1184,6 @@ export default function SuperWinPrototype() {
     const lockedOptionName = getLockedOptionName(question);
     const isLocked = lockedOptionName !== null;
     const lockedOption = question.options.find((o) => o.name === lockedOptionName) || answer;
-    // Use locked option's id if locked, otherwise use user's selected option
     const optionToSend = isLocked ? lockedOption : answer;
     
     if (!(devBypass || isSignedIn)) {
@@ -1199,8 +1200,26 @@ export default function SuperWinPrototype() {
       return;
     }
 
+    // Confirmation dialog for high-stakes bets (>500 coins)
+    if (amount >= 500 && !confirmHighBet) {
+      setConfirmHighBet({ questionId: question.id, amount });
+      return;
+    }
+
+    // Clear confirmation state if set
+    if (confirmHighBet) {
+      setConfirmHighBet(null);
+    }
+
     if (devBypass || isSignedIn) {
       setPredictingIds((current) => new Set(current).add(question.id));
+      
+      // ── OPTIMISTIC UPDATE: Update UI immediately for snappy feel ──
+      const previousCoins = coins;
+      const previousProfit = profit;
+      setCoins((c) => c - amount);
+      setProfit((p) => p - amount);
+      
       try {
         const response = await fetch("/api/predictions/predict", {
           method: "POST",
@@ -1215,14 +1234,17 @@ export default function SuperWinPrototype() {
         if (!response.ok || !payload.ok || !payload.data) {
           throw new Error(payload.error || "Unable to place prediction");
         }
+        // Sync with actual server values
         setCoins(payload.data.user.coinBalance);
         setProfit(payload.data.user.lifetimeProfit);
         setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
-        // Show locked option name if question is locked, otherwise show user's selected option
         const displayName = isLocked ? lockedOption.name : answer.name;
         setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${displayName} · now running` }));
         await loadRunningPredictions();
       } catch (error) {
+        // ── ROLLBACK: Restore previous values if API fails ──
+        setCoins(previousCoins);
+        setProfit(previousProfit);
         const message = error instanceof Error ? error.message : "Unable to place prediction";
         setToast((current) => ({ ...current, [question.id]: message }));
       } finally {
@@ -1235,6 +1257,7 @@ export default function SuperWinPrototype() {
       return;
     }
 
+    // Demo mode
     setCoins((current) => current - amount);
     setProfit((current) => current - amount);
     setRunning((current) => [
@@ -1250,7 +1273,6 @@ export default function SuperWinPrototype() {
       ...current
     ].slice(0, 30));
     setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
-    // Show locked option name if question is locked, otherwise show user's selected option
     const displayName = isLocked ? lockedOption.name : answer.name;
     setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${displayName} · now running` }));
   }
@@ -1333,28 +1355,52 @@ export default function SuperWinPrototype() {
 
         {(devBypass || isSignedIn) && (
         <section className="stats" aria-label="Account stats">
-          <div className="stat" style={{ textAlign: "center" }}><span className="label">Win Rate</span><b className="value">{winRate}%</b></div>
-          <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-            <span className="label">Overall Rank</span>
-            {accountRole === "admin" ? (
-              <b className="value" style={{ opacity: 0.5 }}>Admin</b>
-            ) : rankName ? (
-              <div style={{ position: "relative", display: "inline-block" }}>
-                <img src={rankIcon || "/ranks/bronze.png"} alt="" width={21} height={21} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "4px", objectFit: "contain" }} />
-                <b className="value">{rankName}</b>
+          {accountStatus === "loading" ? (
+            // Skeleton Loader
+            <>
+              <div className="stat" style={{ textAlign: "center" }}>
+                <div style={{ width: 60, height: 12, background: "linear-gradient(90deg, var(--card) 25%, var(--border) 50%, var(--card) 75%)", backgroundSize: "200% 100%", borderRadius: 4, animation: "skeleton-loading 1.5s infinite", margin: "0 auto 4px" }} />
+                <div style={{ width: 40, height: 18, background: "linear-gradient(90deg, var(--card) 25%, var(--border) 50%, var(--card) 75%)", backgroundSize: "200% 100%", borderRadius: 4, animation: "skeleton-loading 1.5s infinite", margin: "0 auto" }} />
               </div>
-            ) : (
-              <div style={{ position: "relative", display: "inline-block" }}>
-                <img src="/ranks/bronze.png" alt="" width={21} height={21} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "4px", objectFit: "contain" }} />
-                <b className="value">Bronze</b>
+              <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+                <div style={{ width: 70, height: 12, background: "linear-gradient(90deg, var(--card) 25%, var(--border) 50%, var(--card) 75%)", backgroundSize: "200% 100%", borderRadius: 4, animation: "skeleton-loading 1.5s infinite", margin: "0 auto 4px" }} />
+                <div style={{ width: 60, height: 18, background: "linear-gradient(90deg, var(--card) 25%, var(--border) 50%, var(--card) 75%)", backgroundSize: "200% 100%", borderRadius: 4, animation: "skeleton-loading 1.5s infinite", margin: "0 auto" }} />
               </div>
-            )}
-          </div>
-          <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-            <span className="label">Overall</span>
-            <b className="value" style={{ fontSize: "18px" }}>{overallScore ?? 0}/100</b>
-          </div>
-          <div className="stat" style={{ textAlign: "center" }}><span className="label">Next Reload</span><b className="value">{claimLabel}</b></div>
+              <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+                <div style={{ width: 50, height: 12, background: "linear-gradient(90deg, var(--card) 25%, var(--border) 50%, var(--card) 75%)", backgroundSize: "200% 100%", borderRadius: 4, animation: "skeleton-loading 1.5s infinite", margin: "0 auto 4px" }} />
+                <div style={{ width: 60, height: 18, background: "linear-gradient(90deg, var(--card) 25%, var(--border) 50%, var(--card) 75%)", backgroundSize: "200% 100%", borderRadius: 4, animation: "skeleton-loading 1.5s infinite", margin: "0 auto" }} />
+              </div>
+              <div className="stat" style={{ textAlign: "center" }}>
+                <div style={{ width: 70, height: 12, background: "linear-gradient(90deg, var(--card) 25%, var(--border) 50%, var(--card) 75%)", backgroundSize: "200% 100%", borderRadius: 4, animation: "skeleton-loading 1.5s infinite", margin: "0 auto 4px" }} />
+                <div style={{ width: 50, height: 18, background: "linear-gradient(90deg, var(--card) 25%, var(--border) 50%, var(--card) 75%)", backgroundSize: "200% 100%", borderRadius: 4, animation: "skeleton-loading 1.5s infinite", margin: "0 auto" }} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="stat" style={{ textAlign: "center" }}><span className="label">Win Rate</span><b className="value">{winRate}%</b></div>
+              <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+                <span className="label">Overall Rank</span>
+                {accountRole === "admin" ? (
+                  <b className="value" style={{ opacity: 0.5 }}>Admin</b>
+                ) : rankName ? (
+                  <div style={{ position: "relative", display: "inline-block" }}>
+                    <img src={rankIcon || "/ranks/bronze.png"} alt="" width={21} height={21} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "4px", objectFit: "contain" }} />
+                    <b className="value">{rankName}</b>
+                  </div>
+                ) : (
+                  <div style={{ position: "relative", display: "inline-block" }}>
+                    <img src="/ranks/bronze.png" alt="" width={21} height={21} style={{ position: "absolute", right: "100%", top: "50%", transform: "translateY(-50%)", marginRight: "4px", objectFit: "contain" }} />
+                    <b className="value">Bronze</b>
+                  </div>
+                )}
+              </div>
+              <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+                <span className="label">Overall</span>
+                <b className="value" style={{ fontSize: "18px" }}>{overallScore ?? 0}/100</b>
+              </div>
+              <div className="stat" style={{ textAlign: "center" }}><span className="label">Next Reload</span><b className="value">{claimLabel}</b></div>
+            </>
+          )}
         </section>
         )}
 
@@ -1833,6 +1879,47 @@ export default function SuperWinPrototype() {
           </aside>
         </section>
       </div>
+
+      {/* High Stakes Confirmation Dialog */}
+      {confirmHighBet && (
+        <section className="modal" aria-label="Confirm high stakes bet" onClick={(event) => event.target === event.currentTarget && setConfirmHighBet(null)}>
+          <div className="modal-card" style={{ maxWidth: 380, textAlign: "center", padding: "32px 24px", border: "2px solid var(--yellow)" }}>
+            <div style={{ fontSize: 44, marginBottom: 8 }}>🔥</div>
+            <h3 style={{ fontSize: 20, fontWeight: 800, color: "var(--yellow)", marginBottom: 8 }}>High Stakes Bet!</h3>
+            <p style={{ fontSize: 14, color: "var(--text)", margin: "8px 0" }}>
+              You are about to bet <strong style={{ color: "var(--yellow)", fontSize: 18 }}>{confirmHighBet.amount.toLocaleString()}</strong> coins
+            </p>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: "12px 0" }}>
+              Are you sure? This cannot be undone.
+            </p>
+            <div style={{ display: "flex", gap: "8px", marginTop: 20 }}>
+              <button 
+                className="button" 
+                style={{ flex: 1, height: 40 }} 
+                onClick={() => setConfirmHighBet(null)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="button primary" 
+                style={{ flex: 1, height: 40, background: "var(--yellow)", color: "#000", fontWeight: 800 }} 
+                onClick={() => {
+                  // Will be handled by confirmPrediction on next call
+                  const qId = confirmHighBet.questionId;
+                  setConfirmHighBet(null);
+                  // Trigger predict again - the state update will allow it through
+                  setTimeout(() => {
+                    const question = liveQuestions.find(q => q.id === qId);
+                    if (question) confirmPrediction(question);
+                  }, 50);
+                }}
+              >
+                Confirm Bet 🔥
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {openModal === "running" && <RunningModal running={running} runningPage={runningPage} runningPageSize={runningPageSize} setRunningPage={(page) => { setRunningPage(page); }} onClose={() => setOpenModal(null)} />}
       {openModal === "info" && <InfoModal settings={settings} onClose={() => setOpenModal(null)} />}
