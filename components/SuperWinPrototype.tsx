@@ -675,12 +675,6 @@ export default function SuperWinPrototype() {
     return () => window.clearInterval(timer);
   }, [nextClaimAt, settings]);
 
-  useEffect(() => {
-    loadOpenPredictions();
-    const timer = window.setInterval(loadOpenPredictions, 10000);
-    return () => window.clearInterval(timer);
-  }, []);
-
   // Cleanup profile refresh interval on component unmount
   useEffect(() => {
     return () => { if (profileRefreshRef.current) clearInterval(profileRefreshRef.current); };
