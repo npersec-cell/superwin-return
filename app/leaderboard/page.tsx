@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { getRankFromPosition } from "@/lib/utils";
 
 function maskName(name: string): string {
   if (!name) return "";
@@ -24,43 +25,6 @@ function getRankInfo(coinBalance: number) {
   if (coinBalance >= 5000) return { name: "Platinum", icon: "/ranks/platinum.png" };
   if (coinBalance >= 1000) return { name: "Gold", icon: "/ranks/gold.png" };
   if (coinBalance >= 100) return { name: "Silver", icon: "/ranks/silver.png" };
-  return { name: "Bronze", icon: "/ranks/bronze.png" };
-}
-
-// Get rank based on position (1-based) and total users
-function getRankFromPosition(rank: number, totalUsers: number): { name: string; icon: string } {
-  if (totalUsers === 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
-  
-  // Crown: #1 only (the absolute best)
-  if (rank === 1) return { name: "Crown", icon: "/ranks/crown.png" };
-  
-  // Helper to check minimum count for each rank tier
-  function minForTier(tierPercent: number): number {
-    return Math.max(1, Math.ceil(totalUsers * tierPercent / 100));
-  }
-  
-  // Conqueror: Top 3% OR at least 2 people
-  const minConqueror = Math.max(2, minForTier(3));
-  if (rank <= minConqueror) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
-  
-  // Ace: Top 8% OR at least 3 people
-  const minAce = Math.max(3, minForTier(8));
-  if (rank <= minAce) return { name: "Ace", icon: "/ranks/ace.png" };
-  
-  // Diamond: Top 15% OR at least 5 people
-  const minDiamond = Math.max(5, minForTier(15));
-  if (rank <= minDiamond) return { name: "Diamond", icon: "/ranks/diamond.png" };
-  
-  // Calculate percentile: higher = better (100 = top)
-  const percentile = ((totalUsers - rank) / totalUsers) * 100;
-  
-  // Platinum: Top 25%
-  if (percentile >= 50) return { name: "Platinum", icon: "/ranks/platinum.png" };
-  // Gold: Top 40%
-  if (percentile >= 40) return { name: "Gold", icon: "/ranks/gold.png" };
-  // Silver: 40-70%
-  if (percentile >= 15) return { name: "Silver", icon: "/ranks/silver.png" };
-  // Bronze: Bottom 30%
   return { name: "Bronze", icon: "/ranks/bronze.png" };
 }
 
