@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   icons: {
     icon: "/SuperWin_b.png",
   },
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover",
+  themeColor: "#0d1013",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

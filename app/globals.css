@@ -507,6 +507,12 @@ input { width: 100%; min-width: 0; }
   /* Profile Modal: Compact */
   .info-block { padding: 8px; }
   .info-block h4 { font-size: 11px; }
+
+  /* Leaderboard Page: Stack categories on mobile */
+  .leaderboard-page-grid { display: block !important; }
+  
+  /* Modal max-width for small screens */
+  .modal-card { max-width: calc(100vw - 16px) !important; }
 }
 
 /* Extra Small Mobile (iPhone 5/SE: 320px) */
@@ -1313,6 +1319,48 @@ input { width: 100%; min-width: 0; }
   
   .notification-message {
     font-size: 9px;
+  }
+}
+
+/* ============================
+   Global Mobile Improvements
+   ============================ */
+
+/* Ensure all pages respect viewport width */
+.app { max-width: 100vw; }
+
+/* Prevent horizontal overflow on all elements */
+.question-card-title, .compact-name, .brand h1, .modal-head h3 {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Touch targets - ensure minimum 44px for interactive elements */
+@media (max-width: 480px) {
+  button:not(.button), a.button, .dropdown-trigger-new, .option-button-new {
+    min-height: 40px;
+  }
+  
+  /* Leaderboard category panels stack on small screens */
+  .panel[style*="height: 450px"] { height: auto !important; max-height: 400px; }
+  
+  /* Modal cards fit within viewport */
+  .modal-card { max-width: calc(100vw - 24px) !important; }
+  
+  /* Profile modal grid adapts to single column on very small screens */
+  .info-block[style*="grid-template-columns"] { display: block !important; }
+}
+
+/* Safe area insets for devices with notches/home indicators */
+@supports (padding: max(0px)) {
+  .page {
+    padding-left: max(8px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .topbar {
+    padding-left: max(8px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
   }
 }
 

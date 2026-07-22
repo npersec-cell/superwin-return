@@ -705,7 +705,7 @@ export default function LeaderboardPage() {
         {/* Row 2: Most Orange Ammo + Most Predictions */}
         <div style={{ 
           display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
           gap: "12px",
           marginBottom: "16px"
         }}>
@@ -716,7 +716,7 @@ export default function LeaderboardPage() {
         {/* Row 3: Highest Single Win + Most Active */}
         <div style={{ 
           display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
           gap: "12px"
         }}>
           <CategorySection cat={categories.find(c => c.id === "highestSingleWin")!} data={leaderboards?.highestSingleWin || []} />
