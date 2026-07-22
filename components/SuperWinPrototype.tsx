@@ -3,7 +3,7 @@
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { compact, maskName as maskNameUtil, safeNumber, getRankFromPosition, daysSince, getPercentile } from "@/lib/utils";
+import { compact, getRankFromPosition, maskName, randomClaimAmount, formatCountdown } from "@/lib/utils";
 
 type PredictionOption = {
   id: string;
@@ -111,13 +111,6 @@ type SiteSettings = {
   predictionOrder?: string[];
   announcement?: string;
 };
-function maskName(name: string): string {
-  if (!name) return "";
-  if (name === "You") return name;
-  // Censor last 2 chars with "xx"
-  if (name.length <= 2) return name + "xx";
-  return name.slice(0, -2) + "xx";
-}
 
 type UserProfileStats = {
   name: string;
@@ -210,7 +203,6 @@ type LiveBet = {
 };
 
 // Ensure LiveBet is recognized by TypeScript
-export type { LiveBet };
 
 declare global {
   interface Window {
@@ -416,15 +408,6 @@ export default function SuperWinPrototype() {
   const [reportSuccess, setReportSuccess] = useState(false);
   
   // LIVE PREDICT
-  interface LiveBet {
-    userId: string;
-    displayName: string;
-    predictionId: string;
-    predictionTitle: string;
-    optionName: string;
-    amount: number;
-    createdAt: string;
-  }
   const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
   const [liveBetsLoading, setLiveBetsLoading] = useState(true);
   const [selectedLiveBet, setSelectedLiveBet] = useState<LiveBet | null>(null);
@@ -447,7 +430,6 @@ export default function SuperWinPrototype() {
 
     // Cookie bypass: already validated by /api/dev-bypass route
     if (hasCookieBypass) {
-      console.warn("[DEV] dev_bypass cookie found, enabling bypass mode");
       setDevBypass(true);
     }
 
@@ -458,7 +440,6 @@ export default function SuperWinPrototype() {
       .then(data => {
         if (data.ok && data.user) {
           if (hasUrlBypass) {
-            console.warn("[DEV] dev_bypass URL param validated, enabling bypass mode");
             setDevBypass(true);
           }
           setDevUser(data.user);
@@ -549,7 +530,6 @@ export default function SuperWinPrototype() {
   // Track reload when user signs in (Clerk might take a moment to load)
   useEffect(() => {
     if (isSignedIn) {
-      console.log('[SuperWinPrototype] isSignedIn changed to true, calling track-reload');
       fetch("/api/track-reload", { method: "POST" }).catch(() => {});
     }
   }, [isSignedIn]);
@@ -1079,14 +1059,6 @@ export default function SuperWinPrototype() {
       timeZone: "Asia/Bangkok"
     });
     return `${date} ${time} UTC+7`;
-  }
-
-  function randomClaimAmount(): number {
-    const r = Math.random();
-    if (r < 0.50) return Math.floor(Math.random() * 21) + 10;
-    if (r < 0.80) return Math.floor(Math.random() * 30) + 31;
-    if (r < 0.95) return Math.floor(Math.random() * 30) + 61;
-    return Math.floor(Math.random() * 10) + 91;
   }
 
   async function claim() {

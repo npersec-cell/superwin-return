@@ -2,7 +2,6 @@ import { createSupabaseAdminClient } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 
 export async function POST(request: Request) {
-  console.log('[track-reload] API called at:', new Date().toISOString());
   try {
     const user = await requireUser(request);
     
@@ -24,7 +23,6 @@ export async function POST(request: Request) {
     }
     
     const newReloadCount = (currentUser.reload_count || 0) + 1;
-    console.log('[track-reload] User:', user.id, 'Current reload_count:', currentUser.reload_count, 'New reload_count:', newReloadCount);
     
     // Update reload_count and last_seen_at
     const { error: updateError } = await supabase
@@ -42,8 +40,6 @@ export async function POST(request: Request) {
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
-    
-    console.log('[track-reload] SUCCESS: User', user.id, 'reload_count updated to', newReloadCount);
     
     return new Response(
       JSON.stringify({ 

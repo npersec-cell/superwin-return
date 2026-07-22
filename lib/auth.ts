@@ -114,7 +114,6 @@ async function tryDevBypass(request?: Request): Promise<AppUser | null> {
   }
 
   // Dev bypass matched - load user from DB
-  console.warn(`[DEV] Bypassing Clerk auth, using user ID: ${devUserId}`);
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("users")
@@ -126,7 +125,6 @@ async function tryDevBypass(request?: Request): Promise<AppUser | null> {
     return mapUser(data);
   }
 
-  console.error("[DEV] Dev bypass user not found:", devUserId);
   return null;
 }
 

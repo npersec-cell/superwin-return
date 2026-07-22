@@ -2383,30 +2383,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
                 )}
               </section>
-
-              {/* Section "คำถามทั้งหมดในระบบ" ซ่อนไว้ตามคำขอ — เก็บโค้ดไว้ใช้หลังบ้าน
-              <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h3>คำถามทั้งหมดในระบบ</h3><span className="micro">{predictions.length} รายการ</span></div>
-                <div className="leaderboard-body admin-list" style={{ gap: "10px", padding: "12px 0 0 0" }}>
-                  {currentAll.length ? currentAll.map((item) => (
-                    <div key={item.id} className="question active" style={{ padding: "12px" }}>
-                      <div className="question-main">
-                        <strong>{item.question}</strong>
-                        <span className="meta">{item.tournamentName} · {statusLabel(item.status)} · ปิด {displayDate(item.closesAt)} UTC+7 · {item.options.length} คำตอบ</span>
-                      </div>
-                      {renderPredictionControls(item)}
-                      {renderPayoutBreakdown(item)}
-                    </div>
-                  )) : <div className="question"><strong>ไม่มีประวัติคำถาม</strong></div>}
-                {allTotalPages > 1 && (
-                  <div className="history-footer" style={{ marginTop: "16px" }}>
-                    <button className="button" disabled={allPage <= 1} onClick={() => setAllPage(allPage - 1)}>ก่อนหน้า</button>
-                    <span className="micro">หน้า {allPage} / {allTotalPages}</span>
-                    <button className="button" disabled={allPage >= allTotalPages} onClick={() => setAllPage(allPage + 1)}>ถัดไป</button>
-                  </div>
-                )}
-              </section>
-              */}
             </section>
           )}
 

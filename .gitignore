@@ -18,3 +18,6 @@ run_migration.mjs
 run_rate_limits.js
 run_fix_balance1.js
 run_fix_balance2.js
+
+# TypeScript build info
+tsconfig.tsbuildinfo
