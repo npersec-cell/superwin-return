@@ -45,6 +45,7 @@ type DashboardPrediction = {
     id: string;
     email: string;
     displayName: string;
+    userId?: string;
     optionLabel: string;
     amount: number;
     createdAt: string;
@@ -1942,7 +1943,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                       return (
                                         <div key={bet.id} style={{ display: "grid", gridTemplateColumns: "1fr 80px 120px 70px 70px", gap: "6px", padding: "5px 8px", fontSize: "10px", background: isWinner ? "rgba(14,203,129,0.04)" : "transparent", borderRadius: "4px", alignItems: "center" }}>
                                           <span style={{ fontWeight: "500", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#fff" }}>
-                                            {bet.displayName || bet.email}
+                                            {bet.displayName || bet.email || bet.userId || "ผู้ใช้ไม่ทราบ"}
                                           </span>
                                           <span className="meta" style={{ fontSize: "9px", color: isWinner ? "var(--green)" : "var(--muted)" }}>
                                             {isWinner ? "✅ " : ""}{bet.optionLabel}

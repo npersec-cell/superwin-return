@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         .select("id, email, display_name")
         .in("id", userIds);
       for (const u of usersData || []) {
-        usersById[u.id] = { email: u.email || "--", display_name: u.display_name || "--" };
+        usersById[u.id] = { email: u.email || "", display_name: u.display_name || "" };
       }
     }
 
@@ -84,11 +84,12 @@ export async function GET(request: NextRequest) {
       // รายชื่อผู้เล่นที่ทายผลคู่แข่งคู่นี้
       const playerBets = pEntries.map((e: any) => {
         const optionLabel = pOptions.find((o: any) => o.id === e.option_id)?.label || "--";
-        const userInfo = usersById[e.user_id] || { email: "--", display_name: "--" };
+        const userInfo = usersById[e.user_id];
         return {
           id: e.id,
-          email: userInfo.email,
-          displayName: userInfo.display_name,
+          email: userInfo?.email || "",
+          displayName: userInfo?.display_name || "",
+          userId: e.user_id,
           optionLabel,
           amount: e.amount,
           createdAt: e.created_at
