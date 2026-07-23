@@ -705,7 +705,7 @@ export default function SuperWinPrototype() {
     tick();
     const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
-  }, [nextClaimAt, nextSpecialClaimAt, settings]);
+  }, [nextClaimAt, nextSpecialClaimAt]);
 
   // Cleanup profile refresh interval on component unmount
   useEffect(() => {
