@@ -341,6 +341,24 @@ function createQuestionDeadlines(sourceQuestions = demoQuestions) {
 
 // ── Memoized YouTube Embed Component (prevents re-renders from parent state changes) ──
 const YouTubeEmbedSection = memo(function YouTubeEmbedSection({ embedCode }: { embedCode: string }) {
+  // Inject autoplay=1&mute=1 into YouTube iframe URLs for autoplay support
+  const autoPlayCode = useMemo(() => {
+    if (!embedCode) return embedCode;
+    return embedCode.replace(
+      /(https:\/\/www\.youtube\.com\/embed\/[^\s"']+)(\?[^"']*)?("|")/g,
+      (match, baseUrl, existingParams, quote) => {
+        const separator = existingParams ? '&' : '?';
+        const params = existingParams || '';
+        // Add autoplay and mute if not already present
+        let newParams = params;
+        if (!params.includes('autoplay=')) newParams += `${separator}autoplay=1`;
+        if (!params.includes('mute=')) newParams += `${newParams.includes('?') ? '&' : separator}mute=1`;
+        if (!params.includes('controls=')) newParams += `${newParams.includes('?') ? '&' : separator}controls=1`;
+        return `${baseUrl}${newParams}${quote}`;
+      }
+    );
+  }, [embedCode]);
+
   return (
     <div style={{
       margin: "0 0 12px 0",
@@ -349,7 +367,7 @@ const YouTubeEmbedSection = memo(function YouTubeEmbedSection({ embedCode }: { e
       border: "1px solid var(--hairline)",
       background: "var(--card)",
     }}>
-      <div dangerouslySetInnerHTML={{ __html: embedCode }} style={{
+      <div dangerouslySetInnerHTML={{ __html: autoPlayCode || embedCode }} style={{
         display: "flex",
         justifyContent: "center",
       }} />
@@ -372,6 +390,7 @@ export default function SuperWinPrototype() {
   const [nextClaimAt, setNextClaimAt] = useState(0);
   const [nextSpecialClaimAt, setNextSpecialClaimAt] = useState(0);
   const [specialClaimLoading, setSpecialClaimLoading] = useState(false);
+  const [specialClaimLabel, setSpecialClaimLabel] = useState("⭐");
   const [youtubeEmbed, setYoutubeEmbed] = useState<string>('');
     const [frontendFeaturesEnabled, setFrontendFeaturesEnabled] = useState(true);
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
@@ -709,7 +728,7 @@ export default function SuperWinPrototype() {
 
   useEffect(() => {
     const tick = () => {
-      // Safety check: if nextClaimAt is in the past or invalid, allow claiming
+      // ── Regular Claim countdown ──
       if (nextClaimAt <= Date.now()) {
         setClaimLabel("Ready");
         setClaimFlash(false);
@@ -718,6 +737,16 @@ export default function SuperWinPrototype() {
         const minutes = Math.floor(claimRemaining / 60000);
         const seconds = Math.floor((claimRemaining % 60000) / 1000);
         setClaimLabel(`${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`);
+      }
+
+      // ── Special Claim countdown ──
+      if (nextSpecialClaimAt <= Date.now()) {
+        setSpecialClaimLabel("⭐");
+      } else {
+        const specialRemaining = nextSpecialClaimAt - Date.now();
+        const mins = Math.floor(specialRemaining / 60000);
+        const secs = Math.floor((specialRemaining % 60000) / 1000);
+        setSpecialClaimLabel(`${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`);
       }
     };
     tick();
@@ -1376,14 +1405,14 @@ export default function SuperWinPrototype() {
             pointerEvents: "none",
           }} />
           
-          {/* Star Icon */}
-          <div style={{ 
-              fontSize: "28px", 
+          {/* Ammo Icon */}
+          <img src="https://superwinhub.app/ammo-icon.webp" alt="" width={28} height={28} style={{ 
               flexShrink: 0, 
               zIndex: 1,
               filter: "drop-shadow(0 0 4px rgba(255,165,0,0.5))",
+              objectFit: "contain",
               lineHeight: 1,
-            }}>⭐</div>
+            }} />
           
           <div style={{ flex: 1, zIndex: 1 }}>
             <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)", marginBottom: "1px" }}>
@@ -1399,8 +1428,8 @@ export default function SuperWinPrototype() {
             disabled={specialClaimLoading || (!devBypass && !isSignedIn) || Date.now() >= nextSpecialClaimAt === false}
             style={{
               flexShrink: 0,
-              padding: "7px 18px",
-              fontSize: "12px",
+              padding: "7px 14px",
+              fontSize: "11px",
               fontWeight: "800",
               borderRadius: "18px",
               border: "none",
@@ -1411,15 +1440,22 @@ export default function SuperWinPrototype() {
               color: Date.now() >= nextSpecialClaimAt ? "#000" : "var(--muted)",
               transition: "all 0.2s",
               boxShadow: Date.now() >= nextSpecialClaimAt ? "0 2px 10px rgba(255,165,0,0.4)" : "none",
-              minWidth: "90px",
+              minWidth: "60px",
               position: "relative",
               zIndex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "4px",
             }}
           >
             {specialClaimLoading ? (
               <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⏳</span>
             ) : (
-              <span style={{ fontSize: "16px", lineHeight: 1 }}>⭐</span>
+              <>
+                <img src="https://superwinhub.app/ammo-icon.webp" alt="" width={14} height={14} style={{ objectFit: "contain", flexShrink: 0 }} />
+                <span style={{ fontSize: "11px", lineHeight: 1, fontWeight: "800" }}>{specialClaimLabel}</span>
+              </>
             )}
           </button>
         </div>)}
