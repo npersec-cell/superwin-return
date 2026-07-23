@@ -633,8 +633,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     try {
       const res = await fetch('/api/settings');
       const json = await res.json();
-      if (json.ok && json.data?.youtube_embed?.embed_code) {
-        setYoutubeEmbed(json.data.youtube_embed.embed_code);
+      if (json.ok && json.data) {
+        // Load YouTube embed code
+        if (json.data.youtube_embed?.embed_code) {
+          setYoutubeEmbed(json.data.youtube_embed.embed_code);
+        }
+        // Load frontend features enabled state
+        if (json.data.frontend_features !== undefined) {
+          setFrontendEnabled(!!json.data.frontend_features.enabled);
+        }
       }
     } catch (e) {
       console.error('Failed to load YouTube embed:', e);
