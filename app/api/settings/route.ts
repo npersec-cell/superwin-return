@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const { data: settings, error } = await supabase
       .from("site_settings")
       .select("key, value")
-      .in("key", ["youtube_embed", "frontend_features"]);
+      .in("key", ["youtube_embed", "frontend_features", "announcement"]);
 
     if (error) {
       console.error("Settings GET error:", error);
@@ -18,7 +18,12 @@ export async function GET(request: NextRequest) {
 
     const result: Record<string, any> = {};
     for (const s of settings || []) {
-      result[s.key] = s.value;
+      // Flatten 'announcement' so it's directly accessible as data.announcement
+      if (s.key === "announcement") {
+        result[s.key] = s.value;
+      } else {
+        result[s.key] = s.value;
+      }
     }
 
     return NextResponse.json({ ok: true, data: result });
