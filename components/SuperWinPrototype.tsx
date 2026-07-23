@@ -1332,7 +1332,7 @@ export default function SuperWinPrototype() {
         )}
 
         {/* ── YouTube Embed Section (only if enabled by admin) ── */}
-        {frontendFeaturesEnabled && youtubeEmbed && (
+        {mounted && frontendFeaturesEnabled && youtubeEmbed && (
           <div style={{
             margin: "0 0 12px 0",
             borderRadius: "12px",
