@@ -92,16 +92,24 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseAdminClient();
 
+    // Use upsert with conflict target to properly handle insert-or-update
     const { data, error } = await supabase
       .from("site_settings")
-      .upsert({ key, value, updated_at: new Date().toISOString() })
+      .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" })
       .select("key, value")
-      .single();
+      .maybeSingle();
 
     if (error) {
-      console.error("Admin settings POST error:", error);
+      console.error("Admin settings POST error:", JSON.stringify(error));
       return NextResponse.json(
-        { ok: false, error: "Failed to save settings" },
+        { ok: false, error: "Failed to save settings", details: error.message },
+        { status: 500 }
+      );
+    }
+
+    if (!data) {
+      return NextResponse.json(
+        { ok: false, error: "No data returned from upsert" },
         { status: 500 }
       );
     }
@@ -111,8 +119,8 @@ export async function POST(request: NextRequest) {
     if (err.message === "Forbidden" || err.message === "Unauthorized") {
       return NextResponse.json({ ok: false, error: err.message }, { status: 403 });
     }
-    console.error("Admin settings POST error:", err);
-    return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
+    console.error("Admin settings POST error:", JSON.stringify(err));
+    return NextResponse.json({ ok: false, error: "Internal server error", details: err.message }, { status: 500 });
   }
 }
 
@@ -143,13 +151,13 @@ export async function PATCH(request: NextRequest) {
 
     const { data, error } = await supabase
       .from("site_settings")
-      .upsert(upsertRows)
+      .upsert(upsertRows, { onConflict: "key" })
       .select("key, value");
 
     if (error) {
-      console.error("Admin settings PATCH error:", error);
+      console.error("Admin settings PATCH error:", JSON.stringify(error));
       return NextResponse.json(
-        { ok: false, error: "Failed to save settings" },
+        { ok: false, error: "Failed to save settings", details: error.message },
         { status: 500 }
       );
     }
@@ -165,7 +173,7 @@ export async function PATCH(request: NextRequest) {
     if (err.message === "Forbidden" || err.message === "Unauthorized") {
       return NextResponse.json({ ok: false, error: err.message }, { status: 403 });
     }
-    console.error("Admin settings PATCH error:", err);
-    return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
+    console.error("Admin settings PATCH error:", JSON.stringify(err));
+    return NextResponse.json({ ok: false, error: "Internal server error", details: err.message }, { status: 500 });
   }
 }
