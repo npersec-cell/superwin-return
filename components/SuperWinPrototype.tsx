@@ -1366,6 +1366,31 @@ export default function SuperWinPrototype() {
   return (
     <main className="page" suppressHydrationWarning>
       <div className="app" suppressHydrationWarning>
+        {/* ── Announcement Ticker (top of page) ── */}
+        {settingsLoaded && settings.announcement && (
+          <div className="announcement-bar" suppressHydrationWarning={true} style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: "8px", 
+            background: "var(--card)", 
+            border: "1px solid var(--border)", 
+            borderRadius: "6px", 
+            padding: "6px 12px", 
+            margin: "8px 12px 10px 12px", 
+            fontSize: "11px", 
+            color: "var(--text-strong)",
+            overflow: "hidden",
+            whiteSpace: "nowrap"
+          }}>
+            <span style={{ fontSize: "12px", flexShrink: 0 }}>📢</span>
+            <div className="announcement-container" ref={marqueeContainerRef}>
+              <div className="announcement-marquee" ref={marqueeRef}>
+                {settings.announcement}
+              </div>
+            </div>
+          </div>
+        )}
+
         <header className="topbar">
           <div className="brand">
             <img className="logo" src="/SuperWin_b.png" alt="SuperWin logo" />
@@ -1409,30 +1434,6 @@ export default function SuperWinPrototype() {
             <button className="button gold" onClick={() => setOpenModal("info")}>Info</button>
           </div>
         </header>
-
-        {settingsLoaded && settings.announcement && (
-          <div className="announcement-bar" suppressHydrationWarning={true} style={{ 
-            display: "flex", 
-            alignItems: "center", 
-            gap: "8px", 
-            background: "var(--card)", 
-            border: "1px solid var(--border)", 
-            borderRadius: "6px", 
-            padding: "6px 12px", 
-            margin: "0 0 10px 0", 
-            fontSize: "11px", 
-            color: "var(--text-strong)",
-            overflow: "hidden",
-            whiteSpace: "nowrap"
-          }}>
-            <span style={{ fontSize: "12px", flexShrink: 0 }}>📢</span>
-            <div className="announcement-container" ref={marqueeContainerRef}>
-              <div className="announcement-marquee" ref={marqueeRef}>
-                {settings.announcement}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ── YouTube Embed Section (only if enabled by admin) ── */}
         {mounted && frontendFeaturesEnabled && youtubeEmbed && (() => {
