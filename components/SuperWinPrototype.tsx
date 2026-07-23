@@ -523,16 +523,25 @@ export default function SuperWinPrototype() {
     fetch('/api/settings')
       .then(res => res.json())
       .then(json => {
+        console.log('[homepage useEffect] /api/settings response:', json);
         if (json.ok && json.data) {
           if (json.data.youtube_embed) {
-            setYoutubeEmbed(json.data.youtube_embed.embed_code || '');
+            const code = json.data.youtube_embed.embed_code || '';
+            console.log('[homepage useEffect] youtube_embed found, code length:', code.length);
+            setYoutubeEmbed(code);
+          } else {
+            console.log('[homepage useEffect] no youtube_embed in response');
           }
           if (json.data.frontend_features !== undefined) {
-            setFrontendFeaturesEnabled(json.data.frontend_features.enabled !== false);
+            const enabled = json.data.frontend_features.enabled !== false;
+            console.log('[homepage useEffect] frontend_features.enabled:', enabled);
+            setFrontendFeaturesEnabled(enabled);
+          } else {
+            console.log('[homepage useEffect] no frontend_features in response');
           }
         }
       })
-      .catch(() => {});
+      .catch((e) => { console.error('[homepage useEffect] fetch error:', e); });
     setRunning(safeJson("sr_running", []));
     loadOpenPredictions().catch(() => undefined);
     loadSettings().catch(() => undefined);
