@@ -440,6 +440,8 @@ export default function SuperWinPrototype() {
   const [specialClaimLoading, setSpecialClaimLoading] = useState(false);
   const [specialClaimLabel, setSpecialClaimLabel] = useState("⭐");
   const [youtubeEmbed, setYoutubeEmbed] = useState<string>('');
+  const [youtubeScheduleStart, setYoutubeScheduleStart] = useState<string>('');
+  const [youtubeScheduleEnd, setYoutubeScheduleEnd] = useState<string>('');
     const [frontendFeaturesEnabled, setFrontendFeaturesEnabled] = useState(true);
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -620,6 +622,14 @@ export default function SuperWinPrototype() {
             embedCode = json.data.frontend_features.youtube_embed;
           }
           setYoutubeEmbed(embedCode);
+
+          // Load YouTube schedule times
+          if (json.data.youtube_embed?.schedule_start) {
+            setYoutubeScheduleStart(json.data.youtube_embed.schedule_start);
+          }
+          if (json.data.youtube_embed?.schedule_end) {
+            setYoutubeScheduleEnd(json.data.youtube_embed.schedule_end);
+          }
 
           if (json.data.frontend_features !== undefined) {
             setFrontendFeaturesEnabled(json.data.frontend_features.enabled !== false);
@@ -1425,9 +1435,26 @@ export default function SuperWinPrototype() {
         )}
 
         {/* ── YouTube Embed Section (only if enabled by admin) ── */}
-        {mounted && frontendFeaturesEnabled && youtubeEmbed && (
-          <YouTubeEmbedSection embedCode={youtubeEmbed} />
-        )}
+        {mounted && frontendFeaturesEnabled && youtubeEmbed && (() => {
+          // Check schedule: only show YouTube embed within scheduled time window
+          const now = new Date();
+          let shouldShow = true;
+          if (youtubeScheduleStart) {
+            const startDate = new Date(youtubeScheduleStart);
+            if (isNaN(startDate.getTime())) {
+              // Invalid date format, ignore schedule
+            } else if (now < startDate) {
+              shouldShow = false;
+            }
+          }
+          if (youtubeScheduleEnd) {
+            const endDate = new Date(youtubeScheduleEnd);
+            if (!isNaN(endDate.getTime()) && now > endDate) {
+              shouldShow = false;
+            }
+          }
+          return shouldShow ? <YouTubeEmbedSection embedCode={youtubeEmbed} /> : null;
+        })()}
 
         {/* ── Special 10-min Claim (กระสุนส้มพเิ ศษ) ── */}
         {frontendFeaturesEnabled && (<div style={{

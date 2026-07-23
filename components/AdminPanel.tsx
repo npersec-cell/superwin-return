@@ -284,6 +284,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [contestsLoading, setContestsLoading] = useState(false);
   const [showNewContestForm, setShowNewContestForm] = useState(false);
   const [youtubeEmbed, setYoutubeEmbed] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [youtubeScheduleStart, setYoutubeScheduleStart] = useState("");
+  const [youtubeScheduleEnd, setYoutubeScheduleEnd] = useState("");
   const [frontendEnabled, setFrontendEnabled] = useState(true);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -634,9 +637,25 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       const res = await fetch('/api/settings');
       const json = await res.json();
       if (json.ok && json.data) {
-        // Load YouTube embed code
+        // Load YouTube embed code or URL
         if (json.data.youtube_embed?.embed_code) {
           setYoutubeEmbed(json.data.youtube_embed.embed_code);
+          // Try to extract URL from embed code for display
+          const urlMatch = json.data.youtube_embed.embed_code.match(/src="([^"]+)"/);
+          if (urlMatch) {
+            setYoutubeUrl(urlMatch[1]);
+          }
+        }
+        // Load YouTube URL directly (new format)
+        if (json.data.youtube_embed?.url) {
+          setYoutubeUrl(json.data.youtube_embed.url);
+        }
+        // Load schedule times
+        if (json.data.youtube_embed?.schedule_start) {
+          setYoutubeScheduleStart(json.data.youtube_embed.schedule_start);
+        }
+        if (json.data.youtube_embed?.schedule_end) {
+          setYoutubeScheduleEnd(json.data.youtube_embed.schedule_end);
         }
         // Load frontend features enabled state
         if (json.data.frontend_features !== undefined) {
@@ -666,13 +685,49 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }
   }
 
+  // Convert YouTube URL to embed iframe code
+  function youtubeUrlToEmbed(url: string): string {
+    const trimmed = url.trim();
+    let videoId = "";
+
+    // Match various YouTube URL formats
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
+      /^([a-zA-Z0-9_-]{11})$/, // Direct video ID
+    ];
+
+    for (const pattern of patterns) {
+      const match = trimmed.match(pattern);
+      if (match && match[1]) {
+        videoId = match[1];
+        break;
+      }
+    }
+
+    if (!videoId) {
+      return trimmed; // Return as-is if we can't extract video ID
+    }
+
+    return `<iframe width="720" height="405" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+  }
+
   async function saveYoutubeEmbed(e?: React.FormEvent) {
     if (e) e.preventDefault();
     try {
+      const embedCode = youtubeUrlToEmbed(youtubeUrl);
+      const scheduleData: any = {
+        enabled: true,
+        url: youtubeUrl,
+        embed_code: embedCode,
+      };
+      // Only include schedule times if both are set
+      if (youtubeScheduleStart) scheduleData.schedule_start = youtubeScheduleStart;
+      if (youtubeScheduleEnd) scheduleData.schedule_end = youtubeScheduleEnd;
+
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'youtube_embed', value: { enabled: true, embed_code: youtubeEmbed } }),
+        body: JSON.stringify({ key: 'youtube_embed', value: scheduleData }),
       });
       if (res.ok) {
         alert('บันทึกสำเร็จ');
@@ -2632,15 +2687,36 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
 
                   {/* YouTube Embed */}
-                  <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>YouTube Embed Code (iframe)</span>
-                    <textarea 
-                      rows={4}
-                      value={youtubeEmbed} 
-                      onChange={(event) => setYoutubeEmbed(event.target.value)} 
-                      placeholder='<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/VIDEO_ID?controls=0" ...></iframe>'
+                  <div style={{ display: "grid", gap: "8px" }}>
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>YouTube URL</span>
+                    <input 
+                      type="text"
+                      value={youtubeUrl} 
+                      onChange={(event) => setYoutubeUrl(event.target.value)} 
+                      placeholder="https://www.youtube.com/watch?v=VIDEO_ID หรือ https://youtu.be/VIDEO_ID"
                       style={{ fontFamily: "monospace", fontSize: "11px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "8px", color: "var(--text)" }}
                     />
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                      <div>
+                        <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>เวลาเปิด (ตามเวลาไทย)</span>
+                        <input 
+                          type="datetime-local"
+                          value={youtubeScheduleStart} 
+                          onChange={(event) => setYoutubeScheduleStart(event.target.value)} 
+                          style={{ width: "100%", boxSizing: "border-box", fontFamily: "monospace", fontSize: "11px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "6px", color: "var(--text)", marginTop: "2px" }}
+                        />
+                      </div>
+                      <div>
+                        <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>เวลาปิด (ตามเวลาไทย)</span>
+                        <input 
+                          type="datetime-local"
+                          value={youtubeScheduleEnd} 
+                          onChange={(event) => setYoutubeScheduleEnd(event.target.value)} 
+                          style={{ width: "100%", boxSizing: "border-box", fontFamily: "monospace", fontSize: "11px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "6px", color: "var(--text)", marginTop: "2px" }}
+                        />
+                      </div>
+                    </div>
+                    <span className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>ปลอย่ างว่างเวลาเปิด/ปิด ถาตองการใหแสดงตลอด</span>
                   </div>
 
                   <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "36px", fontWeight: "bold", marginTop: "4px" }}>💾 Save Frontpage Settings</button>
