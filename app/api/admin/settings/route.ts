@@ -2,126 +2,43 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 
-export const dynamic = "force-dynamic";
-
-type TournamentItem = {
-  name: string;
-  logoUrl: string;
-  archived?: boolean;
-};
-
-type SiteSettings = {
-  info: {
-    howToPlay: string;
-    questionTime: string;
-  };
-  tournaments: (string | TournamentItem)[];
-  savedQuestions: string[];
-  savedRounds: string[];
-  predictionOrder?: string[];
-  announcement?: string;
-  numberWarDescription?: string;
-};
-
-const fallback: SiteSettings = {
-  info: {
-    howToPlay: "1. ล็อกอินด้วยบัญชีของคุณ (หรือใช้ Dev Bypass เพื่อลองเล่น)\n2. กดรับเหรียญฟรีทุก 1 ชั่วโมงจากปุ่ม Claim\n3. เลือกคำถามที่ต้องการทาย ➔ เปิด dropdown เพื่อเลือกคำตอบที่คุณเชื่อ\n4. ใส่จำนวนเหรียญที่ต้องการวางทาย ➔ กด Predict\n5. ทายได้อิสระ! จะทายกี่ข้อ กี่รอบ ก็ได้ ไม่มีกฎจำกัด\n6. เมื่อคำถามปิดและแอดมินสรุปผล คุณจะได้รับเหรียญรางวัลทันทีถ้าทายถูก\n7. สะสมเหรียญ ➔ ไต่ลำดับใน Leaderboard ➔ แย่งตำแหน่ง Top 10!",
-    questionTime: "แต่ละคำถามมีนับถอยหลังบอกเวลาปิดรับคำทาย ➔ เมื่อนับถอยถึงศูนย์ คำถามจะถูกล็อคและไม่สามารถทายเพิ่มได้อีก ➔ แอดมินจะตรวจสอบผลจริงและกด Resolve เพื่อสรุป ➔ ระบบจะคำนวณกำไร/ขาดทุนและโอนเหรียญให้อัตโนมัติ ➔ ประวัติการทายทั้งหมดแสดงในหน้า Profile ของคุณ"
-  },
-  tournaments: [
-    { name: "Super League", logoUrl: "" }
-  ],
-  savedQuestions: [
-    "Which team will win the championship?",
-    "Which team will get the Chicken Dinner?",
-    "Who will get the most kills in this match?"
-  ],
-  savedRounds: [
-    "รอบ 16 ทีม",
-    "รอบ 8 ทีม",
-    "รอบชิงชนะเลิศ"
-  ],
-  numberWarDescription: "ต่ำกว่า 100 · 101-299 · มากกว่า 300 | ซื้อครั้งแรก 10 | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ",
-  announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the All time Top 10!"
-};
-
-async function readSettingsFromDb(supabase: ReturnType<typeof createSupabaseAdminClient>): Promise<SiteSettings> {
+// POST /api/admin/settings — Admin only: update site settings
+export async function POST(request: NextRequest) {
   try {
-    const { data, error } = await supabase
-      .from("settings")
-      .select("value")
-      .eq("key", "site_settings")
-      .maybeSingle();
+    await requireAdmin(request);
 
-    if (error || !data || !data.value) {
-      return fallback;
+    const body = await request.json();
+    const { key, value } = body;
+
+    if (!key || value === undefined) {
+      return NextResponse.json(
+        { ok: false, error: "Missing key or value" },
+        { status: 400 }
+      );
     }
-    return data.value as SiteSettings;
-  } catch {
-    return fallback;
-  }
-}
 
-async function writeSettingsToDb(supabase: ReturnType<typeof createSupabaseAdminClient>, settings: SiteSettings): Promise<void> {
-  const { error } = await supabase
-    .from("settings")
-    .upsert({
-      key: "site_settings",
-      value: settings,
-      updated_at: new Date().toISOString()
-    });
-
-  if (error) {
-    throw new Error("Failed to write settings to database: " + error.message);
-  }
-}
-
-function toStatus(error: unknown) {
-  const message = error instanceof Error ? error.message : "Settings update failed";
-  if (message === "Unauthorized") return 401;
-  if (message === "Forbidden") return 403;
-  return 500;
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    await requireAdmin(request);
     const supabase = createSupabaseAdminClient();
-    const settings = await readSettingsFromDb(supabase);
 
-    return NextResponse.json({ 
-      ok: true, 
-      data: settings
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Settings load failed";
-    return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
-  }
-}
+    const { data, error } = await supabase
+      .from("site_settings")
+      .upsert({ key, value, updated_at: new Date().toISOString() })
+      .select("key, value")
+      .single();
 
-export async function PATCH(request: NextRequest) {
-  try {
-    await requireAdmin(request);
-    const supabase = createSupabaseAdminClient();
-    const current = await readSettingsFromDb(supabase);
-    const body = (await request.json()) as Partial<SiteSettings>;
-    
-    // 使用fallback作为基础，确保缺失的字段有默认值
-    const next: SiteSettings = {
-      info: { ...fallback.info, ...current.info, ...(body.info || {}) },
-      tournaments: body.tournaments !== undefined ? body.tournaments : (current.tournaments || fallback.tournaments),
-      savedQuestions: body.savedQuestions !== undefined ? body.savedQuestions : (current.savedQuestions || fallback.savedQuestions),
-      savedRounds: body.savedRounds !== undefined ? body.savedRounds : (current.savedRounds || fallback.savedRounds),
-      predictionOrder: body.predictionOrder !== undefined ? body.predictionOrder : (current.predictionOrder || fallback.predictionOrder),
-      numberWarDescription: body.numberWarDescription !== undefined ? body.numberWarDescription : (current.numberWarDescription || fallback.numberWarDescription),
-      announcement: body.announcement !== undefined ? body.announcement : (current.announcement || fallback.announcement)
-    };
+    if (error) {
+      console.error("Admin settings POST error:", error);
+      return NextResponse.json(
+        { ok: false, error: "Failed to save settings" },
+        { status: 500 }
+      );
+    }
 
-    await writeSettingsToDb(supabase, next);
-
-    return NextResponse.json({ ok: true, data: next });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Settings update failed";
-    return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
+    return NextResponse.json({ ok: true, data });
+  } catch (err: any) {
+    if (err.message === "Forbidden" || err.message === "Unauthorized") {
+      return NextResponse.json({ ok: false, error: err.message }, { status: 403 });
+    }
+    console.error("Admin settings POST error:", err);
+    return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
   }
 }

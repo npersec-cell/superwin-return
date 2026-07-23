@@ -192,6 +192,20 @@ type ApiClaimResponse = {
   error?: string;
 };
 
+type ApiSpecialClaimResponse = {
+  ok: boolean;
+  data?: {
+    amount: number;
+    user: {
+      coinBalance: number;
+      lifetimeProfit: number;
+      nextSpecialClaimAt: string | null;
+    };
+  };
+  error?: string;
+  th?: string;
+};
+
 declare global {
   interface Window {
     google?: {
@@ -499,6 +513,17 @@ export default function SuperWinPrototype() {
     setCoins(Number(localStorage.getItem("sr_coins")) || 500);
     setProfit(Number(localStorage.getItem("sr_profit")) || 0);
     setNextClaimAt(Number(localStorage.getItem("sr_next_claim")) || 0);
+    setNextSpecialClaimAt(Number(localStorage.getItem("sr_next_special_claim")) || 0);
+
+    // Load site settings (YouTube embed, etc.)
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(json => {
+        if (json.ok && json.data?.youtube_embed) {
+          setYoutubeEmbed(json.data.youtube_embed.embed_code || '');
+        }
+      })
+      .catch(() => {});
     setRunning(safeJson("sr_running", []));
     loadOpenPredictions().catch(() => undefined);
     loadSettings().catch(() => undefined);
@@ -642,6 +667,7 @@ export default function SuperWinPrototype() {
     localStorage.setItem("sr_coins", String(coins));
     localStorage.setItem("sr_profit", String(profit));
     localStorage.setItem("sr_next_claim", String(nextClaimAt));
+    localStorage.setItem("sr_next_special_claim", String(nextSpecialClaimAt));
     localStorage.setItem("sr_running", JSON.stringify(running.slice(0, 30)));
   }, [coins, profit, nextClaimAt, running, mounted]);
 
@@ -661,7 +687,7 @@ export default function SuperWinPrototype() {
     tick();
     const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
-  }, [nextClaimAt, settings]);
+  }, [nextClaimAt, nextSpecialClaimAt, settings]);
 
   // Cleanup profile refresh interval on component unmount
   useEffect(() => {
@@ -1077,7 +1103,42 @@ export default function SuperWinPrototype() {
     setOpenModal("claimResult");
     // Flash button with amount for 5 seconds
     setClaimFlash(true);
-    if (claimFlashTimer.current) clearTimeout(claimFlashTimer.current);
+  // ── Special Claim (กระสุนส้มพิเศษ 10 นาที) ──
+  async function specialClaim() {
+    if ((!devBypass && !isSignedIn) || Date.now() < nextSpecialClaimAt) return;
+
+    setSpecialClaimLoading(true);
+    try {
+      const response = await fetch("/api/special-claim", { method: "POST" });
+      const result: ApiSpecialClaimResponse = await response.json();
+
+      if (!result.ok) {
+        alert(result.th || result.error || "ไม่สามารถกดรับได้");
+        return;
+      }
+
+      if (result.data) {
+        setCoins(result.data.user.coinBalance);
+        setProfit(result.data.user.lifetimeProfit);
+        if (result.data.user.nextSpecialClaimAt) {
+          setNextSpecialClaimAt(new Date(result.data.user.nextSpecialClaimAt).getTime());
+        }
+        // Show reward animation
+        setClaimResult(result.data.amount);
+        setClaimFlash(true);
+        setOpenModal("claimResult");
+        if (claimFlashTimer.current) clearTimeout(claimFlashTimer.current);
+        claimFlashTimer.current = setTimeout(() => { setClaimFlash(false); setOpenModal(null); }, 5000);
+      }
+    } catch (err) {
+      console.error("Special claim error:", err);
+      alert("เกิดข้อผิดพลาด กรุณาลองอีกครั้ง");
+    } finally {
+      setSpecialClaimLoading(false);
+    }
+  }
+
+      if (claimFlashTimer.current) clearTimeout(claimFlashTimer.current);
     claimFlashTimer.current = setTimeout(() => { setClaimFlash(false); setOpenModal(null); }, 5000);
   }
 
@@ -1248,6 +1309,84 @@ export default function SuperWinPrototype() {
             </div>
           </div>
         )}
+
+        {/* ── YouTube Embed Section ── */}
+        {youtubeEmbed && (
+          <div style={{
+            margin: "0 0 12px 0",
+            borderRadius: "12px",
+            overflow: "hidden",
+            border: "1px solid var(--hairline)",
+            background: "var(--card)",
+          }}>
+            <div dangerouslySetInnerHTML={{ __html: youtubeEmbed }} style={{
+              display: "flex",
+              justifyContent: "center",
+            }} />
+          </div>
+        )}
+
+        {/* ── กระสุนส้มพเิ ศษ (Special 10-min Claim) ── */}
+        <div style={{
+          margin: "0 0 12px 0",
+          padding: "12px 16px",
+          background: "linear-gradient(135deg, rgba(255,165,0,0.08), rgba(255,100,0,0.04))",
+          border: "2px solid rgba(255,165,0,0.3)",
+          borderRadius: "12px",
+          display: "flex",
+          alignItems: "center",
+          gap: "16px",
+          position: "relative",
+          overflow: "hidden",
+        }}>
+          {/* Animated glow effect */}
+          <div style={{
+            position: "absolute",
+            top: "-50%",
+            left: "-50%",
+            width: "200%",
+            height: "200%",
+            background: "radial-gradient(circle, rgba(255,165,0,0.05) 0%, transparent 70%)",
+            animation: "pulse-glow 3s ease-in-out infinite",
+            pointerEvents: "none",
+          }} />
+          
+          <div style={{ fontSize: "24px", flexShrink: 0, zIndex: 1 }}>🍊</div>
+          
+          <div style={{ flex: 1, zIndex: 1 }}>
+            <div style={{ fontSize: "13px", fontWeight: "700", color: "var(--yellow)", marginBottom: "2px" }}>
+              🍊 กระสุนส้มพเิ ศษ
+            </div>
+            <div style={{ fontSize: "10px", color: "var(--muted)" }}>
+              กดรบั เหรียญฟรีทกุ 10 นาที • เร็วกวาปกติ 6 เท่า!
+            </div>
+          </div>
+
+          <button
+            onClick={specialClaim}
+            disabled={specialClaimLoading || (!devBypass && !isSignedIn) || Date.now() >= nextSpecialClaimAt === false}
+            style={{
+              flexShrink: 0,
+              padding: "8px 20px",
+              fontSize: "13px",
+              fontWeight: "800",
+              borderRadius: "20px",
+              border: "none",
+              cursor: (specialClaimLoading || (!devBypass && !isSignedIn) || Date.now() >= nextSpecialClaimAt === false) ? "not-allowed" : "pointer",
+              background: Date.now() >= nextSpecialClaimAt
+                ? "linear-gradient(135deg, #FFA500, #FF8C00)"
+                : "var(--hairline)",
+              color: Date.now() >= nextSpecialClaimAt ? "#000" : "var(--muted)",
+              transition: "all 0.2s",
+              boxShadow: Date.now() >= nextSpecialClaimAt ? "0 2px 12px rgba(255,165,0,0.4)" : "none",
+              minWidth: "100px",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            {specialClaimLoading ? "…" : (Date.now() >= nextSpecialClaimAt ? "กดเลย! 🍊" : specialClaimLabel)}
+          </button>
+        </div>
 
         {(devBypass || isSignedIn) && (
         <section className="stats" aria-label="Account stats">

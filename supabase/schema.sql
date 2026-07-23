@@ -13,6 +13,7 @@ create table if not exists public.users (
   lifetime_profit integer not null default 0,
   last_claim_at timestamptz,
   next_claim_at timestamptz,
+  next_special_claim_at timestamptz,
   status text not null default 'active' check (status in ('active', 'suspended', 'banned')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -118,6 +119,18 @@ create index if not exists idx_prediction_options_prediction on public.predictio
 create index if not exists idx_prediction_entries_user_status on public.prediction_entries(user_id, status, created_at desc);
 create index if not exists idx_prediction_entries_prediction_option on public.prediction_entries(prediction_id, option_id);
 -- idx_monthly_leaderboards_month_profit removed (table removed)
+
+-- ── Site Settings (YouTube embed, announcements, etc.) ──
+create table if not exists public.site_settings (
+  id uuid primary key default gen_random_uuid(),
+  key text unique not null,
+  value jsonb not null default '{}',
+  updated_at timestamptz not null default now()
+);
+
+insert into public.site_settings (key, value) values
+  ('youtube_embed', '{"enabled": false, "embed_code": ""}')
+on conflict (key) do nothing;
 
 -- ── Chat Messages ──
 create table if not exists public.chat_messages (

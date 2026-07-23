@@ -283,6 +283,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [contests, setContests] = useState<any[]>([]);
   const [contestsLoading, setContestsLoading] = useState(false);
   const [showNewContestForm, setShowNewContestForm] = useState(false);
+  const [youtubeEmbed, setYoutubeEmbed] = useState("");
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [showEditContestForm, setShowEditContestForm] = useState(false);
@@ -629,6 +630,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   useEffect(() => {
     if (activeTab !== "dashboard") return;
+    loadYoutubeEmbed();
     loadDashboardData().catch(() => undefined);
     const timer = setInterval(() => {
       loadDashboardData().catch(() => undefined);
@@ -2530,6 +2532,31 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
 
                   <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "34px", fontWeight: "bold" }}>📢 💾 บันทึกข้อความประกาศหน้าแรก</button>
+                </form>
+              </div>
+
+              {/* YouTube Embed Section */}
+              <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
+                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
+                  <h2>📺 YouTube Embed หน้าแรก</h2>
+                </div>
+                <form className="modal-body" onSubmit={saveYoutubeEmbed} style={{ padding: "12px 0 0 0", display: "grid", gap: "10px" }}>
+                  <span className="meta" style={{ textTransform: "none", color: "var(--muted)", lineHeight: "1.4" }}>
+                    *วางโค้ด iframe จาก YouTube เพื่อแสดงบนหน้าแรก (ถ้าว่าง จะไม่แสดงอะไรบนหน้าแรก)
+                  </span>
+                  
+                  <div style={{ display: "grid", gap: "4px" }}>
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>YouTube Embed Code (iframe)</span>
+                    <textarea 
+                      rows={4}
+                      value={youtubeEmbed} 
+                      onChange={(event) => setYoutubeEmbed(event.target.value)} 
+                      placeholder='<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/VIDEO_ID?controls=0" ...></iframe>'
+                      style={{ fontFamily: "monospace", fontSize: "11px" }}
+                    />
+                  </div>
+
+                  <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "34px", fontWeight: "bold" }}>💾 บันทึก YouTube Embed</button>
                 </form>
               </div>
 

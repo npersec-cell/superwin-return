@@ -1,49 +1,29 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/db";
-import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
-export const dynamic = "force-dynamic";
-
-const fallbackSettings = {
-  info: {
-    howToPlay: "1. ล็อกอินด้วยบัญชีของคุณ (หรือใช้ Dev Bypass เพื่อลองเล่น)\n2. กดรับเหรียญฟรีทุก 1 ชั่วโมงจากปุ่ม Claim\n3. เลือกคำถามที่ต้องการทาย ➔ เปิด dropdown เพื่่อเลือกคำตอบที่คุณเชื่่อ\n4. ใส่จำนวนเหรียญที่ต้องการวางทาย ➔ กด Predict\n5. ทายได้อิสระ! จะทายกี่ข้อ กี่รอบ ก็ได้ ไม่มีกฎจำกัด\n6. เมื่่อคำถามปิดและแอดมินสรุปผล คุณจะได้รับเหรียญรางวัลทันทีถ้าทายถูก\n7. สะสมเหรียญ ➔ ไต่อันดับใน Leaderboard ➔ แย่งตำแหน่ง Top 10!",
-    questionTime: "แต่วละคำถามมีนับถอยหลังบอกเวลาปิดรรับคำทาย ➔ เมื่อนับถอยถึึงศูนยว คำถามจะถูกล็อคและไม่วสามารถทายเพิ่วมได้อีก ➔ แอดมินจะตรวจสอบผลจริงและกด Resolve เพื่่อสรุป ➔ ระบบจะคำนวณกำไร/ขาดทุนและโอนเหรียญให้อัตโนมัติ ➔ ประวัตวิการทายทั้งหมดแสดงในหน้า Profile ของคุณ"
-  },
-  tournaments: [
-    { name: "Super League", logoUrl: "" }
-  ],
-  savedQuestions: [
-    "Which team will win the championship?",
-    "Which team will get the Chicken Dinner?",
-    "Who will get the most kills in this match?"
-  ],
-  numberWarDescription: "ต่ำกว่า 100 · 101-299 · มากกว่า 300 | ซื้อครั้งแรก 10 | แย่งซื้อ x2 ทุกครั้ง | ชนะตามเลขที่ประกาศ",
-  announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the All time Top 10!"
-};
-
-export async function GET() {
+// GET /api/settings — Public: fetch site-wide settings (YouTube embed, etc.)
+export async function GET(request: NextRequest) {
   try {
     const supabase = createSupabaseAdminClient();
-    
-    // ดึงค่าตั้งค่าจาก Supabase แทนระบบไฟล์เพื่อรองรับ Serverless Read-Only ของ Vercel
-    const { data, error } = await supabase
-      .from("settings")
-      .select("value")
-      .eq("key", "site_settings")
-      .maybeSingle();
+
+    const { data: settings, error } = await supabase
+      .from("site_settings")
+      .select("key, value")
+      .in("key", ["youtube_embed"]);
 
     if (error) {
-      console.warn("Database settings error, falling back to default:", error.message);
-      return NextResponse.json({ ok: true, data: fallbackSettings });
+      console.error("Settings GET error:", error);
+      return NextResponse.json({ ok: false, error: "Failed to fetch settings" }, { status: 500 });
     }
 
-    if (data && data.value) {
-      return NextResponse.json({ ok: true, data: data.value });
+    const result: Record<string, any> = {};
+    for (const s of settings || []) {
+      result[s.key] = s.value;
     }
 
-    // หากไม่มีข้อมูลในฐานข้อมูล ให้คืนค่าเริ่มต้นและเตรียมไปบันทึกเมื่อแอดมินกดเซฟครั้งแรก
-    return NextResponse.json({ ok: true, data: fallbackSettings });
-  } catch (error) {
-    return createSafeErrorResponse(error);
+    return NextResponse.json({ ok: true, data: result });
+  } catch (err) {
+    console.error("Settings GET error:", err);
+    return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
   }
 }

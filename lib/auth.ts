@@ -11,6 +11,7 @@ export type AppUser = {
   lifetimeProfit: number;
   lastClaimAt: string | null;
   nextClaimAt: string | null;
+  nextSpecialClaimAt: string | null;
   addressCompleted: boolean;
   status: "active" | "suspended" | "banned";
   avatarUrl: string | null;
@@ -26,6 +27,7 @@ type UserRow = {
   lifetime_profit: number;
   last_claim_at: string | null;
   next_claim_at: string | null;
+  next_special_claim_at: string | null;
   address_completed: boolean;
   status: "active" | "suspended" | "banned";
   avatar_url: string | null;
@@ -42,6 +44,7 @@ function mapUser(row: UserRow): AppUser {
     lifetimeProfit: row.lifetime_profit,
     lastClaimAt: row.last_claim_at,
     nextClaimAt: row.next_claim_at,
+    nextSpecialClaimAt: row.next_special_claim_at,
     addressCompleted: row.address_completed ?? false,
     status: row.status,
     avatarUrl: row.avatar_url || null
@@ -117,7 +120,7 @@ async function tryDevBypass(request?: Request): Promise<AppUser | null> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("users")
-    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, last_claim_at, next_claim_at, address_completed, status, avatar_url")
+    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, last_claim_at, next_claim_at, next_special_claim_at, address_completed, status, avatar_url")
     .eq("id", devUserId)
     .maybeSingle<UserRow>();
 
@@ -147,7 +150,7 @@ async function clerkAuth(request?: Request): Promise<AppUser | null> {
 
   const { data: existing, error: selectError } = await supabase
     .from("users")
-    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, last_claim_at, next_claim_at, address_completed, status, avatar_url")
+    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, last_claim_at, next_claim_at, next_special_claim_at, address_completed, status, avatar_url")
     .eq("clerk_user_id", userId)
     .maybeSingle<UserRow>();
 
@@ -174,7 +177,7 @@ async function clerkAuth(request?: Request): Promise<AppUser | null> {
           updated_at: new Date().toISOString()
         })
         .eq("id", existing.id)
-        .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, last_claim_at, next_claim_at, address_completed, status, avatar_url")
+        .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, last_claim_at, next_claim_at, next_special_claim_at, address_completed, status, avatar_url")
         .single<UserRow>();
 
       if (updateError) {
@@ -204,7 +207,7 @@ async function clerkAuth(request?: Request): Promise<AppUser | null> {
       status: "active",
       avatar_url: avatarUrl
     })
-    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, last_claim_at, next_claim_at, address_completed, status, avatar_url")
+    .select("id, clerk_user_id, email, display_name, role, coin_balance, lifetime_profit, last_claim_at, next_claim_at, next_special_claim_at, address_completed, status, avatar_url")
     .single<UserRow>();
 
   if (insertError) {
