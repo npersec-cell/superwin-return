@@ -628,6 +628,36 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     reloadAll().catch((error) => setMessage(error.message));
   }, []);
 
+  async function loadYoutubeEmbed() {
+    try {
+      const res = await fetch('/api/settings');
+      const json = await res.json();
+      if (json.ok && json.data?.youtube_embed?.embed_code) {
+        setYoutubeEmbed(json.data.youtube_embed.embed_code);
+      }
+    } catch (e) {
+      console.error('Failed to load YouTube embed:', e);
+    }
+  }
+
+  async function saveYoutubeEmbed(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'youtube_embed', value: { enabled: true, embed_code: youtubeEmbed } }),
+      });
+      if (res.ok) {
+        alert('บันทึกสำเร็จ');
+      } else {
+        alert('บันทึกไม่สำเร็จ');
+      }
+    } catch {
+      alert('เกิดข้อผิดพลาด');
+    }
+  }
+
   useEffect(() => {
     if (activeTab !== "dashboard") return;
     loadYoutubeEmbed();
