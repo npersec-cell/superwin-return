@@ -1346,6 +1346,12 @@ export default function SuperWinPrototype() {
             }} />
           </div>
         )}
+        {/* Debug info - remove after troubleshooting */}
+        {mounted && !youtubeEmbed && frontendFeaturesEnabled && (
+          <div style={{ margin: "0 0 12px 0", padding: "8px", background: "rgba(255,0,0,0.1)", border: "1px solid red", borderRadius: "6px", fontSize: "10px", color: "red" }}>
+            ⚠️ No YouTube embed loaded. Check console logs.
+          </div>
+        )}
 
         {/* ── Special 10-min Claim (กระสุนส้มพเิ ศษ) ── */}
         {frontendFeaturesEnabled && (<div style={{
