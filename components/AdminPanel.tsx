@@ -1908,27 +1908,54 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                               </div>
                             </div>
 
-                            {/* Player List Toggle */}
+                            {/* Player List - same format as Manage Questions tab */}
                             <div style={{ marginTop: "4px" }}>
                               <details style={{ cursor: "pointer" }}>
                                 <summary style={{ fontSize: "11px", color: "var(--yellow)", outline: "none", fontWeight: "500", padding: "4px 0" }}>
-                                  👤 ดูรายละเอียดผู้ทาย ({q.playerBets.length} รายการ)
+                                  ▸ รายชื่อผู้เข้าร่วม ({q.playerBets.length} คน){q.status === "resolved" ? ` — ชนะ ${q.playerBets.filter(b => b.optionLabel === q.optionStats.reduce((max, s) => s.totalCoins > max.totalCoins ? s : max).label).length} · แพ้ ${q.playerBets.length - q.playerBets.filter(b => b.optionLabel === q.optionStats.reduce((max, s) => s.totalCoins > max.totalCoins ? s : max).label).length}` : ""}
                                 </summary>
-                                <div style={{ display: "grid", gap: "5px", marginTop: "8px", maxHeight: "180px", overflowY: "auto", padding: "4px", background: "var(--card)", borderRadius: "8px", border: "1px solid var(--hairline)" }}>
-                                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 80px 1fr", gap: "6px", padding: "4px 8px", fontSize: "9px", color: "var(--muted)", fontWeight: "bold", borderBottom: "1px solid var(--hairline)" }}>
+                                <div style={{ display: "grid", gap: "5px", marginTop: "8px", maxHeight: "200px", overflowY: "auto", padding: "4px", background: "var(--card)", borderRadius: "8px", border: "1px solid var(--hairline)" }}>
+                                  {/* Header */}
+                                  <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 120px 70px 70px", gap: "6px", padding: "4px 8px", fontSize: "9px", color: "var(--muted)", fontWeight: "bold", borderBottom: "1px solid var(--hairline)" }}>
                                     <span>ผู้ใช้</span>
                                     <span>เลือก</span>
+                                    <span>ตัวเลือก</span>
                                     <span style={{ textAlign: "right" }}>เดิมพัน</span>
-                                    <span style={{ textAlign: "right" }}>Email</span>
+                                    <span style={{ textAlign: "right" }}>ผลลัพธ์</span>
                                   </div>
-                                  {q.playerBets.length ? q.playerBets.map((bet) => (
-                                    <div key={bet.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 80px 60px", gap: "6px", padding: "5px 8px", fontSize: "10px", background: "rgba(255,255,255,0.02)", borderRadius: "4px", alignItems: "center" }}>
-                                      <span style={{ color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bet.displayName || bet.email}</span>
-                                      <span style={{ color: colors.blue, fontSize: "10px" }}>{bet.optionLabel}</span>
-                                      <span style={{ textAlign: "right", color: "var(--yellow)", fontWeight: "600" }}>{bet.amount.toLocaleString()}</span>
-                                      <span style={{ textAlign: "right", fontSize: "11px", color: "var(--muted)" }}>{bet.email}</span>
-                                    </div>
-                                  )) : <div style={{ fontSize: "11px", color: "var(--muted)", textAlign: "center", padding: "8px" }}>ยังไม่มีรายการทายผล</div>}
+                                  {/* Rows */}
+                                  {[...q.playerBets]
+                                    .sort((a, b) => {
+                                      // If resolved: sort winners first, then by amount desc
+                                      if (q.status === "resolved") {
+                                        const winningLabel = q.optionStats.reduce((max, s) => s.totalCoins > max.totalCoins ? s : max).label;
+                                        const aWon = a.optionLabel === winningLabel;
+                                        const bWon = b.optionLabel === winningLabel;
+                                        if (aWon && !bWon) return -1;
+                                        if (!aWon && bWon) return 1;
+                                      }
+                                      return b.amount - a.amount;
+                                    })
+                                    .map((bet) => {
+                                      const winningLabel = q.status === "resolved" ? q.optionStats.reduce((max, s) => s.totalCoins > max.totalCoins ? s : max).label : null;
+                                      const isWinner = q.status === "resolved" && bet.optionLabel === winningLabel;
+                                      return (
+                                        <div key={bet.id} style={{ display: "grid", gridTemplateColumns: "1fr 80px 120px 70px 70px", gap: "6px", padding: "5px 8px", fontSize: "10px", background: isWinner ? "rgba(14,203,129,0.04)" : "transparent", borderRadius: "4px", alignItems: "center" }}>
+                                          <span style={{ fontWeight: "500", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#fff" }}>
+                                            {bet.displayName || bet.email}
+                                          </span>
+                                          <span className="meta" style={{ fontSize: "9px", color: isWinner ? "var(--green)" : "var(--muted)" }}>
+                                            {isWinner ? "✅ " : ""}{bet.optionLabel}
+                                          </span>
+                                          <span className="meta" style={{ fontSize: "10px" }}>{q.status === "resolved" ? (isWinner ? "ชนะ" : "แพ้") : "--"}</span>
+                                          <span style={{ textAlign: "right", color: "var(--yellow)", fontWeight: "600" }}>{bet.amount.toLocaleString()}</span>
+                                          <span style={{ textAlign: "right", fontWeight: "bold", color: q.status === "resolved" ? (isWinner ? "var(--green)" : "var(--red)") : "var(--muted)" }}>
+                                            {q.status === "resolved" ? (isWinner ? `${Math.round(bet.amount * 0.63).toLocaleString()}` : `-${bet.amount.toLocaleString()}`) : "--"}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                  {!q.playerBets.length && <div style={{ fontSize: "11px", color: "var(--muted)", textAlign: "center", padding: "8px" }}>ยังไม่มีรายการทายผล</div>}
                                 </div>
                               </details>
                             </div>
