@@ -2,7 +2,7 @@
 
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, memo } from "react";
 import { compact, getRankFromPosition, maskName, randomClaimAmount, formatCountdown } from "@/lib/utils";
 import LiveBetModal, { type LiveBet } from "@/components/LiveBetModal";
 import ChatBox from "@/components/ChatBox";
@@ -338,6 +338,24 @@ function safeJson<T>(key: string, fallback: T): T {
 function createQuestionDeadlines(sourceQuestions = demoQuestions) {
   return Object.fromEntries(sourceQuestions.map((question) => [question.id, Date.now() + (question.closeOffsetMinutes || 60) * 60000]));
 }
+
+// ── Memoized YouTube Embed Component (prevents re-renders from parent state changes) ──
+const YouTubeEmbedSection = memo(function YouTubeEmbedSection({ embedCode }: { embedCode: string }) {
+  return (
+    <div style={{
+      margin: "0 0 12px 0",
+      borderRadius: "12px",
+      overflow: "hidden",
+      border: "1px solid var(--hairline)",
+      background: "var(--card)",
+    }}>
+      <div dangerouslySetInnerHTML={{ __html: embedCode }} style={{
+        display: "flex",
+        justifyContent: "center",
+      }} />
+    </div>
+  );
+});
 
 export default function SuperWinPrototype() {
   const { isSignedIn, user: clerkUser } = useUser();
@@ -1331,18 +1349,7 @@ export default function SuperWinPrototype() {
 
         {/* ── YouTube Embed Section (only if enabled by admin) ── */}
         {mounted && frontendFeaturesEnabled && youtubeEmbed && (
-          <div style={{
-            margin: "0 0 12px 0",
-            borderRadius: "12px",
-            overflow: "hidden",
-            border: "1px solid var(--hairline)",
-            background: "var(--card)",
-          }}>
-            <div dangerouslySetInnerHTML={{ __html: youtubeEmbed }} style={{
-              display: "flex",
-              justifyContent: "center",
-            }} />
-          </div>
+          <YouTubeEmbedSection embedCode={youtubeEmbed} />
         )}
 
         {/* ── Special 10-min Claim (กระสุนส้มพเิ ศษ) ── */}
