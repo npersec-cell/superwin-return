@@ -29,13 +29,43 @@ async function loadAllSettings(): Promise<Record<string, any>> {
   return result;
 }
 
+// Default settings returned when DB has no data yet
+const DEFAULT_SETTINGS: Record<string, any> = {
+  info: {
+    howToPlay: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล",
+    questionTime: "แต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
+  },
+  tournaments: [{ name: "Super League", logoUrl: "" }],
+  savedQuestions: [
+    "Which team will win the championship?",
+    "Which team will get the Chicken Dinner?",
+    "Who will get the most kills in this match?"
+  ],
+  savedRounds: [
+    "แบ่งกลุ่ม",
+    "รอบ 16 ทีม",
+    "รอบ 8 ทีม",
+    "รอบชิงชนะเลิศ"
+  ],
+  announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the All time Top 10!"
+};
+
 // ── GET /api/admin/settings — Admin only: fetch all site settings ──
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin(request);
 
     const allSettings = await loadAllSettings();
-    return NextResponse.json({ ok: true, data: allSettings });
+
+    // Merge with defaults so missing keys (e.g. first-time setup) don't break the UI
+    const merged = { ...DEFAULT_SETTINGS, ...allSettings };
+
+    // Deep-merge 'info' in case only partial fields exist
+    if (allSettings.info && typeof allSettings.info === "object") {
+      merged.info = { ...DEFAULT_SETTINGS.info, ...allSettings.info };
+    }
+
+    return NextResponse.json({ ok: true, data: merged });
   } catch (err: any) {
     if (err.message === "Forbidden" || err.message === "Unauthorized") {
       return NextResponse.json({ ok: false, error: err.message }, { status: 403 });
@@ -124,9 +154,13 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Re-assemble full settings object to return
-    const updatedSettings = await loadAllSettings();
-    return NextResponse.json({ ok: true, data: updatedSettings });
+    // Re-assemble full settings object to return, merged with defaults
+    const rawSettings = await loadAllSettings();
+    const merged = { ...DEFAULT_SETTINGS, ...rawSettings };
+    if (rawSettings.info && typeof rawSettings.info === "object") {
+      merged.info = { ...DEFAULT_SETTINGS.info, ...rawSettings.info };
+    }
+    return NextResponse.json({ ok: true, data: merged });
   } catch (err: any) {
     if (err.message === "Forbidden" || err.message === "Unauthorized") {
       return NextResponse.json({ ok: false, error: err.message }, { status: 403 });
