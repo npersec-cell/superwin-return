@@ -134,3 +134,23 @@ create table if not exists public.chat_messages (
 
 create index if not exists idx_chat_messages_created on public.chat_messages(created_at desc);
 create index if not exists idx_chat_messages_not_deleted on public.chat_messages(is_deleted, created_at desc);
+
+-- ── Auto-cleanup function: hard-delete messages beyond the latest N ──
+create or replace function public.chat_cleanup_old(p_keep_count integer default 20)
+returns integer as $$
+declare
+  deleted_count integer;
+begin
+  with to_delete as (
+    select id
+    from public.chat_messages
+    order by created_at desc
+    offset p_keep_count
+  )
+  delete from public.chat_messages
+  where id in (select id from to_delete);
+  
+  get diagnostics deleted_count = row_count;
+  return deleted_count;
+end;
+$$ language plpgsql security definer;

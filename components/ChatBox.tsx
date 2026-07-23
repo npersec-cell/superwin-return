@@ -17,7 +17,7 @@ type ChatBoxProps = {
 };
 
 const POLL_INTERVAL_MS = 5000;
-const MAX_MESSAGES = 80; // จํากัดข้อความที่แสดงใน UI เพื่อกัน UI หนัก
+const MAX_MESSAGES = 20; // จํากัดข้อความที่แสดงใน UI เพื่อกัน UI หนัก
 
 export default function ChatBox({ isAdmin = false, onDeleteMessage }: ChatBoxProps) {
   const { isSignedIn, user } = useUser();

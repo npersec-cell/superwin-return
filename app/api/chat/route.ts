@@ -32,7 +32,7 @@ const SPAM_PATTERNS = [
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
-    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100);
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 20);
     const before = url.searchParams.get('before'); // ISO timestamp for pagination
 
     const supabase = createSupabaseAdminClient();
@@ -171,6 +171,12 @@ export async function POST(request: NextRequest) {
       console.error('Chat INSERT error:', insertError);
       return NextResponse.json({ ok: false, error: 'Failed to send message' }, { status: 500 });
     }
+
+    // ── Auto-cleanup: hard-delete old messages beyond the latest 20 ──
+    // Run in background (don't wait for it to complete)
+    supabase.rpc('chat_cleanup_old', { p_keep_count: 20 }).catch(e => {
+      console.error('Chat cleanup failed:', e);
+    });
 
     const response = NextResponse.json({
       ok: true,
