@@ -1763,7 +1763,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   }));
 
                   // Data for charts
-                  const questionLabels = tournamentQuestions.map((q, i) => `Q${i + 1}`);
+                  const questionLabels = tournamentQuestions.map((q, i) => `${i + 1}`);
                   const poolData = tournamentQuestions.map((q) => q.totalPoolCoins);
                   const playerData = tournamentQuestions.map((q) => q.uniquePlayers);
 
@@ -1915,18 +1915,18 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   👤 ดูรายละเอียดผู้ทาย ({q.playerBets.length} รายการ)
                                 </summary>
                                 <div style={{ display: "grid", gap: "5px", marginTop: "8px", maxHeight: "180px", overflowY: "auto", padding: "4px", background: "var(--card)", borderRadius: "8px", border: "1px solid var(--hairline)" }}>
-                                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 80px 70px", gap: "6px", padding: "4px 8px", fontSize: "9px", color: "var(--muted)", fontWeight: "bold", borderBottom: "1px solid var(--hairline)" }}>
+                                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 80px 1fr", gap: "6px", padding: "4px 8px", fontSize: "9px", color: "var(--muted)", fontWeight: "bold", borderBottom: "1px solid var(--hairline)" }}>
                                     <span>ผู้ใช้</span>
                                     <span>เลือก</span>
                                     <span style={{ textAlign: "right" }}>เดิมพัน</span>
-                                    <span style={{ textAlign: "right" }}>ผล</span>
+                                    <span style={{ textAlign: "right" }}>Email</span>
                                   </div>
                                   {q.playerBets.length ? q.playerBets.map((bet) => (
-                                    <div key={bet.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 80px 70px", gap: "6px", padding: "5px 8px", fontSize: "10px", background: "rgba(255,255,255,0.02)", borderRadius: "4px", alignItems: "center" }}>
-                                      <span style={{ color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bet.displayName}</span>
+                                    <div key={bet.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 80px 60px", gap: "6px", padding: "5px 8px", fontSize: "10px", background: "rgba(255,255,255,0.02)", borderRadius: "4px", alignItems: "center" }}>
+                                      <span style={{ color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bet.displayName || bet.email}</span>
                                       <span style={{ color: colors.blue, fontSize: "10px" }}>{bet.optionLabel}</span>
                                       <span style={{ textAlign: "right", color: "var(--yellow)", fontWeight: "600" }}>{bet.amount.toLocaleString()}</span>
-                                      <span style={{ textAlign: "right", fontSize: "12px" }}>➡️</span>
+                                      <span style={{ textAlign: "right", fontSize: "11px", color: "var(--muted)" }}>{bet.email}</span>
                                     </div>
                                   )) : <div style={{ fontSize: "11px", color: "var(--muted)", textAlign: "center", padding: "8px" }}>ยังไม่มีรายการทายผล</div>}
                                 </div>
