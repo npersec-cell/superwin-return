@@ -648,13 +648,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'frontend_features', value: { enabled: frontendEnabled, youtube_embed: youtubeEmbed } }),
       });
-      if (res.ok) {
+      const payload = await res.json();
+      if (res.ok && payload.ok) {
         alert('Saved successfully');
       } else {
-        alert('Failed to save');
+        alert('Failed to save: ' + (payload.error || res.status));
       }
-    } catch {
-      alert('An error occurred');
+    } catch (e: any) {
+      alert('An error occurred: ' + (e?.message || String(e)));
     }
   }
 
