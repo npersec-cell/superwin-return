@@ -28,22 +28,22 @@ interface AuditLogsClientProps {
 }
 
 const ACTION_LABELS: Record<string, string> = {
-  resolve_prediction: "ปิดผลการพยากรณ์",
-  refund_prediction: "คืน coins",
-  create_prediction: "สร้างรอบพยากรณ์",
-  update_prediction: "แก้ไขรอบพยากรณ์",
-  cancel_prediction: "ยกเลิกรอบพยากรณ์",
-  make_admin: "ตั้งเป็น Admin",
-  remove_admin: "ถอดถอน Admin",
-  refresh_leaderboard_cache: "รีเฟรช Leaderboard Cache",
-  cleanup_rate_limits: "ล้าง Rate Limits",
-  cleanup_cache: "ล้าง Cache",
+  resolve_prediction: "Resolve prediction",
+  refund_prediction: "Refund coins",
+  create_prediction: "Create prediction",
+  update_prediction: "Update prediction",
+  cancel_prediction: "Cancel prediction",
+  make_admin: "Make admin",
+  remove_admin: "Remove admin",
+  refresh_leaderboard_cache: "Refresh Leaderboard Cache",
+  cleanup_rate_limits: "Cleanup Rate Limits",
+  cleanup_cache: "Cleanup Cache",
 };
 
 const TARGET_TYPE_LABELS: Record<string, string> = {
-  prediction: "รอบพยากรณ์",
-  user: "ผู้ใช้",
-  system: "ระบบ",
+  prediction: "Prediction",
+  user: "User",
+  system: "System",
   leaderboard: "Leaderboard",
 };
 
@@ -143,13 +143,13 @@ export default function AuditLogsClient({
       {/* Filters */}
       <div className="filters">
         <div className="filter-group">
-          <label>การกระทำ:</label>
+          <label>Action:</label>
           <select
             value={selectedAction}
             onChange={(e) => setSelectedAction(e.target.value)}
             className="filter-select"
           >
-            <option value="">ทั้งหมด</option>
+            <option value="">All</option>
             {Object.entries(ACTION_LABELS).map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
             ))}
@@ -157,7 +157,7 @@ export default function AuditLogsClient({
         </div>
 
         <div className="filter-group">
-          <label>วันที่เริ่ม:</label>
+          <label>Start Date:</label>
           <input
             type="datetime-local"
             value={startDate}
@@ -167,7 +167,7 @@ export default function AuditLogsClient({
         </div>
 
         <div className="filter-group">
-          <label>วันที่สิ้นสุด:</label>
+          <label>End Date:</label>
           <input
             type="datetime-local"
             value={endDate}
@@ -177,12 +177,12 @@ export default function AuditLogsClient({
         </div>
 
         <div className="filter-group">
-          <label>ค้นหา:</label>
+          <label>Search:</label>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="ค้นหาในรายละเอียด..."
+            placeholder="Search details..."
             className="filter-input"
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
@@ -194,14 +194,14 @@ export default function AuditLogsClient({
             disabled={loading}
             className="button gold"
           >
-            {loading ? "กำลังค้นหา..." : "ค้นหา"}
+            {loading ? "Searching..." : "Search"}
           </button>
           <button
             onClick={handleReset}
             disabled={loading}
             className="button ghost"
           >
-            ล้างตัวกรอง
+            Clear filters
           </button>
         </div>
       </div>
@@ -209,20 +209,20 @@ export default function AuditLogsClient({
       {/* Table */}
       <div className="table-container">
         {loading ? (
-          <div className="loading">กำลังโหลด...</div>
+          <div className="loading">Loading...</div>
         ) : logs.length === 0 ? (
-          <div className="empty-state">ไม่พบข้อมูล Audit Logs</div>
+          <div className="empty-state">No audit logs found</div>
         ) : (
           <table className="audit-table">
             <thead>
               <tr>
-                <th>ลำดับ</th>
-                <th>เวลา (Bangkok)</th>
-                <th>ผู้ทำ</th>
-                <th>การกระทำ</th>
-                <th>ประเภทเป้าหมาย</th>
-                <th>ID เป้าหมาย</th>
-                <th>รายละเอียด</th>
+                <th>#</th>
+                <th>เTime (Bangkok)</th>
+                <th>Actor</th>
+                <th>Action</th>
+                <th>Target Type</th>
+                <th>Target ID</th>
+                <th>Details</th>
               </tr>
             </thead>
             <tbody>
@@ -271,18 +271,18 @@ export default function AuditLogsClient({
             disabled={pagination.page <= 1 || loading}
             className="button ghost"
           >
-            ก่อนหน้า
+            Previous
           </button>
           <span className="page-info">
-            หน้า {pagination.page} / {pagination.totalPages}
-            <span className="total-info">(ทั้งหมด {pagination.total} รายการ)</span>
+            Page {pagination.page} / {pagination.totalPages}
+            <span className="total-info">(total {pagination.total} items)</span>
           </span>
           <button
             onClick={() => handlePageChange(pagination.page + 1)}
             disabled={pagination.page >= pagination.totalPages || loading}
             className="button ghost"
           >
-            ถัดไป
+            Next
           </button>
         </div>
       )}

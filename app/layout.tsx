@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     default: "SUPERWIN HUB - Predict & Earn Rewards",
     template: "%s | SUPERWIN HUB"
   },
-  description: "ทายผล PUBG MOBILE ฟรียกตัง สะสมเหรียญ ไต่อันดับ Leaderboard แยงตำแหนง Top!",
+  description: "Predict PUBG MOBILE results for free, earn coins, climb the leaderboard!",
   icons: {
     icon: [
       { url: "/SuperWin_b.png", sizes: "any", type: "image/png" },
@@ -19,16 +19,16 @@ export const metadata: Metadata = {
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover",
   themeColor: "#0d1013",
   openGraph: {
-    title: "SUPERWIN HUB - ทายผลสะสมเหรียญ",
-    description: "ทายผล PUBG MOBILE ฟรียกตัง สะสมเหรียญ ไต่อันดับ Leaderboard",
+    title: "SUPERWIN HUB - Predict & Earn Coins",
+    description: "Predict PUBG MOBILE results for free, earn coins, climb the leaderboard",
     type: "website",
-    locale: "th_TH",
+    locale: "en_US",
     siteName: "SUPERWIN HUB",
   },
   twitter: {
     card: "summary",
-    title: "SUPERWIN HUB - ทายผลสะสมเหรียญ",
-    description: "ทายผล PUBG MOBILE ฟรียกตัง สะสมเหรียญ ไต่อันดับ Leaderboard",
+    title: "SUPERWIN HUB - Predict & Earn Coins",
+    description: "Predict PUBG MOBILE results for free, earn coins, climb the leaderboard",
   },
 };
 

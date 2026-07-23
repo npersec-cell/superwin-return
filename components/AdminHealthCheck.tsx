@@ -134,7 +134,7 @@ export default function AdminHealthCheck() {
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
             {lastRunTime && (
               <span style={{ fontSize: "10px", color: "var(--muted)" }}>
-                🔷 ครั้งล่าสุด: {lastRunTime}
+                🔷 Last run: {lastRunTime}
               </span>
             )}
             <button 
@@ -143,7 +143,7 @@ export default function AdminHealthCheck() {
               disabled={loading}
               style={{ height: "28px", fontSize: "11px", padding: "0 12px" }}
             >
-              {loading ? "⏳ กำลังตรวจสอบ..." : "▶️ Run Health Check"}
+              {loading ? "⏳ Running health check..." : "▶️ Run Health Check"}
             </button>
           </div>
         </div>
@@ -277,13 +277,13 @@ export default function AdminHealthCheck() {
             disabled={alertsLoading}
             style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}
           >
-            🔄 รีเฟรช
+            🔄 Refresh
           </button>
         </div>
 
         {alertsLoading ? (
           <div style={{ textAlign: "center", padding: "20px", color: "var(--text-weak)", fontSize: "12px" }}>
-            ⏳ กำลังโหลด...
+            ⏳ Loading...
           </div>
         ) : alerts.length === 0 ? (
           <div style={{ 
@@ -292,7 +292,7 @@ export default function AdminHealthCheck() {
             color: "var(--green)",
             fontSize: "12px"
           }}>
-            ✅ ไม่มีกิจกรรมผิดปกติ
+            ✅ No suspicious activity
           </div>
         ) : (
           <div style={{ overflowX: "auto", marginTop: "12px" }}>

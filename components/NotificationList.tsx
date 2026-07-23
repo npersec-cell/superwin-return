@@ -179,7 +179,7 @@ export default function NotificationList({
               checked={selectedIds.length === notifications.length && notifications.length > 0}
               onChange={toggleSelectAll}
             />
-            <span>เลือกทั้งหมด</span>
+            <span>Select all</span>
           </label>
 
           <div className="bulk-buttons">
@@ -189,20 +189,20 @@ export default function NotificationList({
                   className="button ghost"
                   onClick={() => markAsRead(selectedIds)}
                 >
-                  มาร์คอ่านแล้ว ({selectedIds.length})
+                  Mark as read ({selectedIds.length})
                 </button>
                 <button
                   className="button ghost"
                   onClick={() => markAsUnread(selectedIds)}
                 >
-                  มาร์คยังไม่ได้อ่าน
+                  Mark as unread
                 </button>
                 <button
                   className="button ghost"
                   style={{ color: "var(--red)" }}
                   onClick={() => deleteNotifications(selectedIds)}
                 >
-                  ลบ ({selectedIds.length})
+                  Delete ({selectedIds.length})
                 </button>
               </>
             )}
@@ -213,9 +213,9 @@ export default function NotificationList({
       {/* Notification Items */}
       <div className="notification-items">
         {loading ? (
-          <div className="loading">กำลังโหลด...</div>
+          <div className="loading">Loading...</div>
         ) : notifications.length === 0 ? (
-          <div className="empty">ไม่มีการแจ้งเตือน</div>
+          <div className="empty">No notifications</div>
         ) : (
           notifications.map((notification) => (
             <div
@@ -260,11 +260,11 @@ export default function NotificationList({
             disabled={pagination.page <= 1 || loading}
             className="button ghost"
           >
-            ก่อนหน้า
+            Previous
           </button>
           <span className="page-info">
-            หน้า {pagination.page} / {pagination.totalPages}
-            <span className="total-info">(ทั้งหมด {pagination.total} รายการ)</span>
+            Page {pagination.page} / {pagination.totalPages}
+            <span className="total-info">(total {pagination.total} items)</span>
           </span>
           <button
             onClick={() => {
@@ -275,7 +275,7 @@ export default function NotificationList({
             disabled={pagination.page >= pagination.totalPages || loading}
             className="button ghost"
           >
-            ถัดไป
+            Next
           </button>
         </div>
       )}

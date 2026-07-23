@@ -101,10 +101,10 @@ export default async function NotificationsPage({
 
           <section className="panel">
             <div className="panel-header">
-              <h2>การแจ้งเตือน</h2>
+              <h2>Notifications</h2>
               {unreadCount > 0 && (
                 <span className="accent-gold">
-                  {unreadCount} ยังไม่ได้อ่าน
+                  {unreadCount} unread
                 </span>
               )}
             </div>

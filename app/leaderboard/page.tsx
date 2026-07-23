@@ -559,7 +559,7 @@ export default function LeaderboardPage() {
               color: "var(--muted)",
               fontSize: "11px"
             }}>
-              รอผู้เล่นวางเดิมพันใหญ่...
+              Waiting for big bets...
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>

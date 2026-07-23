@@ -49,11 +49,11 @@ function formatTimeAgo(isoString: string): string {
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 1) return "เมื่อสักครู่";
-    if (diffMins < 60) return `${diffMins} นาทีที่แล้ว`;
-    if (diffHours < 24) return `${diffHours} ชั่วโมงที่แล้ว`;
-    if (diffDays === 1) return "เมื่อวาน";
-    if (diffDays < 7) return `${diffDays} วันที่แล้ว`;
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} m ago`;
+    if (diffHours < 24) return `${diffHours} h ago`;
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} d ago`;
     
     return date.toLocaleDateString("th-TH", {
       day: "2-digit",
@@ -212,19 +212,19 @@ export default function NotificationBell() {
       {isOpen && (
         <div className={`dropdown ${isOpen ? "open" : ""}`}>
           <div className="dropdown-header">
-            <h3>การแจ้งเตือน</h3>
+            <h3>Notifications</h3>
             {unreadCount > 0 && (
               <button className="mark-all-read" onClick={markAllAsRead}>
-                อ่านทั้งหมด
+                Mark all read
               </button>
             )}
           </div>
 
           <div className="dropdown-body">
             {loading && notifications.length === 0 ? (
-              <div className="loading">กำลังโหลด...</div>
+              <div className="loading">Loading...</div>
             ) : notifications.length === 0 ? (
-              <div className="empty">ไม่มีการแจ้งเตือน</div>
+              <div className="empty">ไม่มีNotifications</div>
             ) : (
               <>
                 {notifications.map((notification) => (
@@ -254,7 +254,7 @@ export default function NotificationBell() {
                 ))}
                 {hasMore && (
                   <button className="load-more" onClick={loadMore} disabled={loading}>
-                    {loading ? "กำลังโหลด..." : "ดูเพิ่มเติม"}
+                    {loading ? "Loading..." : "Load more"}
                   </button>
                 )}
               </>
@@ -263,7 +263,7 @@ export default function NotificationBell() {
 
           <div className="dropdown-footer">
             <Link href="/notifications" className="view-all">
-              ดูทั้งหมด
+              View all
             </Link>
           </div>
         </div>

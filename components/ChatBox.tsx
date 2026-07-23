@@ -91,7 +91,7 @@ export default function ChatBox({ isAdmin = false, onDeleteMessage }: ChatBoxPro
       const json = await res.json();
 
       if (!res.ok) {
-        setError(json.th || json.error || "ส่งข้อมูลไม่สำเร็จ");
+        setError(json.th || json.error || "Sendข้อมูลไม่สำเร็จ");
         return;
       }
 
@@ -111,7 +111,7 @@ export default function ChatBox({ isAdmin = false, onDeleteMessage }: ChatBoxPro
       setError(null);
       inputRef.current?.focus();
     } catch (err) {
-      setError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+      setError("An error occurred. Please try again.");
       console.error("Chat send error:", err);
     } finally {
       setSending(false);
@@ -128,7 +128,7 @@ export default function ChatBox({ isAdmin = false, onDeleteMessage }: ChatBoxPro
 
   // Handle delete (admin)
   const handleDelete = async (id: string) => {
-    if (!isAdmin && !confirm("คุณต้องการลบข้อความนี้หรือไม่?")) return;
+    if (!isAdmin && !confirm("คุณต้องการDelete messageนี้หรือไม่?")) return;
 
     try {
       const res = await fetch(`/api/chat/${id}`, { method: "DELETE" });
@@ -137,10 +137,10 @@ export default function ChatBox({ isAdmin = false, onDeleteMessage }: ChatBoxPro
         setMessages(prev => prev.filter(m => m.id !== id));
         onDeleteMessage?.(id);
       } else {
-        alert("ไม่สามารถลบข้อความได้");
+        alert("ไม่สามารถDelete messageได้");
       }
     } catch {
-      alert("เกิดข้อผิดพลาดในการลบ");
+      alert("Error deleting message");
     }
   };
 
@@ -193,11 +193,11 @@ export default function ChatBox({ isAdmin = false, onDeleteMessage }: ChatBoxPro
       }}>
         {loading && messages.length === 0 ? (
           <div style={{ textAlign: "center", padding: "20px", color: "var(--muted)", fontSize: "11px" }}>
-            กำลังโหลดข้อความ...
+            Loading messages...
           </div>
         ) : messages.length === 0 ? (
           <div style={{ textAlign: "center", padding: "20px", color: "var(--muted)", fontSize: "11px" }}>
-            ยังไม่มีข้อความ<br />เริ่มพูดคุยเป็นคนแรกเลย!
+            No messages yet<br />Be the first to chat!
           </div>
         ) : (
           messages.map((msg) => {
@@ -224,7 +224,7 @@ export default function ChatBox({ isAdmin = false, onDeleteMessage }: ChatBoxPro
                     fontWeight: "700",
                     color: isOwn ? "var(--yellow)" : "var(--info)",
                   }}>
-                    {msg.displayName || "นริมน"}
+                    {msg.displayName || "Anonymous"}
                   </span>
                   <span style={{ fontSize: "9px", color: "var(--muted)" }}>
                     {formatTime(msg.createdAt)}
@@ -243,7 +243,7 @@ export default function ChatBox({ isAdmin = false, onDeleteMessage }: ChatBoxPro
                         opacity: 0.6,
                         padding: "0 4px",
                       }}
-                      title="ลบข้อความ"
+                      title="Delete message"
                     >
                       ✕
                     </button>
@@ -293,7 +293,7 @@ export default function ChatBox({ isAdmin = false, onDeleteMessage }: ChatBoxPro
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="พิมพ์ข้อความ..."
+                placeholder="Type a message..."
                 disabled={sending}
                 maxLength={MAX_CHARS}
                 style={{
@@ -328,7 +328,7 @@ export default function ChatBox({ isAdmin = false, onDeleteMessage }: ChatBoxPro
                   minWidth: "40px",
                 }}
               >
-                {sending ? "…" : "ส่ง"}
+                {sending ? "…" : "Send"}
               </button>
             </div>
             {/* Character count */}
@@ -340,7 +340,7 @@ export default function ChatBox({ isAdmin = false, onDeleteMessage }: ChatBoxPro
               color: charCount > MAX_CHARS * 0.9 ? "var(--red)" : "var(--muted)",
             }}>
               <span>{charCount}/{MAX_CHARS}</span>
-              <span>กด Enter เพื่อส่ง</span>
+              <span>กด Enter เพื่อSend</span>
             </div>
           </>
         ) : (
@@ -350,7 +350,7 @@ export default function ChatBox({ isAdmin = false, onDeleteMessage }: ChatBoxPro
             fontSize: "11px",
             color: "var(--muted)",
           }}>
-            🔒 <a href="/sign-in" style={{ color: "var(--yellow)", textDecoration: "none", fontWeight: "600" }}>เข้่าส่สู่ระบบ</a> เพื่อส่งข้อความแชท
+            🔒 <a href="/sign-in" style={{ color: "var(--yellow)", textDecoration: "none", fontWeight: "600" }}>เข้่าส่สู่ระบบ</a> เพื่อSendข้อความแชท
           </div>
         )}
       </div>

@@ -160,7 +160,7 @@ export default function ProfilePage() {
 
     const raw = form.displayName.trim();
     if (raw.length > 8) {
-      setDnError("ชื่อเล่นต้องไม่เกิน 8 ตัวอักษร");
+      setDnError("Display name must be 8 characters or less");
       return;
     }
 
@@ -173,13 +173,13 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (data.ok) {
-        setDnMessage("บันทึกชื่อเล่นสำเร็จ!");
+        setDnMessage("Display name saved!");
         setForm({ ...form, displayName: raw || "" });
       } else {
-        setDnError(data.error || "ไม่สามารถบันทึกชื่อเล่นได้");
+        setDnError(data.error || "Failed to save display name");
       }
     } catch {
-      setDnError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+      setDnError("An error occurred. Please try again.");
     } finally {
       setDnSaving(false);
     }
@@ -190,7 +190,7 @@ export default function ProfilePage() {
     setAddressMessage("");
 
     if (!form.shippingName.trim() || !form.shippingAddress.trim() || !form.shippingZipcode.trim() || !form.shippingPhone.trim()) {
-      setAddressError("กรุณากรอกข้อมูลให้ครบทุกช่อง");
+      setAddressError("Please fill in all fields");
       return;
     }
 
@@ -208,12 +208,12 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (data.ok) {
-        setAddressMessage("บันทึกข้อมูลสำเร็จ!");
+        setAddressMessage("Shipping info saved!");
       } else {
-        setAddressError(data.error || "ไม่สามารถบันทึกข้อมูลได้");
+        setAddressError(data.error || "Failed to save shipping info");
       }
     } catch {
-      setAddressError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+      setAddressError("An error occurred. Please try again.");
     } finally {
       setAddressSaving(false);
     }
@@ -326,7 +326,7 @@ export default function ProfilePage() {
               <div style={{ padding: "14px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px", textAlign: "center", color: "var(--muted)" }}>
                 <span style={{ fontSize: "11px" }}>ADMIN ACCOUNT</span>
                 <div style={{ fontSize: "12px", marginTop: "4px" }}>
-                  บัญชีผู้ดูแลระบบไม่เข้าร่วมจัดอันดับ
+                  Admin accounts do not participate in rankings
                 </div>
               </div>
             )}
@@ -437,14 +437,14 @@ export default function ProfilePage() {
             {/* Address Form */}
             <div style={{ padding: "12px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "8px" }}>
               <div style={{ fontSize: "11px", fontWeight: 600, marginBottom: "8px", color: "var(--text)" }}>
-                ข้อมูลจัดส่ง <span style={{ color: "var(--muted)", fontWeight: 400 }}>· สำหรับรับรางวัล</span>
+                Shipping Information <span style={{ color: "var(--muted)", fontWeight: 400 }}>· For prize delivery</span>
               </div>
               <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px" }}>
                 <input
                   type="text"
                   value={form.shippingName}
                   onChange={(e) => setForm((f) => ({ ...f, shippingName: e.target.value }))}
-                  placeholder="ชื่อ-นามสกุล"
+                  placeholder="Full Name"
                   style={{
                     flex: 1,
                     height: "32px",
@@ -463,7 +463,7 @@ export default function ProfilePage() {
                   type="text"
                   value={form.shippingAddress}
                   onChange={(e) => setForm((f) => ({ ...f, shippingAddress: e.target.value }))}
-                  placeholder="ที่อยู่จัดส่ง"
+                  placeholder="Shipping Address"
                   style={{
                     flex: 1,
                     height: "32px",
@@ -502,7 +502,7 @@ export default function ProfilePage() {
                     type="text"
                     value={form.shippingPhone}
                     onChange={(e) => setForm((f) => ({ ...f, shippingPhone: e.target.value }))}
-                    placeholder="เบอร์โทรศัพท์"
+                    placeholder="Phone Number"
                     style={{
                       width: "100%",
                       height: "32px",
@@ -524,7 +524,7 @@ export default function ProfilePage() {
                 disabled={addressSaving}
                 style={{ width: "100%", height: "32px", fontSize: "11px", fontWeight: 600, borderRadius: "6px", opacity: addressSaving ? 0.6 : 1 }}
               >
-                {addressSaving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
+                {addressSaving ? "Saving..." : "Save Info"}
               </button>
               {addressError && (
                 <div style={{ marginTop: "8px", padding: "8px", background: "rgba(240, 84, 84, 0.1)", border: "1px solid var(--red)", borderRadius: "6px", color: "var(--red)", fontSize: "11px" }}>

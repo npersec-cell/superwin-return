@@ -15,8 +15,8 @@ export default function NotFound() {
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
       <div style={{ fontSize: "72px", fontWeight: "800", background: "linear-gradient(135deg, #ff6b35, #f7c531)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginBottom: "8px" }}>404</div>
-      <h1 style={{ fontSize: "24px", fontWeight: "600", margin: "0 0 8px 0" }}>หน้าไม่พบ</h1>
-      <p style={{ fontSize: "14px", color: "#9aa0a6", margin: "0 0 24px 0", maxWidth: "320px" }}>หน้าที่คุณกำลังมองหาอาจถูกลบ ย้าย หรือไม่มีอยู่จริง</p>
+      <h1 style={{ fontSize: "24px", fontWeight: "600", margin: "0 0 8px 0" }}>Page Not Found</h1>
+      <p style={{ fontSize: "14px", color: "#9aa0a6", margin: "0 0 24px 0", maxWidth: "320px" }}>The page you're looking for may have been deleted, moved, or doesn't exist.</p>
       <Link href="/" style={{
         display: "inline-block",
         padding: "12px 28px",
@@ -27,7 +27,7 @@ export default function NotFound() {
         fontWeight: "600",
         fontSize: "14px",
         transition: "transform 0.2s"
-      }}>กลับสู่หน้าหลัก</Link>
+      }}>Back to Home</Link>
     </div>
   );
 }
