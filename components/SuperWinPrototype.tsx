@@ -376,6 +376,20 @@ const YouTubeEmbedSection = memo(function YouTubeEmbedSection({ embedCode }: { e
     if (!result.includes('allow="autoplay"') && !result.includes("allow='autoplay'")) {
       result = result.replace(/<iframe([^>]*)>/gi, '<iframe$1 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>');
     }
+    // Force iframe to fill container: remove inline width/height and add style for full fill
+    result = result.replace(/<iframe([^>]*)>/gi, (match, attrs) => {
+      // Remove inline width/height attributes that break responsive layout
+      let cleaned = attrs.replace(/\s*width="[^"]*"/gi, '').replace(/\s*height="[^"]*"/gi, '');
+      // Remove style that sets width/height
+      cleaned = cleaned.replace(/\s*style="[^"]*(?:width|height)[^"]*"/gi, (s: string) => {
+        // Keep other style props but strip width/height
+        const inner = s.slice(7, -1);
+        const filtered = inner.split(/;\s*/).filter((p: string) => !/^(?:width|height)\s*:/.test(p.trim())).join('; ');
+        return filtered ? ` style="${filtered}"` : '';
+      });
+      // Add style to make iframe fill the absolutely-positioned parent
+      return `<iframe${cleaned} style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;">`;
+    });
     return result;
   }, [embedCode]);
 
@@ -775,7 +789,7 @@ export default function SuperWinPrototype() {
 
       // ── Special Claim countdown ──
       if (nextSpecialClaimAt <= Date.now()) {
-        setSpecialClaimLabel("⭐");
+        setSpecialClaimLabel("Ready");
       } else {
         const specialRemaining = nextSpecialClaimAt - Date.now();
         const mins = Math.floor(specialRemaining / 60000);
@@ -1462,8 +1476,8 @@ export default function SuperWinPrototype() {
             disabled={specialClaimLoading || (!devBypass && !isSignedIn) || Date.now() >= nextSpecialClaimAt === false}
             style={{
               flexShrink: 0,
-              padding: "7px 14px",
-              fontSize: "11px",
+              padding: "7px 16px",
+              fontSize: "12px",
               fontWeight: "800",
               borderRadius: "18px",
               border: "none",
@@ -1474,22 +1488,15 @@ export default function SuperWinPrototype() {
               color: Date.now() >= nextSpecialClaimAt ? "#000" : "var(--muted)",
               transition: "all 0.2s",
               boxShadow: Date.now() >= nextSpecialClaimAt ? "0 2px 10px rgba(255,165,0,0.4)" : "none",
-              minWidth: "60px",
+              minWidth: "70px",
               position: "relative",
               zIndex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "4px",
             }}
           >
             {specialClaimLoading ? (
               <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⏳</span>
             ) : (
-              <>
-                <img src="https://superwinhub.app/ammo-icon.webp" alt="" width={14} height={14} style={{ objectFit: "contain", flexShrink: 0 }} />
-                <span style={{ fontSize: "11px", lineHeight: 1, fontWeight: "800" }}>{specialClaimLabel}</span>
-              </>
+              <span style={{ fontSize: "12px", lineHeight: 1, fontWeight: "800" }}>{specialClaimLabel}</span>
             )}
           </button>
         </div>)}
