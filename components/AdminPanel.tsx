@@ -1724,22 +1724,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           <div className="meta" style={{ fontSize: "9px" }}>เฉลี่ย/ข้อ (Coins)</div>
                         </div>
                       </div>
-                      {/* Quick Summary */}
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginBottom: "16px" }}>
-                        <div style={{ background: "rgba(255,215,0,0.06)", border: "1px solid rgba(255,215,0,0.2)", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
-                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>เหรียญรวม</div>
-                          <strong style={{ fontSize: "20px", color: "var(--yellow)" }}>{totalTourCoins.toLocaleString()}</strong>
-                        </div>
-                        <div style={{ background: "rgba(77,171,247,0.06)", border: "1px solid rgba(77,171,247,0.2)", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
-                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>ผูลนรวม</div>
-                          <strong style={{ fontSize: "20px", color: "#4DABF7" }}>{totalTourPlayers}</strong>
-                        </div>
-                        <div style={{ background: "rgba(14,203,129,0.06)", border: "1px solid rgba(14,203,129,0.2)", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
-                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>ทายทังหมด</div>
-                          <strong style={{ fontSize: "20px", color: "var(--green)" }}>{totalBets}</strong>
-                        </div>
-                      </div>
-
                       {/* ── Question Details ── */}
                       <div style={{ display: "grid", gap: "14px" }}>
                         <div style={{ fontSize: "13px", fontWeight: "700", color: "var(--text)", padding: "8px 4px", borderBottom: "1px solid var(--hairline)" }}>
