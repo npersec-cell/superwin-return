@@ -1366,32 +1366,35 @@ export default function SuperWinPrototype() {
   return (
     <main className="page" suppressHydrationWarning>
       <div className="app" suppressHydrationWarning>
-        {/* ── Announcement Ticker (top of page) ── */}
-        {settingsLoaded && settings.announcement && (
-          <div className="announcement-bar" suppressHydrationWarning={true} style={{ 
-            display: "flex", 
-            alignItems: "center", 
-            gap: "8px", 
-            background: "var(--card)", 
-            border: "1px solid var(--border)", 
-            borderRadius: "6px", 
-            padding: "6px 12px", 
-            margin: "8px 12px 10px 12px", 
-            fontSize: "11px", 
-            color: "var(--text-strong)",
-            overflow: "hidden",
-            whiteSpace: "nowrap"
-          }}>
-            <span style={{ fontSize: "12px", flexShrink: 0 }}>📢</span>
-            <div className="announcement-container" ref={marqueeContainerRef}>
-              <div className="announcement-marquee" ref={marqueeRef}>
-                {settings.announcement}
+        <header className="topbar" style={{ flexDirection: "column", alignItems: "stretch", height: "auto", minHeight: "46px", gap: "6px", padding: "6px 8px" }}>
+          {/* ── Announcement Ticker ── */}
+          {settingsLoaded && settings.announcement && (
+            <div suppressHydrationWarning={true} style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: "8px", 
+              background: "rgba(255,255,255,0.03)", 
+              border: "1px solid var(--hairline)", 
+              borderRadius: "6px", 
+              padding: "4px 10px", 
+              fontSize: "11px", 
+              color: "var(--text-strong)",
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}>
+              <span style={{ fontSize: "12px", flexShrink: 0 }}>📢</span>
+              <div className="announcement-container" ref={marqueeContainerRef}>
+                <div className="announcement-marquee" ref={marqueeRef}>
+                  {settings.announcement}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <header className="topbar">
+          {/* ── Brand + Actions Row ── */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexShrink: 0 }}>
+
           <div className="brand">
             <img className="logo" src="/SuperWin_b.png" alt="SuperWin logo" />
             <div className="brand-text">
@@ -1432,6 +1435,7 @@ export default function SuperWinPrototype() {
               </>
             )}
             <button className="button gold" onClick={() => setOpenModal("info")}>Info</button>
+          </div>
           </div>
         </header>
 
