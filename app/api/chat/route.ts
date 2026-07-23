@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('chat_messages')
-      .select('id, user_id, clerk_user_id, display_name, message, is_deleted, deleted_by_admin, created_at')
+      .select('id, user_id, clerk_user_id, display_name, message, is_deleted, deleted_by_admin, created_at, users!chat_messages_user_id_fkey(email)')
       .eq('is_deleted', false)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     const formatted = (messages || []).map(m => ({
       id: m.id,
       userId: m.user_id,
-      displayName: m.display_name || resolveDisplayNameFromClerk(m.clerk_user_id),
+      displayName: m.display_name || emailToName((m.users as any)?.[0]?.email || m.clerk_user_id),
       message: m.message,
       createdAt: m.created_at,
       isOwn: false,
@@ -154,8 +154,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── Resolve display name: prefer DB value, fallback to Clerk data ──
-    const resolvedDisplayName = user.displayName || resolveDisplayNameFromClerk(user.clerkUserId);
+    // ── Resolve display name: prefer DB value, fallback to email prefix (same as LIVE PREDICT) ──
+    const resolvedDisplayName = user.displayName || emailToName(user.email);
 
     // ── Insert message ──
     const { data: inserted, error: insertError } = await supabase
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
       data: {
         id: inserted.id,
         userId: inserted.user_id,
-        displayName: inserted.display_name || resolveDisplayNameFromClerk(inserted.clerk_user_id),
+        displayName: inserted.display_name || emailToName(user.email),
         message: inserted.message,
         createdAt: inserted.created_at,
       },
@@ -205,17 +205,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ── Helper: mask name like the rest of the app ──
-function maskName(clerkId?: string | null): string {
-  if (!clerkId) return 'นิรนาม';
-  const short = clerkId.slice(0, 6);
-  return `${short}xx`;
-}
-
-// ── Helper: resolve display name from Clerk user ID ──
-// Strips "user_" prefix for cleaner display (e.g. "user_2abc123" → "2abc123")
-function resolveDisplayNameFromClerk(clerkId?: string | null): string {
-  if (!clerkId) return 'นิรนาม';
-  const stripped = clerkId.replace(/^user_/, '');
+// ── Helper: convert email to display name (same as LIVE PREDICT) ──
+// e.g. "nontapon.xxx@gmail.com" → "nontapon.xx" (masked last 2 chars)
+function emailToName(emailOrId: string | null | undefined): string {
+  if (!emailOrId) return 'นรนาม';
+  // If it looks like an email, extract prefix and mask last 2 chars
+  if (emailOrId.includes('@')) {
+    const prefix = emailOrId.split('@')[0];
+    if (prefix.length <= 2) return prefix + 'xx';
+    return prefix.slice(0, -2) + 'xx';
+  }
+  // Fallback: strip "user_" prefix if present
+  const stripped = emailOrId.replace(/^user_/, '');
   return stripped.length > 8 ? stripped.slice(0, 8) : stripped;
 }
