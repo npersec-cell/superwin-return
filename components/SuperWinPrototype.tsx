@@ -344,33 +344,67 @@ const YouTubeEmbedSection = memo(function YouTubeEmbedSection({ embedCode }: { e
   // Inject autoplay=1&mute=1 into YouTube iframe URLs for autoplay support
   const autoPlayCode = useMemo(() => {
     if (!embedCode) return embedCode;
-    return embedCode.replace(
-      /(https:\/\/www\.youtube\.com\/embed\/[^\s"']+)(\?[^"']*)?("|")/g,
-      (match, baseUrl, existingParams, quote) => {
+    // Match any YouTube embed URL variant (youtube.com, youtube-nocookie.com, youtu.be)
+    // and inject autoplay params. Also ensure iframe has allow="autoplay"
+    let result = embedCode.replace(
+      /(https?:\/\/(?:www\.)?(?:youtube\.com|youtube-nocookie\.com)\/embed\/[^\s"'?]+)(\?[^\s"']*)?/g,
+      (match, baseUrl, existingParams) => {
         const separator = existingParams ? '&' : '?';
         const params = existingParams || '';
-        // Add autoplay and mute if not already present
+        // Add autoplay params if not already present
         let newParams = params;
         if (!params.includes('autoplay=')) newParams += `${separator}autoplay=1`;
         if (!params.includes('mute=')) newParams += `${newParams.includes('?') ? '&' : separator}mute=1`;
         if (!params.includes('controls=')) newParams += `${newParams.includes('?') ? '&' : separator}controls=1`;
-        return `${baseUrl}${newParams}${quote}`;
+        if (!params.includes('rel=')) newParams += `${newParams.includes('?') ? '&' : separator}rel=0`;
+        return `${baseUrl}${newParams}`;
       }
     );
+    // Also handle youtu.be short URLs
+    result = result.replace(
+      /(https?:\/\/(?:www\.)?youtu\.be\/[^\s"'?]+)(\?[^\s"']*)?/g,
+      (match, baseUrl, existingParams) => {
+        const separator = existingParams ? '&' : '?';
+        const params = existingParams || '';
+        let newParams = params;
+        if (!params.includes('autoplay=')) newParams += `${separator}autoplay=1`;
+        if (!params.includes('mute=')) newParams += `${newParams.includes('?') ? '&' : separator}mute=1`;
+        return `${baseUrl}${newParams}`;
+      }
+    );
+    // Ensure iframe has allow attribute for autoplay
+    if (!result.includes('allow="autoplay"') && !result.includes("allow='autoplay'")) {
+      result = result.replace(/<iframe([^>]*)>/gi, '<iframe$1 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>');
+    }
+    return result;
   }, [embedCode]);
 
   return (
     <div style={{
-      margin: "0 0 12px 0",
+      margin: "0 0 16px 0",
       borderRadius: "12px",
       overflow: "hidden",
       border: "1px solid var(--hairline)",
       background: "var(--card)",
+      width: "100%",
+      maxWidth: "720px",
+      marginLeft: "auto",
+      marginRight: "auto",
     }}>
-      <div dangerouslySetInnerHTML={{ __html: autoPlayCode || embedCode }} style={{
-        display: "flex",
-        justifyContent: "center",
-      }} />
+      <div style={{
+        position: "relative",
+        width: "100%",
+        paddingBottom: "56.25%", /* 16:9 aspect ratio */
+        height: 0,
+      }}>
+        <div dangerouslySetInnerHTML={{ __html: autoPlayCode || embedCode }} style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+        }} />
+      </div>
     </div>
   );
 });
