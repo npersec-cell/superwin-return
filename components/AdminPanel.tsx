@@ -190,8 +190,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [adminEmailInput, setAdminEmailInput] = useState("");
   const [newTournamentInput, setNewTournamentInput] = useState("");
   const [newTournamentLogoUrl, setNewTournamentLogoUrl] = useState("");
-  const [showQuickTournament, setShowQuickTournament] = useState(false);
-  const [quickTournamentInput, setQuickTournamentInput] = useState("");
   const [optionsBulkInput, setOptionsBulkInput] = useState("");
   const [showBulkOptions, setShowBulkOptions] = useState(false);
   const [dashboardData, setDashboardData] = useState<DashboardPrediction[]>([]);
@@ -907,41 +905,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         setLoading(false);
       }
     });
-  }
-
-  async function saveQuickTournament() {
-    const name = quickTournamentInput.trim();
-    if (!name) return;
-    const exists = (settings.tournaments || []).some((t) => {
-      const tName = typeof t === "string" ? t : t.name;
-      return tName.toLowerCase() === name.toLowerCase();
-    });
-    if (exists) {
-      setTournamentName(name);
-      setQuickTournamentInput("");
-      setShowQuickTournament(false);
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    try {
-      const newTour: TournamentItem = { name, logoUrl: "" };
-      const nextTournaments = [...(settings.tournaments || []), newTour];
-      const data = await requestJson<SiteSettings>("/api/admin/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tournaments: nextTournaments })
-      });
-      setSettings(data);
-      setTournamentName(name);
-      setQuickTournamentInput("");
-      setShowQuickTournament(false);
-      setMessage(`เพิ่มและเลือกทัวร์นาเมนต์ ${name} แล้ว`);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "เพิ่มทัวร์นาเมนต์ไม่สำเร็จ");
-    } finally {
-      setLoading(false);
-    }
   }
 
   function compressImage(file: File, callback: (b64: string) => void) {
@@ -1756,68 +1719,56 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
               <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h2>สร้างคำถามใหม่</h2><span className="micro">เปิดทันทีหลังสร้าง</span></div>
               <form className="modal-body" onSubmit={createPrediction} style={{ padding: "12px 0 0 0" }}>
                 <div style={{ display: "grid", gap: "4px" }}>
-                  <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span>Tournament (ชื่อทัวร์นาเมนต์)</span>
-                    <button type="button" onClick={() => setShowQuickTournament(!showQuickTournament)} style={{ fontSize: "10px", color: "var(--yellow)", background: "transparent", border: "0", cursor: "pointer", textDecoration: "underline", padding: 0 }}>
-                      {showQuickTournament ? "ปิด" : "+ เพิ่มทัวร์นาเมนต์ใหม่"}
-                    </button>
-                  </span>
-                  {!showQuickTournament ? (
-                    <select
-                      className="button"
-                      value={tournamentName}
-                      onChange={(event) => setTournamentName(event.target.value)}
-                      style={{
-                        width: "100%",
-                        height: "38px",
-                        textAlign: "left",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        border: tournamentName.trim()
-                          ? "2px solid var(--green)"
-                          : "2px dashed var(--red)",
-                        background: tournamentName.trim()
-                          ? "rgba(14, 203, 129, 0.08)"
-                          : "rgba(255, 60, 60, 0.06)",
-                        color: tournamentName.trim()
-                          ? "var(--green)"
-                          : "var(--muted)",
-                      }}
-                    >
-                      <option value="">⚠️ -- ต้องเลือกทัวร์นาเมนต์ก่อน --</option>
-                      {(settings.tournaments || [])
-                        .map((t) => {
-                          const name = getTournamentInfo(t).name;
-                          const info = getTournamentInfo(t);
-                          // Skip hidden (archived) tournaments
-                          if (info.archived) return null;
-                          // Find latest question createdAt for this tournament
-                          const latestQuestion = dashboardData
-                            .filter((d) => d.tournamentName === name)
-                            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-                          return { name, latestCreatedAt: latestQuestion ? latestQuestion.createdAt : null };
-                        })
-                        .filter(Boolean)
-                        .sort((a: any, b: any) => {
-                          if (a.latestCreatedAt && b.latestCreatedAt) {
-                            return new Date(b.latestCreatedAt).getTime() - new Date(a.latestCreatedAt).getTime();
-                          }
-                          if (a.latestCreatedAt && !b.latestCreatedAt) return -1;
-                          if (!a.latestCreatedAt && b.latestCreatedAt) return 1;
-                          return 0;
-                        })
-                        .map((t: any) => (
-                          <option key={t.name} value={t.name}>
-                            {t.name}{t.latestCreatedAt ? " ★" : ""}
-                          </option>
-                        ))}
-                    </select>
-                  ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "10px" }}>
-                      <input value={quickTournamentInput} onChange={(event) => setQuickTournamentInput(event.target.value)} placeholder="พิมพ์ชื่อทัวร์นาเมนต์ใหม่" style={{ height: "34px", border: "1px solid var(--hairline)" }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); saveQuickTournament(); } }} />
-                      <button className="button gold" type="button" onClick={saveQuickTournament}>เพิ่มและเลือก</button>
-                    </div>
-                  )}
+                  <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>Tournament (ชื่อทัวร์นาเมนต์)</span>
+                  <select
+                    className="button"
+                    value={tournamentName}
+                    onChange={(event) => setTournamentName(event.target.value)}
+                    style={{
+                      width: "100%",
+                      height: "38px",
+                      textAlign: "left",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      border: tournamentName.trim()
+                        ? "2px solid var(--green)"
+                        : "2px dashed var(--red)",
+                      background: tournamentName.trim()
+                        ? "rgba(14, 203, 129, 0.08)"
+                        : "rgba(255, 60, 60, 0.06)",
+                      color: tournamentName.trim()
+                        ? "var(--green)"
+                        : "var(--muted)",
+                    }}
+                  >
+                    <option value="">⚠️ -- ต้องเลือกทัวร์นาเมนต์ก่อน --</option>
+                    {(settings.tournaments || [])
+                      .map((t) => {
+                        const name = getTournamentInfo(t).name;
+                        const info = getTournamentInfo(t);
+                        // Skip hidden (archived) tournaments
+                        if (info.archived) return null;
+                        // Find latest question createdAt for this tournament
+                        const latestQuestion = dashboardData
+                          .filter((d) => d.tournamentName === name)
+                          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                        return { name, latestCreatedAt: latestQuestion ? latestQuestion.createdAt : null };
+                      })
+                      .filter(Boolean)
+                      .sort((a: any, b: any) => {
+                        if (a.latestCreatedAt && b.latestCreatedAt) {
+                          return new Date(b.latestCreatedAt).getTime() - new Date(a.latestCreatedAt).getTime();
+                        }
+                        if (a.latestCreatedAt && !b.latestCreatedAt) return -1;
+                        if (!a.latestCreatedAt && b.latestCreatedAt) return 1;
+                        return 0;
+                      })
+                      .map((t: any) => (
+                        <option key={t.name} value={t.name}>
+                          {t.name}{t.latestCreatedAt ? " ★" : ""}
+                        </option>
+                      ))}
+                  </select>
                 </div>
 
                 <div style={{ display: "grid", gap: "4px" }}>
