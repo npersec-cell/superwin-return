@@ -352,6 +352,10 @@ export default function SuperWinPrototype() {
   const [rankName, setRankName] = useState<string | null>(null);
   const [rankIcon, setRankIcon] = useState<string | null>(null);
   const [nextClaimAt, setNextClaimAt] = useState(0);
+  const [nextSpecialClaimAt, setNextSpecialClaimAt] = useState(0);
+  const [specialClaimLoading, setSpecialClaimLoading] = useState(false);
+  const [youtubeEmbed, setYoutubeEmbed] = useState<string>('');
+  const [specialClaimLabel, setSpecialClaimLabel] = useState('รอโหลด...');
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [liveQuestions, setLiveQuestions] = useState<Question[]>([]);
