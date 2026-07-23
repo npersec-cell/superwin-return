@@ -267,6 +267,90 @@ function BarChart({ labels, data, label, bgColor, borderColor }: {
   return <canvas ref={canvasRef} style={{ maxWidth: '100%' }} />;
 }
 
+// ── Simple Doughnut Chart Component (Chart.js) ──
+function DoughnutChart({ labels, data, colors, legend }: {
+  labels: string[];
+  data: number[];
+  colors: string[];
+  legend: string;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const chartRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!canvasRef.current || typeof window === 'undefined') return;
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return;
+
+    if (chartRef.current) {
+      chartRef.current.destroy();
+    }
+
+    const Chart = (window as any).Chart;
+    if (!Chart) return;
+
+    // Filter out zero values for cleaner display
+    const nonZeroIndices = data.map((d, i) => d > 0 ? i : -1).filter(i => i >= 0);
+    const filteredLabels = nonZeroIndices.map(i => labels[i]);
+    const filteredData = nonZeroIndices.map(i => data[i]);
+    const filteredColors = nonZeroIndices.map(i => colors[i % colors.length]);
+
+    if (filteredData.length === 0) return;
+
+    chartRef.current = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: filteredLabels,
+        datasets: [{
+          data: filteredData,
+          backgroundColor: filteredColors,
+          borderColor: 'rgba(0,0,0,0.2)',
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: 'rgba(255,255,255,0.7)',
+              font: { size: 10 },
+              padding: 12,
+              usePointStyle: true,
+              pointStyle: 'circle',
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            titleColor: '#FFD700',
+            bodyColor: '#fff',
+            padding: 12,
+            cornerRadius: 8,
+            displayColors: true,
+            callbacks: {
+              label: (ctx: any) => ` ${ctx.label}: ${ctx.parsed.toLocaleString()} ${legend}`
+            }
+          }
+        },
+        animation: {
+          duration: 800,
+          easing: 'easeOutQuart'
+        }
+      }
+    });
+
+    return () => {
+      if (chartRef.current) chartRef.current.destroy();
+    };
+  }, [labels, data, colors, legend]);
+
+  return <canvas ref={canvasRef} style={{ maxWidth: '100%' }} />;
+}
+
 export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [predictions, setPredictions] = useState<AdminPrediction[]>([]);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
@@ -1830,28 +1914,40 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         </div>
                       </div>
 
-                      {/* ── Charts Row (2 bar charts) ── */}
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" }}>
-                        {/* Coin Distribution Bar Chart */}
+                      {/* Charts - Doughnut style for easy understanding */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
+                        {/* Coin Distribution Doughnut Chart */}
                         <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "14px" }}>
-                          <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)", marginBottom: "8px", textAlign: "center" }}>📊 เหรียญในแต่ละคำถาม</div>
+                          <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)", marginBottom: "4px", textAlign: "center" }}>📊 ส่วนแบ่งเหรียญรายคำถาม</div>
+                          <div style={{ fontSize: "10px", color: "var(--muted)", textAlign: "center", marginBottom: "8px" }}>แต่ละสี = 1 คำถาม | ชี้ดูชื่อบนกราฟ</div>
                           <div style={{ position: "relative", height: "220px" }}>
-                            {chartJsLoaded ? (
-                              <BarChart labels={questionLabels} data={poolData} label="Coins" bgColor={chartBgColors} borderColor={chartColors} />
+                            {chartJsLoaded && poolData.some(d => d > 0) ? (
+                              <DoughnutChart
+                                labels={sortedQuestions.map(q => q.question.length > 25 ? q.question.substring(0, 25) + '...' : q.question)}
+                                data={poolData}
+                                colors={chartColors}
+                                legend="Coins"
+                              />
                             ) : (
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--muted)", fontSize: "11px" }}>กำลังโหลดกราฟ...</div>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--muted)", fontSize: "11px" }}>ไม่มีข้อมูลแสดง</div>
                             )}
                           </div>
                         </div>
 
-                        {/* Player Participation Bar Chart */}
+                        {/* Player Participation Doughnut Chart */}
                         <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "14px" }}>
-                          <div style={{ fontSize: "12px", fontWeight: "700", color: colors.blue, marginBottom: "8px", textAlign: "center" }}>👥 ผู้เล่นในแต่ละคำถาม</div>
+                          <div style={{ fontSize: "12px", fontWeight: "700", color: colors.blue, marginBottom: "4px", textAlign: "center" }}>👥 ส่วนแบ่งผู้เล่นรายคำถาม</div>
+                          <div style={{ fontSize: "10px", color: "var(--muted)", textAlign: "center", marginBottom: "8px" }}>แต่ละสี = 1 คำถาม | ชี้ดูชื่อบนกราฟ</div>
                           <div style={{ position: "relative", height: "220px" }}>
-                            {chartJsLoaded ? (
-                              <BarChart labels={questionLabels} data={playerData} label="Players" bgColor="rgba(77, 171, 247, 0.6)" borderColor={colors.blue} />
+                            {chartJsLoaded && playerData.some(d => d > 0) ? (
+                              <DoughnutChart
+                                labels={sortedQuestions.map(q => q.question.length > 25 ? q.question.substring(0, 25) + '...' : q.question)}
+                                data={playerData}
+                                colors={[colors.blue, colors.gold, colors.green, colors.purple, colors.orange, colors.teal, colors.pink, colors.red]}
+                                legend="คน"
+                              />
                             ) : (
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--muted)", fontSize: "11px" }}>กำลังโหลดกราฟ...</div>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--muted)", fontSize: "11px" }}>ไม่มีข้อม��ลแสดง</div>
                             )}
                           </div>
                         </div>
