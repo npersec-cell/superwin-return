@@ -1366,10 +1366,10 @@ export default function SuperWinPrototype() {
   return (
     <main className="page" suppressHydrationWarning>
       <div className="app" suppressHydrationWarning>
-        <header className="topbar" style={{ flexDirection: "column", alignItems: "stretch", height: "auto", minHeight: "46px", gap: "6px", padding: "6px 8px" }}>
-          {/* ── Announcement Ticker ── */}
+        <header className="topbar" style={{ display: "flex", flexDirection: "column", alignItems: "stretch", height: "auto !important", minHeight: "46px", gap: "6px", padding: "6px 8px" }}>
+          {/* ── Announcement Row ── */}
           {settingsLoaded && settings.announcement && (
-            <div suppressHydrationWarning={true} style={{ 
+            <div style={{ 
               display: "flex", 
               alignItems: "center", 
               gap: "8px", 
@@ -1381,11 +1381,10 @@ export default function SuperWinPrototype() {
               color: "var(--text-strong)",
               overflow: "hidden",
               whiteSpace: "nowrap",
-              flexShrink: 0,
             }}>
               <span style={{ fontSize: "12px", flexShrink: 0 }}>📢</span>
-              <div className="announcement-container" ref={marqueeContainerRef}>
-                <div className="announcement-marquee" ref={marqueeRef}>
+              <div style={{ flex: 1, minWidth: 0, overflow: "hidden", height: "18px", position: "relative" }} ref={marqueeContainerRef}>
+                <div style={{ display: "inline-block", whiteSpace: "nowrap", fontWeight: 600, color: "var(--text-strong)", position: "absolute", willChange: "transform" }} ref={marqueeRef}>
                   {settings.announcement}
                 </div>
               </div>
@@ -1393,7 +1392,7 @@ export default function SuperWinPrototype() {
           )}
 
           {/* ── Brand + Actions Row ── */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
 
           <div className="brand">
             <img className="logo" src="/SuperWin_b.png" alt="SuperWin logo" />
