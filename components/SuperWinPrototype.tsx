@@ -1376,19 +1376,14 @@ export default function SuperWinPrototype() {
             pointerEvents: "none",
           }} />
           
-          {/* Ammo Icon */}
-          <img 
-            src="https://superwinhub.app/ammo-icon.webp" 
-            alt="Special Claim" 
-            width={32} 
-            height={32} 
-            style={{ 
-              objectFit: "contain", 
+          {/* Star Icon */}
+          <div style={{ 
+              fontSize: "28px", 
               flexShrink: 0, 
               zIndex: 1,
               filter: "drop-shadow(0 0 4px rgba(255,165,0,0.5))",
-            }} 
-          />
+              lineHeight: 1,
+            }}>⭐</div>
           
           <div style={{ flex: 1, zIndex: 1 }}>
             <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)", marginBottom: "1px" }}>
@@ -1424,13 +1419,7 @@ export default function SuperWinPrototype() {
             {specialClaimLoading ? (
               <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⏳</span>
             ) : (
-              <img 
-                src="https://superwinhub.app/ammo-icon.webp" 
-                alt="Claim" 
-                width={20} 
-                height={20} 
-                style={{ objectFit: "contain", verticalAlign: "middle" }} 
-              />
+              <span style={{ fontSize: "16px", lineHeight: 1 }}>⭐</span>
             )}
           </button>
         </div>)}
