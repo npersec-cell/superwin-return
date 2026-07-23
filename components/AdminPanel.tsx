@@ -273,7 +273,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   }
 
   // แท็บเมนูหลังบ้าน
-  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "contests">("dashboard");
+  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "contests" | "chat">("dashboard");
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [userSort, setUserSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
@@ -283,6 +283,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [contests, setContests] = useState<any[]>([]);
   const [contestsLoading, setContestsLoading] = useState(false);
   const [showNewContestForm, setShowNewContestForm] = useState(false);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
   const [showEditContestForm, setShowEditContestForm] = useState(false);
   const [editingContestId, setEditingContestId] = useState<string | null>(null);
   const [newContestName, setNewContestName] = useState("");
@@ -588,6 +590,32 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       }
     } catch {
       alert("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
+    }
+  }
+
+  async function loadChatMessages() {
+    setChatLoading(true);
+    try {
+      const data = await requestJson<any[]>('/api/admin/chat?limit=200&include_deleted=true');
+      setChatMessages(data || []);
+    } catch (e) {
+      console.error('Failed to load chat:', e);
+    } finally {
+      setChatLoading(false);
+    }
+  }
+
+  async function deleteChatMessage(id: string) {
+    if (!confirm('ลบข้อความนี้?')) return;
+    try {
+      const res = await fetch(`/api/chat/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setChatMessages(prev => prev.filter(m => m.id !== id));
+      } else {
+        alert('ลบไม่สำเร็จ');
+      }
+    } catch {
+      alert('เกิดข้อผิดพลาด');
     }
   }
 
@@ -1582,6 +1610,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>แจ้งปัญหา ({reports.length})</button>
           <button className={`button ${activeTab === "users" ? "active" : ""}`} onClick={() => setActiveTab("users")} style={{ borderRadius: "999px" }}>จัดการผู้ใช้ ({users.length})</button>
           <button className={`button ${activeTab === "contests" ? "active" : ""}`} onClick={() => { setActiveTab("contests"); loadContests().catch(() => undefined); }} style={{ borderRadius: "999px" }}>กิจกรรมชิงรางวัล ({contests.length})</button>
+          <button className={`button ${activeTab === "chat" ? "active" : ""}`} onClick={() => { setActiveTab("chat"); loadChatMessages(); }} style={{ borderRadius: "999px" }}>💬 แชท ({chatMessages.filter(m => !m.isDeleted).length})</button>
         </div>
 
         <section className="admin-content" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", width: "100%", maxWidth: "100%", justifyItems: "center", alignContent: "start", margin: "0 auto" }}>
@@ -3231,6 +3260,86 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
               )}
             </section>
           )}
+
+          {activeTab === "chat" && (
+            <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "16px", margin: "0 auto" }}>
+              <div className="panel-head">
+                <h2>💬 จัดการแชท</h2>
+                <span className="micro">ตรวจสอบและลบข้อความท่ีไม่เหมาะสม</span>
+              </div>
+
+              <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+                <button className="button" onClick={() => loadChatMessages()} disabled={chatLoading} style={{ fontSize: "11px", padding: "4px 12px" }}>
+                  {chatLoading ? 'กำลังโหลด...' : 'รีเฟรช'}
+                </button>
+                <span style={{ fontSize: "11px", color: "var(--muted)", alignSelf: "center" }}>
+                  ทั้งหมด {chatMessages.length} ข้อความ · {chatMessages.filter(m => !m.isDeleted).length} ยังไม่ลบ
+                </span>
+              </div>
+
+              <div style={{ display: "grid", gap: "6px", maxHeight: "500px", overflowY: "auto" }}>
+                {chatMessages.length === 0 && !chatLoading && (
+                  <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)", fontSize: "12px" }}>
+                    ยังไม่มี่ข้อความแชท
+                  </div>
+                )}
+                {chatMessages.map((msg) => (
+                  <div key={msg.id} style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr auto auto",
+                    gap: "12px",
+                    alignItems: "center",
+                    padding: "10px 14px",
+                    background: msg.isDeleted ? "rgba(255,255,255,0.02)" : "var(--bg)",
+                    border: "1px solid var(--hairline)",
+                    borderRadius: "8px",
+                    opacity: msg.isDeleted ? 0.5 : 1,
+                  }}>
+                    <div style={{ display: "grid", gap: "2px" }}>
+                      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                        <span style={{ fontSize: "12px", fontWeight: "700", color: msg.userRole === "admin" ? "var(--yellow)" : "var(--info)" }}>
+                          {msg.displayName || "นิรนาม"}
+                        </span>
+                        <span style={{ fontSize: "9px", color: "var(--muted)" }}>
+                          @{msg.userEmail?.split("@")[0] || "?"}
+                        </span>
+                        {msg.isDeleted && (
+                          <span style={{ fontSize: "9px", color: "var(--red)", background: "rgba(246,70,93,0.1)", padding: "1px 6px", borderRadius: "4px" }}>ถูกลบ</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: "11px", color: "var(--text)", lineHeight: "1.4" }}>
+                        {msg.message}
+                      </div>
+                      <div style={{ fontSize: "9px", color: "var(--muted)" }}>
+                        🕐 {new Date(msg.createdAt).toLocaleString("th-TH")}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: "10px", color: "var(--muted)" }}>
+                      ID: {msg.id.slice(0, 8)}
+                    </div>
+                    {!msg.isDeleted && (
+                      <button
+                        onClick={() => deleteChatMessage(msg.id)}
+                        style={{
+                          background: "transparent",
+                          border: "1px solid var(--red)",
+                          color: "var(--red)",
+                          borderRadius: "6px",
+                          padding: "4px 10px",
+                          fontSize: "10px",
+                          cursor: "pointer",
+                          fontWeight: "600",
+                        }}
+                      >
+                        ลบ
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
 
           {activeTab === "reports" && (
             <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "16px", margin: "0 auto" }}>

@@ -118,3 +118,19 @@ create index if not exists idx_prediction_options_prediction on public.predictio
 create index if not exists idx_prediction_entries_user_status on public.prediction_entries(user_id, status, created_at desc);
 create index if not exists idx_prediction_entries_prediction_option on public.prediction_entries(prediction_id, option_id);
 -- idx_monthly_leaderboards_month_profit removed (table removed)
+
+-- ── Chat Messages ──
+create table if not exists public.chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.users(id) on delete set null,
+  clerk_user_id text,
+  display_name text,
+  message text not null check (char_length(trim(message)) > 0 and char_length(trim(message)) <= 500),
+  is_deleted boolean not null default false,
+  deleted_by_admin uuid references public.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_chat_messages_created on public.chat_messages(created_at desc);
+create index if not exists idx_chat_messages_not_deleted on public.chat_messages(is_deleted, created_at desc);

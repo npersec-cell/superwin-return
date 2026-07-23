@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { compact, getRankFromPosition, maskName, randomClaimAmount, formatCountdown } from "@/lib/utils";
 import LiveBetModal, { type LiveBet } from "@/components/LiveBetModal";
+import ChatBox from "@/components/ChatBox";
 
 type PredictionOption = {
   id: string;
@@ -1650,6 +1651,9 @@ export default function SuperWinPrototype() {
                 </div>
               </section>
             )}
+            
+            {/* ── CHAT BOX ── */}
+            <ChatBox />
             
             {/* Contest Box - กิจกรรมชิงรางวัล */}
             {contest && contest.status === "active" && (
