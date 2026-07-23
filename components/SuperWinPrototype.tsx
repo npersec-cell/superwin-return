@@ -765,13 +765,13 @@ export default function SuperWinPrototype() {
     };
   }, [isSignedIn, devBypass]);
 
-  // ซิงค์คะแนนเหรียญและตารางคะแนนจากฐานข้อมูลโดยอัตโนมัติทุกๆ 10 seconds
+  // ซิงค์คะแนนเหรียญและตารางคะแนนจากฐานข้อมูลโดยอัตโนมัติทุกๆ 10 วินาที
   useEffect(() => {
     if (!devBypass && !isSignedIn) return;
     const interval = setInterval(() => {
       syncUserData();
       loadLeaderboard().catch(() => undefined);
-    }, 10000); // 10 seconds
+    }, 10000); // 10 วินาที
     return () => clearInterval(interval);
   }, [isSignedIn, devBypass]);
 
@@ -1231,7 +1231,7 @@ export default function SuperWinPrototype() {
     }
   }
 
-  // ── Special Claim (Special 10-min Claim) ──
+  // ── Special Claim (กระสุนส้มพิเศษ 10 นาที) ──
   async function specialClaim() {
     if ((!devBypass && !isSignedIn) || Date.now() < nextSpecialClaimAt) return;
 
@@ -1241,7 +1241,7 @@ export default function SuperWinPrototype() {
       const result: ApiSpecialClaimResponse = await response.json();
 
       if (!result.ok) {
-        alert(result.th || result.error || "Cannot claim right now");
+        alert(result.th || result.error || "ไม่สามารถกดรับได้");
         return;
       }
 
@@ -1260,7 +1260,7 @@ export default function SuperWinPrototype() {
       }
     } catch (err) {
       console.error("Special claim error:", err);
-      alert("An error occurred. Please try again.");
+      alert("เกิดข้อผิดพลาด กรุณาลองอีกครั้ง");
     } finally {
       setSpecialClaimLoading(false);
     }
@@ -1460,7 +1460,7 @@ export default function SuperWinPrototype() {
           return shouldShow ? <YouTubeEmbedSection embedCode={youtubeEmbed} /> : null;
         })()}
 
-        {/* ── Special 10-min Claim ── */}
+        {/* ── Special 10-min Claim (กระสุนส้มพเิ ศษ) ── */}
         {frontendFeaturesEnabled && (<div style={{
           margin: "0 0 12px 0",
           padding: "10px 16px",
@@ -1844,7 +1844,7 @@ export default function SuperWinPrototype() {
               </div>
             </section>
             
-            {/* LIVE PREDICT - Last 5 items */}
+            {/* LIVE PREDICT - 5 รายการล่าสุด */}
             {liveBets.length > 0 && (
               <section className="panel" style={{ 
                 border: "1px solid rgba(255, 225, 0, 0.3)",
@@ -1938,19 +1938,19 @@ export default function SuperWinPrototype() {
             {/* ── CHAT BOX ── */}
             <ChatBox />
             
-            {/* Contest Box - Prize Contest */}
+            {/* Contest Box - กิจกรรมชิงรางวัล */}
             {contest && contest.status === "active" && (
               <section className="panel" style={{ border: "1px solid var(--yellow)", background: "linear-gradient(135deg, rgba(255,225,0,0.06) 0%, var(--card) 60%)" }}>
                 <div className="panel-head">
-                  <h3 style={{ color: "var(--yellow)" }}>Prize Contest</h3>
-                  <span className="micro" style={{ color: "var(--yellow)", opacity: 0.8 }}>All Time Top 1 ณ เวลาสิ้นสุด (GMT+7) จะได้รับTotal Prizes</span>
+                  <h3 style={{ color: "var(--yellow)" }}>กิจกรรมชิงรางวัล</h3>
+                  <span className="micro" style={{ color: "var(--yellow)", opacity: 0.8 }}>All Time Top 1 ณ เวลาสิ้นสุด (GMT+7) จะได้รับรางวัลทั้งหมด</span>
                 </div>
                 <div style={{ padding: "14px 16px", display: "grid", gap: "10px" }}>
                   <p style={{ fontSize: "12px", color: "var(--text)", lineHeight: 1.5, margin: 0 }}>
-                    {contest.description || "แข่งขันเพื่อคว้ารางวัล! ผู้ที่อยู่อันดับ 1 ณ เวลาสิ้นสุดจะได้รับTotal Prizes"}
+                    {contest.description || "แข่งขันเพื่อคว้ารางวัล! ผู้ที่อยู่อันดับ 1 ณ เวลาสิ้นสุดจะได้รับรางวัลทั้งหมด"}
                   </p>
                   <div style={{ fontSize: "11px" }}>
-                    <div style={{ color: "var(--yellow)" }}>🏆 Total Prizes:</div>
+                    <div style={{ color: "var(--yellow)" }}>🏆 รางวัลทั้งหมด:</div>
                     {contest.prize_1 && <div style={{ color: "var(--text)", marginTop: "2px" }}>🎁 {contest.prize_1}</div>}
                     {contest.prize_2 && <div style={{ color: "var(--text)", marginTop: "2px" }}>🎁 {contest.prize_2}</div>}
                     {contest.prize_3 && <div style={{ color: "var(--text)", marginTop: "2px" }}>🎁 {contest.prize_3}</div>}
@@ -1959,7 +1959,7 @@ export default function SuperWinPrototype() {
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", fontSize: "11px" }}>
                     <div style={{ color: "var(--muted)" }}>
-                      ⏰ End Time (GMT+7): <strong style={{ color: "var(--text-strong)" }}>{new Date(contest.end_time).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}</strong>
+                      ⏰ วันเวลาสิ้นสุด (GMT+7): <strong style={{ color: "var(--text-strong)" }}>{new Date(contest.end_time).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}</strong>
                     </div>
                   </div>
                   {/* Countdown */}
@@ -1973,7 +1973,7 @@ export default function SuperWinPrototype() {
                       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                       return (
                         <div style={{ padding: "8px", background: "rgba(76, 175, 80, 0.1)", borderRadius: "6px", textAlign: "center", fontSize: "11px", color: "#4caf50" }}>
-                          ⏱️ Ends in {days}d {hours}h {minutes}m
+                          ⏱️ เหลืออีก {days} วัน {hours} ชม. {minutes} น.
                         </div>
                       );
                     }
