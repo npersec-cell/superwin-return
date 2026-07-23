@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     const formatted = (messages || []).map(m => ({
       id: m.id,
       userId: m.user_id,
-      displayName: m.display_name || maskName(m.clerk_user_id),
+      displayName: m.display_name || resolveDisplayNameFromClerk(m.clerk_user_id),
       message: m.message,
       createdAt: m.created_at,
       isOwn: false,
@@ -154,13 +154,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ── Resolve display name: prefer DB value, fallback to Clerk data ──
+    const resolvedDisplayName = user.displayName || resolveDisplayNameFromClerk(user.clerkUserId);
+
     // ── Insert message ──
     const { data: inserted, error: insertError } = await supabase
       .from('chat_messages')
       .insert({
         user_id: user.id,
         clerk_user_id: user.clerkUserId,
-        display_name: user.displayName,
+        display_name: resolvedDisplayName,
         message: rawMessage,
         is_deleted: false,
       })
@@ -173,17 +176,19 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Auto-cleanup: hard-delete old messages beyond the latest 20 ──
-    // Run in background (don't wait for it to complete)
-    supabase.rpc('chat_cleanup_old', { p_keep_count: 20 }).catch(e => {
-      console.error('Chat cleanup failed:', e);
-    });
+    // Run silently; ignore all errors (function may not exist yet)
+    try {
+      await supabase.rpc('chat_cleanup_old', { p_keep_count: 20 });
+    } catch (e) {
+      // Silently ignore — cleanup function may not be installed yet
+    }
 
     const response = NextResponse.json({
       ok: true,
       data: {
         id: inserted.id,
         userId: inserted.user_id,
-        displayName: inserted.display_name || maskName(inserted.clerk_user_id),
+        displayName: inserted.display_name || resolveDisplayNameFromClerk(inserted.clerk_user_id),
         message: inserted.message,
         createdAt: inserted.created_at,
       },
@@ -205,4 +210,12 @@ function maskName(clerkId?: string | null): string {
   if (!clerkId) return 'นิรนาม';
   const short = clerkId.slice(0, 6);
   return `${short}xx`;
+}
+
+// ── Helper: resolve display name from Clerk user ID ──
+// Strips "user_" prefix for cleaner display (e.g. "user_2abc123" → "2abc123")
+function resolveDisplayNameFromClerk(clerkId?: string | null): string {
+  if (!clerkId) return 'นิรนาม';
+  const stripped = clerkId.replace(/^user_/, '');
+  return stripped.length > 8 ? stripped.slice(0, 8) : stripped;
 }
