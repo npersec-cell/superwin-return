@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Script from "next/script";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type AdminPrediction = {
@@ -175,6 +176,96 @@ function getTournamentInfo(t: string | TournamentItem) {
   return { name: t.name, logoUrl: t.logoUrl || "", archived: t.archived || false };
 }
 
+
+// ── Simple Bar Chart Component (Chart.js) ──
+function BarChart({ labels, data, label, bgColor, borderColor }: {
+  labels: string[];
+  data: number[];
+  label: string;
+  bgColor: string | string[];
+  borderColor: string | string[];
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const chartRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!canvasRef.current || typeof window === 'undefined') return;
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return;
+
+    // Destroy existing chart
+    if (chartRef.current) {
+      chartRef.current.destroy();
+    }
+
+    const Chart = (window as any).Chart;
+    if (!Chart) return;
+
+    chartRef.current = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label,
+          data,
+          backgroundColor: bgColor,
+          borderColor: borderColor,
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false,
+          barPercentage: 0.7,
+          categoryPercentage: 0.8,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            titleColor: '#FFD700',
+            bodyColor: '#fff',
+            padding: 10,
+            cornerRadius: 8,
+            displayColors: false,
+            callbacks: {
+              label: (ctx: any) => ` ${ctx.parsed.y} Coins`
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { 
+              color: 'rgba(255,255,255,0.5)', 
+              font: { size: 10 },
+              callback: (val: any) => val.toLocaleString()
+            },
+            border: { display: false }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } },
+            border: { display: false }
+          }
+        },
+        animation: {
+          duration: 800,
+          easing: 'easeOutQuart'
+        }
+      }
+    });
+
+    return () => {
+      if (chartRef.current) chartRef.current.destroy();
+    };
+  }, [labels, data, label, bgColor, borderColor]);
+
+  return <canvas ref={canvasRef} style={{ maxWidth: '100%' }} />;
+}
+
 export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [predictions, setPredictions] = useState<AdminPrediction[]>([]);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
@@ -273,6 +364,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   // แท็บเมนูหลังบ้าน
   const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "contests">("dashboard");
+  const [chartJsLoaded, setChartJsLoaded] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [userSort, setUserSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
@@ -1586,133 +1678,271 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         <section className="admin-content" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", width: "100%", maxWidth: "100%", justifyItems: "center", alignContent: "start", margin: "0 auto" }}>
           
           {activeTab === "dashboard" && (
-            <section className="panel" style={{ width: "100%", maxWidth: "760px", display: "grid", gap: "16px", margin: "0 auto" }}>
-              <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
-                  <h2>กระดานวิเคราะห์ข้อมูล (Esports Pool Dashboard)</h2>
-                  <span className="micro">ดูยอดทายแบบเรียลไทม์</span>
+            <>
+              {/* ── Chart.js CDN ── */}
+              <Script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" strategy="lazyOnload" onLoad={() => setChartJsLoaded(true)} />
+
+              <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "20px", margin: "0 auto" }}>
+                <div className="panel-head" style={{ padding: "0 0 4px 0", borderBottom: "1px solid var(--hairline)" }}>
+                  <h2>แดชบอรดภาพรวม</h2>
+                  <span className="micro">มองปุ๊บเขามาใจ ทุกสถิติในหน้าเดียว</span>
                 </div>
-                <div className="modal-body" style={{ padding: "12px 0 0 0", gap: "14px" }}>
-                  <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>เลือกทัวร์นาเมนต์เพื่อวิเคราะห์สถิติทั้งหมด</span>
-                    <select className="button" value={selectedDashboardTournament} onChange={(e) => setSelectedDashboardTournament(e.target.value)} style={{ width: "100%", height: "38px" }}>
-                      <option value="">-- เลือกทัวร์นาเมนต์ --</option>
-                      {Array.from(new Set(dashboardData.map((d) => d.tournamentName)))
-                        .sort((a, b) => {
-                          const aInfo = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === a.toLowerCase());
-                          const bInfo = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === b.toLowerCase());
-                          const aArchived = aInfo ? getTournamentInfo(aInfo).archived : false;
-                          const bArchived = bInfo ? getTournamentInfo(bInfo).archived : false;
-                          // Active tournaments first, then archived
-                          if (aArchived !== bArchived) return aArchived ? 1 : -1;
-                          return a.localeCompare(b);
-                        })
-                        .map((tour) => {
-                          const info = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === tour.toLowerCase());
-                          const isArchived = info ? getTournamentInfo(info).archived : false;
-                          return (
-                            <option key={tour} value={tour}>
-                              {isArchived ? "📦 " : ""}{tour}
-                            </option>
-                          );
-                        })}
-                    </select>
-                  </div>
 
-                  {(() => {
-                    if (!selectedDashboardTournament) {
-                      return <div className="question"><span>กรุณาเลือกทัวร์นาเมนต์ที่ต้องการดูวิเคราะห์ข้อมูลสถิติ</span></div>;
-                    }
+                {/* ── Tournament Selector ── */}
+                <div style={{ display: "grid", gap: "4px" }}>
+                  <label className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>เลือกทัวร์นาเมนต์</label>
+                  <select className="button" value={selectedDashboardTournament} onChange={(e) => setSelectedDashboardTournament(e.target.value)} style={{ width: "100%", height: "40px", fontSize: "13px", fontWeight: "600" }}>
+                    <option value="">-- เลือกทัวร์นาเมนต์ --</option>
+                    {Array.from(new Set(dashboardData.map((d) => d.tournamentName)))
+                      .sort((a, b) => {
+                        const aInfo = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === a.toLowerCase());
+                        const bInfo = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === b.toLowerCase());
+                        const aArchived = aInfo ? getTournamentInfo(aInfo).archived : false;
+                        const bArchived = bInfo ? getTournamentInfo(bInfo).archived : false;
+                        if (aArchived !== bArchived) return aArchived ? 1 : -1;
+                        return a.localeCompare(b);
+                      })
+                      .map((tour) => {
+                        const info = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === tour.toLowerCase());
+                        const isArchived = info ? getTournamentInfo(info).archived : false;
+                        return (
+                          <option key={tour} value={tour}>
+                            {isArchived ? "📦 " : ""}{tour}
+                          </option>
+                        );
+                      })}
+                  </select>
+                </div>
 
-                    const tournamentQuestions = dashboardData.filter((d) => d.tournamentName === selectedDashboardTournament);
-                    if (tournamentQuestions.length === 0) {
-                      return <div className="question"><span>ไม่พบข้อมูลคำถามในทัวร์นาเมนต์นี้</span></div>;
-                    }
-
-                    const totalTourCoins = tournamentQuestions.reduce((sum, q) => sum + q.totalPoolCoins, 0);
-                    const totalTourPlayers = new Set(tournamentQuestions.flatMap((q) => q.playerBets.map((b) => b.email))).size;
-
+                {(() => {
+                  if (!selectedDashboardTournament) {
                     return (
-                      <div style={{ display: "grid", gap: "16px" }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-                          <div className="info-block" style={{ background: "var(--bg)", textAlign: "center", padding: "10px" }}>
-                            <span className="meta" style={{ fontSize: "9px" }}>จำนวนคำถามทั้งหมด</span>
-                            <strong style={{ fontSize: "18px", color: "#fff", display: "block", marginTop: "4px" }}>{tournamentQuestions.length} คำถาม</strong>
-                          </div>
-                          <div className="info-block" style={{ background: "var(--bg)", textAlign: "center", padding: "10px" }}>
-                            <span className="meta" style={{ fontSize: "9px" }}>ยอดรวมเหรียญทั้งทัวร์</span>
-                            <strong style={{ fontSize: "18px", color: "var(--yellow)", display: "block", marginTop: "4px" }}>{totalTourCoins} Coins</strong>
-                          </div>
-                          <div className="info-block" style={{ background: "var(--bg)", textAlign: "center", padding: "10px" }}>
-                            <span className="meta" style={{ fontSize: "9px" }}>ผู้เล่นร่วมสนุกทั้งทัวร์</span>
-                            <strong style={{ fontSize: "18px", color: "#fff", display: "block", marginTop: "4px" }}>{totalTourPlayers} คน</strong>
-                          </div>
-                        </div>
-
-                        <div style={{ display: "grid", gap: "14px" }}>
-                          {tournamentQuestions.map((q) => (
-                            <div key={q.id} style={{ border: "1px solid var(--hairline)", borderRadius: "12px", background: "var(--bg)", padding: "12px", display: "grid", gap: "8px" }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--hairline-soft)", paddingBottom: "6px" }}>
-                                <strong style={{ fontSize: "13px", color: "#fff" }}>Q: {q.question}</strong>
-                                <span className="pill" style={{ 
-                                  fontSize: "10px", 
-                                  height: "20px", 
-                                  border: 0,
-                                  background: q.status === "open" ? "rgba(255, 225, 0, 0.12)" : "rgba(255, 255, 255, 0.08)", 
-                                  color: q.status === "open" ? "var(--yellow)" : "var(--text)" 
-                                }}>
-                                  {statusLabel(q.status)}
-                                </span>
-                              </div>
-
-                              <div style={{ display: "flex", gap: "12px", fontSize: "11px", color: "var(--muted)" }}>
-                                <span>ยอดรวมเหรียญพูล: <strong style={{ color: "var(--yellow)" }}>{q.totalPoolCoins} Coins</strong></span>
-                                <span>ผู้เล่นร่วมทาย: <strong style={{ color: "#fff" }}>{q.uniquePlayers} คน</strong></span>
-                              </div>
-
-                              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
-                                <span className="meta" style={{ color: "var(--yellow)", fontSize: "10px" }}>สัดส่วนและอัตราคูณ (Odds)</span>
-                                <div style={{ display: "grid", gap: "6px", maxHeight: "180px", overflowY: "auto", paddingRight: "4px" }}>
-                                  {q.optionStats.map((stat) => {
-                                    const pct = q.totalPoolCoins > 0 ? ((stat.totalCoins / q.totalPoolCoins) * 100).toFixed(1) : "0";
-                                    return (
-                                      <div key={stat.id} style={{ display: "grid", gap: "2px", padding: "4px 8px", background: "var(--card)", borderRadius: "6px" }}>
-                                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
-                                          <span style={{ color: "#fff" }}>{stat.label}</span>
-                                          <strong style={{ color: "var(--yellow)" }}>คูณ {stat.multiplier > 0 ? `~${stat.multiplier}x` : "--"}</strong>
-                                        </div>
-                                        <div style={{ width: "100%", height: "2px", background: "var(--bg)", borderRadius: "1px", overflow: "hidden" }}>
-                                          <div style={{ width: `${pct}%`, height: "100%", background: "var(--yellow)" }} />
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-
-                              <div style={{ marginTop: "6px" }}>
-                                <details style={{ cursor: "pointer" }}>
-                                  <summary style={{ fontSize: "11px", color: "var(--yellow)", outline: "none" }}>ดูรายละเอียดผู้เล่นที่ทายข้อนี้ ({q.playerBets.length} รายการ)</summary>
-                                  <div style={{ display: "grid", gap: "5px", marginTop: "6px", maxHeight: "150px", overflowY: "auto" }}>
-                                    {q.playerBets.length ? q.playerBets.map((bet) => (
-                                      <div key={bet.id} style={{ display: "flex", justifyContent: "space-between", padding: "4px 8px", background: "var(--card)", borderRadius: "4px", fontSize: "11px" }}>
-                                        <span style={{ color: "var(--muted)" }}>{bet.displayName} ({bet.email}) ➔ {bet.optionLabel}</span>
-                                        <strong className="accent-gold">-{bet.amount} Coins</strong>
-                                      </div>
-                                    )) : <div style={{ fontSize: "11px", color: "var(--muted)", textAlign: "center", padding: "6px" }}>ยังไม่มีรายการทายผล</div>}
-                                  </div>
-                                </details>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                      <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--muted)" }}>
+                        <div style={{ fontSize: "40px", marginBottom: "12px" }}>👆</div>
+                        <p style={{ fontSize: "14px", fontWeight: "600", color: "var(--text)" }}>เลือกทัวร์นาเมนต์เพื่อดูสถิติ</p>
+                        <p style={{ fontSize: "12px", marginTop: "4px" }}>กราฟและข้อมูลจะปรากฏขึ้นเมื่อเลือกทัวร์นาเมนต์</p>
                       </div>
                     );
-                  })()}
-                </div>
+                  }
+
+                  const tournamentQuestions = dashboardData.filter((d) => d.tournamentName === selectedDashboardTournament);
+                  if (tournamentQuestions.length === 0) {
+                    return <div className="question"><span>ไม่พบข้อมูลคำถามในทัวร์นาเมนต์นี้</span></div>;
+                  }
+
+                  const totalTourCoins = tournamentQuestions.reduce((sum, q) => sum + q.totalPoolCoins, 0);
+                  const totalTourPlayers = new Set(tournamentQuestions.flatMap((q) => q.playerBets.map((b) => b.email))).size;
+                  const totalBets = tournamentQuestions.reduce((sum, q) => sum + q.playerBets.length, 0);
+                  const openCount = tournamentQuestions.filter((q) => q.status === "open").length;
+                  const resolvedCount = tournamentQuestions.filter((q) => q.status === "resolved").length;
+
+                  // Colors for charts and UI
+                  const colors = {
+                    gold: "#FFD700",
+                    goldDim: "rgba(255, 215, 0, 0.12)",
+                    green: "#0ECB81",
+                    greenDim: "rgba(14, 203, 129, 0.12)",
+                    red: "#F05454",
+                    blue: "#4DABF7",
+                    blueDim: "rgba(77, 171, 247, 0.12)",
+                    purple: "#B197FC",
+                    purpleDim: "rgba(177, 151, 252, 0.12)",
+                    teal: "#63E6BE",
+                    tealDim: "rgba(99, 230, 190, 0.12)",
+                    orange: "#FFA94D",
+                    orangeDim: "rgba(255, 169, 77, 0.12)",
+                    pink: "#F783AC",
+                    pinkDim: "rgba(247, 131, 172, 0.12)",
+                  };
+                  const chartColors = [colors.gold, colors.blue, colors.green, colors.purple, colors.orange, colors.teal, colors.pink, colors.red];
+                  const chartBgColors = chartColors.map((c) => c.replace(")", ", 0.7)").replace("rgb", "rgba").replace("#", "rgba(").replace(/(.{6})/, (_, h) => {
+                    const r = parseInt(h.slice(0, 2), 16);
+                    const g = parseInt(h.slice(2, 4), 16);
+                    const b = parseInt(h.slice(4, 6), 16);
+                    return `rgba(${r}, ${g}, ${b}, 0.7)`;
+                  }));
+
+                  // Data for charts
+                  const questionLabels = tournamentQuestions.map((q, i) => `Q${i + 1}`);
+                  const poolData = tournamentQuestions.map((q) => q.totalPoolCoins);
+                  const playerData = tournamentQuestions.map((q) => q.uniquePlayers);
+
+                  return (
+                    <div style={{ display: "grid", gap: "24px" }}>
+
+                      {/* ── Summary Stat Cards (4 cards) ── */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
+                        <div style={{ background: colors.goldDim, border: `1px solid ${colors.gold}`, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
+                          <div style={{ fontSize: "22px", marginBottom: "4px" }}>💰</div>
+                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>เหรียญรวมทั้งทัวร์</div>
+                          <strong style={{ fontSize: "24px", color: colors.gold, display: "block", marginTop: "2px" }}>{totalTourCoins.toLocaleString()}</strong>
+                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>Coins</span>
+                        </div>
+                        <div style={{ background: colors.blueDim, border: `1px solid ${colors.blue}`, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
+                          <div style={{ fontSize: "22px", marginBottom: "4px" }}>👥</div>
+                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>ผู้เล่นทั้งหมด</div>
+                          <strong style={{ fontSize: "24px", color: colors.blue, display: "block", marginTop: "2px" }}>{totalTourPlayers}</strong>
+                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>คน</span>
+                        </div>
+                        <div style={{ background: colors.purpleDim, border: `1px solid ${colors.purple}`, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
+                          <div style={{ fontSize: "22px", marginBottom: "4px" }}>❓</div>
+                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>จำนวนคำถาม</div>
+                          <strong style={{ fontSize: "24px", color: colors.purple, display: "block", marginTop: "2px" }}>{tournamentQuestions.length}</strong>
+                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>ข้อ</span>
+                        </div>
+                        <div style={{ background: colors.greenDim, border: `1px solid ${colors.green}`, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
+                          <div style={{ fontSize: "22px", marginBottom: "4px" }}>🎯</div>
+                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>ทายทั้งหมด</div>
+                          <strong style={{ fontSize: "24px", color: colors.green, display: "block", marginTop: "2px" }}>{totalBets}</strong>
+                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>ครั้ง</span>
+                        </div>
+                      </div>
+
+                      {/* ── Status Overview (3 boxes) ── */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
+                        <div style={{ background: "rgba(255, 225, 0, 0.06)", border: "1px solid rgba(255, 225, 0, 0.2)", borderRadius: "10px", padding: "10px", textAlign: "center" }}>
+                          <div style={{ fontSize: "16px" }}>🔴</div>
+                          <strong style={{ fontSize: "16px", color: "var(--yellow)" }}>{openCount}</strong>
+                          <div className="meta" style={{ fontSize: "9px" }}>กำลังเปิดรับทาย</div>
+                        </div>
+                        <div style={{ background: "rgba(14, 203, 129, 0.06)", border: "1px solid rgba(14, 203, 129, 0.2)", borderRadius: "10px", padding: "10px", textAlign: "center" }}>
+                          <div style={{ fontSize: "16px" }}>✅</div>
+                          <strong style={{ fontSize: "16px", color: "var(--green)" }}>{resolvedCount}</strong>
+                          <div className="meta" style={{ fontSize: "9px" }}>สรุปผลแล้ว</div>
+                        </div>
+                        <div style={{ background: "rgba(255, 255, 255, 0.04)", border: "1px solid var(--hairline)", borderRadius: "10px", padding: "10px", textAlign: "center" }}>
+                          <div style={{ fontSize: "16px" }}>📈</div>
+                          <strong style={{ fontSize: "16px", color: "#fff" }}>{tournamentQuestions.length > 0 ? Math.round(totalTourCoins / tournamentQuestions.length).toLocaleString() : 0}</strong>
+                          <div className="meta" style={{ fontSize: "9px" }}>เฉลี่ย/ข้อ (Coins)</div>
+                        </div>
+                      </div>
+
+                      {/* ── Charts Row (2 bar charts) ── */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" }}>
+                        {/* Coin Distribution Bar Chart */}
+                        <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "14px" }}>
+                          <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)", marginBottom: "8px", textAlign: "center" }}>📊 เหรียญในแต่ละคำถาม</div>
+                          <div style={{ position: "relative", height: "220px" }}>
+                            {chartJsLoaded ? (
+                              <BarChart labels={questionLabels} data={poolData} label="Coins" bgColor={chartBgColors} borderColor={chartColors} />
+                            ) : (
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--muted)", fontSize: "11px" }}>กำลังโหลดกราฟ...</div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Player Participation Bar Chart */}
+                        <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "14px" }}>
+                          <div style={{ fontSize: "12px", fontWeight: "700", color: colors.blue, marginBottom: "8px", textAlign: "center" }}>👥 ผู้เล่นในแต่ละคำถาม</div>
+                          <div style={{ position: "relative", height: "220px" }}>
+                            {chartJsLoaded ? (
+                              <BarChart labels={questionLabels} data={playerData} label="Players" bgColor="rgba(77, 171, 247, 0.6)" borderColor={colors.blue} />
+                            ) : (
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--muted)", fontSize: "11px" }}>กำลังโหลดกราฟ...</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ── Question Details ── */}
+                      <div style={{ display: "grid", gap: "14px" }}>
+                        <div style={{ fontSize: "13px", fontWeight: "700", color: "var(--text)", padding: "8px 4px", borderBottom: "1px solid var(--hairline)" }}>
+                          📋 รายละเอียดคำถาม ({tournamentQuestions.length} ข้อ)
+                        </div>
+                        {tournamentQuestions.map((q, qIdx) => (
+                          <div key={q.id} style={{ border: "1px solid var(--hairline)", borderRadius: "12px", background: "var(--bg)", padding: "14px", display: "grid", gap: "10px" }}>
+                            {/* Header with icon, question, status badge */}
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span style={{ fontSize: "16px" }}>{["🎮","🏆","⚔️","🎯","🔥","💎","🌟","👑"][qIdx % 8]}</span>
+                                <strong style={{ fontSize: "14px", color: "#fff" }}>{q.question}</strong>
+                              </div>
+                              <span className="pill" style={{ 
+                                fontSize: "10px", 
+                                height: "22px", 
+                                padding: "0 10px",
+                                borderRadius: "999px",
+                                border: 0,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                background: q.status === "open" ? "rgba(255, 225, 0, 0.12)" : q.status === "resolved" ? "rgba(14, 203, 129, 0.12)" : "rgba(255, 255, 255, 0.06)", 
+                                color: q.status === "open" ? "var(--yellow)" : q.status === "resolved" ? "var(--green)" : "var(--text)" 
+                              }}>
+                                {q.status === "open" ? "🔴" : q.status === "resolved" ? "✅" : "⏸️"} {statusLabel(q.status)}
+                              </span>
+                            </div>
+
+                            {/* Quick Stats Row */}
+                            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", fontSize: "11px", color: "var(--muted)" }}>
+                              <span>💰 พูล: <strong style={{ color: "var(--yellow)" }}>{q.totalPoolCoins.toLocaleString()} Coins</strong></span>
+                              <span>👥 ผู้ทาย: <strong style={{ color: "#fff" }}>{q.uniquePlayers} คน</strong></span>
+                              <span>📝 จำนวนทาย: <strong style={{ color: colors.blue }}>{q.playerBets.length} ครั้ง</strong></span>
+                              {q.totalPoolCoins > 0 && q.playerBets.length > 0 && (
+                                <span>📊 เฉลี่ย/คน: <strong style={{ color: colors.purple }}>{Math.round(q.totalPoolCoins / q.uniquePlayers).toLocaleString()}</strong></span>
+                              )}
+                            </div>
+
+                            {/* Visual Odds Bars (colored progress bars) */}
+                            <div style={{ display: "grid", gap: "6px", marginTop: "2px" }}>
+                              <span className="meta" style={{ color: "var(--yellow)", fontSize: "10px", fontWeight: "600" }}>📊 สัดส่วนการทาย (Odds)</span>
+                              <div style={{ display: "grid", gap: "6px" }}>
+                                {q.optionStats.map((stat, si) => {
+                                  const pct = q.totalPoolCoins > 0 ? ((stat.totalCoins / q.totalPoolCoins) * 100).toFixed(1) : "0";
+                                  const barColor = chartColors[si % chartColors.length];
+                                  return (
+                                    <div key={stat.id} style={{ display: "grid", gap: "3px" }}>
+                                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontWeight: "500" }}>
+                                        <span style={{ color: "#fff" }}>{stat.label}</span>
+                                        <span>
+                                          <strong style={{ color: barColor }}>{pct}%</strong>
+                                          <span style={{ color: "var(--muted)", marginLeft: "8px" }}>คูณ {stat.multiplier > 0 ? `~${stat.multiplier}x` : "--"}</span>
+                                        </span>
+                                      </div>
+                                      <div style={{ width: "100%", height: "8px", background: "var(--bg)", borderRadius: "4px", overflow: "hidden" }}>
+                                        <div style={{ width: `${pct}%`, height: "100%", background: barColor, borderRadius: "4px", transition: "width 0.5s ease" }} />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Player List Toggle */}
+                            <div style={{ marginTop: "4px" }}>
+                              <details style={{ cursor: "pointer" }}>
+                                <summary style={{ fontSize: "11px", color: "var(--yellow)", outline: "none", fontWeight: "500", padding: "4px 0" }}>
+                                  👤 ดูรายละเอียดผู้ทาย ({q.playerBets.length} รายการ)
+                                </summary>
+                                <div style={{ display: "grid", gap: "5px", marginTop: "8px", maxHeight: "180px", overflowY: "auto", padding: "4px", background: "var(--card)", borderRadius: "8px", border: "1px solid var(--hairline)" }}>
+                                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 80px 70px", gap: "6px", padding: "4px 8px", fontSize: "9px", color: "var(--muted)", fontWeight: "bold", borderBottom: "1px solid var(--hairline)" }}>
+                                    <span>ผู้ใช้</span>
+                                    <span>เลือก</span>
+                                    <span style={{ textAlign: "right" }}>เดิมพัน</span>
+                                    <span style={{ textAlign: "right" }}>ผล</span>
+                                  </div>
+                                  {q.playerBets.length ? q.playerBets.map((bet) => (
+                                    <div key={bet.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 80px 70px", gap: "6px", padding: "5px 8px", fontSize: "10px", background: "rgba(255,255,255,0.02)", borderRadius: "4px", alignItems: "center" }}>
+                                      <span style={{ color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bet.displayName}</span>
+                                      <span style={{ color: colors.blue, fontSize: "10px" }}>{bet.optionLabel}</span>
+                                      <span style={{ textAlign: "right", color: "var(--yellow)", fontWeight: "600" }}>{bet.amount.toLocaleString()}</span>
+                                      <span style={{ textAlign: "right", fontSize: "12px" }}>➡️</span>
+                                    </div>
+                                  )) : <div style={{ fontSize: "11px", color: "var(--muted)", textAlign: "center", padding: "8px" }}>ยังไม่มีรายการทายผล</div>}
+                                </div>
+                              </details>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                    </div>
+                  );
+                })()}
               </section>
-            </section>
+            </>
           )}
+
 
           {activeTab === "questions" && (
             <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px", maxWidth: "600px", width: "100%", margin: "0 auto" }}>
