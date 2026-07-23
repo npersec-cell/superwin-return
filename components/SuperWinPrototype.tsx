@@ -2215,9 +2215,6 @@ function ProfileModal({
                   <strong style={{ display: "block", fontSize: "14px", color: "var(--yellow)", marginTop: "3px" }}>
                     {profile.winRate}%
                   </strong>
-                  <span style={{ fontSize: "8px", color: "var(--muted)", textTransform: "none", marginTop: "1px", display: "block" }}>
-                    {profile.winCount} won · {profile.lostCount} lost
-                  </span>
                 </div>
                 <div style={{ padding: "8px", background: "var(--bg)", border: "1px solid var(--hairline)", borderRadius: "6px" }}>
                   <span style={{ fontSize: "9px", color: "var(--muted)" }}>Overall</span>
