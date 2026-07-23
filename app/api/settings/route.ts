@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const { data: settings, error } = await supabase
       .from("site_settings")
       .select("key, value")
-      .in("key", ["youtube_embed"]);
+      .in("key", ["youtube_embed", "frontend_features"]);
 
     if (error) {
       console.error("Settings GET error:", error);

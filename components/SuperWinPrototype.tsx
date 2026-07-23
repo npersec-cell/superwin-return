@@ -355,7 +355,7 @@ export default function SuperWinPrototype() {
   const [nextSpecialClaimAt, setNextSpecialClaimAt] = useState(0);
   const [specialClaimLoading, setSpecialClaimLoading] = useState(false);
   const [youtubeEmbed, setYoutubeEmbed] = useState<string>('');
-  const [specialClaimLabel, setSpecialClaimLabel] = useState('รอโหลด...');
+    const [frontendFeaturesEnabled, setFrontendFeaturesEnabled] = useState(true);
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [liveQuestions, setLiveQuestions] = useState<Question[]>([]);
@@ -519,12 +519,17 @@ export default function SuperWinPrototype() {
     setNextClaimAt(Number(localStorage.getItem("sr_next_claim")) || 0);
     setNextSpecialClaimAt(Number(localStorage.getItem("sr_next_special_claim")) || 0);
 
-    // Load site settings (YouTube embed, etc.)
+    // Load site settings (YouTube embed, frontend features toggle, etc.)
     fetch('/api/settings')
       .then(res => res.json())
       .then(json => {
-        if (json.ok && json.data?.youtube_embed) {
-          setYoutubeEmbed(json.data.youtube_embed.embed_code || '');
+        if (json.ok && json.data) {
+          if (json.data.youtube_embed) {
+            setYoutubeEmbed(json.data.youtube_embed.embed_code || '');
+          }
+          if (json.data.frontend_features !== undefined) {
+            setFrontendFeaturesEnabled(json.data.frontend_features.enabled !== false);
+          }
         }
       })
       .catch(() => {});
@@ -1315,8 +1320,8 @@ export default function SuperWinPrototype() {
           </div>
         )}
 
-        {/* ── YouTube Embed Section ── */}
-        {youtubeEmbed && (
+        {/* ── YouTube Embed Section (only if enabled by admin) ── */}
+        {frontendFeaturesEnabled && youtubeEmbed && (
           <div style={{
             margin: "0 0 12px 0",
             borderRadius: "12px",
@@ -1331,20 +1336,19 @@ export default function SuperWinPrototype() {
           </div>
         )}
 
-        {/* ── กระสุนส้มพเิ ศษ (Special 10-min Claim) ── */}
-        <div style={{
+        {/* ── Special 10-min Claim (กระสุนส้มพเิ ศษ) ── */}
+        {frontendFeaturesEnabled && (<div style={{
           margin: "0 0 12px 0",
-          padding: "12px 16px",
+          padding: "10px 16px",
           background: "linear-gradient(135deg, rgba(255,165,0,0.08), rgba(255,100,0,0.04))",
           border: "2px solid rgba(255,165,0,0.3)",
           borderRadius: "12px",
           display: "flex",
           alignItems: "center",
-          gap: "16px",
+          gap: "14px",
           position: "relative",
           overflow: "hidden",
         }}>
-          {/* Animated glow effect */}
           <div style={{
             position: "absolute",
             top: "-50%",
@@ -1356,14 +1360,26 @@ export default function SuperWinPrototype() {
             pointerEvents: "none",
           }} />
           
-          <div style={{ fontSize: "24px", flexShrink: 0, zIndex: 1 }}>🍊</div>
+          {/* Ammo Icon */}
+          <img 
+            src="https://superwinhub.app/ammo-icon.webp" 
+            alt="Special Claim" 
+            width={32} 
+            height={32} 
+            style={{ 
+              objectFit: "contain", 
+              flexShrink: 0, 
+              zIndex: 1,
+              filter: "drop-shadow(0 0 4px rgba(255,165,0,0.5))",
+            }} 
+          />
           
           <div style={{ flex: 1, zIndex: 1 }}>
-            <div style={{ fontSize: "13px", fontWeight: "700", color: "var(--yellow)", marginBottom: "2px" }}>
-              🍊 กระสุนส้มพเิ ศษ
+            <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)", marginBottom: "1px" }}>
+              Special Claim
             </div>
-            <div style={{ fontSize: "10px", color: "var(--muted)" }}>
-              กดรบั เหรียญฟรีทกุ 10 นาที • เร็วกวาปกติ 6 เท่า!
+            <div style={{ fontSize: "9px", color: "var(--muted)" }}>
+              Free coins every 10 minutes
             </div>
           </div>
 
@@ -1372,10 +1388,10 @@ export default function SuperWinPrototype() {
             disabled={specialClaimLoading || (!devBypass && !isSignedIn) || Date.now() >= nextSpecialClaimAt === false}
             style={{
               flexShrink: 0,
-              padding: "8px 20px",
-              fontSize: "13px",
+              padding: "7px 18px",
+              fontSize: "12px",
               fontWeight: "800",
-              borderRadius: "20px",
+              borderRadius: "18px",
               border: "none",
               cursor: (specialClaimLoading || (!devBypass && !isSignedIn) || Date.now() >= nextSpecialClaimAt === false) ? "not-allowed" : "pointer",
               background: Date.now() >= nextSpecialClaimAt
@@ -1383,15 +1399,25 @@ export default function SuperWinPrototype() {
                 : "var(--hairline)",
               color: Date.now() >= nextSpecialClaimAt ? "#000" : "var(--muted)",
               transition: "all 0.2s",
-              boxShadow: Date.now() >= nextSpecialClaimAt ? "0 2px 12px rgba(255,165,0,0.4)" : "none",
-              minWidth: "100px",
+              boxShadow: Date.now() >= nextSpecialClaimAt ? "0 2px 10px rgba(255,165,0,0.4)" : "none",
+              minWidth: "90px",
               position: "relative",
               zIndex: 1,
             }}
           >
-            {specialClaimLoading ? "…" : (Date.now() >= nextSpecialClaimAt ? "กดเลย! 🍊" : specialClaimLabel)}
+            {specialClaimLoading ? (
+              <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⏳</span>
+            ) : (
+              <img 
+                src="https://superwinhub.app/ammo-icon.webp" 
+                alt="Claim" 
+                width={20} 
+                height={20} 
+                style={{ objectFit: "contain", verticalAlign: "middle" }} 
+              />
+            )}
           </button>
-        </div>
+        </div>)}
 
         {(devBypass || isSignedIn) && (
         <section className="stats" aria-label="Account stats">

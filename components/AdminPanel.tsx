@@ -284,6 +284,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [contestsLoading, setContestsLoading] = useState(false);
   const [showNewContestForm, setShowNewContestForm] = useState(false);
   const [youtubeEmbed, setYoutubeEmbed] = useState("");
+  const [frontendEnabled, setFrontendEnabled] = useState(true);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [showEditContestForm, setShowEditContestForm] = useState(false);
@@ -637,6 +638,23 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       }
     } catch (e) {
       console.error('Failed to load YouTube embed:', e);
+    }
+  }
+
+  async function saveFrontendSettings() {
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'frontend_features', value: { enabled: frontendEnabled, youtube_embed: youtubeEmbed } }),
+      });
+      if (res.ok) {
+        alert('Saved successfully');
+      } else {
+        alert('Failed to save');
+      }
+    } catch {
+      alert('An error occurred');
     }
   }
 
@@ -2565,16 +2583,47 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 </form>
               </div>
 
-              {/* YouTube Embed Section */}
+              {/* ── Frontpage Features (เปิด/ปิด ฟีเจอร์หน้าแรก) ── */}
               <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
-                  <h2>📺 YouTube Embed หน้าแรก</h2>
+                  <h2>🎯 Frontpage Features</h2>
                 </div>
-                <form className="modal-body" onSubmit={saveYoutubeEmbed} style={{ padding: "12px 0 0 0", display: "grid", gap: "10px" }}>
-                  <span className="meta" style={{ textTransform: "none", color: "var(--muted)", lineHeight: "1.4" }}>
-                    *วางโค้ด iframe จาก YouTube เพื่อแสดงบนหน้าแรก (ถ้าว่าง จะไม่แสดงอะไรบนหน้าแรก)
-                  </span>
+                <form className="modal-body" onSubmit={(e) => { e.preventDefault(); saveFrontendSettings(); }} style={{ padding: "12px 0 0 0", display: "grid", gap: "12px" }}>
                   
+                  {/* Enable/Disable Toggle */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px" }}>
+                    <div>
+                      <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--text)" }}>Enable Frontpage Features</div>
+                      <div style={{ fontSize: "10px", color: "var(--muted)" }}>Show YouTube embed + Special Claim on homepage</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFrontendEnabled(v => !v)}
+                      style={{
+                        width: "48px",
+                        height: "26px",
+                        borderRadius: "13px",
+                        border: "none",
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                        background: frontendEnabled ? "var(--green)" : "var(--hairline)",
+                        position: "relative",
+                      }}
+                    >
+                      <div style={{
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "50%",
+                        background: "#fff",
+                        position: "absolute",
+                        top: "3px",
+                        left: frontendEnabled ? "24px" : "3px",
+                        transition: "left 0.2s",
+                      }} />
+                    </button>
+                  </div>
+
+                  {/* YouTube Embed */}
                   <div style={{ display: "grid", gap: "4px" }}>
                     <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>YouTube Embed Code (iframe)</span>
                     <textarea 
@@ -2582,11 +2631,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       value={youtubeEmbed} 
                       onChange={(event) => setYoutubeEmbed(event.target.value)} 
                       placeholder='<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/VIDEO_ID?controls=0" ...></iframe>'
-                      style={{ fontFamily: "monospace", fontSize: "11px" }}
+                      style={{ fontFamily: "monospace", fontSize: "11px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "8px", color: "var(--text)" }}
                     />
                   </div>
 
-                  <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "34px", fontWeight: "bold" }}>💾 บันทึก YouTube Embed</button>
+                  <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "36px", fontWeight: "bold", marginTop: "4px" }}>💾 Save Frontpage Settings</button>
                 </form>
               </div>
 
