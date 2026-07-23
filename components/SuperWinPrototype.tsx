@@ -1573,7 +1573,7 @@ export default function SuperWinPrototype() {
               </div>
             </section>
             
-            {/* LIVE PREDICT - กำลังรอผล */}
+            {/* LIVE PREDICT - 5 รายการล่าสุด */}
             {liveBets.length > 0 && (
               <section className="panel" style={{ 
                 border: "1px solid rgba(255, 225, 0, 0.3)",
@@ -2100,13 +2100,6 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
             <div style={{ fontSize: "11px", color: "var(--muted)" }}>Amount</div>
             <div style={{ fontSize: "16px", fontWeight: "700", color: "var(--yellow)" }}>
               {bet.amount.toLocaleString()} <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="18" height="18" style={{ display: "inline-block", verticalAlign: "middle", marginLeft: "4px" }} />
-            </div>
-          </div>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Status</div>
-            <div style={{ fontSize: "13px", color: "var(--text-weak)" }}>
-              ⏳ Waiting for result...
             </div>
           </div>
           

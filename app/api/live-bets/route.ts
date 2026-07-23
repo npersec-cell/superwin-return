@@ -4,13 +4,11 @@ import { createSupabaseAdminClient } from '@/lib/db';
 export async function GET() {
   const supabase = createSupabaseAdminClient();
   
-  // Get prediction entries that are running (not yet resolved)
-  // Show all entries regardless of amount
-  // Note: status can be 'running' or 'pending'
+  // Get latest 5 prediction entries regardless of status
+  // Ordered by most recent first
   const { data: entries, error: entriesError } = await supabase
     .from('prediction_entries')
     .select('id, user_id, prediction_id, amount, option_id, created_at, status')
-    .in('status', ['running', 'pending'])
     .order('created_at', { ascending: false })
     .limit(5);
   
