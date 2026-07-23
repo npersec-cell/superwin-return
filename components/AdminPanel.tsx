@@ -283,7 +283,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [contests, setContests] = useState<any[]>([]);
   const [contestsLoading, setContestsLoading] = useState(false);
   const [showNewContestForm, setShowNewContestForm] = useState(false);
-  const [youtubeEmbed, setYoutubeEmbed] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [youtubeScheduleStart, setYoutubeScheduleStart] = useState("");
   const [youtubeScheduleEnd, setYoutubeScheduleEnd] = useState("");
@@ -639,7 +638,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       if (json.ok && json.data) {
         // Load YouTube embed code or URL
         if (json.data.youtube_embed?.embed_code) {
-          setYoutubeEmbed(json.data.youtube_embed.embed_code);
           // Try to extract URL from embed code for display
           const urlMatch = json.data.youtube_embed.embed_code.match(/src="([^"]+)"/);
           if (urlMatch) {
