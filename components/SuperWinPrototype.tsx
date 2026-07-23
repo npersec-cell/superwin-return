@@ -1107,6 +1107,11 @@ export default function SuperWinPrototype() {
     setOpenModal("claimResult");
     // Flash button with amount for 5 seconds
     setClaimFlash(true);
+    if (amount > 0) {
+      claimFlashTimer.current = setTimeout(() => { setClaimFlash(false); setOpenModal(null); }, 5000);
+    }
+  }
+
   // ── Special Claim (กระสุนส้มพิเศษ 10 นาที) ──
   async function specialClaim() {
     if ((!devBypass && !isSignedIn) || Date.now() < nextSpecialClaimAt) return;
@@ -1140,10 +1145,6 @@ export default function SuperWinPrototype() {
     } finally {
       setSpecialClaimLoading(false);
     }
-  }
-
-      if (claimFlashTimer.current) clearTimeout(claimFlashTimer.current);
-    claimFlashTimer.current = setTimeout(() => { setClaimFlash(false); setOpenModal(null); }, 5000);
   }
 
   async function confirmPrediction(question: Question) {
