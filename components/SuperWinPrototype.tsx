@@ -752,8 +752,10 @@ export default function SuperWinPrototype() {
   async function loadSettings() {
     const response = await fetch("/api/settings");
     const payload = (await response.json()) as ApiSettingsResponse;
+    console.log("[loadSettings] response.ok:", response.ok, "payload.ok:", payload?.ok, "data:", payload?.data);
     if (response.ok && payload.ok && payload.data) {
       setSettings(payload.data);
+      console.log("[loadSettings] announcement set to:", payload.data.announcement);
     }
     setSettingsLoaded(true);
   }
