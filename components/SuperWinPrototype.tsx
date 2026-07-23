@@ -4,6 +4,7 @@ import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { compact, getRankFromPosition, maskName, randomClaimAmount, formatCountdown } from "@/lib/utils";
+import LiveBetModal, { type LiveBet } from "@/components/LiveBetModal";
 
 type PredictionOption = {
   id: string;
@@ -189,20 +190,6 @@ type ApiClaimResponse = {
   };
   error?: string;
 };
-
-type LiveBet = {
-  userId: string;
-  displayName: string | null;
-  rawEmailPrefix?: string;
-  predictionId: string;
-  predictionTitle: string;
-  tournamentName: string;
-  optionLabel: string;
-  amount: number;
-  createdAt: string;
-};
-
-// Ensure LiveBet is recognized by TypeScript
 
 declare global {
   interface Window {
@@ -2044,71 +2031,6 @@ function ProfileModal({
               </div>
             </>
           ) : null}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
-  const date = new Date(bet.createdAt);
-  const formattedDate = date.toLocaleString("th-TH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-  
-  return (
-    <section className="modal" aria-label="Live Bet Details" onClick={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="modal-card" style={{ maxWidth: "400px" }}>
-        <div className="modal-head">
-          <h3>💥 Live Predict Details</h3>
-          <button className="button" onClick={onClose}>Close</button>
-        </div>
-        <div className="modal-body" style={{ gap: "14px" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ fontSize: "11px", color: "var(--muted)" }}>User</div>
-            <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--yellow)" }}>
-              {bet.displayName || maskName(bet.rawEmailPrefix || bet.userId?.slice(0, 8) || 'User')}
-            </div>
-          </div>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Tournament</div>
-            <div style={{ fontSize: "13px", color: "var(--text)" }}>
-              🏆 {bet.tournamentName}
-            </div>
-          </div>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Prediction</div>
-            <div style={{ fontSize: "13px", color: "var(--text)" }}>
-              🎯 {bet.predictionTitle}
-            </div>
-          </div>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Option</div>
-            <div style={{ fontSize: "13px", color: "var(--text)" }}>
-              🎯 {bet.optionLabel}
-            </div>
-          </div>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Amount</div>
-            <div style={{ fontSize: "16px", fontWeight: "700", color: "var(--yellow)" }}>
-              {bet.amount.toLocaleString()} <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="18" height="18" style={{ display: "inline-block", verticalAlign: "middle", marginLeft: "4px" }} />
-            </div>
-          </div>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Placed at</div>
-            <div style={{ fontSize: "12px", color: "var(--text-weak)" }}>
-              {formattedDate}
-            </div>
-          </div>
         </div>
       </div>
     </section>
