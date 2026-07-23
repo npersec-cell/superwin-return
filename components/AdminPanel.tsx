@@ -1731,11 +1731,23 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     return <div className="question"><span>ไม่พบข้อมูลคำถามในทัวร์นาเมนต์นี้</span></div>;
                   }
 
-                  const totalTourCoins = tournamentQuestions.reduce((sum, q) => sum + q.totalPoolCoins, 0);
-                  const totalTourPlayers = new Set(tournamentQuestions.flatMap((q) => q.playerBets.map((b) => b.email))).size;
-                  const totalBets = tournamentQuestions.reduce((sum, q) => sum + q.playerBets.length, 0);
-                  const openCount = tournamentQuestions.filter((q) => q.status === "open").length;
-                  const resolvedCount = tournamentQuestions.filter((q) => q.status === "resolved").length;
+                  // Sort: open questions first (by closesAt ascending), then resolved (by closesAt descending)
+                  const sortedQuestions = [...tournamentQuestions].sort((a, b) => {
+                    // Open questions come before resolved
+                    if (a.status === "open" && b.status !== "open") return -1;
+                    if (a.status !== "open" && b.status === "open") return 1;
+                    // Within same status: sort by closesAt
+                    const aTime = new Date(a.closesAt || a.createdAt || 0).getTime();
+                    const bTime = new Date(b.closesAt || b.createdAt || 0).getTime();
+                    // Open: soonest first; Resolved: most recent first
+                    return a.status === "open" ? aTime - bTime : bTime - aTime;
+                  });
+
+                  const totalTourCoins = sortedQuestions.reduce((sum, q) => sum + q.totalPoolCoins, 0);
+                  const totalTourPlayers = new Set(sortedQuestions.flatMap((q) => q.playerBets.map((b) => b.email))).size;
+                  const totalBets = sortedQuestions.reduce((sum, q) => sum + q.playerBets.length, 0);
+                  const openCount = sortedQuestions.filter((q) => q.status === "open").length;
+                  const resolvedCount = sortedQuestions.filter((q) => q.status === "resolved").length;
 
                   // Colors for charts and UI
                   const colors = {
@@ -1764,9 +1776,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   }));
 
                   // Data for charts
-                  const questionLabels = tournamentQuestions.map((q, i) => `${i + 1}`);
-                  const poolData = tournamentQuestions.map((q) => q.totalPoolCoins);
-                  const playerData = tournamentQuestions.map((q) => q.uniquePlayers);
+                  const questionLabels = sortedQuestions.map((q, i) => `${i + 1}`);
+                  const poolData = sortedQuestions.map((q) => q.totalPoolCoins);
+                  const playerData = sortedQuestions.map((q) => q.uniquePlayers);
 
                   return (
                     <div style={{ display: "grid", gap: "24px" }}>
@@ -1813,7 +1825,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         </div>
                         <div style={{ background: "rgba(255, 255, 255, 0.04)", border: "1px solid var(--hairline)", borderRadius: "10px", padding: "10px", textAlign: "center" }}>
                           <div style={{ fontSize: "16px" }}>📈</div>
-                          <strong style={{ fontSize: "16px", color: "#fff" }}>{tournamentQuestions.length > 0 ? Math.round(totalTourCoins / tournamentQuestions.length).toLocaleString() : 0}</strong>
+                          <strong style={{ fontSize: "16px", color: "#fff" }}>{sortedQuestions.length > 0 ? Math.round(totalTourCoins / sortedQuestions.length).toLocaleString() : 0}</strong>
                           <div className="meta" style={{ fontSize: "9px" }}>เฉลี่ย/ข้อ (Coins)</div>
                         </div>
                       </div>
@@ -1848,9 +1860,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       {/* ── Question Details ── */}
                       <div style={{ display: "grid", gap: "14px" }}>
                         <div style={{ fontSize: "13px", fontWeight: "700", color: "var(--text)", padding: "8px 4px", borderBottom: "1px solid var(--hairline)" }}>
-                          📋 รายละเอียดคำถาม ({tournamentQuestions.length} ข้อ)
+                          📋 รายละเอียดคำถาม ({sortedQuestions.length} ข้อ)
                         </div>
-                        {tournamentQuestions.map((q, qIdx) => (
+                        {sortedQuestions.map((q, qIdx) => (
                           <div key={q.id} style={{ border: "1px solid var(--hairline)", borderRadius: "12px", background: "var(--bg)", padding: "14px", display: "grid", gap: "10px" }}>
                             {/* Header with icon, question, status badge */}
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
