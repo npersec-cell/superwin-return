@@ -1789,13 +1789,16 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         .map((t) => {
                           const name = getTournamentInfo(t).name;
                           const info = getTournamentInfo(t);
+                          // Skip hidden (archived) tournaments
+                          if (info.archived) return null;
                           // Find latest question createdAt for this tournament
                           const latestQuestion = dashboardData
                             .filter((d) => d.tournamentName === name)
                             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-                          return { name, latestCreatedAt: latestQuestion ? latestQuestion.createdAt : null, archived: info.archived };
+                          return { name, latestCreatedAt: latestQuestion ? latestQuestion.createdAt : null };
                         })
-                        .sort((a, b) => {
+                        .filter(Boolean)
+                        .sort((a: any, b: any) => {
                           if (a.latestCreatedAt && b.latestCreatedAt) {
                             return new Date(b.latestCreatedAt).getTime() - new Date(a.latestCreatedAt).getTime();
                           }
@@ -1803,9 +1806,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           if (!a.latestCreatedAt && b.latestCreatedAt) return 1;
                           return 0;
                         })
-                        .map((t) => (
+                        .map((t: any) => (
                           <option key={t.name} value={t.name}>
-                            {t.archived ? "📦 " : ""}{t.name}{t.latestCreatedAt ? " ★" : ""}
+                            {t.name}{t.latestCreatedAt ? " ★" : ""}
                           </option>
                         ))}
                     </select>
