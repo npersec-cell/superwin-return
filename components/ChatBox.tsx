@@ -178,9 +178,6 @@ export default function ChatBox({ isAdmin = false, onDeleteMessage }: ChatBoxPro
         <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--text)" }}>
           ห้องแชท
         </span>
-        <span style={{ fontSize: "10px", color: "var(--muted)", marginLeft: "auto" }}>
-          {messages.length} ข้อความ
-        </span>
       </div>
 
       {/* Messages Area */}
