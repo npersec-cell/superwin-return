@@ -523,25 +523,25 @@ export default function SuperWinPrototype() {
     fetch('/api/settings')
       .then(res => res.json())
       .then(json => {
-        console.log('[homepage useEffect] /api/settings response:', json);
         if (json.ok && json.data) {
-          if (json.data.youtube_embed) {
-            const code = json.data.youtube_embed.embed_code || '';
-            console.log('[homepage useEffect] youtube_embed found, code length:', code.length);
-            setYoutubeEmbed(code);
-          } else {
-            console.log('[homepage useEffect] no youtube_embed in response');
+          // Try primary location first: youtube_embed.embed_code
+          let embedCode = '';
+          if (json.data.youtube_embed?.embed_code) {
+            embedCode = json.data.youtube_embed.embed_code;
           }
+          // Fallback: frontend_features may contain youtube_embed string directly
+          // (due to saveFrontendSettings saving both enabled + youtube_embed in same object)
+          if (!embedCode && json.data.frontend_features?.youtube_embed) {
+            embedCode = json.data.frontend_features.youtube_embed;
+          }
+          setYoutubeEmbed(embedCode);
+
           if (json.data.frontend_features !== undefined) {
-            const enabled = json.data.frontend_features.enabled !== false;
-            console.log('[homepage useEffect] frontend_features.enabled:', enabled);
-            setFrontendFeaturesEnabled(enabled);
-          } else {
-            console.log('[homepage useEffect] no frontend_features in response');
+            setFrontendFeaturesEnabled(json.data.frontend_features.enabled !== false);
           }
         }
       })
-      .catch((e) => { console.error('[homepage useEffect] fetch error:', e); });
+      .catch(() => {});
     setRunning(safeJson("sr_running", []));
     loadOpenPredictions().catch(() => undefined);
     loadSettings().catch(() => undefined);
@@ -761,10 +761,8 @@ export default function SuperWinPrototype() {
   async function loadSettings() {
     const response = await fetch("/api/settings");
     const payload = (await response.json()) as ApiSettingsResponse;
-    console.log("[loadSettings] response.ok:", response.ok, "payload.ok:", payload?.ok, "data:", payload?.data);
     if (response.ok && payload.ok && payload.data) {
       setSettings(payload.data);
-      console.log("[loadSettings] announcement set to:", payload.data.announcement);
     }
     setSettingsLoaded(true);
   }
@@ -1344,12 +1342,6 @@ export default function SuperWinPrototype() {
               display: "flex",
               justifyContent: "center",
             }} />
-          </div>
-        )}
-        {/* Debug info - remove after troubleshooting */}
-        {mounted && !youtubeEmbed && frontendFeaturesEnabled && (
-          <div style={{ margin: "0 0 12px 0", padding: "8px", background: "rgba(255,0,0,0.1)", border: "1px solid red", borderRadius: "6px", fontSize: "10px", color: "red" }}>
-            ⚠️ No YouTube embed loaded. Check console logs.
           </div>
         )}
 

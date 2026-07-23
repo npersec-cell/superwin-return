@@ -653,7 +653,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'frontend_features', value: { enabled: frontendEnabled, youtube_embed: youtubeEmbed } }),
+        body: JSON.stringify({ key: 'frontend_features', value: { enabled: frontendEnabled } }),
       });
       const payload = await res.json();
       if (res.ok && payload.ok) {
