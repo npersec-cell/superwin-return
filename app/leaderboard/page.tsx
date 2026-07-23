@@ -818,13 +818,6 @@ function LiveBetModal({ bet, onClose }: { bet: LiveBet; onClose: () => void }) {
           </div>
           
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div style={{ fontSize: "11px", color: "var(--muted)" }}>Status</div>
-            <div style={{ fontSize: "13px", color: "var(--text-weak)" }}>
-              ⏳ Waiting for result...
-            </div>
-          </div>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <div style={{ fontSize: "11px", color: "var(--muted)" }}>Placed at</div>
             <div style={{ fontSize: "12px", color: "var(--text-weak)" }}>
               {formattedDate}
