@@ -1993,7 +1993,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
           {activeTab === "questions" && (
             <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px", maxWidth: "600px", width: "100%", margin: "0 auto" }}>
-              <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h2>Create New Question</h2><span className="micro">เClose nowหลังสร้าง</span></div>
+              <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h2>Create New Question</h2><span className="micro">Auto-close after creation</span></div>
               <form className="modal-body" onSubmit={createPrediction} style={{ padding: "12px 0 0 0" }}>
                 <div style={{ display: "grid", gap: "4px" }}>
                   <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>Tournament</span>

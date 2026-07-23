@@ -1460,7 +1460,7 @@ export default function SuperWinPrototype() {
           return shouldShow ? <YouTubeEmbedSection embedCode={youtubeEmbed} /> : null;
         })()}
 
-        {/* ── Special 10-min Claim (กระสุนส้มพเิ ศษ) ── */}
+        {/* ── Special 10-min Claim ── */}
         {frontendFeaturesEnabled && (<div style={{
           margin: "0 0 12px 0",
           padding: "10px 16px",
@@ -1844,7 +1844,7 @@ export default function SuperWinPrototype() {
               </div>
             </section>
             
-            {/* LIVE PREDICT - 5 รายการล่าสุด */}
+            {/* LIVE PREDICT - Last 5 items */}
             {liveBets.length > 0 && (
               <section className="panel" style={{ 
                 border: "1px solid rgba(255, 225, 0, 0.3)",
@@ -1973,7 +1973,7 @@ export default function SuperWinPrototype() {
                       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                       return (
                         <div style={{ padding: "8px", background: "rgba(76, 175, 80, 0.1)", borderRadius: "6px", textAlign: "center", fontSize: "11px", color: "#4caf50" }}>
-                          ⏱️ เMore {days} day {hours} h {minutes} m
+                          ⏱️ Ends in {days}d {hours}h {minutes}m
                         </div>
                       );
                     }

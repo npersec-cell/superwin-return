@@ -217,7 +217,7 @@ export default function AuditLogsClient({
             <thead>
               <tr>
                 <th>#</th>
-                <th>เTime (Bangkok)</th>
+                <th>Time (Bangkok)</th>
                 <th>Actor</th>
                 <th>Action</th>
                 <th>Target Type</th>
