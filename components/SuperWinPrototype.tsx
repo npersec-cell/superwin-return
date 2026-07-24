@@ -846,7 +846,7 @@ export default function SuperWinPrototype() {
     return rows.slice(0, 10);
   }, [leaderboardRows, isSignedIn, currentUserId, accountRole]);
 
-  const userRank = leaderboard.findIndex((row) => row.name === "You") + 1;
+  const userLeaderboardRank = leaderboard.findIndex((row) => row.name === "You") + 1;
 
   const openQuestions = useMemo(() => {
     const list = liveQuestions.filter((question) => Date.now() < Number(questionDeadlines[question.id] || 0));
