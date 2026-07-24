@@ -1521,7 +1521,7 @@ export default function SuperWinPrototype() {
               </div>
               <div className="stat" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
                 <span className="label">Overall</span>
-                <b className="value" style={{ fontSize: "18px" }}>{overallScore ?? 0}/100</b>
+                <b className="value" style={{ fontSize: "18px" }}>{overallScore ?? 0}</b>
               </div>
               <div className="stat" style={{ textAlign: "center" }}><span className="label">Next Reload</span><b className="value">{claimLabel}</b></div>
             </>
