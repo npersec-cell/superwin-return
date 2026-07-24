@@ -192,8 +192,7 @@ export interface Contest {
 
 export interface SiteSettings {
   info: {
-    howToPlay: string;
-    questionTime: string;
+    content: string;
   };
   tournaments: (string | { name: string; logoUrl: string })[];
   savedQuestions: string[];

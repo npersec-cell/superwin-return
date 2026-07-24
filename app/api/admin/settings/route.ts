@@ -32,8 +32,7 @@ async function loadAllSettings(): Promise<Record<string, any>> {
 // Default settings returned when DB has no data yet
 const DEFAULT_SETTINGS: Record<string, any> = {
   info: {
-    howToPlay: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล",
-    questionTime: "แต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
+    content: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล\n\nแต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
   },
   tournaments: [{ name: "Super League", logoUrl: "" }],
   savedQuestions: [
@@ -60,9 +59,9 @@ export async function GET(request: NextRequest) {
     // Merge with defaults so missing keys (e.g. first-time setup) don't break the UI
     const merged = { ...DEFAULT_SETTINGS, ...allSettings };
 
-    // Deep-merge 'info' in case only partial fields exist
-    if (allSettings.info && typeof allSettings.info === "object") {
-      merged.info = { ...DEFAULT_SETTINGS.info, ...allSettings.info };
+    // Merge 'info' — keep DB value if exists, otherwise use default
+    if (allSettings.info !== undefined) {
+      merged.info = allSettings.info;
     }
 
     return NextResponse.json({ ok: true, data: merged });
@@ -165,8 +164,8 @@ export async function PATCH(request: NextRequest) {
     // Re-assemble full settings object to return, merged with defaults
     const rawSettings = await loadAllSettings();
     const merged = { ...DEFAULT_SETTINGS, ...rawSettings };
-    if (rawSettings.info && typeof rawSettings.info === "object") {
-      merged.info = { ...DEFAULT_SETTINGS.info, ...rawSettings.info };
+    if (rawSettings.info !== undefined) {
+      merged.info = rawSettings.info;
     }
     return NextResponse.json({ ok: true, data: merged });
   } catch (err: any) {

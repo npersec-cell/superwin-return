@@ -59,8 +59,7 @@ type TournamentItem = {
 
 type SiteSettings = {
   info: {
-    howToPlay: string;
-    questionTime: string;
+    content: string;
   };
   tournaments: (string | TournamentItem)[];
   savedQuestions: string[];
@@ -110,8 +109,7 @@ function statusLabel(status: string) {
 
 const defaultSettings: SiteSettings = {
   info: {
-    howToPlay: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล",
-    questionTime: "แต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
+    content: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล\n\nแต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
   },
   tournaments: [{ name: "Super League", logoUrl: "" }],
   savedQuestions: [
@@ -2844,16 +2842,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
               <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h2>ข้อความ Info หน้าเว็บ (วิธีเล่น/รางวัล)</h2></div>
-                <form className="modal-body" onSubmit={saveInfoSettings} style={{ padding: "12px 0 0 0" }}>
+                <form className="modal-body" onSubmit={saveInfoSettings} style={{ padding: "12px 0 0 0", display: "grid", gap: "8px" }}>
                   <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>How to Play (วิธีเล่น)</span>
-                    <textarea rows={3} value={settings.info.howToPlay} onChange={(event) => setSettings((current) => ({ ...current, info: { ...current.info, howToPlay: event.target.value } }))} placeholder="How to Play" />
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ข้อความ Info (รวมทัง้หมด)</span>
+                    <textarea rows={6} value={settings.info.content || ""} onChange={(event) => setSettings((current) => ({ ...current, info: { content: event.target.value } }))} placeholder="กรอกข้อมููลวิธีเล่นและกฏการทายผล (ขึ้้นบรรทัดใหม่ดวย \n\n)" style={{ fontFamily: "inherit", fontSize: "12px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "8px", color: "var(--text)", whiteSpace: "pre-line" }} />
                   </div>
-                  <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>Question Time (เวลากับการทาย)</span>
-                    <textarea rows={3} value={settings.info.questionTime} onChange={(event) => setSettings((current) => ({ ...current, info: { ...current.info, questionTime: event.target.value } }))} placeholder="Question Time" />
-                  </div>
-                  <button className="button primary" disabled={loading} type="submit" style={{ marginTop: "12px", width: "100%" }}>บันทึกข้อความ Info ทั่วไป</button>
+                  <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "36px", fontWeight: "bold" }}>💾 บันทึกข้อความ Info</button>
                 </form>
               </div>
             </section>

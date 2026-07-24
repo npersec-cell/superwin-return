@@ -105,8 +105,7 @@ type ApiPredictResponse = {
 
 type SiteSettings = {
   info: {
-    howToPlay: string;
-    questionTime: string;
+    content: string;
   };
   tournaments: (string | { name: string; logoUrl: string })[];
   savedQuestions: string[];
@@ -295,8 +294,7 @@ const demoQuestions: Question[] = [
 
 const defaultSettings: SiteSettings = {
   info: {
-    howToPlay: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล",
-    questionTime: "แต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
+    content: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล\n\nแต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
   },
   tournaments: [{ name: "Super League", logoUrl: "" }],
   savedQuestions: [
@@ -2100,8 +2098,7 @@ function InfoModal({ settings, onClose }: { settings: SiteSettings; onClose: () 
       <div className="modal-card">
         <div className="modal-head"><h3>Info</h3><button className="button" onClick={onClose}>Close</button></div>
         <div className="modal-body">
-          <div className="info-block"><h4>How to Play</h4><p style={{ whiteSpace: "pre-line" }}>{settings.info?.howToPlay || ""}</p></div>
-          <div className="info-block"><h4>Question Time</h4><p style={{ whiteSpace: "pre-line" }}>{settings.info?.questionTime || ""}</p></div>
+          <div className="info-block"><p style={{ whiteSpace: "pre-line", lineHeight: "1.7" }}>{settings.info?.content || ""}</p></div>
         </div>
       </div>
     </section>
