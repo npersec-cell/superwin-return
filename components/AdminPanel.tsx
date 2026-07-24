@@ -2433,6 +2433,34 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             <button
                               className="button"
                               type="button"
+                              disabled={loading || item.status === "resolved" || item.status === "canceled"}
+                              onClick={async () => {
+                                if (item.status === "resolved" || item.status === "canceled") return;
+                                const confirmed = window.confirm(`ยืนยันยกเลิกและคืนเหรียญ?\n\nคำถาม: ${item.question}`);
+                                if (!confirmed) return;
+                                setLoading(true);
+                                try {
+                                  const data = await requestJson<{ refundedEntries: number; totalRefunded: number }>(`/api/admin/predictions/${item.id}/refund`, { method: "POST" });
+                                  setMessage(`คืนเหรียญแล้ว: ${data.refundedEntries || 0} รายการ, ${data.totalRefunded || 0} เหรียญ`);
+                                  setAllPredictions((current) => current.map((row) => row.id === item.id ? { ...row, status: "canceled" } : row));
+                                } catch (error) {
+                                  const msg = error instanceof Error ? error.message : "คืนเหรียญไม่สำเร็จ";
+                                  if (msg.includes("No running entries")) {
+                                    setMessage("ไม่มีรายการทายผลที่ต้องคืนเหรียญ");
+                                  } else {
+                                    setMessage(msg);
+                                  }
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }}
+                              style={{ fontSize: "10px", padding: "3px 8px", height: "auto" }}
+                            >
+                              ยกเลิก + คืนเหรียญ
+                            </button>
+                            <button
+                              className="button"
+                              type="button"
                               onClick={async () => {
                                 if (!confirm(`ลบคำถาม "${item.question.slice(0, 40)}..."?`)) return;
                                 try {
