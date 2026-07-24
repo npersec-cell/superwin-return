@@ -286,6 +286,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [youtubeScheduleStart, setYoutubeScheduleStart] = useState("");
   const [youtubeScheduleEnd, setYoutubeScheduleEnd] = useState("");
+  const [youtubeOpenNow, setYoutubeOpenNow] = useState(false);
   const [frontendEnabled, setFrontendEnabled] = useState(true);
   const [chatEnabled, setChatEnabled] = useState(true);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
@@ -720,9 +721,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         url: youtubeUrl,
         embed_code: embedCode,
       };
-      // Only include schedule times if both are set
-      if (youtubeScheduleStart) scheduleData.schedule_start = youtubeScheduleStart;
-      if (youtubeScheduleEnd) scheduleData.schedule_end = youtubeScheduleEnd;
+      // If "Open Now" is checked, clear schedule so it shows immediately
+      if (youtubeOpenNow) {
+        scheduleData.schedule_start = "";
+        scheduleData.schedule_end = "";
+      } else {
+        // Only include schedule times if both are set
+        if (youtubeScheduleStart) scheduleData.schedule_start = youtubeScheduleStart;
+        if (youtubeScheduleEnd) scheduleData.schedule_end = youtubeScheduleEnd;
+      }
 
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
@@ -2672,6 +2679,20 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       </div>
                     </div>
                     <span className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>ปลอย่ างว่างเวลาเปิด/ปิด ถาตองการใหแสดงตลอด</span>
+                    
+                    {/* ── Open Now Checkbox ── */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", background: "rgba(255,200,0,0.06)", borderRadius: "6px", border: "1px solid rgba(255,200,0,0.15)", marginTop: "4px" }}>
+                      <input 
+                        type="checkbox" 
+                        id="youtubeOpenNow"
+                        checked={youtubeOpenNow} 
+                        onChange={(e) => setYoutubeOpenNow(e.target.checked)}
+                        style={{ width: "18px", height: "18px", cursor: "pointer", accentColor: "var(--yellow)" }}
+                      />
+                      <label htmlFor="youtubeOpenNow" style={{ fontSize: "11px", fontWeight: "600", color: "var(--yellow)", cursor: "pointer", flex: 1 }}>
+                        ✅ เปิดทันที (ไม่ต้องตั้งเวลา — แสดงเลย)
+                      </label>
+                    </div>
                   </div>
 
                   <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "36px", fontWeight: "bold", marginTop: "4px" }}>💾 Save Frontpage Settings</button>

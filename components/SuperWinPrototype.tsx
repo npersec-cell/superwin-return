@@ -1389,9 +1389,11 @@ export default function SuperWinPrototype() {
         {/* ── YouTube Embed Section (only if enabled by admin) ── */}
         {mounted && frontendFeaturesEnabled && youtubeEmbed && (() => {
           // Check schedule: only show YouTube embed within scheduled time window
+          // Schedule times are stored as Bangkok time (UTC+7), convert to comparable timestamps
           const now = new Date();
           let shouldShow = true;
           if (youtubeScheduleStart) {
+            // Parse as Bangkok time (UTC+7) since datetime-local input has no timezone
             const startDate = new Date(youtubeScheduleStart);
             if (isNaN(startDate.getTime())) {
               // Invalid date format, ignore schedule
