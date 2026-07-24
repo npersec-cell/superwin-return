@@ -293,6 +293,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [youtubeOpenNow, setYoutubeOpenNow] = useState(false);
   const [frontendEnabled, setFrontendEnabled] = useState(true);
   const [chatEnabled, setChatEnabled] = useState(true);
+  const [userQuestionsEnabled, setUserQuestionsEnabled] = useState(true);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [showEditContestForm, setShowEditContestForm] = useState(false);
@@ -676,6 +677,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         if (json.data.frontend_features !== undefined) {
           setFrontendEnabled(!!json.data.frontend_features.enabled);
           setChatEnabled(json.data.frontend_features.chatEnabled !== false);
+          setUserQuestionsEnabled(json.data.frontend_features.userQuestionsEnabled !== false);
         }
       }
     } catch (e) {
@@ -703,7 +705,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          frontend_features: { enabled: frontendEnabled, chatEnabled },
+          frontend_features: { enabled: frontendEnabled, chatEnabled, userQuestionsEnabled },
           ...(Object.keys(youtubeEmbedValue).length > 0 ? { youtube_embed: youtubeEmbedValue } : {}),
         }),
       });
@@ -2385,6 +2387,69 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 <span className="micro">จัดการคำถามที่ผู้ใช้สร้าง — สามารถแก้ไข ลบ หรอปดไดเหมอนคำถามปกต</span>
               </div>
 
+              {/* Enable/Disable Toggle */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: userQuestionsEnabled ? "rgba(14, 203, 129, 0.08)" : "rgba(255, 60, 60, 0.08)", borderRadius: "8px", border: `1px solid ${userQuestionsEnabled ? "var(--green)" : "var(--red)"}` }}>
+                <div>
+                  <div style={{ fontSize: "12px", fontWeight: "700", color: userQuestionsEnabled ? "var(--green)" : "var(--red)" }}>
+                    {userQuestionsEnabled ? "✅ ฟงกชันสร้างคำถามเปิดอยู่" : "🚫 ฟงกชันสร้างคำถามปิดอยู่"}
+                  </div>
+                  <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "2px" }}>
+                    {userQuestionsEnabled ? "ผู้ใช้ Diamond+ สามารถสร้างคำถามได้" : "ผู้ใช้ไม่สามารถสร้างคำถามได้ชั่วคราว"}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUserQuestionsEnabled(v => !v)}
+                  style={{
+                    width: "48px",
+                    height: "26px",
+                    borderRadius: "13px",
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    background: userQuestionsEnabled ? "var(--green)" : "var(--hairline)",
+                    position: "relative",
+                  }}
+                >
+                  <div style={{
+                    width: "20px",
+                    height: "20px",
+                    borderRadius: "50%",
+                    background: "#fff",
+                    position: "absolute",
+                    top: "3px",
+                    left: userQuestionsEnabled ? "24px" : "3px",
+                    transition: "left 0.2s",
+                  }} />
+                </button>
+              </div>
+
+              {/* Save button */}
+              <button 
+                className="button primary" 
+                type="button" 
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/admin/settings', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ frontend_features: { enabled: frontendEnabled, chatEnabled, userQuestionsEnabled } }),
+                    });
+                    const payload = await res.json();
+                    if (res.ok && payload.ok) {
+                      alert(userQuestionsEnabled ? 'เปิดฟังก์ชันสร้างคำถามแล้ว' : 'ปิดฟังก์ชันสร้างคำถามแล้ว');
+                    } else {
+                      alert('บันทึกไม่สำเร็จ: ' + (payload.error || res.status));
+                    }
+                  } catch (e: any) {
+                    alert('เกิดข้อผิดพลาด: ' + (e?.message || String(e)));
+                  }
+                }}
+                style={{ width: "100%", height: "36px", fontWeight: "bold" }}
+              >
+                💾 บันทึกการตั้งค่าฟังก์ชันสร้างคำถาม
+              </button>
+
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <button className="button" onClick={() => { setUserQuestionsTournamentFilter(""); loadAllPredictions(); }} style={{ fontSize: "11px", padding: "4px 12px" }}>🔄 รีเฟรช</button>
               </div>
@@ -2901,9 +2966,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     onClick={async () => {
                       try {
                         const res = await fetch('/api/admin/settings', {
-                          method: 'POST',
+                          method: 'PATCH',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ key: 'frontend_features', value: { enabled: frontendEnabled, chatEnabled } }),
+                          body: JSON.stringify({ frontend_features: { enabled: frontendEnabled, chatEnabled, userQuestionsEnabled } }),
                         });
                         const payload = await res.json();
                         if (res.ok && payload.ok) {

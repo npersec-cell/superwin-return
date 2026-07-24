@@ -132,6 +132,22 @@ export async function GET(request: NextRequest) {
     const diamondRanks = ["Diamond", "Ace", "Conqueror", "Crown"];
     const canCreateByRank = diamondRanks.includes(rankInfo.name);
 
+    // ── Check if user questions feature is enabled ──
+    const { data: features } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "frontend_features")
+      .maybeSingle();
+
+    const userQuestionsEnabled = !features || !features.value || features.value.userQuestionsEnabled !== false;
+
+    if (!userQuestionsEnabled) {
+      return NextResponse.json({
+        ok: true,
+        data: { canCreate: false, rank: rankInfo.name, rankIcon: rankInfo.icon, openQuestions: stillOpen.length, maxAllowed: 2, remainingSlots: 0, reason: "การสร้างคำถามจากผู้ใช้ถูกปิดชั่วคราวโดยผู้ดูแลระบบ" },
+      });
+    }
+
     // ── Count open questions ──
     const now = new Date().toISOString();
     const { data: existingOpen } = await supabase
