@@ -2641,39 +2641,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     </button>
                   </div>
 
-                  {/* Chat Box Enable/Disable Toggle */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px" }}>
-                    <div>
-                      <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--text)" }}>💬 Enable Chat Box</div>
-                      <div style={{ fontSize: "10px", color: "var(--muted)" }}>Show chat box on homepage</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setChatEnabled(v => !v)}
-                      style={{
-                        width: "48px",
-                        height: "26px",
-                        borderRadius: "13px",
-                        border: "none",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                        background: chatEnabled ? "var(--green)" : "var(--hairline)",
-                        position: "relative",
-                      }}
-                    >
-                      <div style={{
-                        width: "20px",
-                        height: "20px",
-                        borderRadius: "50%",
-                        background: "#fff",
-                        position: "absolute",
-                        top: "3px",
-                        left: chatEnabled ? "24px" : "3px",
-                        transition: "left 0.2s",
-                      }} />
-                    </button>
-                  </div>
-
                   {/* YouTube Embed */}
                   <div style={{ display: "grid", gap: "8px" }}>
                     <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>YouTube URL</span>
@@ -3441,9 +3408,76 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
           {activeTab === "chat" && (
             <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "16px", margin: "0 auto" }}>
+              {/* ── Chat Enable/Disable Toggle ── */}
+              <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
+                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
+                  <h2>💬 เปิด/ปิดห้องแชท</h2>
+                </div>
+                <div style={{ padding: "12px 0 0 0", display: "grid", gap: "12px" }}>
+                  
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px" }}>
+                    <div>
+                      <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--text)" }}>เปิดใช้งานห้องแชท</div>
+                      <div style={{ fontSize: "10px", color: "var(--muted)" }}>แสดงห้องแชทบนหน้าแรก</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setChatEnabled(v => !v)}
+                      style={{
+                        width: "48px",
+                        height: "26px",
+                        borderRadius: "13px",
+                        border: "none",
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                        background: chatEnabled ? "var(--green)" : "var(--hairline)",
+                        position: "relative",
+                      }}
+                    >
+                      <div style={{
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "50%",
+                        background: "#fff",
+                        position: "absolute",
+                        top: "3px",
+                        left: chatEnabled ? "24px" : "3px",
+                        transition: "left 0.2s",
+                      }} />
+                    </button>
+                  </div>
+
+                  <button 
+                    className="button primary" 
+                    type="button" 
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/admin/settings', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ key: 'frontend_features', value: { enabled: frontendEnabled, chatEnabled } }),
+                        });
+                        const payload = await res.json();
+                        if (res.ok && payload.ok) {
+                          alert('บันทึกการตั้งค่าแชทสำเร็จ');
+                        } else {
+                          alert('บันทึกไม่สำเร็จ: ' + (payload.error || res.status));
+                        }
+                      } catch (e: any) {
+                        alert('เกิดข้อผิดพลาด: ' + (e?.message || String(e)));
+                      }
+                    }}
+                    style={{ width: "100%", height: "36px", fontWeight: "bold" }}
+                  >
+                    💾 บันทึกการตั้งค่าแชท
+                  </button>
+                </div>
+              </div>
+
+              {/* ── Chat Messages List ── */}
               <div className="panel-head">
-                <h2>💬 จัดการแชท</h2>
-                <span className="micro">ตรวจสอบและลบข้อความท่ีไม่เหมาะสม</span>
+                <h2>จัดการข้อความแชท</h2>
+                <span className="micro">ตรวจสอบและลบข้อความที่ไม่เหมาะสม</span>
               </div>
 
               <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
