@@ -652,14 +652,33 @@ export default function SuperWinPrototype() {
           if (json.data.youtube_embed?.embed_code) {
             embedCode = json.data.youtube_embed.embed_code;
           }
+          // New format: youtube_embed.url — convert to iframe
+          if (!embedCode && json.data.youtube_embed?.url) {
+            const url = json.data.youtube_embed.url.trim();
+            let videoId = '';
+            const patterns = [
+              /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
+              /^([a-zA-Z0-9_-]{11})$/,
+            ];
+            for (const p of patterns) {
+              const m = url.match(p);
+              if (m && m[1]) { videoId = m[1]; break; }
+            }
+            if (videoId) {
+              embedCode = `<iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+            }
+          }
           // Fallback: frontend_features may contain youtube_embed string directly
-          // (due to saveFrontendSettings saving both enabled + youtube_embed in same object)
           if (!embedCode && json.data.frontend_features?.youtube_embed) {
             embedCode = json.data.frontend_features.youtube_embed;
           }
           setYoutubeEmbed(embedCode);
 
-          // Load YouTube schedule times
+          // Load open_now flag
+          if (json.data.youtube_embed?.open_now !== undefined) {
+            // Store as attribute on youtubeEmbed state or separate - using schedule logic handles it
+          }
+          // Load schedule times
           if (json.data.youtube_embed?.schedule_start) {
             setYoutubeScheduleStart(json.data.youtube_embed.schedule_start);
           }

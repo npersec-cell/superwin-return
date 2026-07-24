@@ -661,6 +661,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         if (json.data.youtube_embed?.url) {
           setYoutubeUrl(json.data.youtube_embed.url);
         }
+        // Load open_now flag
+        if (json.data.youtube_embed?.open_now !== undefined) {
+          setYoutubeOpenNow(!!json.data.youtube_embed.open_now);
+        }
         // Load schedule times
         if (json.data.youtube_embed?.schedule_start) {
           setYoutubeScheduleStart(json.data.youtube_embed.schedule_start);
@@ -681,19 +685,36 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   async function saveFrontendSettings() {
     try {
+      // Build youtube_embed object to save separately
+      const youtubeEmbedValue: Record<string, any> = {};
+      if (youtubeUrl.trim()) {
+        youtubeEmbedValue.url = youtubeUrl.trim();
+        youtubeEmbedValue.open_now = youtubeOpenNow;
+        if (!youtubeOpenNow && youtubeScheduleStart) {
+          youtubeEmbedValue.schedule_start = youtubeScheduleStart;
+        }
+        if (youtubeScheduleEnd) {
+          youtubeEmbedValue.schedule_end = youtubeScheduleEnd;
+        }
+      }
+
+      // Use PATCH to save multiple keys at once
       const res = await fetch('/api/admin/settings', {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'frontend_features', value: { enabled: frontendEnabled, chatEnabled } }),
+        body: JSON.stringify({
+          frontend_features: { enabled: frontendEnabled, chatEnabled },
+          ...(Object.keys(youtubeEmbedValue).length > 0 ? { youtube_embed: youtubeEmbedValue } : {}),
+        }),
       });
       const payload = await res.json();
       if (res.ok && payload.ok) {
-        alert('Saved successfully');
+        alert('บันทึก Frontpage Settings สำเร็จ');
       } else {
-        alert('Failed to save: ' + (payload.error || res.status));
+        alert('บันทึกไม่สำเร็จ: ' + (payload.error || res.status));
       }
     } catch (e: any) {
-      alert('An error occurred: ' + (e?.message || String(e)));
+      alert('เกิดข้อผิดพลาด: ' + (e?.message || String(e)));
     }
   }
 
