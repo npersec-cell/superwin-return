@@ -1340,8 +1340,6 @@ export default function SuperWinPrototype() {
     <main className="page" suppressHydrationWarning>
       <div className="app" suppressHydrationWarning>
         <header className="topbar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "6px 8px" }}>
-          {/* ── Brand + Actions Row ── */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
 
           <div className="brand">
             <img className="logo" src="/SuperWin_b.png" alt="SuperWin logo" />
@@ -1350,7 +1348,7 @@ export default function SuperWinPrototype() {
               <span>Prediction Room</span>
             </div>
           </div>
-          <div className="actions">
+          <div className="actions" style={{ marginLeft: "auto" }}>
             {!(devBypass || isSignedIn) ? (
               <SignInButton mode="modal">
                 <button className="button primary">Sign In</button>
@@ -1383,7 +1381,6 @@ export default function SuperWinPrototype() {
               </>
             )}
             <button className="button gold" onClick={() => setOpenModal("info")}>Info</button>
-          </div>
           </div>
         </header>
 
