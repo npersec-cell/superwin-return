@@ -5,13 +5,13 @@ import { maskName } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-// Calculate ratio vs average (uncapped)
-// Value at average = 100, twice average = 200, etc.
+// Calculate ratio vs average (scaled to ~0-200 range)
+// Value at average = 10, twice average = 20, 10x average = 100
 function getRatioScore(value: number, allValues: number[]): number {
   if (allValues.length === 0) return 0;
   const avg = allValues.reduce((a, b) => a + b, 0) / allValues.length;
-  if (avg === 0) return value > 0 ? 100 : 0;
-  return Math.round((value / avg) * 100);
+  if (avg === 0) return value > 0 ? 10 : 0;
+  return Math.round((value / avg) * 10);
 }
 
 // Get rank tier from position with minimum counts
