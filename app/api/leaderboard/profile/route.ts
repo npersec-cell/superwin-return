@@ -5,13 +5,13 @@ import { maskName } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-// Calculate percentile rank (0-100)
-// Higher value = higher percentile
-function getPercentile(value: number, allValues: number[]): number {
+// Calculate ratio vs average (uncapped)
+// Value at average = 100, twice average = 200, etc.
+function getRatioScore(value: number, allValues: number[]): number {
   if (allValues.length === 0) return 0;
-  const sorted = [...allValues].sort((a, b) => a - b);
-  let rank = sorted.filter(v => v < value).length + 1; // 1-based
-  return ((rank / allValues.length)) * 100;
+  const avg = allValues.reduce((a, b) => a + b, 0) / allValues.length;
+  if (avg === 0) return value > 0 ? 100 : 0;
+  return Math.round((value / avg) * 100);
 }
 
 // Get rank tier from position with minimum counts
@@ -129,23 +129,23 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Calculate Overall score using Percentile Score (0-100)
+    // Calculate Overall score using Ratio vs Average (uncapped) — same as v2 API
     // Each category contributes equally (25% weight)
-    for (const userId of userStatsMap.keys()) {
-      const stats = userStatsMap.get(userId)!;
+    for (const uid of userStatsMap.keys()) {
+      const stats = userStatsMap.get(uid)!;
       const profitScore = stats.profitScore;
       const predictionCount = stats.predictionCount;
       const highestSingleWin = stats.highestSingleWin;
       const avgClaimPerDay = stats.avgClaimPerDay;
       
-      // Calculate percentile for each category (0-100)
-      const orangePct = getPercentile(profitScore, allCoinBalances);
-      const predPct = getPercentile(predictionCount, allPredCounts);
-      const winPct = getPercentile(highestSingleWin, allHighestWins);
-      const activePct = getPercentile(avgClaimPerDay, allAvgClaims);
+      // Calculate ratio score for each category (uncapped)
+      const orangeScore = getRatioScore(profitScore, allCoinBalances);
+      const predScore = getRatioScore(predictionCount, allPredCounts);
+      const winScore = getRatioScore(highestSingleWin, allHighestWins);
+      const activeScore = getRatioScore(avgClaimPerDay, allAvgClaims);
       
-      // Average of all percentiles (0-100)
-      const overall = Math.round((orangePct + predPct + winPct + activePct) / 4);
+      // Average of all 4 ratio scores (uncapped)
+      const overall = Math.round((orangeScore + predScore + winScore + activeScore) / 4);
       
       stats.overall = overall;
     }
