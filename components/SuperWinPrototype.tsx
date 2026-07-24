@@ -443,6 +443,7 @@ export default function SuperWinPrototype() {
   const [youtubeScheduleStart, setYoutubeScheduleStart] = useState<string>('');
   const [youtubeScheduleEnd, setYoutubeScheduleEnd] = useState<string>('');
     const [frontendFeaturesEnabled, setFrontendFeaturesEnabled] = useState(true);
+  const [chatEnabled, setChatEnabled] = useState(true);
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [liveQuestions, setLiveQuestions] = useState<Question[]>([]);
@@ -630,6 +631,7 @@ export default function SuperWinPrototype() {
 
           if (json.data.frontend_features !== undefined) {
             setFrontendFeaturesEnabled(json.data.frontend_features.enabled !== false);
+            setChatEnabled(json.data.frontend_features.chatEnabled !== false);
           }
         }
       })
@@ -1882,7 +1884,7 @@ export default function SuperWinPrototype() {
             )}
             
             {/* ── CHAT BOX ── */}
-            <ChatBox />
+            {chatEnabled && <ChatBox />}
             
             {/* Contest Box - กิจกรรมชิงรางวัล */}
             {contest && contest.status === "active" && (

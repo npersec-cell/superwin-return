@@ -287,6 +287,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [youtubeScheduleStart, setYoutubeScheduleStart] = useState("");
   const [youtubeScheduleEnd, setYoutubeScheduleEnd] = useState("");
   const [frontendEnabled, setFrontendEnabled] = useState(true);
+  const [chatEnabled, setChatEnabled] = useState(true);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [showEditContestForm, setShowEditContestForm] = useState(false);
@@ -658,6 +659,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         // Load frontend features enabled state
         if (json.data.frontend_features !== undefined) {
           setFrontendEnabled(!!json.data.frontend_features.enabled);
+          setChatEnabled(json.data.frontend_features.chatEnabled !== false);
         }
       }
     } catch (e) {
@@ -670,7 +672,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'frontend_features', value: { enabled: frontendEnabled } }),
+        body: JSON.stringify({ key: 'frontend_features', value: { enabled: frontendEnabled, chatEnabled } }),
       });
       const payload = await res.json();
       if (res.ok && payload.ok) {
@@ -2634,6 +2636,39 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         position: "absolute",
                         top: "3px",
                         left: frontendEnabled ? "24px" : "3px",
+                        transition: "left 0.2s",
+                      }} />
+                    </button>
+                  </div>
+
+                  {/* Chat Box Enable/Disable Toggle */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px" }}>
+                    <div>
+                      <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--text)" }}>💬 Enable Chat Box</div>
+                      <div style={{ fontSize: "10px", color: "var(--muted)" }}>Show chat box on homepage</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setChatEnabled(v => !v)}
+                      style={{
+                        width: "48px",
+                        height: "26px",
+                        borderRadius: "13px",
+                        border: "none",
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                        background: chatEnabled ? "var(--green)" : "var(--hairline)",
+                        position: "relative",
+                      }}
+                    >
+                      <div style={{
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "50%",
+                        background: "#fff",
+                        position: "absolute",
+                        top: "3px",
+                        left: chatEnabled ? "24px" : "3px",
                         transition: "left 0.2s",
                       }} />
                     </button>
