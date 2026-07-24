@@ -721,14 +721,17 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         url: youtubeUrl,
         embed_code: embedCode,
       };
-      // If "Open Now" is checked, clear schedule so it shows immediately
+      // Mode 1: Open now — clear start time (shows immediately), keep end time if set
       if (youtubeOpenNow) {
         scheduleData.schedule_start = "";
-        scheduleData.schedule_end = "";
-      } else {
-        // Only include schedule times if both are set
-        if (youtubeScheduleStart) scheduleData.schedule_start = youtubeScheduleStart;
         if (youtubeScheduleEnd) scheduleData.schedule_end = youtubeScheduleEnd;
+        else scheduleData.schedule_end = "";
+      } else {
+        // Mode 2: Scheduled — use both start and end times
+        if (youtubeScheduleStart) scheduleData.schedule_start = youtubeScheduleStart;
+        else scheduleData.schedule_start = "";
+        if (youtubeScheduleEnd) scheduleData.schedule_end = youtubeScheduleEnd;
+        else scheduleData.schedule_end = "";
       }
 
       const res = await fetch('/api/admin/settings', {
@@ -2658,16 +2661,34 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       placeholder="https://www.youtube.com/watch?v=VIDEO_ID หรือ https://youtu.be/VIDEO_ID"
                       style={{ fontFamily: "monospace", fontSize: "11px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "8px", color: "var(--text)" }}
                     />
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                      <div>
-                        <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>เวลาเปิด (ตามเวลาไทย)</span>
-                        <input 
-                          type="datetime-local"
-                          value={youtubeScheduleStart} 
-                          onChange={(event) => setYoutubeScheduleStart(event.target.value)} 
-                          style={{ width: "100%", boxSizing: "border-box", fontFamily: "monospace", fontSize: "11px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "6px", color: "var(--text)", marginTop: "2px" }}
-                        />
-                      </div>
+                    
+                    {/* ── Mode Toggle ── */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                      <input 
+                        type="checkbox" 
+                        id="youtubeOpenNow"
+                        checked={youtubeOpenNow} 
+                        onChange={(e) => setYoutubeOpenNow(e.target.checked)}
+                        style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "var(--green)" }}
+                      />
+                      <label htmlFor="youtubeOpenNow" style={{ fontSize: "11px", fontWeight: "600", color: "var(--text)", cursor: "pointer" }}>
+                        เปิดทันที (ไม่ต้องตั้งเวลาเปิด)
+                      </label>
+                    </div>
+
+                    {/* Schedule inputs — always show end time, start time only when not "open now" */}
+                    <div style={{ display: "grid", gridTemplateColumns: youtubeOpenNow ? "1fr" : "1fr 1fr", gap: "8px", marginTop: "4px" }}>
+                      {!youtubeOpenNow && (
+                        <div>
+                          <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>เวลาเปิด (ตามเวลาไทย)</span>
+                          <input 
+                            type="datetime-local"
+                            value={youtubeScheduleStart} 
+                            onChange={(event) => setYoutubeScheduleStart(event.target.value)} 
+                            style={{ width: "100%", boxSizing: "border-box", fontFamily: "monospace", fontSize: "11px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "6px", color: "var(--text)", marginTop: "2px" }}
+                          />
+                        </div>
+                      )}
                       <div>
                         <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>เวลาปิด (ตามเวลาไทย)</span>
                         <input 
@@ -2678,21 +2699,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         />
                       </div>
                     </div>
-                    <span className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>ปลอย่ างว่างเวลาเปิด/ปิด ถาตองการใหแสดงตลอด</span>
-                    
-                    {/* ── Open Now Checkbox ── */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", background: "rgba(255,200,0,0.06)", borderRadius: "6px", border: "1px solid rgba(255,200,0,0.15)", marginTop: "4px" }}>
-                      <input 
-                        type="checkbox" 
-                        id="youtubeOpenNow"
-                        checked={youtubeOpenNow} 
-                        onChange={(e) => setYoutubeOpenNow(e.target.checked)}
-                        style={{ width: "18px", height: "18px", cursor: "pointer", accentColor: "var(--yellow)" }}
-                      />
-                      <label htmlFor="youtubeOpenNow" style={{ fontSize: "11px", fontWeight: "600", color: "var(--yellow)", cursor: "pointer", flex: 1 }}>
-                        ✅ เปิดทันที (ไม่ต้องตั้งเวลา — แสดงเลย)
-                      </label>
-                    </div>
+                    <span className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>ปลอย่ างว่างเวลาปิด ถาตองการใหแสดงตลอด</span>
                   </div>
 
                   <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "36px", fontWeight: "bold", marginTop: "4px" }}>💾 Save Frontpage Settings</button>
