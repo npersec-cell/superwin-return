@@ -462,7 +462,8 @@ export default function SuperWinPrototype() {
   const [youtubeEmbed, setYoutubeEmbed] = useState<string>('');
   const [youtubeScheduleStart, setYoutubeScheduleStart] = useState<string>('');
   const [youtubeScheduleEnd, setYoutubeScheduleEnd] = useState<string>('');
-    const [frontendFeaturesEnabled, setFrontendFeaturesEnabled] = useState(true);
+  const [youtubeOpenNow, setYoutubeOpenNow] = useState(false);
+  const [frontendFeaturesEnabled, setFrontendFeaturesEnabled] = useState(true);
   const [chatEnabled, setChatEnabled] = useState(true);
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -674,9 +675,9 @@ export default function SuperWinPrototype() {
           }
           setYoutubeEmbed(embedCode);
 
-          // Load open_now flag
+          // Load open_now flag — if true, always show regardless of schedule
           if (json.data.youtube_embed?.open_now !== undefined) {
-            // Store as attribute on youtubeEmbed state or separate - using schedule logic handles it
+            setYoutubeOpenNow(!!json.data.youtube_embed.open_now);
           }
           // Load schedule times
           if (json.data.youtube_embed?.schedule_start) {
@@ -1608,16 +1609,16 @@ export default function SuperWinPrototype() {
 
         {/* ── YouTube Embed Section (only if enabled by admin) ── */}
         {mounted && frontendFeaturesEnabled && youtubeEmbed && (() => {
+          // If youtubeOpenNow is true, always show regardless of schedule
+          if (youtubeOpenNow) {
+            return <YouTubeEmbedSection embedCode={youtubeEmbed} />;
+          }
           // Check schedule: only show YouTube embed within scheduled time window
-          // Schedule times are stored as Bangkok time (UTC+7), convert to comparable timestamps
           const now = new Date();
           let shouldShow = true;
           if (youtubeScheduleStart) {
-            // Parse as Bangkok time (UTC+7) since datetime-local input has no timezone
             const startDate = new Date(youtubeScheduleStart);
-            if (isNaN(startDate.getTime())) {
-              // Invalid date format, ignore schedule
-            } else if (now < startDate) {
+            if (!isNaN(startDate.getTime()) && now < startDate) {
               shouldShow = false;
             }
           }
