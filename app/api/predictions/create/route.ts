@@ -224,6 +224,7 @@ export async function POST(request: NextRequest) {
 /**
  * GET /api/predictions/create/check
  * Check if current user can create a prediction (rank + open count)
+ * Always returns JSON - never throws or redirects to HTML
  */
 export async function GET(request: NextRequest) {
   try {
@@ -286,7 +287,23 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    // Always return JSON, never HTML error page
     const message = error instanceof Error ? error.message : "Failed to check creation eligibility";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: message,
+        data: {
+          canCreate: false,
+          rank: "",
+          rankIcon: "",
+          openQuestions: 0,
+          maxAllowed: 2,
+          remainingSlots: 0,
+          reason: message,
+        },
+      },
+      { status: message === "Unauthorized" ? 401 : 500 }
+    );
   }
 }

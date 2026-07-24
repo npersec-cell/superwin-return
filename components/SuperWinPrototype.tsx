@@ -1221,6 +1221,17 @@ export default function SuperWinPrototype() {
   // Check eligibility when modal opens
   useEffect(() => {
     if (openModal !== "createQuestion") return;
+    
+    // Must be signed in first
+    if (!isSignedIn && !devBypass) {
+      setCanCreateQuestion(false);
+      setCreateReason("You must be logged in to create questions");
+      setUserRank("");
+      setUserRankIcon("");
+      setOpenQuestionCount(0);
+      return;
+    }
+    
     setCreateCheckLoading(true);
     fetch("/api/predictions/create/check", { credentials: "include" })
       .then(res => res.json())
@@ -1241,7 +1252,7 @@ export default function SuperWinPrototype() {
         setCreateReason(err.message || "Unable to check eligibility");
       })
       .finally(() => setCreateCheckLoading(false));
-  }, [openModal]);
+  }, [openModal, isSignedIn, devBypass]);
 
   function cqAddOption() {
     const val = cqOptionInput.trim();
@@ -1521,7 +1532,13 @@ export default function SuperWinPrototype() {
                   <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory(); }}>History</button>
                   <button
                     className="button"
-                    onClick={() => setOpenModal("createQuestion")}
+                    onClick={() => {
+                      if (!isSignedIn && !devBypass) {
+                        alert("You must be logged in to create questions. Please sign in first.");
+                        return;
+                      }
+                      setOpenModal("createQuestion");
+                    }}
                     style={{
                       border: "1px dashed var(--yellow)",
                       color: "var(--yellow)",
