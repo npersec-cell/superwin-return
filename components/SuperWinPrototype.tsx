@@ -1410,44 +1410,28 @@ export default function SuperWinPrototype() {
           return shouldShow ? <YouTubeEmbedSection embedCode={youtubeEmbed} /> : null;
         })()}
 
-        {/* ── Special 10-min Claim (กระสุนส้มพเิ ศษ) ── */}
+        {/* ── Special 10-min Claim ── */}
         {frontendFeaturesEnabled && (<div style={{
           margin: "0 0 12px 0",
-          padding: "10px 16px",
-          background: "linear-gradient(135deg, rgba(255,165,0,0.08), rgba(255,100,0,0.04))",
-          border: "2px solid rgba(255,165,0,0.3)",
+          padding: "12px 16px",
+          background: "var(--card)",
+          border: "1px solid var(--hairline)",
           borderRadius: "12px",
           display: "flex",
           alignItems: "center",
-          gap: "14px",
-          position: "relative",
-          overflow: "hidden",
+          gap: "12px",
         }}>
-          <div style={{
-            position: "absolute",
-            top: "-50%",
-            left: "-50%",
-            width: "200%",
-            height: "200%",
-            background: "radial-gradient(circle, rgba(255,165,0,0.05) 0%, transparent 70%)",
-            animation: "pulse-glow 3s ease-in-out infinite",
-            pointerEvents: "none",
-          }} />
-          
           {/* Ammo Icon */}
-          <img src="https://superwinhub.app/ammo-icon.webp" alt="" width={28} height={28} style={{ 
+          <img src="https://superwinhub.app/ammo-icon.webp" alt="" width={24} height={24} style={{ 
               flexShrink: 0, 
-              zIndex: 1,
-              filter: "drop-shadow(0 0 4px rgba(255,165,0,0.5))",
               objectFit: "contain",
-              lineHeight: 1,
             }} />
           
-          <div style={{ flex: 1, zIndex: 1 }}>
-            <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--yellow)", marginBottom: "1px" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--text-strong)", marginBottom: "2px" }}>
               Special Claim
             </div>
-            <div style={{ fontSize: "9px", color: "var(--muted)" }}>
+            <div style={{ fontSize: "10px", color: "var(--muted)" }}>
               Free coins every 10 minutes
             </div>
           </div>
@@ -1457,27 +1441,24 @@ export default function SuperWinPrototype() {
             disabled={specialClaimLoading || (!devBypass && !isSignedIn) || Date.now() >= nextSpecialClaimAt === false}
             style={{
               flexShrink: 0,
-              padding: "7px 16px",
-              fontSize: "12px",
-              fontWeight: "800",
-              borderRadius: "18px",
+              padding: "6px 14px",
+              fontSize: "11px",
+              fontWeight: "700",
+              borderRadius: "8px",
               border: "none",
               cursor: (specialClaimLoading || (!devBypass && !isSignedIn) || Date.now() >= nextSpecialClaimAt === false) ? "not-allowed" : "pointer",
               background: Date.now() >= nextSpecialClaimAt
-                ? "linear-gradient(135deg, #FFA500, #FF8C00)"
+                ? "var(--yellow)"
                 : "var(--hairline)",
-              color: Date.now() >= nextSpecialClaimAt ? "#000" : "var(--muted)",
-              transition: "all 0.2s",
-              boxShadow: Date.now() >= nextSpecialClaimAt ? "0 2px 10px rgba(255,165,0,0.4)" : "none",
-              minWidth: "70px",
-              position: "relative",
-              zIndex: 1,
+              color: Date.now() >= nextSpecialClaimAt ? "var(--bg)" : "var(--muted)",
+              transition: "all 0.15s",
+              minWidth: "64px",
             }}
           >
             {specialClaimLoading ? (
               <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⏳</span>
             ) : (
-              <span style={{ fontSize: "12px", lineHeight: 1, fontWeight: "800" }}>{specialClaimLabel}</span>
+              <span style={{ fontSize: "11px", lineHeight: 1, fontWeight: "700" }}>{specialClaimLabel}</span>
             )}
           </button>
         </div>)}
