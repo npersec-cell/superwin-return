@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     if (countError) throw new Error(countError.message);
 
-    // Get user's rank
+    // Get user's rank from user_stats
     const { data: userStats } = await supabase
       .from("user_stats")
       .select("overall_rank")
@@ -29,8 +29,29 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     let userRank = 0;
-    if (userStats?.overall_rank) {
+    if (userStats?.overall_rank && userStats.overall_rank > 0) {
       userRank = userStats.overall_rank;
+    } else {
+      // Fallback: calculate rank from profit_score directly
+      const { data: userData } = await supabase
+        .from("users")
+        .select("profit_score")
+        .eq("id", user.id)
+        .single();
+
+      if (userData && userData.profit_score !== null && userData.profit_score !== undefined) {
+        const { count: higherCount } = await supabase
+          .from("users")
+          .select("*", { count: "exact", head: true })
+          .gt("profit_score", userData.profit_score)
+          .eq("status", "active");
+
+        userRank = (higherCount || 0) + 1;
+      } else {
+        // No stats available — treat as lowest rank (Bronze)
+        // Set rank beyond Diamond threshold so they can't create questions
+        userRank = Math.ceil((totalUsers || 1) * 0.5); // Bottom 50% = Platinum/Silver/Bronze
+      }
     }
 
     const rankInfo = getRankFromPosition(userRank, totalUsers || 1);
