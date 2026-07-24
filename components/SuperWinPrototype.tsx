@@ -63,6 +63,7 @@ type ApiPredictionsResponse = {
     totalPool: number;
     sponsorPool?: number;
     playerCount: number;
+    createdBy?: string | null;
     options: Array<{ id: string; label: string; estimatedReturnPercent: number }>;
     entries?: Array<{ optionId: string; userId: string; amount: number; status: string }>;
   }>;
@@ -101,6 +102,26 @@ type ApiPredictResponse = {
       optionLabel: string;
     };
   };
+  error?: string;
+};
+
+type CreateQuestionCheckResponse = {
+  ok: boolean;
+  data?: {
+    canCreate: boolean;
+    rank: string;
+    rankIcon: string;
+    openQuestions: number;
+    maxAllowed: number;
+    remainingSlots: number;
+    reason: string | null;
+  };
+  error?: string;
+};
+
+type ActiveTournamentsResponse = {
+  ok: boolean;
+  data?: string[];
   error?: string;
 };
 
@@ -458,7 +479,7 @@ export default function SuperWinPrototype() {
   const runningPageSize = 10;
   const [questionDeadlines, setQuestionDeadlines] = useState<Record<string, number>>({});
   const [claimLabel, setClaimLabel] = useState("Ready");
-  const [openModal, setOpenModal] = useState<"history" | "running" | "info" | "claimResult" | null>(null);
+  const [openModal, setOpenModal] = useState<"history" | "running" | "info" | "claimResult" | "createQuestion" | null>(null);
   const [claimResult, setClaimResult] = useState<number>(0);
   const [claimFlash, setClaimFlash] = useState(false);
   const claimFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -501,6 +522,24 @@ export default function SuperWinPrototype() {
   const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
   const [liveBetsLoading, setLiveBetsLoading] = useState(true);
   const [selectedLiveBet, setSelectedLiveBet] = useState<LiveBet | null>(null);
+
+  // ── Create Question Form State ──
+  const [canCreateQuestion, setCanCreateQuestion] = useState<boolean>(false);
+  const [createCheckLoading, setCreateCheckLoading] = useState(false);
+  const [createReason, setCreateReason] = useState<string | null>(null);
+  const [userRank, setUserRank] = useState<string>("");
+  const [userRankIcon, setUserRankIcon] = useState<string>("");
+  const [openQuestionCount, setOpenQuestionCount] = useState(0);
+  const [cqTournament, setCqTournament] = useState("");
+  const [cqRound, setCqRound] = useState("รอบแบ่งกลุ่ม");
+  const [cqQuestion, setCqQuestion] = useState("");
+  const [cqClosesAt, setCqClosesAt] = useState("");
+  const [cqOptions, setCqOptions] = useState<string[]>([]);
+  const [cqOptionInput, setCqOptionInput] = useState("");
+  const [cqBulkInput, setCqBulkInput] = useState("");
+  const [cqShowBulk, setCqShowBulk] = useState(false);
+  const [cqSubmitting, setCqSubmitting] = useState(false);
+  const [activeTournaments, setActiveTournaments] = useState<string[]>([]);
 
   // DEV BYPASS: Check for dev_bypass cookie OR URL param on mount
   useEffect(() => {
@@ -1166,6 +1205,115 @@ export default function SuperWinPrototype() {
     return `${date} ${time} UTC+7`;
   }
 
+  // ── Create Question Functions ──
+
+  // Fetch active tournaments for dropdown
+  useEffect(() => {
+    if (openModal !== "createQuestion") return;
+    fetch("/api/tournaments/active")
+      .then(res => res.json())
+      .then((data: ActiveTournamentsResponse) => {
+        if (data.ok && data.data) setActiveTournaments(data.data);
+      })
+      .catch(() => undefined);
+  }, [openModal]);
+
+  // Check eligibility when modal opens
+  useEffect(() => {
+    if (openModal !== "createQuestion") return;
+    setCreateCheckLoading(true);
+    fetch("/api/predictions/create/check", { credentials: "include" })
+      .then(res => res.json())
+      .then((data: CreateQuestionCheckResponse) => {
+        if (data.ok && data.data) {
+          setCanCreateQuestion(data.data.canCreate);
+          setUserRank(data.data.rank);
+          setUserRankIcon(data.data.rankIcon);
+          setOpenQuestionCount(data.data.openQuestions);
+          setCreateReason(data.data.reason);
+        } else {
+          setCanCreateQuestion(false);
+          setCreateReason(data.error || "Unable to check eligibility");
+        }
+      })
+      .catch((err) => {
+        setCanCreateQuestion(false);
+        setCreateReason(err.message || "Unable to check eligibility");
+      })
+      .finally(() => setCreateCheckLoading(false));
+  }, [openModal]);
+
+  function cqAddOption() {
+    const val = cqOptionInput.trim();
+    if (!val) return;
+    setCqOptions(prev => [...prev, val]);
+    setCqOptionInput("");
+  }
+
+  function cqAddBulkOptions() {
+    const lines = cqBulkInput.split("\n").map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) {
+      alert("Please enter at least 2 options (one per line)");
+      return;
+    }
+    setCqOptions(prev => [...prev, ...lines]);
+    setCqBulkInput("");
+    setCqShowBulk(false);
+  }
+
+  function cqRemoveOption(idx: number) {
+    setCqOptions(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  async function handleCreateQuestion(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canCreateQuestion) return;
+    if (!cqTournament.trim()) { alert("Please select a tournament"); return; }
+    if (!cqRound.trim()) { alert("Please select a round"); return; }
+    if (!cqQuestion.trim()) { alert("Please enter a question"); return; }
+    if (!cqClosesAt) { alert("Please set closing time"); return; }
+    if (cqOptions.length < 2) { alert("Please add at least 2 options"); return; }
+
+    setCqSubmitting(true);
+    try {
+      const res = await fetch("/api/predictions/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          tournamentName: cqTournament,
+          round: cqRound,
+          question: cqQuestion,
+          opensAt: null,
+          closesAt: cqClosesAt,
+          feeRate: 0.05,
+          status: "open",
+          options: cqOptions,
+        }),
+      });
+      const result = await res.json();
+      if (res.ok && result.ok) {
+        alert("Question created successfully! It will appear on the homepage shortly.");
+        setOpenModal(null);
+        setCqTournament("");
+        setCqRound("รอบแบ่งกลุ่ ม");
+        setCqQuestion("");
+        setCqClosesAt("");
+        setCqOptions([]);
+        setCqOptionInput("");
+        setCqBulkInput("");
+        // Refresh questions
+        loadOpenPredictions();
+      } else {
+        alert(result.error || "Failed to create question");
+      }
+    } catch (err: any) {
+      alert("Error: " + (err?.message || "Failed to create question"));
+    } finally {
+      setCqSubmitting(false);
+    }
+  }
+
   async function claim() {
     if ((!devBypass && !isSignedIn) || Date.now() < nextClaimAt) return;
 
@@ -1371,6 +1519,24 @@ export default function SuperWinPrototype() {
                   </button>
                   <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                   <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory(); }}>History</button>
+                  <button
+                    className="button"
+                    onClick={() => setOpenModal("createQuestion")}
+                    style={{
+                      border: "1px dashed var(--yellow)",
+                      color: "var(--yellow)",
+                      background: "transparent",
+                      fontSize: "11px",
+                      padding: "0 10px",
+                      height: "32px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                    title="Create a new question (Diamond+ only)"
+                  >
+                    ✏️ Create Question
+                  </button>
                   {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
                 </span>
 
@@ -1579,6 +1745,12 @@ export default function SuperWinPrototype() {
                           )}
                           <span className="dot" />
                           <span>Players: <b>{question.playerCount.toLocaleString()}</b></span>
+                          {question.createdBy && (
+                            <>
+                              <span className="dot" />
+                              <span style={{ fontSize: 11, color: "var(--yellow)" }}>✏️ by <b>{question.createdBy}</b></span>
+                            </>
+                          )}
                         </div>
 
                         {/* Compact row when inactive */}
@@ -2042,6 +2214,189 @@ export default function SuperWinPrototype() {
         </section>
       )}
       {openModal === "history" && <HistoryModal history={history} running={running} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} setHistoryPage={(page) => { setHistoryPage(page); }} onClose={() => setOpenModal(null)} />}
+      {openModal === "createQuestion" && (
+        <section className="modal" aria-label="Create Question" onClick={(event) => event.target === event.currentTarget && setOpenModal(null)}>
+          <div className="modal-card" style={{ maxWidth: 600, padding: "24px" }}>
+            <h3 style={{ fontSize: 18, marginBottom: 4, color: "var(--yellow)" }}>✏️ Create Question</h3>
+            <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: 16 }}>
+              Diamond rank or higher required · Max 2 open questions per user · Fee rate fixed at 5%
+            </p>
+
+            {/* Eligibility Check */}
+            {createCheckLoading ? (
+              <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)", fontSize: 12 }}>
+                Checking eligibility...
+              </div>
+            ) : !canCreateQuestion ? (
+              <div style={{
+                padding: "16px",
+                borderRadius: "8px",
+                background: "rgba(255, 60, 60, 0.08)",
+                border: "1px dashed var(--red)",
+                textAlign: "center",
+                marginBottom: 16,
+              }}>
+                <div style={{ fontSize: 24, marginBottom: 8 }}>🔒</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--red)", marginBottom: 4 }}>
+                  Cannot Create Question
+                </div>
+                <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                  {createReason || "You do not meet the requirements."}
+                </div>
+                {userRank && (
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                    Your rank: <strong style={{ color: "var(--text)" }}>{userRank}</strong>
+                    {userRankIcon && <img src={userRankIcon} alt="" width={14} height={14} style={{ verticalAlign: "middle", marginLeft: 4, objectFit: "contain" }} />}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Info bar */}
+                <div style={{
+                  padding: "8px 12px",
+                  borderRadius: "6px",
+                  background: "rgba(14, 203, 129, 0.08)",
+                  border: "1px solid var(--green)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 16,
+                  fontSize: 11,
+                }}>
+                  <span>✅</span>
+                  <span>Eligible: <strong style={{ color: "var(--green)" }}>{userRank}</strong></span>
+                  <span style={{ color: "var(--muted)" }}>·</span>
+                  <span>{openQuestionCount}/2 questions used</span>
+                  <span style={{ color: "var(--muted)" }}>·</span>
+                  <span>Fee: <strong style={{ color: "var(--yellow)" }}>5%</strong></span>
+                </div>
+
+                <form onSubmit={handleCreateQuestion} style={{ display: "grid", gap: 12 }}>
+                  {/* Tournament */}
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--yellow)" }}>Tournament</span>
+                    <select
+                      value={cqTournament}
+                      onChange={(e) => setCqTournament(e.target.value)}
+                      style={{
+                        height: 36,
+                        fontSize: 13,
+                        border: cqTournament.trim() ? "2px solid var(--green)" : "2px dashed var(--red)",
+                        background: cqTournament.trim() ? "rgba(14, 203, 129, 0.08)" : "rgba(255, 60, 60, 0.06)",
+                        color: cqTournament.trim() ? "var(--green)" : "var(--muted)",
+                        borderRadius: 8,
+                        padding: "0 10px",
+                      }}
+                    >
+                      <option value="">-- Select Tournament --</option>
+                      {activeTournaments.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Round */}
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--yellow)" }}>Round</span>
+                    <select
+                      value={cqRound}
+                      onChange={(e) => setCqRound(e.target.value)}
+                      style={{ height: 36, fontSize: 13, borderRadius: 8, padding: "0 10px", border: "1px solid var(--hairline)" }}
+                    >
+                      <option value="รอบแบ่งกลุ่ ม">รอบแบ่งกลุ่ ม</option>
+                      <option value="รอบสั ดท้าย">รอบสั ดท้าย</option>
+                    </select>
+                  </div>
+
+                  {/* Question */}
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--yellow)" }}>Question</span>
+                    <input
+                      value={cqQuestion}
+                      onChange={(e) => setCqQuestion(e.target.value)}
+                      placeholder="Type your question here..."
+                      style={{ height: 36, fontSize: 13, borderRadius: 8, padding: "0 10px", border: "1px solid var(--hairline)" }}
+                    />
+                  </div>
+
+                  {/* Close Time */}
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--yellow)" }}>Close Time (Bangkok)</span>
+                    <input
+                      type="datetime-local"
+                      value={cqClosesAt}
+                      onChange={(e) => setCqClosesAt(e.target.value)}
+                      style={{ height: 36, fontSize: 13, borderRadius: 8, padding: "0 10px", border: "1px solid var(--hairline)" }}
+                    />
+                  </div>
+
+                  {/* Options */}
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--yellow)" }}>Answer Options</span>
+                      <button
+                        type="button"
+                        onClick={() => setCqShowBulk(!cqShowBulk)}
+                        style={{ fontSize: 10, color: "var(--yellow)", background: "transparent", border: 0, cursor: "pointer", textDecoration: "underline" }}
+                      >
+                        {cqShowBulk ? "Add one by one" : "Add multiple (newline separated)"}
+                      </button>
+                    </div>
+
+                    {!cqShowBulk ? (
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 6 }}>
+                        <input
+                          value={cqOptionInput}
+                          onChange={(e) => setCqOptionInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); cqAddOption(); } }}
+                          placeholder="Add option one by one..."
+                          style={{ height: 34, fontSize: 12, borderRadius: 6, padding: "0 10px", border: "1px solid var(--hairline)" }}
+                        />
+                        <button type="button" onClick={cqAddOption} className="button gold" style={{ height: 34, fontSize: 11 }}>Add</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: "grid", gap: 6 }}>
+                        <textarea
+                          rows={3}
+                          value={cqBulkInput}
+                          onChange={(e) => setCqBulkInput(e.target.value)}
+                          placeholder="Paste options here, one per line&#10;Team A&#10;Team B&#10;Team C"
+                          style={{ borderRadius: 8, padding: 8, fontSize: 12, border: "1px solid var(--hairline)", background: "var(--bg)", color: "var(--text)" }}
+                        />
+                        <button type="button" onClick={cqAddBulkOptions} className="button gold" style={{ height: 34, fontSize: 11 }}>Parse All Options</button>
+                      </div>
+                    )}
+
+                    {cqOptions.length > 0 && (
+                      <div style={{ display: "grid", gap: 4, maxHeight: 120, overflowY: "auto", padding: 4, background: "var(--bg)", borderRadius: 6, border: "1px solid var(--hairline)" }}>
+                        {cqOptions.map((opt, idx) => (
+                          <div key={`${opt}-${idx}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 8px", fontSize: 12 }}>
+                            <span>{idx + 1}. {opt}</span>
+                            <button type="button" onClick={() => cqRemoveOption(idx)} style={{ fontSize: 10, color: "var(--red)", background: "transparent", border: 0, cursor: "pointer" }}>Remove</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Submit */}
+                  <button
+                    type="submit"
+                    disabled={cqSubmitting || !cqTournament.trim() || !cqQuestion.trim() || cqOptions.length < 2 || !cqClosesAt}
+                    className="button primary"
+                    style={{ marginTop: 4, height: 38, fontWeight: "bold" }}
+                  >
+                    {cqSubmitting ? "Creating..." : "🚀 Create Question"}
+                  </button>
+                </form>
+              </>
+            )}
+
+            <button className="button" onClick={() => setOpenModal(null)} style={{ marginTop: 12, width: "100%", height: 32, fontSize: 11 }}>Close</button>
+          </div>
+        </section>
+      )}
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={closeProfile} />
       )}

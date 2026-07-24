@@ -1,143 +1,84 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
-import { validateRequest, updatePredictionBodySchema } from "@/lib/validation";
+import { logAudit } from "@/lib/audit-log";
+import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
-type Params = {
-  params: { id: string } | Promise<{ id: string }>;
-};
-
-function toStatus(error: unknown) {
-  const message = error instanceof Error ? error.message : "Admin request failed";
-  if (message === "Unauthorized") return 401;
-  if (message === "Forbidden") return 403;
-  return 500;
-}
-
-function parseBkkDateTime(localStr: string) {
-  if (!localStr) return null;
-  if (localStr.includes("Z") || localStr.includes("+")) {
-    return new Date(localStr).toISOString();
-  }
-  return new Date(localStr + "+07:00").toISOString();
-}
-
-export async function PATCH(request: NextRequest, context: Params) {
+/**
+ * DELETE /api/admin/predictions/:id
+ * Delete a prediction and all its options/entries.
+ * Only allowed for questions created by users (has created_by_user_id).
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    await requireAdmin(request);
-    const { id } = await Promise.resolve(context.params);
-
-    // Validate request body with Zod
-    const validation = await validateRequest(request, updatePredictionBodySchema);
-    if (!validation.success) {
-      return validation.response;
-    }
-
-    const body = validation.data;
-    const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
-
-    if (body.tournamentName !== undefined) update.tournament_name = body.tournamentName.trim();
-    if (body.question !== undefined) update.question = body.question.trim();
-    if (body.opensAt !== undefined && body.opensAt) update.opens_at = parseBkkDateTime(body.opensAt);
-    if (body.closesAt !== undefined && body.closesAt) update.closes_at = parseBkkDateTime(body.closesAt);
-    if (body.feeRate !== undefined) update.fee_rate = body.feeRate;
-    if (body.status !== undefined) update.status = body.status;
+    const admin = await requireAdmin(request);
+    const { id } = await params;
 
     const supabase = createSupabaseAdminClient();
-    
-    // อัปเดตรายชื่อตัวเลือกคำตอบหากมีการส่งมา
-    if (body.options !== undefined && Array.isArray(body.options)) {
-      for (const option of body.options) {
-        if (option.id && option.label) {
-          const { error: optErr } = await supabase
-            .from("prediction_options")
-            .update({ label: option.label.trim() })
-            .eq("id", option.id)
-            .eq("prediction_id", id);
-          if (optErr) throw new Error("Failed to update option: " + optErr.message);
-        }
-      }
-    }
 
-    const { data, error } = await supabase
+    // Get prediction info first
+    const { data: prediction, error: fetchError } = await supabase
       .from("predictions")
-      .update(update)
-      .eq("id", id)
-      .select("id, tournament_name, question, status, opens_at, closes_at, fee_rate, created_at, updated_at")
-      .single();
-
-    if (error) throw new Error(error.message);
-
-    return NextResponse.json({ ok: true, data });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to update prediction";
-    return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
-  }
-}
-
-export async function DELETE(request: NextRequest, context: Params) {
-  try {
-    await requireAdmin(request);
-    const { id } = await Promise.resolve(context.params);
-    const supabase = createSupabaseAdminClient();
-
-    // 1. ตรวจสอบสถานะและรายการทายผลก่อนลบ
-    const { data: prediction, error: findError } = await supabase
-      .from("predictions")
-      .select("status, question, tournament_name")
+      .select("id, question, tournament_name, status, created_by_user_id")
       .eq("id", id)
       .single();
 
-    if (findError) throw new Error(findError.message);
+    if (fetchError || !prediction) {
+      return NextResponse.json({ ok: false, error: "Prediction not found" }, { status: 404 });
+    }
 
-    // ถ้ายังไม่สรุปผล/ยกเลิก ต้องตรวจสอบว่ามีคนทายหรือไม่
-    if (prediction.status !== "resolved" && prediction.status !== "canceled") {
-      const { count, error: countError } = await supabase
+    // Safety: only allow deleting user-created questions via this endpoint
+    if (!prediction.created_by_user_id) {
+      return NextResponse.json(
+        { ok: false, error: "Can only delete user-created questions via this endpoint. Use admin panel for admin questions." },
+        { status: 403 }
+      );
+    }
+
+    // Cannot delete resolved or closed questions with entries
+    if (["resolved", "closed"].includes(prediction.status)) {
+      const { count } = await supabase
         .from("prediction_entries")
         .select("*", { count: "exact", head: true })
-        .eq("prediction_id", id);
+        .eq("prediction_id", id)
+        .in("status", ["running", "won", "lost"]);
 
-      if (countError) throw new Error(countError.message);
-
-      if (count && count > 0) {
-        throw new Error("ลบได้เฉพาะคำถามที่ทำการสรุปผล (Resolved) หรือยกเลิก (Canceled) แล้วเท่านั้น เนื่องจากมีผู้เล่นทายผลอยู่");
+      if ((count || 0) > 0) {
+        return NextResponse.json(
+          { ok: false, error: "Cannot delete a question that has been closed/resolved with entries. Please refund first." },
+          { status: 400 }
+        );
       }
-
-      // ไม่มีคนทาย → ลบ entries ที่เป็น canceled/refunded (ถ้ามี) ก่อนลบคำถาม
-      await supabase
-        .from("prediction_entries")
-        .delete()
-        .eq("prediction_id", id);
     }
 
-    // 2. ลบตัวเลือกคำตอบ (prediction_options) — entries จะถูก set option_id = null อัตโนมัติ
-    //    เพื่อให้ prediction_entries ยังอยู่สำหรับคำนวณ leaderboard
-    await supabase
-      .from("prediction_options")
-      .delete()
-      .eq("prediction_id", id);
+    // Delete entries first
+    await supabase.from("prediction_entries").delete().eq("prediction_id", id);
 
-    // 2.5 ลบ coin_ledger ที่เกี่ยวข้องกับคำถามนี้ (match จาก question ใน detail)
-    if (prediction) {
-      // ลบ coin_ledger ที่ detail มี Question: {question} อยู่ (match เฉพาะคำถามนี้ ไม่ใช่ทั้งทัวร์นาเมนต์)
-      const { error: ledgerDelError } = await supabase
-        .from("coin_ledger")
-        .delete()
-        .ilike("detail", `%Question: ${prediction.question}%`);
-      if (ledgerDelError) console.error("Failed to delete ledger:", ledgerDelError.message);
-    }
+    // Delete options
+    await supabase.from("prediction_options").delete().eq("prediction_id", id);
 
-    // 3. ลบตัวคำถาม (predictions)
-    const { error: deleteError } = await supabase
-      .from("predictions")
-      .delete()
-      .eq("id", id);
+    // Delete prediction
+    await supabase.from("predictions").delete().eq("id", id);
 
-    if (deleteError) throw new Error(deleteError.message);
+    // Audit log
+    await logAudit({
+      adminId: admin.id,
+      action: "delete_user_prediction",
+      targetType: "prediction",
+      targetId: id,
+      metadata: {
+        question: prediction.question,
+        tournamentName: prediction.tournament_name,
+        createdByUserId: prediction.created_by_user_id,
+        status: prediction.status,
+      },
+    });
 
-    return NextResponse.json({ ok: true, data: { id } });
+    return NextResponse.json({ ok: true, deleted: id });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to delete prediction";
-    return NextResponse.json({ ok: false, error: message }, { status: toStatus(error) });
+    return createSafeErrorResponse(error);
   }
 }

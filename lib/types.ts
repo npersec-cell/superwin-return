@@ -72,6 +72,7 @@ export interface PredictionWithOptionsDto {
   totalPool: number;
   sponsorPool?: number;
   playerCount: number;
+  createdBy?: string | null;
   options: Array<{
     id: string;
     label: string;
@@ -278,6 +279,7 @@ export type Question = {
   totalPool: number;
   sponsorPool?: number;
   playerCount: number;
+  createdBy?: string | null;
   options: Array<{ id: string; name: string; returns: number }>;
   entries?: Array<{ optionId: string; userId: string; amount: number; status: string }>;
 };

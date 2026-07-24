@@ -165,3 +165,36 @@ export const adminUserRoleSchema = z.object({
     .email("Invalid email format"),
 });
 
+/** User create prediction body (POST /api/predictions/create) — feeRate fixed at 0.05 */
+export const createUserPredictionBodySchema = z.object({
+  tournamentName: z
+    .string()
+    .min(1, "Tournament name is required")
+    .max(200, "Tournament name too long (max 200 characters)"),
+  round: z
+    .string()
+    .min(1, "Round is required")
+    .max(200, "Round too long (max 200 characters)"),
+  question: z
+    .string()
+    .min(1, "Question is required")
+    .max(500, "Question too long (max 500 characters)"),
+  opensAt: z
+    .string()
+    .optional()
+    .nullable(),
+  closesAt: z.string().min(1, "Close time is required"),
+  feeRate: z
+    .number()
+    .refine((val) => val === 0.05, "Fee rate must be 0.05")
+    .default(0.05),
+  status: z
+    .enum(["draft", "open", "closed", "resolved", "canceled"])
+    .optional()
+    .default("open"),
+  options: z
+    .array(z.string().min(1, "Option label cannot be empty"))
+    .min(2, "At least 2 options are required")
+    .max(50, "Maximum 50 options allowed"),
+});
+

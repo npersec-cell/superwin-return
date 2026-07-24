@@ -19,6 +19,13 @@ type PredictionRow = {
   closes_at: string;
   fee_rate: number;
   sponsor_pool: number;
+  created_by_user_id: string | null;
+};
+
+type CreatorRow = {
+  id: string;
+  display_name: string | null;
+  email: string;
 };
 
 type EntryRow = {
@@ -50,7 +57,7 @@ export async function GET() {
 
     const { data: predictionRows, error: predictionError } = await supabase
       .from("predictions")
-      .select("id, tournament_name, question, opens_at, closes_at, fee_rate, sponsor_pool")
+      .select("id, tournament_name, question, opens_at, closes_at, fee_rate, sponsor_pool, created_by_user_id")
       .eq("status", "open")
       .or(`opens_at.is.null,opens_at.lte.${now}`)
       .gt("closes_at", now)
@@ -119,6 +126,23 @@ export async function GET() {
       return acc;
     }, {});
 
+    // Fetch creator info for user-created predictions
+    const creatorIds = (predictionRows || [])
+      .map(p => p.created_by_user_id)
+      .filter((id): id is string => !!id);
+    
+    const creatorsById = new Map<string, string>();
+    if (creatorIds.length > 0) {
+      const { data: creatorRows } = await supabase
+        .from("users")
+        .select("id, display_name, email")
+        .in("id", creatorIds)
+        .returns<CreatorRow[]>();
+      for (const c of (creatorRows || [])) {
+        creatorsById.set(c.id, c.display_name || c.email.split("@")[0]);
+      }
+    }
+
     function computeReturn(predictionId: string, optionId: string, feeRate: number, sponsorPool: number): number {
       const optionPool = poolByOption[optionId] || 0;
       const userPool = poolByPrediction[predictionId] || 0;
@@ -147,6 +171,7 @@ export async function GET() {
     const predictions: PredictionWithOptionsDto[] = (predictionRows || []).map((prediction) => {
       const userPool = poolByPrediction[prediction.id] || 0;
       const sponsorPool = prediction.sponsor_pool || 0;
+      const creatorName = prediction.created_by_user_id ? creatorsById.get(prediction.created_by_user_id) : null;
       return {
         id: prediction.id,
         tournamentName: prediction.tournament_name,
@@ -154,6 +179,7 @@ export async function GET() {
         closesAt: prediction.closes_at,
         totalPool: userPool + sponsorPool, // 🍊 รวมกระสุมส้ม
         playerCount: playersByPrediction[prediction.id]?.size || 0,
+        createdBy: creatorName,
         options: (optionsByPrediction[prediction.id] || []).map((option) => ({
           id: option.id,
           label: option.label,
