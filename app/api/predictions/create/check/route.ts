@@ -3,62 +3,136 @@ import { requireUser } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 import { getRankFromPosition } from "@/lib/utils";
 
+// Calculate ratio vs average (scaled) — same as /api/leaderboard/profile
+// Value at average = 10, twice average = 20, 10x average = 100
+function getRatioScore(value: number, allValues: number[]): number {
+  if (allValues.length === 0) return 0;
+  const avg = allValues.reduce((a, b) => a + b, 0) / allValues.length;
+  if (avg === 0) return value > 0 ? 10 : 0;
+  return Math.round((value / avg) * 10);
+}
+
 /**
  * GET /api/predictions/create/check
- * Check if current user can create a prediction (rank + open count)
- * Always returns JSON - never throws or redirects to HTML
+ * Check if current user can create a prediction (Diamond+ rank, max 2 open questions)
+ * 
+ * IMPORTANT: Uses the EXACT SAME rank calculation as /api/leaderboard/profile
+ * to ensure consistency across the app.
  */
 export async function GET(request: NextRequest) {
   try {
     const user = await requireUser(request);
     const supabase = createSupabaseAdminClient();
 
-    // Get total user count
-    const { count: totalUsers, error: countError } = await supabase
+    // ── Calculate Overall Rank (same method as /api/leaderboard/profile) ──
+    // Get all non-admin, non-test users
+    const { data: allUsers, error: usersError } = await supabase
       .from("users")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "active");
+      .select("id, display_name, email, coin_balance, lifetime_profit, role, created_at, claim_count")
+      .neq("role", "admin")
+      .not("email", "like", "%test%")
+      .not("email", "like", "%automated%");
 
-    if (countError) throw new Error(countError.message);
-
-    // Get user's rank from user_stats
-    const { data: userStats } = await supabase
-      .from("user_stats")
-      .select("overall_rank")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    let userRank = 0;
-    if (userStats?.overall_rank && userStats.overall_rank > 0) {
-      userRank = userStats.overall_rank;
-    } else {
-      // Fallback: calculate rank from profit_score directly
-      const { data: userData } = await supabase
-        .from("users")
-        .select("profit_score")
-        .eq("id", user.id)
-        .single();
-
-      if (userData && userData.profit_score !== null && userData.profit_score !== undefined) {
-        const { count: higherCount } = await supabase
-          .from("users")
-          .select("*", { count: "exact", head: true })
-          .gt("profit_score", userData.profit_score)
-          .eq("status", "active");
-
-        userRank = (higherCount || 0) + 1;
-      } else {
-        // No stats available — treat as lowest rank (Bronze)
-        // Set rank beyond Diamond threshold so they can't create questions
-        userRank = Math.ceil((totalUsers || 1) * 0.5); // Bottom 50% = Platinum/Silver/Bronze
-      }
+    if (usersError || !allUsers || allUsers.length === 0) {
+      return NextResponse.json({
+        ok: false,
+        error: "Failed to fetch users",
+        data: { canCreate: false, rank: "Bronze", rankIcon: "/ranks/bronze.png", openQuestions: 0, maxAllowed: 2, remainingSlots: 0, reason: "System error" },
+      });
     }
 
-    const rankInfo = getRankFromPosition(userRank, totalUsers || 1);
+    const userIds = allUsers.map(u => u.id);
+
+    // Get all prediction entries for rank calculation
+    const { data: allEntries, error: entriesError } = await supabase
+      .from("prediction_entries")
+      .select("id, user_id, prediction_id, amount, payout_amount, status, created_at")
+      .in("user_id", userIds)
+      .in("status", ["won", "lost", "refunded"]);
+
+    if (entriesError || !allEntries) {
+      return NextResponse.json({
+        ok: false,
+        error: "Failed to fetch entries",
+        data: { canCreate: false, rank: "Bronze", rankIcon: "/ranks/bronze.png", openQuestions: 0, maxAllowed: 2, remainingSlots: 0, reason: "System error" },
+      });
+    }
+
+    // Calculate stats for each user (same as profile API)
+    const userStatsMap = new Map<string, {
+      profitScore: number;
+      predictionCount: number;
+      highestSingleWin: number;
+      avgClaimPerDay: number;
+      overall: number;
+    }>();
+
+    const allCoinBalances: number[] = [];
+    const allPredCounts: number[] = [];
+    const allHighestWins: number[] = [];
+    const allAvgClaims: number[] = [];
+
+    for (const u of allUsers) {
+      const userEntries = allEntries.filter(e => e.user_id === u.id);
+      const wonEntries = userEntries.filter(e => e.status === "won");
+
+      const profitScore = Number(u.coin_balance) || 0;
+      const uniqueQuestionIds = new Set(userEntries.map(e => e.prediction_id).filter(Boolean));
+      const predictionCount = uniqueQuestionIds.size;
+      const highestSingleWin = wonEntries.length > 0
+        ? Math.max(...wonEntries.map(e => (e.payout_amount || 0) - e.amount))
+        : 0;
+
+      const createdAt = new Date(u.created_at);
+      const daysActive = Math.max(1, Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)));
+      const avgClaimPerDay = (u.claim_count || 0) / daysActive;
+
+      allCoinBalances.push(profitScore);
+      allPredCounts.push(predictionCount);
+      allHighestWins.push(highestSingleWin);
+      allAvgClaims.push(avgClaimPerDay);
+
+      userStatsMap.set(u.id, {
+        profitScore,
+        predictionCount,
+        highestSingleWin,
+        avgClaimPerDay,
+        overall: 0,
+      });
+    }
+
+    // Calculate overall score using Ratio vs Average (same as profile API)
+    for (const [uid, stats] of userStatsMap.entries()) {
+      const orangeScore = getRatioScore(stats.profitScore, allCoinBalances);
+      const predScore = getRatioScore(stats.predictionCount, allPredCounts);
+      const winScore = getRatioScore(stats.highestSingleWin, allHighestWins);
+      const activeScore = getRatioScore(stats.avgClaimPerDay, allAvgClaims);
+      const overall = Math.round((orangeScore + predScore + winScore + activeScore) / 4);
+      userStatsMap.set(uid, { ...stats, overall });
+    }
+
+    // Build leaderboard and sort (same stable sort as profile API)
+    const leaderboardData = allUsers.map(u => ({
+      userId: u.id,
+      overall: userStatsMap.get(u.id)?.overall || 0,
+    }));
+
+    leaderboardData.sort((a, b) => {
+      if (b.overall !== a.overall) return b.overall - a.overall;
+      return a.userId.localeCompare(b.userId);
+    });
+
+    // Find user's overall rank
+    const totalUsers = leaderboardData.length;
+    const userIndex = leaderboardData.findIndex(u => u.userId === user.id);
+    const overallRank = userIndex >= 0 ? userIndex + 1 : totalUsers;
+
+    // Get rank tier name (same as profile API)
+    const rankInfo = getRankFromPosition(overallRank, totalUsers);
     const diamondRanks = ["Diamond", "Ace", "Conqueror", "Crown"];
     const canCreateByRank = diamondRanks.includes(rankInfo.name);
 
-    // Count open questions
+    // ── Count open questions ──
     const now = new Date().toISOString();
     const { data: existingOpen } = await supabase
       .from("predictions")
@@ -90,21 +164,12 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    // Always return JSON, never HTML error page
     const message = error instanceof Error ? error.message : "Failed to check creation eligibility";
     return NextResponse.json(
       {
         ok: false,
         error: message,
-        data: {
-          canCreate: false,
-          rank: "",
-          rankIcon: "",
-          openQuestions: 0,
-          maxAllowed: 2,
-          remainingSlots: 0,
-          reason: message,
-        },
+        data: { canCreate: false, rank: "Bronze", rankIcon: "/ranks/bronze.png", openQuestions: 0, maxAllowed: 2, remainingSlots: 0, reason: message },
       },
       { status: message === "Unauthorized" ? 401 : 500 }
     );
