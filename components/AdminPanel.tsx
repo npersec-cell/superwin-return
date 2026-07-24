@@ -1283,25 +1283,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }
   }
 
-  async function saveInfoSettings(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setLoading(true);
-    setMessage("");
-    try {
-      const data = await requestJson<SiteSettings>("/api/admin/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ info: settings.info })
-      });
-      setSettings(data);
-      setMessage("บันทึกข้อความ Info สำเร็จ");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "บันทึก Info ไม่สำเร็จ");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   function moveLocalOrder(id: string, direction: "up" | "down") {
     const arr = [...localOrder];
     const idx = arr.indexOf(id);
@@ -2989,17 +2970,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       </button>
                   </div>
                 ))}
-              </div>
-
-              <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h2>ข้อความ Info หน้าเว็บ (วิธีเล่น/รางวัล)</h2></div>
-                <form className="modal-body" onSubmit={saveInfoSettings} style={{ padding: "12px 0 0 0", display: "grid", gap: "8px" }}>
-                  <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ข้อความ Info (รวมทัง้หมด)</span>
-                    <textarea rows={6} value={settings.info.content || ""} onChange={(event) => setSettings((current) => ({ ...current, info: { content: event.target.value } }))} placeholder="กรอกข้อมููลวิธีเล่นและกฏการทายผล (ขึ้้นบรรทัดใหม่ดวย \n\n)" style={{ fontFamily: "inherit", fontSize: "12px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "8px", color: "var(--text)", whiteSpace: "pre-line" }} />
-                  </div>
-                  <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "36px", fontWeight: "bold" }}>💾 บันทึกข้อความ Info</button>
-                </form>
               </div>
             </section>
           )}

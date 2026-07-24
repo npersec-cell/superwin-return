@@ -1584,7 +1584,6 @@ export default function SuperWinPrototype() {
                 </span>
               </>
             )}
-            <button className="button gold" onClick={() => setOpenModal("info")}>Info</button>
           </div>
         </header>
 
@@ -2236,7 +2235,6 @@ export default function SuperWinPrototype() {
       )}
 
       {openModal === "running" && <RunningModal running={running} runningPage={runningPage} runningPageSize={runningPageSize} setRunningPage={(page) => { setRunningPage(page); }} onClose={() => setOpenModal(null)} />}
-      {openModal === "info" && <InfoModal settings={settings} onClose={() => setOpenModal(null)} />}
       {openModal === "claimResult" && (
         <section className="modal" aria-label="Reload result" onClick={(event) => event.target === event.currentTarget && setOpenModal(null)}>
           <div className="modal-card" style={{ maxWidth: 360, textAlign: "center", padding: "32px 24px" }}>
@@ -2489,19 +2487,6 @@ function RunningModal({ running, runningPage, runningPageSize, setRunningPage, o
               <button className="button" disabled={runningPage >= totalPages} onClick={() => setRunningPage(runningPage + 1)}>Next</button>
             </div>
           )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function InfoModal({ settings, onClose }: { settings: SiteSettings; onClose: () => void }) {
-  return (
-    <section className="modal" aria-label="Game information" onClick={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="modal-card">
-        <div className="modal-head"><h3>Info</h3><button className="button" onClick={onClose}>Close</button></div>
-        <div className="modal-body">
-          <div className="info-block"><p style={{ whiteSpace: "pre-line", lineHeight: "1.7" }}>{settings.info?.content || ""}</p></div>
         </div>
       </div>
     </section>
