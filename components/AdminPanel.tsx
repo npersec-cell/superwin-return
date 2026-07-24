@@ -1298,7 +1298,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ predictionOrder: localOrder, announcement: settings.announcement })
+        body: JSON.stringify({ predictionOrder: localOrder })
       });
       setSettings(data);
       setMessage("บันทึกลำดับคำถามเข้าสู่ระบบสำเร็จ");
@@ -1338,27 +1338,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       await reloadAll();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "อัปเดตไม่สำเร็จ");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function saveAnnouncementSettings(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setLoading(true);
-    setMessage("");
-    try {
-      const data = await requestJson<SiteSettings>("/api/admin/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          announcement: settings.announcement
-        })
-      });
-      setSettings(data);
-      setMessage("บันทึกข้อความประกาศวิ่งหน้าแรกสำเร็จ");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "บันทึกข้อความประกาศไม่สำเร็จ");
     } finally {
       setLoading(false);
     }
@@ -2619,30 +2598,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
           {activeTab === "settings" && (
             <section className="panel" style={{ width: "100%", maxWidth: "600px", display: "grid", gap: "16px", margin: "0 auto" }}>
-
-              {/* ส่วนพิเศษ: ตั้งค่าข้อความประกาศวิ่งหน้าแรก (Standalone Announcement Ticker Card) */}
-              <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
-                  <h2>📢 ตั้งค่าข้อความประกาศวิ่งหน้าแรก (Announcement Ticker)</h2>
-                </div>
-                <form className="modal-body" onSubmit={saveAnnouncementSettings} style={{ padding: "12px 0 0 0", display: "grid", gap: "10px" }}>
-                  <span className="meta" style={{ textTransform: "none", color: "var(--muted)", lineHeight: "1.4" }}>
-                    *ตั้งค่าข้อความประกาศข่าวสารวิ่งเคลื่อนไหวช้า ๆ จากขวาไปซ้ายด้านล่างเมนูหลักหน้าแรก (แยกบันทึกและมีปุ่มเซฟเป็นอิสระ)
-                  </span>
-                  
-                  <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ข้อความประกาศหน้าแรก (ยาวแถวเดียวไหลช้า ๆ)</span>
-                    <input 
-                      value={settings.announcement || ""} 
-                      onChange={(event) => setSettings((current) => ({ ...current, announcement: event.target.value }))} 
-                      placeholder='เช่น ยินดีต้อนรับเข้าสู่ SUPERWIN HUB! ปล่อยตัวทายผลซีซั่น 2 แล้ววันนี้...' 
-                      style={{ height: "34px" }} 
-                    />
-                  </div>
-
-                  <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "34px", fontWeight: "bold" }}>📢 💾 บันทึกข้อความประกาศหน้าแรก</button>
-                </form>
-              </div>
 
               {/* ── Frontpage Features (เปิด/ปิด ฟีเจอร์หน้าแรก) ── */}
               <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>

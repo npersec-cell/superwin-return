@@ -486,9 +486,6 @@ export default function SuperWinPrototype() {
   // Auto-refresh profile data while modal is open
   const profileRefreshRef = useRef<NodeJS.Timeout | null>(null);
 
-  const marqueeRef = useRef<HTMLDivElement | null>(null);
-  const marqueeContainerRef = useRef<HTMLDivElement | null>(null);
-
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportMessage, setReportMessage] = useState("");
   const [captchaQuestion, setCaptchaQuestion] = useState("");
@@ -689,30 +686,6 @@ export default function SuperWinPrototype() {
   useEffect(() => {
     loadContest();
   }, []);
-
-  useEffect(() => {
-    const marquee = marqueeRef.current;
-    const container = marqueeContainerRef.current;
-    if (!marquee || !container) return;
-
-    let pos = container.offsetWidth;
-    let rafId = 0;
-    const speed = 0.6;
-
-    function tick() {
-      if (!marquee || !container) return;
-      const textWidth = marquee.offsetWidth;
-      pos -= speed;
-      if (pos < -textWidth) {
-        pos = container.offsetWidth;
-      }
-      marquee.style.transform = `translateX(${pos}px)`;
-      rafId = requestAnimationFrame(tick);
-    }
-
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, [settings.announcement]);
 
   useEffect(() => {
     if (!(devBypass || isSignedIn)) {
@@ -1366,31 +1339,7 @@ export default function SuperWinPrototype() {
   return (
     <main className="page" suppressHydrationWarning>
       <div className="app" suppressHydrationWarning>
-        <header className="topbar" style={{ display: "flex", flexDirection: "column", alignItems: "stretch", height: "auto !important", minHeight: "46px", gap: "6px", padding: "6px 8px" }}>
-          {/* ── Announcement Row ── */}
-          {settingsLoaded && settings.announcement && (
-            <div style={{ 
-              display: "flex", 
-              alignItems: "center", 
-              gap: "8px", 
-              background: "rgba(255,255,255,0.03)", 
-              border: "1px solid var(--hairline)", 
-              borderRadius: "6px", 
-              padding: "4px 10px", 
-              fontSize: "11px", 
-              color: "var(--text-strong)",
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-            }}>
-              <span style={{ fontSize: "12px", flexShrink: 0 }}>📢</span>
-              <div style={{ flex: 1, minWidth: 0, overflow: "hidden", height: "18px", position: "relative" }} ref={marqueeContainerRef}>
-                <div style={{ display: "inline-block", whiteSpace: "nowrap", fontWeight: 600, color: "var(--text-strong)", position: "absolute", willChange: "transform" }} ref={marqueeRef}>
-                  {settings.announcement}
-                </div>
-              </div>
-            </div>
-          )}
-
+        <header className="topbar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "6px 8px" }}>
           {/* ── Brand + Actions Row ── */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
 
