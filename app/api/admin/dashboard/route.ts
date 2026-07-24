@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     // 1. ดึงข้อมูลคำถามหลักทั้งหมดเพื่อป้องกัน Error PostgREST Embed
     const { data: predictions, error: pError } = await supabase
       .from("predictions")
-      .select("id, tournament_name, question, status, closes_at, created_at, fee_rate")
+      .select("id, tournament_name, question, status, closes_at, created_at, fee_rate, sponsor_pool")
       .order("created_at", { ascending: false });
 
     if (pError) throw new Error(pError.message);
@@ -55,8 +55,10 @@ export async function GET(request: NextRequest) {
       const pOptions = (options || []).filter((o) => o.prediction_id === p.id);
       const pEntries = (entries || []).filter((e) => e.prediction_id === p.id);
 
-      // ยอดรวมเหรียญทั้งหมดในพูล
-      const totalPoolCoins = pEntries.reduce((sum, e: any) => sum + (e.amount || 0), 0);
+      // ยอดรวมเหรียญทั้งหมดในพูล (รวมกระสุมส้ม)
+      const sponsorPool = Number(p.sponsor_pool || 0);
+      const userPoolCoins = pEntries.reduce((sum, e: any) => sum + (e.amount || 0), 0);
+      const totalPoolCoins = userPoolCoins + sponsorPool;
       const uniquePlayers = new Set(pEntries.map((e: any) => usersById[e.user_id]?.email).filter(Boolean)).size;
 
       // คืนพูลหลังหักค่าธรรมเนียม
@@ -103,6 +105,8 @@ export async function GET(request: NextRequest) {
         status: p.status,
         closesAt: p.closes_at,
         createdAt: p.created_at,
+        sponsorPool,
+        userPoolCoins,
         totalPoolCoins,
         uniquePlayers,
         optionStats,

@@ -31,6 +31,8 @@ type DashboardPrediction = {
   status: string;
   closesAt: string | null;
   createdAt: string;
+  sponsorPool: number;
+  userPoolCoins: number;
   totalPoolCoins: number;
   uniquePlayers: number;
   optionStats: {
@@ -227,6 +229,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   }
   interface PayoutSummary {
     totalPool: number;
+    userPool: number;
+    sponsorPool: number;
     feeRate: number;
     feeTaken: number;
     distributablePool: number;
@@ -1557,6 +1561,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   <div style={{ textAlign: "center" }}>
                     <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>Pool ทั้งหมด</div>
                     <strong style={{ fontSize: "13px", color: "var(--yellow)" }}>{data.summary.totalPool.toLocaleString()}</strong>
+                    {data.summary.sponsorPool ? (
+                      <div style={{ fontSize: "8px", color: "#ff8c00", marginTop: "2px" }}>🍊รวมกระสุมส้ม {data.summary.sponsorPool.toLocaleString()}</div>
+                    ) : null}
                   </div>
                   <div style={{ textAlign: "center" }}>
                     <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>ค่าธรรมเนียม ({Math.round(data.summary.feeRate * 100)}%)</div>
@@ -1588,7 +1595,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   <span style={{ fontSize: "16px" }}>{data.summary.verificationOk ? "✅" : "⚠️"}</span>
                   <span style={{ color: data.summary.verificationOk ? "var(--green)" : "var(--red)", fontWeight: "bold" }}>
                     {data.summary.verificationOk
-                      ? `แจกจ่ายถูกต้อง — จ่ายทั้งหมด ${data.summary.totalDistributed.toLocaleString()} เหรียญ จาก pool ${data.summary.totalPool.toLocaleString()} (${Math.round(data.summary.feeRate * 100)}% fee = ${data.summary.feeTaken.toLocaleString()})`
+                      ? `แจกจ่ายถูกต้อง — จ่ายทั้งหมด ${data.summary.totalDistributed.toLocaleString()} เหรียญ จาก pool ${data.summary.totalPool.toLocaleString()} (รวม🍊กระสุมส้ม ${data.summary.sponsorPool.toLocaleString()}) (${Math.round(data.summary.feeRate * 100)}% fee = ${data.summary.feeTaken.toLocaleString()})`
                       : `⚠️ ต่าง ${Math.abs(data.summary.roundingDifference)} เหรียญ — ตรวจสอบอีกครั้ง`
                     }
                   </span>
@@ -1778,6 +1785,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   });
 
                   const totalTourCoins = sortedQuestions.reduce((sum, q) => sum + q.totalPoolCoins, 0);
+                  const totalSponsorPool = sortedQuestions.reduce((sum, q) => sum + (q.sponsorPool || 0), 0);
                   const totalTourPlayers = new Set(sortedQuestions.flatMap((q) => q.playerBets.map((b) => b.email))).size;
                   const totalBets = sortedQuestions.reduce((sum, q) => sum + q.playerBets.length, 0);
                   const openCount = sortedQuestions.filter((q) => q.status === "open").length;
@@ -1810,8 +1818,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
                         <div style={{ background: colors.goldDim, border: `1px solid ${colors.gold}`, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
                           <div style={{ fontSize: "22px", marginBottom: "4px" }}>💰</div>
-                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>เหรียญรวมทั้งทัวร์</div>
+                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>พูลรวมทั้งทัวร์</div>
                           <strong style={{ fontSize: "24px", color: colors.gold, display: "block", marginTop: "2px" }}>{totalTourCoins.toLocaleString()}</strong>
+                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>Coins</span>
+                        </div>
+                        <div style={{ background: "rgba(255, 140, 0, 0.08)", border: "1px solid rgba(255, 140, 0, 0.2)", borderRadius: "12px", padding: "14px", textAlign: "center" }}>
+                          <div style={{ fontSize: "22px", marginBottom: "4px" }}>🍊</div>
+                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>กระสุมส้มรวม</div>
+                          <strong style={{ fontSize: "24px", color: "#ff8c00", display: "block", marginTop: "2px" }}>{totalSponsorPool.toLocaleString()}</strong>
                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>Coins</span>
                         </div>
                         <div style={{ background: colors.blueDim, border: `1px solid ${colors.blue}`, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
@@ -1883,7 +1897,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
                             {/* Quick Stats Row */}
                             <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", fontSize: "11px", color: "var(--muted)" }}>
-                              <span>💰 พูล: <strong style={{ color: "var(--yellow)" }}>{q.totalPoolCoins.toLocaleString()} Coins</strong></span>
+                              <span>💰 พูลรวม: <strong style={{ color: "var(--yellow)" }}>{q.totalPoolCoins.toLocaleString()} Coins</strong></span>
+                              {q.sponsorPool ? (
+                                <span>🍊 กระสุมส้ม: <strong style={{ color: "#ff8c00" }}>{q.sponsorPool.toLocaleString()}</strong></span>
+                              ) : null}
                               <span>👥 ผู้ทาย: <strong style={{ color: "#fff" }}>{q.uniquePlayers} คน</strong></span>
                               <span>📝 จำนวนทาย: <strong style={{ color: colors.blue }}>{q.playerBets.length} ครั้ง</strong></span>
                               {q.totalPoolCoins > 0 && q.playerBets.length > 0 && (

@@ -22,6 +22,7 @@ type PredictionRow = {
   opens_at: string | null;
   closes_at: string | null;
   fee_rate: number;
+  sponsor_pool: number;
   created_at: string;
   updated_at: string;
 };
@@ -49,6 +50,7 @@ function mapPrediction(row: PredictionRow, options: OptionRow[]) {
     opensAt: row.opens_at,
     closesAt: row.closes_at,
     feeRate: row.fee_rate,
+    sponsorPool: row.sponsor_pool || 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     options: options
@@ -65,7 +67,7 @@ export async function GET(request: NextRequest) {
 
     const { data: predictions, error: predictionError } = await supabase
       .from("predictions")
-      .select("id, tournament_name, question, status, opens_at, closes_at, fee_rate, created_at, updated_at")
+      .select("id, tournament_name, question, status, opens_at, closes_at, fee_rate, sponsor_pool, created_at, updated_at")
       .order("created_at", { ascending: false })
       .returns<PredictionRow[]>();
 
@@ -143,9 +145,10 @@ export async function POST(request: NextRequest) {
         opens_at: opensAt,
         closes_at: closesAt,
         fee_rate: body.feeRate,
+        sponsor_pool: 500, // 🍊 กระสุมส้ม — auto bonus pool for every question
         created_by: admin.id,
       })
-      .select("id, tournament_name, question, status, opens_at, closes_at, fee_rate, created_at, updated_at")
+      .select("id, tournament_name, question, status, opens_at, closes_at, fee_rate, sponsor_pool, created_at, updated_at")
       .single<PredictionRow>();
 
     if (predictionError) throw new Error(predictionError.message);

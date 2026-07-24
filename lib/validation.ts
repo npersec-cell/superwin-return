@@ -119,6 +119,7 @@ export const createPredictionBodySchema = z.object({
   numberWarEnabled: z.boolean().optional().default(false),
   numberWarOpenAt: z.string().optional().nullable(),
   numberWarCloseAt: z.string().optional().nullable(),
+  sponsorPool: z.number().int().min(0).optional().default(500),
 });
 
 /** Admin update prediction body (PATCH /api/admin/predictions/:id) */

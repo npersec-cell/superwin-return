@@ -61,6 +61,7 @@ type ApiPredictionsResponse = {
     question: string;
     closesAt: string;
     totalPool: number;
+    sponsorPool?: number;
     playerCount: number;
     options: Array<{ id: string; label: string; estimatedReturnPercent: number }>;
     entries?: Array<{ optionId: string; userId: string; amount: number; status: string }>;
@@ -1571,7 +1572,11 @@ export default function SuperWinPrototype() {
 
                         {/* Pool / Players meta */}
                         <div className="question-pool-meta">
-                          <span>Pool: <b>{question.totalPool.toLocaleString()} Coins</b></span>
+                          {question.sponsorPool ? (
+                            <span>🍊กระสุมส้ม: <b style={{ color: "var(--orange, #ff8c00)" }}>{question.sponsorPool.toLocaleString()}</b> + Pool: <b>{(question.totalPool - question.sponsorPool).toLocaleString()} Coins</b></span>
+                          ) : (
+                            <span>Pool: <b>{question.totalPool.toLocaleString()} Coins</b></span>
+                          )}
                           <span className="dot" />
                           <span>Players: <b>{question.playerCount.toLocaleString()}</b></span>
                         </div>

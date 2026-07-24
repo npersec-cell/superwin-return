@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, context: Params) {
     // 1. Get prediction info (pool, fee_rate, winning_option)
     const { data: pred, error: predErr } = await supabase
       .from("predictions")
-      .select("id, question, tournament_name, status, fee_rate, winning_option_id, closes_at, resolved_at")
+      .select("id, question, tournament_name, status, fee_rate, winning_option_id, closes_at, resolved_at, sponsor_pool")
       .eq("id", predictionId)
       .single();
 
@@ -69,14 +69,15 @@ export async function GET(request: NextRequest, context: Params) {
 
     // 4. Calculate totals & build participant list
     const entries = entriesRes.data || [];
-    let totalPool = 0;
+    const sponsorPool = Number(pred.sponsor_pool || 0);
+    let userPool = 0;
     let totalDistributed = 0;
     let totalInsuranceRefunded = 0;
     let winnersCount = 0;
     let losersCount = 0;
 
     const participants = entries.map(e => {
-      totalPool += e.amount;
+      userPool += e.amount;
       const isWon = e.status === "won";
       const payout = e.payout_amount || 0;
       // Calculate insurance_refund dynamically (matches resolve function logic)
@@ -109,7 +110,8 @@ export async function GET(request: NextRequest, context: Params) {
       };
     });
 
-    // Fee calculation
+    // Fee calculation — รวมกระสุมส้มในพูลทัง้หมด
+    const totalPool = userPool + sponsorPool;
     const feeRate = pred.fee_rate ?? 0.03;
     const distributablePool = Math.floor(totalPool * (1 - feeRate));
     const feeTaken = totalPool - distributablePool;
@@ -133,9 +135,12 @@ export async function GET(request: NextRequest, context: Params) {
             winningOptionLabel: pred.winning_option_id ? optMap.get(pred.winning_option_id) : null,
             closedAt: pred.closes_at,
             resolvedAt: pred.resolved_at,
+            sponsorPool,
           },
           summary: {
             totalPool,
+            userPool,
+            sponsorPool,
             feeRate,
             feeTaken,
             distributablePool,
