@@ -531,7 +531,7 @@ export default function SuperWinPrototype() {
   const [userRankIcon, setUserRankIcon] = useState<string>("");
   const [openQuestionCount, setOpenQuestionCount] = useState(0);
   const [cqTournament, setCqTournament] = useState("");
-  const [cqRound, setCqRound] = useState("รอบแบ่งกลุ่ม");
+  const [cqRound, setCqRound] = useState("");
   const [cqQuestion, setCqQuestion] = useState("");
   const [cqClosesAt, setCqClosesAt] = useState("");
   const [cqOptions, setCqOptions] = useState<string[]>([]);
@@ -1322,7 +1322,7 @@ export default function SuperWinPrototype() {
         alert(isAdmin ? "คำถามสร้างแล้ว! (Admin)" : "Question created successfully! It will appear on the homepage shortly.");
         setOpenModal(null);
         setCqTournament("");
-        setCqRound("รอบแบ่งกลุ่ ม");
+        setCqRound("");
         setCqQuestion("");
         setCqClosesAt("");
         setCqOptions([]);
@@ -2344,14 +2344,12 @@ export default function SuperWinPrototype() {
                   {/* Round */}
                   <div style={{ display: "grid", gap: 4 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: "var(--yellow)" }}>Round</span>
-                    <select
+                    <input
                       value={cqRound}
                       onChange={(e) => setCqRound(e.target.value)}
+                      placeholder="ระบุรายละเอียดย่อยว่ารอบไหน เช่น รอบแบ่งกลุ่ม, รอบสุดท้าย, รอบรองชนะเลิศ"
                       style={{ height: 36, fontSize: 13, borderRadius: 8, padding: "0 10px", border: "1px solid var(--hairline)" }}
-                    >
-                      <option value="รอบแบ่งกลุ่ ม">รอบแบ่งกลุ่ ม</option>
-                      <option value="รอบสั ดท้าย">รอบสั ดท้าย</option>
-                    </select>
+                    />
                   </div>
 
                   {/* Question */}
