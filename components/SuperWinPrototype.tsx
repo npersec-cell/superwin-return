@@ -1222,6 +1222,17 @@ export default function SuperWinPrototype() {
   useEffect(() => {
     if (openModal !== "createQuestion") return;
     
+    // Admin can always create — no rank check needed
+    if (accountRole === "admin") {
+      setCanCreateQuestion(true);
+      setUserRank("Admin");
+      setUserRankIcon("");
+      setOpenQuestionCount(0);
+      setCreateReason(null);
+      setCreateCheckLoading(false);
+      return;
+    }
+    
     // Must be signed in first
     if (!isSignedIn && !devBypass) {
       setCanCreateQuestion(false);
@@ -1252,7 +1263,7 @@ export default function SuperWinPrototype() {
         setCreateReason(err.message || "Unable to check eligibility");
       })
       .finally(() => setCreateCheckLoading(false));
-  }, [openModal, isSignedIn, devBypass]);
+  }, [openModal, isSignedIn, devBypass, accountRole]);
 
   function cqAddOption() {
     const val = cqOptionInput.trim();
@@ -1278,7 +1289,7 @@ export default function SuperWinPrototype() {
 
   async function handleCreateQuestion(e: React.FormEvent) {
     e.preventDefault();
-    if (!canCreateQuestion) return;
+    if (!canCreateQuestion && accountRole !== "admin") return;
     if (!cqTournament.trim()) { alert("Please select a tournament"); return; }
     if (!cqRound.trim()) { alert("Please select a round"); return; }
     if (!cqQuestion.trim()) { alert("Please enter a question"); return; }
@@ -1287,7 +1298,11 @@ export default function SuperWinPrototype() {
 
     setCqSubmitting(true);
     try {
-      const res = await fetch("/api/predictions/create", {
+      // Admin uses /api/admin/predictions, regular users use /api/predictions/create
+      const isAdmin = accountRole === "admin";
+      const apiEndpoint = isAdmin ? "/api/admin/predictions" : "/api/predictions/create";
+      
+      const res = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -1297,14 +1312,14 @@ export default function SuperWinPrototype() {
           question: cqQuestion,
           opensAt: null,
           closesAt: cqClosesAt,
-          feeRate: 0.05,
+          feeRate: isAdmin ? 0.03 : 0.05,
           status: "open",
           options: cqOptions,
         }),
       });
       const result = await res.json();
       if (res.ok && result.ok) {
-        alert("Question created successfully! It will appear on the homepage shortly.");
+        alert(isAdmin ? "คำถามสร้างแล้ว! (Admin)" : "Question created successfully! It will appear on the homepage shortly.");
         setOpenModal(null);
         setCqTournament("");
         setCqRound("รอบแบ่งกลุ่ ม");
@@ -1537,6 +1552,11 @@ export default function SuperWinPrototype() {
                         alert("You must be logged in to create questions. Please sign in first.");
                         return;
                       }
+                      // Admin bypass — skip rank check, go straight to modal
+                      if (accountRole === "admin") {
+                        setOpenModal("createQuestion");
+                        return;
+                      }
                       setOpenModal("createQuestion");
                     }}
                     style={{
@@ -1550,7 +1570,7 @@ export default function SuperWinPrototype() {
                       alignItems: "center",
                       gap: "4px",
                     }}
-                    title="Create a new question (Diamond+ only)"
+                    title="Create a new question (Diamond+ only, Admin always allowed)"
                   >
                     ✏️ Create Question
                   </button>
@@ -2236,15 +2256,17 @@ export default function SuperWinPrototype() {
           <div className="modal-card" style={{ maxWidth: 600, padding: "24px" }}>
             <h3 style={{ fontSize: 18, marginBottom: 4, color: "var(--yellow)" }}>✏️ Create Question</h3>
             <p style={{ fontSize: 11, color: "var(--muted)", marginBottom: 16 }}>
-              Diamond rank or higher required · Max 2 open questions per user · Fee rate fixed at 5%
+              {accountRole === "admin"
+                ? "Admin mode — create questions without rank restrictions"
+                : "Diamond rank or higher required · Max 2 open questions per user · Fee rate fixed at 5%"}
             </p>
 
-            {/* Eligibility Check */}
-            {createCheckLoading ? (
+            {/* Eligibility Check — skip for admin */}
+            {accountRole !== "admin" && createCheckLoading ? (
               <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)", fontSize: 12 }}>
                 Checking eligibility...
               </div>
-            ) : !canCreateQuestion ? (
+            ) : accountRole !== "admin" && !canCreateQuestion ? (
               <div style={{
                 padding: "16px",
                 borderRadius: "8px",
@@ -2273,20 +2295,26 @@ export default function SuperWinPrototype() {
                 <div style={{
                   padding: "8px 12px",
                   borderRadius: "6px",
-                  background: "rgba(14, 203, 129, 0.08)",
-                  border: "1px solid var(--green)",
+                  background: accountRole === "admin" ? "rgba(59, 130, 246, 0.08)" : "rgba(14, 203, 129, 0.08)",
+                  border: `1px solid ${accountRole === "admin" ? "var(--info)" : "var(--green)"}`,
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
                   marginBottom: 16,
                   fontSize: 11,
                 }}>
-                  <span>✅</span>
-                  <span>Eligible: <strong style={{ color: "var(--green)" }}>{userRank}</strong></span>
-                  <span style={{ color: "var(--muted)" }}>·</span>
-                  <span>{openQuestionCount}/2 questions used</span>
-                  <span style={{ color: "var(--muted)" }}>·</span>
-                  <span>Fee: <strong style={{ color: "var(--yellow)" }}>5%</strong></span>
+                  <span>{accountRole === "admin" ? "🔧" : "✅"}</span>
+                  {accountRole === "admin" ? (
+                    <span>Admin Mode: <strong style={{ color: "var(--info)" }}>No rank limit · No question limit</strong></span>
+                  ) : (
+                    <>
+                      <span>Eligible: <strong style={{ color: "var(--green)" }}>{userRank}</strong></span>
+                      <span style={{ color: "var(--muted)" }}>·</span>
+                      <span>{openQuestionCount}/2 questions used</span>
+                      <span style={{ color: "var(--muted)" }}>·</span>
+                      <span>Fee: <strong style={{ color: "var(--yellow)" }}>5%</strong></span>
+                    </>
+                  )}
                 </div>
 
                 <form onSubmit={handleCreateQuestion} style={{ display: "grid", gap: 12 }}>
