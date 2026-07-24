@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/db";
 import { createSafeErrorResponse } from "@/lib/safe-error-handler";
-import { maskName } from "@/lib/utils";
+import { maskName, getRankFromPosition } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -12,37 +12,6 @@ function getRatioScore(value: number, allValues: number[]): number {
   const avg = allValues.reduce((a, b) => a + b, 0) / allValues.length;
   if (avg === 0) return value > 0 ? 10 : 0;
   return Math.round((value / avg) * 10);
-}
-
-// Get rank tier from position with minimum counts
-function getRankFromPosition(position: number, totalUsers: number): { name: string; icon: string } {
-  if (totalUsers <= 0) return { name: "Bronze", icon: "/ranks/bronze.png" };
-  
-  const percentile = position / totalUsers;
-  
-  // Crown: #1 only
-  if (position === 1) return { name: "Crown", icon: "/ranks/crown.png" };
-  
-  // Conqueror: Top 3% OR at least 2 people
-  if (percentile <= 0.03 || (position <= 2 && totalUsers >= 2)) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
-  
-  // Ace: Top 8% OR at least 3 people
-  if (percentile <= 0.08 || (position <= 3 && totalUsers >= 3)) return { name: "Ace", icon: "/ranks/ace.png" };
-  
-  // Diamond: Top 15% OR at least 5 people
-  if (percentile <= 0.15 || (position <= 5 && totalUsers >= 5)) return { name: "Diamond", icon: "/ranks/diamond.png" };
-  
-  // Platinum: Top 25%
-  if (percentile <= 0.25) return { name: "Platinum", icon: "/ranks/platinum.png" };
-  
-  // Gold: Top 40%
-  if (percentile <= 0.40) return { name: "Gold", icon: "/ranks/gold.png" };
-  
-  // Silver: 40-70%
-  if (percentile <= 0.70) return { name: "Silver", icon: "/ranks/silver.png" };
-  
-  // Bronze: Bottom 30%
-  return { name: "Bronze", icon: "/ranks/bronze.png" };
 }
 
 export async function GET(request: NextRequest) {

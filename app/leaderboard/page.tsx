@@ -11,17 +11,6 @@ function compact(n: number): string {
   return `${Math.round(n / 1000)}k`;
 }
 
-function getRankInfo(coinBalance: number) {
-  if (coinBalance >= 100000) return { name: "Crown", icon: "/ranks/crown.png" };
-  if (coinBalance >= 50000) return { name: "Conqueror", icon: "/ranks/conqueror.png" };
-  if (coinBalance >= 20000) return { name: "Ace", icon: "/ranks/ace.png" };
-  if (coinBalance >= 10000) return { name: "Diamond", icon: "/ranks/diamond.png" };
-  if (coinBalance >= 5000) return { name: "Platinum", icon: "/ranks/platinum.png" };
-  if (coinBalance >= 1000) return { name: "Gold", icon: "/ranks/gold.png" };
-  if (coinBalance >= 100) return { name: "Silver", icon: "/ranks/silver.png" };
-  return { name: "Bronze", icon: "/ranks/bronze.png" };
-}
-
 interface UserProfileStats {
   name: string;
   displayName?: string | null;
