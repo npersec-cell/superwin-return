@@ -455,6 +455,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   // การแบ่งหน้าสำหรับคำถามที่กำลังรัน
   const [runningPage, setRunningPage] = useState(1);
   const [runningTournamentFilter, setRunningTournamentFilter] = useState("");
+  const [userQuestionsTournamentFilter, setUserQuestionsTournamentFilter] = useState("");
   const runningPageSize = 5;
 
   const filteredRunningPredictions = useMemo(() => {
@@ -1719,7 +1720,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "dashboard" ? "active" : ""}`} onClick={() => { setActiveTab("dashboard"); loadDashboardData().catch(() => undefined); }} style={{ borderRadius: "999px" }}>แดชบอร์ด</button>
           <button className={`button ${activeTab === "tournaments" ? "active" : ""}`} onClick={() => setActiveTab("tournaments")} style={{ borderRadius: "999px" }}>จัดการทัวร์นาเมนต์</button>
           <button className={`button ${activeTab === "questions" ? "active" : ""}`} onClick={() => setActiveTab("questions")} style={{ borderRadius: "999px" }}>สร้างคำถามใหม่</button>
-          <button className={`button ${activeTab === "userQuestions" ? "active" : ""}`} onClick={() => { setActiveTab("userQuestions"); loadAllPredictions(); }} style={{ borderRadius: "999px" }}>คำถามจากผู้ใช้ ({allPredictions.filter(p => p.createdByUserId).length})</button>
+          <button className={`button ${activeTab === "userQuestions" ? "active" : ""}`} onClick={() => { setActiveTab("userQuestions"); loadAllPredictions(); }} style={{ borderRadius: "999px" }}>คำถามจากผู้ใช้ ({allPredictions.filter(p => p.createdByUserId && (!userQuestionsTournamentFilter || p.tournamentName === userQuestionsTournamentFilter)).length})</button>
           <button className={`button ${activeTab === "running" ? "active" : ""}`} onClick={() => setActiveTab("running")} style={{ borderRadius: "999px" }}>จัดการคำถาม</button>
           <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => { setActiveTab("settings"); loadChatMessages(); }} style={{ borderRadius: "999px" }}>ตั้งค่าหน้าเว็บ</button>
           <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>แอดมิน ({admins.length})</button>
@@ -2379,21 +2380,31 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
             <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "16px", margin: "0 auto" }}>
               <div className="panel-head">
                 <h2>คำถามจากผู้ใช้</h2>
-                <span className="micro">จัดการคำถามที่ผู้ใช้สร้าง — สามารถแก้ไข ลบ หรอืปิดไดเหมือนคำถามปกต</span>
+                <span className="micro">จัดการคำถามที่ผู้ใช้สร้าง — สามารถแก้ไข ลบ หรอปดไดเหมอนคำถามปกต</span>
               </div>
 
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                <button className="button" onClick={() => loadAllPredictions()} style={{ fontSize: "11px", padding: "4px 12px" }}>🔄 รเฟรช</button>
+                <button className="button" onClick={() => { setUserQuestionsTournamentFilter(""); loadAllPredictions(); }} style={{ fontSize: "11px", padding: "4px 12px" }}>🔄 รีเฟรช</button>
               </div>
 
-              {allPredictions.filter(p => p.createdByUserId).length === 0 ? (
+              {/* Tournament Filter */}
+              <div style={{ display: "grid", gap: "4px", marginBottom: "8px" }}>
+                <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>กรองตามทัวรนาเมนต</span>
+                <select className="button" value={userQuestionsTournamentFilter} onChange={(e) => setUserQuestionsTournamentFilter(e.target.value)} style={{ width: "100%", height: "38px" }}>
+                  <option value="">-- ดูทังหมด --</option>
+                  {Array.from(new Set(allPredictions.filter(p => p.createdByUserId).map(p => p.tournamentName))).sort().map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              {allPredictions.filter(p => p.createdByUserId && (!userQuestionsTournamentFilter || p.tournamentName === userQuestionsTournamentFilter)).length === 0 ? (
                 <div style={{ padding: "30px", textAlign: "center", color: "var(--muted)", fontSize: 12 }}>
-                  ยงัไมมีคำถามจากผู้ใช้
+                  ยังไม่มมีคำถามจากผู้ใช้
                 </div>
               ) : (
                 <div className="leaderboard-body" style={{ gap: "10px", padding: "12px 0" }}>
                   {allPredictions
-                    .filter(p => p.createdByUserId)
+                    .filter(p => p.createdByUserId && (!userQuestionsTournamentFilter || p.tournamentName === userQuestionsTournamentFilter))
                     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                     .map((item) => (
                       <div key={item.id} className="question running" style={{ padding: "12px", display: "grid", gap: "8px" }}>
