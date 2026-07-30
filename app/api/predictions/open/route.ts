@@ -36,6 +36,12 @@ type EntryRow = {
   user_id: string;
 };
 
+type UserRow = {
+  id: string;
+  display_name: string | null;
+  email: string;
+};
+
 // ── Save snapshot of current option percentages for time-series chart ──
 async function savePredictionSnapshot(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
@@ -147,21 +153,59 @@ export async function GET() {
       return acc;
     }, {});
 
-    // Fetch creator info for user-created predictions
+    // Fetch creator info AND all bettors' display names
     const creatorIds = (predictionRows || [])
       .map(p => p.created_by_user_id)
       .filter((id): id is string => !!id);
     
+    const allBettorIds = Array.from(new Set((entryRows || []).map(e => e.user_id)));
+    const allUserIds = [...new Set([...creatorIds, ...allBettorIds])];
+    
     const creatorsById = new Map<string, string>();
-    if (creatorIds.length > 0) {
-      const { data: creatorRows } = await supabase
+    const usersById = new Map<string, string>();
+    if (allUserIds.length > 0) {
+      const { data: userRows } = await supabase
         .from("users")
         .select("id, display_name, email")
-        .in("id", creatorIds)
-        .returns<CreatorRow[]>();
-      for (const c of (creatorRows || [])) {
-        creatorsById.set(c.id, c.display_name || c.email.split("@")[0]);
+        .in("id", allUserIds)
+        .returns<UserRow[]>();
+      for (const u of (userRows || [])) {
+        const name = u.display_name || u.email.split("@")[0];
+        usersById.set(u.id, name);
+        if (creatorIds.includes(u.id)) {
+          creatorsById.set(u.id, name);
+        }
       }
+    }
+
+    // Calculate top 5 bettors per prediction (by total amount, locked option)
+    const topBettorsByPrediction = (entryRows || []).reduce<Record<string, Array<{ userId: string; userName: string; optionId: string; optionName: string; totalAmount: number }>>>((acc, entry) => {
+      acc[entry.prediction_id] = acc[entry.prediction_id] || [];
+      const existing = acc[entry.prediction_id].find(b => b.userId === entry.user_id);
+      if (existing) {
+        existing.totalAmount += entry.amount;
+      } else {
+        acc[entry.prediction_id].push({
+          userId: entry.user_id,
+          userName: usersById.get(entry.user_id) || "Anonymous",
+          optionId: entry.option_id,
+          optionName: "", // filled in below
+          totalAmount: entry.amount,
+        });
+      }
+      return acc;
+    }, {});
+
+    // Resolve option names for top bettors
+    for (const [predId, bettors] of Object.entries(topBettorsByPrediction)) {
+      const opts = optionsByPrediction[predId] || [];
+      for (const bettor of bettors) {
+        const opt = opts.find(o => o.id === bettor.optionId);
+        bettor.optionName = opt?.label || "?";
+      }
+      // Sort by totalAmount desc, take top 5
+      bettors.sort((a, b) => b.totalAmount - a.totalAmount);
+      topBettorsByPrediction[predId] = bettors.slice(0, 5);
     }
 
     function computeReturn(predictionId: string, optionId: string, feeRate: number, sponsorPool: number): number {
@@ -224,6 +268,7 @@ export async function GET() {
         })),
         optionPools: optionPoolsForPred,
         entries: entriesByPrediction[prediction.id] || [],
+        topBettors: topBettorsByPrediction[prediction.id] || [],
       };
     });
 

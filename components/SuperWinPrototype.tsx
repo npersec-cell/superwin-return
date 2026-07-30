@@ -36,6 +36,7 @@ type Question = {
   options: PredictionOption[];
   optionPools?: Record<string, number>;
   entries?: { optionId: string; userId: string; amount: number; status: string }[];
+  topBettors?: { userId: string; userName: string; optionId: string; optionName: string; totalAmount: number }[];
 };
 
 type HistoryItem = {
@@ -81,6 +82,7 @@ type ApiPredictionsResponse = {
     options: Array<{ id: string; label: string; estimatedReturnPercent: number; coinsOnOption?: number }>;
     optionPools?: Record<string, number>;
     entries?: Array<{ optionId: string; userId: string; amount: number; status: string }>;
+    topBettors?: Array<{ userId: string; userName: string; optionId: string; optionName: string; totalAmount: number }>;
   }>;
   error?: string;
 };
@@ -1122,6 +1124,7 @@ export default function SuperWinPrototype() {
       })),
       optionPools: item.optionPools || {},
       entries: item.entries || [],
+      topBettors: item.topBettors || [],
     }));
 
     setLiveQuestions(apiQuestions);
@@ -1864,6 +1867,27 @@ export default function SuperWinPrototype() {
                           <>
                             {/* Polymarket-style probability chart */}
                             {renderProbabilityChart(question)}
+
+                            {/* Top 5 Bettors */}
+                            {(question.topBettors || []).length > 0 && (
+                              <div style={{ margin: "8px 0", padding: "10px 12px", background: "var(--card, #1a1a1a)", borderRadius: "8px", border: "1px solid var(--hairline, #333)" }}>
+                                <div style={{ fontSize: "11px", fontWeight: "700", color: "var(--muted, #888)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Top Bettors</div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                  {(question.topBettors || []).map((bettor, idx) => {
+                                    const rankColors = ["#FFD93D", "#C0C0C0", "#CD7F32", "var(--muted, #888)", "var(--muted, #888)"];
+                                    const rankIcon = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`;
+                                    return (
+                                      <div key={bettor.userId} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
+                                        <span style={{ width: "20px", flexShrink: 0, textAlign: "center", color: rankColors[idx] || "var(--muted, #888)", fontWeight: "700" }}>{rankIcon}</span>
+                                        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text, #eee)", fontWeight: "500" }}>{bettor.userName}</span>
+                                        <span style={{ fontSize: "10px", color: "var(--muted, #888)", padding: "1px 6px", background: "var(--hairline, #333)", borderRadius: "4px", flexShrink: 0 }}>{bettor.optionName}</span>
+                                        <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--orange, #ff8c00)", flexShrink: 0, whiteSpace: "nowrap" }}>{bettor.totalAmount.toLocaleString()} 🟡</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
 
                             {/* Step 1 */}
                             <div className="question-step">
