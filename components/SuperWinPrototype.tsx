@@ -1179,9 +1179,12 @@ export default function SuperWinPrototype() {
       question.options.reduce((max, o) => (o.returns || 0) > (max.returns || 0) ? o : max, question.options[0]);
   }
 
-  function getLockedOptionName(_question: Question): string | null {
-    // Lock mechanism disabled — users can predict freely on any option, any number of times
-    return null;
+  function getLockedOptionName(question: Question): string | null {
+    if (!currentUserId || !question.entries?.length) return null;
+    const userEntries = question.entries.filter((e) => e.userId === currentUserId && e.status === "running");
+    if (userEntries.length === 0) return null;
+    const option = question.options.find((o) => o.id === userEntries[0].optionId);
+    return option?.name || null;
   }
 
   function formatQuestionCountdown(question: Question) {
@@ -1288,6 +1291,11 @@ export default function SuperWinPrototype() {
   async function confirmPrediction(question: Question) {
     const amount = Number(coinInputs[question.id] || 0);
     const answer = selectedOption(question);
+    const lockedOptionName = getLockedOptionName(question);
+    const isLocked = lockedOptionName !== null;
+    const lockedOption = question.options.find((o) => o.name === lockedOptionName) || answer;
+    const optionToSend = isLocked ? lockedOption : answer;
+    
     if (!(devBypass || isSignedIn)) {
       setToast((current) => ({ ...current, [question.id]: "Login first" }));
       return;
@@ -1328,7 +1336,7 @@ export default function SuperWinPrototype() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             predictionId: question.id,
-            optionId: answer.id,
+            optionId: optionToSend.id,
             amount
           })
         });
@@ -1340,7 +1348,8 @@ export default function SuperWinPrototype() {
         setCoins(payload.data.user.coinBalance);
         setProfit(payload.data.user.lifetimeProfit);
         setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
-        setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${answer.name} · now running` }));
+        const displayName = isLocked ? lockedOption.name : answer.name;
+        setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${displayName} · now running` }));
         await loadRunningPredictions();
       } catch (error) {
         // ── ROLLBACK: Restore previous values if API fails ──
@@ -1374,7 +1383,8 @@ export default function SuperWinPrototype() {
       ...current
     ].slice(0, 30));
     setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
-    setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${answer.name} · now running` }));
+    const displayName = isLocked ? lockedOption.name : answer.name;
+    setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${displayName} · now running` }));
   }
 
   function resetDemo() {
@@ -1589,8 +1599,11 @@ export default function SuperWinPrototype() {
                       ? (question.entries || []).filter((e) => e.userId === currentUserId && e.status === "running").length
                       : 0;
                     const isActive = activeQuestion === question.id;
+                    const lockedOptionName = getLockedOptionName(question);
+                    const isLocked = lockedOptionName !== null;
+                    const lockedOption = question.options.find((o) => o.name === lockedOptionName) || option;
                     return (
-                      <div key={question.id} className={`question ${isActive ? "active" : ""} ${userEntryCount ? "running" : ""}`} style={{ gap: "6px" }} onClick={(event) => {
+                      <div key={question.id} className={`question ${isActive ? "active" : ""} ${userEntryCount ? "running" : ""} ${isLocked ? "locked" : ""}`} style={{ gap: "6px" }} onClick={(event) => {
                         if ((event.target as HTMLElement).closest("button, input, .dropdown, .dropdown-new")) return;
                         if (isActive) {
                           setActiveQuestion(null);
@@ -1629,12 +1642,12 @@ export default function SuperWinPrototype() {
                         {!isActive && (
                           <div className="question-compact-row">
                             <div className="compact-team" onClick={(event) => { event.stopPropagation(); setActiveQuestion(question.id); }}>
-                              <span className="compact-label">Pick:</span>
-                              <span className="compact-name">{option.name}</span>
-                              <span className="compact-returns">~{option.returns}%</span>
+                              <span className="compact-label">{isLocked ? "Locked:" : "Pick:"}</span>
+                              <span className="compact-name">{isLocked ? lockedOption.name : option.name}</span>
+                              <span className="compact-returns">~{isLocked ? lockedOption.returns : option.returns}%</span>
                             </div>
                             <button className="compact-predict-btn" disabled={predictingIds.has(question.id)} onClick={(event) => { event.stopPropagation(); setActiveQuestion(question.id); }}>
-                              {predictingIds.has(question.id) ? "Placing..." : "Predict"}
+                              {predictingIds.has(question.id) ? "Placing..." : isLocked ? "Top Up" : "Predict"}
                             </button>
                           </div>
                         )}
@@ -1649,36 +1662,44 @@ export default function SuperWinPrototype() {
                             </div>
 
                             {/* Team picker */}
-                            <div className={`dropdown-new ${openDropdown === question.id ? "open" : ""}`}>
-                              <button className="dropdown-trigger-new" onClick={(event) => {
-                                event.stopPropagation();
-                                setActiveQuestion(question.id);
-                                setOpenDropdown(openDropdown === question.id ? null : question.id);
-                              }}>
-                                <span className="dropdown-label-new">{option.name}</span>
-                                <span className="dropdown-returns">~{option.returns}%</span>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ opacity: 0.5, flexShrink: 0 }}>
-                                  <polyline points="6 9 12 15 18 9"/>
-                                </svg>
+                            {isLocked ? (
+                              <button className="team-picker locked" disabled={predictingIds.has(question.id)} onClick={(event) => { event.stopPropagation(); /* locked — no action */ }}>
+                                <span className="team-name">{lockedOption.name}</span>
+                                <span className="team-returns">~{lockedOption.returns}%</span>
+                                <span className="locked-badge">Locked</span>
                               </button>
-                              <div className="dropdown-menu-new">
-                                {(() => {
-                                  // Sort options: highest return first, then random pick if multiple have same max
-                                  const opts = [...question.options];
-                                  opts.sort((a, b) => (b.returns || 0) - (a.returns || 0));
-                                  return opts.map((choice) => 
-                                    <button key={choice.id} className={`option-button-new ${choice.name === option.name ? "active" : ""}`} onClick={(event) => {
-                                      event.stopPropagation();
-                                      setSelected((current) => ({ ...current, [question.id]: choice.name }));
-                                      setOpenDropdown(null);
-                                    }}>
-                                      <span>{choice.name}</span>
-                                      <span className="return">~{choice.returns}%</span>
-                                    </button>
-                                  );
-                                })()}
+                            ) : (
+                              <div className={`dropdown-new ${openDropdown === question.id ? "open" : ""}`}>
+                                <button className="dropdown-trigger-new" onClick={(event) => {
+                                  event.stopPropagation();
+                                  setActiveQuestion(question.id);
+                                  setOpenDropdown(openDropdown === question.id ? null : question.id);
+                                }}>
+                                  <span className="dropdown-label-new">{option.name}</span>
+                                  <span className="dropdown-returns">~{option.returns}%</span>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ opacity: 0.5, flexShrink: 0 }}>
+                                    <polyline points="6 9 12 15 18 9"/>
+                                  </svg>
+                                </button>
+                                <div className="dropdown-menu-new">
+                                  {(() => {
+                                    // Sort options: highest return first, then random pick if multiple have same max
+                                    const opts = [...question.options];
+                                    opts.sort((a, b) => (b.returns || 0) - (a.returns || 0));
+                                    return opts.map((choice) => 
+                                      <button key={choice.id} className={`option-button-new ${choice.name === option.name ? "active" : ""}`} onClick={(event) => {
+                                        event.stopPropagation();
+                                        setSelected((current) => ({ ...current, [question.id]: choice.name }));
+                                        setOpenDropdown(null);
+                                      }}>
+                                        <span>{choice.name}</span>
+                                        <span className="return">~{choice.returns}%</span>
+                                      </button>
+                                    );
+                                  })()}
+                                </div>
                               </div>
-                            </div>
+                            )}
 
                             {/* Step 2 */}
                             <div className="question-step">
@@ -1726,7 +1747,7 @@ export default function SuperWinPrototype() {
                               event.stopPropagation();
                               confirmPrediction(question);
                             }}>
-                              {predictingIds.has(question.id) ? "Placing..." : "Predict"}
+                              {predictingIds.has(question.id) ? "Placing..." : isLocked ? "Top Up" : "Predict"}
                             </button>
                           </>
                         )}
