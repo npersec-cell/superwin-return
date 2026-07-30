@@ -36,6 +36,27 @@ type EntryRow = {
   user_id: string;
 };
 
+// ── Save snapshot of current option percentages for time-series chart ──
+async function savePredictionSnapshot(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  predictionId: string,
+  optionPools: Record<string, number>,
+  totalPool: number
+) {
+  const totalCoins = Object.values(optionPools).reduce((a, b) => a + b, 0);
+  const snapshots = Object.entries(optionPools).map(([optionId, coins]) => ({
+    prediction_id: predictionId,
+    option_id: optionId,
+    coins_on_option: coins,
+    percentage: totalCoins > 0 ? (coins / totalCoins) * 100 : 0,
+    total_pool: totalPool,
+  }));
+
+  if (snapshots.length > 0) {
+    await supabase.from("prediction_snapshots").insert(snapshots);
+  }
+}
+
 export async function GET() {
   try {
     const supabase = createSupabaseAdminClient();
@@ -172,12 +193,26 @@ export async function GET() {
       const userPool = poolByPrediction[prediction.id] || 0;
       const sponsorPool = prediction.sponsor_pool || 0;
       const creatorName = prediction.created_by_user_id ? creatorsById.get(prediction.created_by_user_id) : null;
+      const optionPoolsForPred = optionsByPrediction[prediction.id]?.reduce<Record<string, number>>((acc, opt) => {
+        acc[opt.id] = poolByOption[opt.id] || 0;
+        return acc;
+      }, {}) || {};
+      
+      // Save snapshot for time-series chart (fire-and-forget)
+      savePredictionSnapshot(
+        supabase, 
+        prediction.id, 
+        optionPoolsForPred, 
+        userPool + sponsorPool
+      ).catch(err => console.warn("[Snapshot] Failed:", err.message));
+
       return {
         id: prediction.id,
         tournamentName: prediction.tournament_name,
         question: prediction.question,
         closesAt: prediction.closes_at,
-        totalPool: userPool + sponsorPool, // 🍊 includes sponsor pool
+        opensAt: prediction.opens_at,
+        totalPool: userPool + sponsorPool,
         playerCount: playersByPrediction[prediction.id]?.size || 0,
         createdBy: creatorName,
         options: (optionsByPrediction[prediction.id] || []).map((option) => ({
@@ -187,10 +222,7 @@ export async function GET() {
           estimatedReturnPercent: computeReturn(prediction.id, option.id, prediction.fee_rate || 0, sponsorPool),
           coinsOnOption: poolByOption[option.id] || 0
         })),
-        optionPools: optionsByPrediction[prediction.id]?.reduce<Record<string, number>>((acc, opt) => {
-          acc[opt.id] = poolByOption[opt.id] || 0;
-          return acc;
-        }, {}) || {},
+        optionPools: optionPoolsForPred,
         entries: entriesByPrediction[prediction.id] || [],
       };
     });

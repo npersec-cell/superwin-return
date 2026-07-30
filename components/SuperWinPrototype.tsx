@@ -14,12 +14,22 @@ type PredictionOption = {
   coinsOnOption?: number;
 };
 
+type ChartSeriesPoint = { t: string; pct: number; coins: number };
+
+type ChartData = {
+  optionIds: string[];
+  labels: Record<string, string>;
+  series: Record<string, ChartSeriesPoint[]>;
+  timestamps: string[];
+};
+
 type Question = {
   id: string;
   tournament: string;
   title: string;
   closeOffsetMinutes?: number;
   closesAt?: string;
+  opensAt?: string;
   totalPool: number;
   sponsorPool?: number;
   playerCount: number;
@@ -63,6 +73,7 @@ type ApiPredictionsResponse = {
     tournamentName: string;
     question: string;
     closesAt: string;
+    opensAt?: string;
     totalPool: number;
     sponsorPool?: number;
     playerCount: number;
@@ -508,6 +519,10 @@ export default function SuperWinPrototype() {
     highestSingleWin: Map<string, number>;
     mostActive: Map<string, number>;
   }>({ mostOrangeAmmo: new Map(), mostPredictions: new Map(), highestSingleWin: new Map(), mostActive: new Map() });
+
+  // Chart data cache per question
+  const [chartDataMap, setChartDataMap] = useState<Record<string, ChartData | null>>({});
+  const [loadingCharts, setLoadingCharts] = useState<Set<string>>(new Set());
 
   // Auto-refresh profile data while modal is open
   const profileRefreshRef = useRef<NodeJS.Timeout | null>(null);
@@ -1192,16 +1207,38 @@ export default function SuperWinPrototype() {
     return option?.name || null;
   }
 
-  // ── Polymarket-style probability chart (SVG line chart, top 4 only) ──
+  // ── Fetch chart history for a question ──
+  async function loadChartData(questionId: string) {
+    if (chartDataMap[questionId] !== undefined || loadingCharts.has(questionId)) return;
+    
+    setLoadingCharts(prev => new Set(prev).add(questionId));
+    try {
+      const res = await fetch(`/api/predictions/chart/${questionId}`);
+      const json = await res.json();
+      if (json.ok && json.data) {
+        setChartDataMap(prev => ({ ...prev, [questionId]: json.data }));
+      }
+    } catch { /* ignore */ }
+    finally {
+      setLoadingCharts(prev => {
+        const next = new Set(prev);
+        next.delete(questionId);
+        return next;
+      });
+    }
+  }
+
+  // ── Polymarket-style time-series probability chart (SVG line chart) ──
   function renderProbabilityChart(question: Question) {
+    const chartData = chartDataMap[question.id];
+    
+    // If no historical data yet, show current percentages as a single-point preview
     const opts = [...question.options];
-    // Calculate percentages from coins on each option
     const totalCoins = opts.reduce((sum, o) => sum + (o.coinsOnOption || 0), 0);
     const withPct = opts.map((o) => ({
       ...o,
       pct: totalCoins > 0 ? ((o.coinsOnOption || 0) / totalCoins) * 100 : 0
     }));
-    // Sort by percentage descending, take top 4
     withPct.sort((a, b) => b.pct - a.pct);
     const top4 = withPct.slice(0, 4);
     
@@ -1209,62 +1246,129 @@ export default function SuperWinPrototype() {
 
     // Distinct colors for each rank
     const colors = ["#FF4D4D", "#4DA6FF", "#FFD93D", "#6BE585"];
-    const chartHeight = 60;
-    const chartWidth = 280;
-    const padding = { top: 20, right: 10, bottom: 20, left: 10 };
+    const chartHeight = 80;
+    const chartWidth = 320;
+    const padding = { top: 20, right: 15, bottom: 25, left: 15 };
     const innerWidth = chartWidth - padding.left - padding.right;
     const innerHeight = chartHeight - padding.top - padding.bottom;
 
+    if (chartData && chartData.timestamps.length > 1) {
+      // ── Time-series mode: draw lines across time ──
+      const timestamps = chartData.timestamps;
+      const timeCount = timestamps.length;
+      
+      return (
+        <div style={{ margin: "8px 0 4px 0" }}>
+          <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: "100%", height: "auto", maxHeight: `${chartHeight}px`, display: "block" }}>
+            {/* Background */}
+            <rect x="0" y="0" width={chartWidth} height={chartHeight} fill="transparent" />
+            
+            {/* Y-axis grid lines (0%, 25%, 50%, 75%, 100%) */}
+            {[0, 25, 50, 75, 100].map(pct => {
+              const y = padding.top + (1 - pct / 100) * innerHeight;
+              return (
+                <line key={`grid-${pct}`} x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} 
+                  stroke="var(--hairline, #333)" strokeWidth="0.5" opacity="0.15" strokeDasharray="2,3" />
+              );
+            })}
+
+            {/* Draw area-fill under each line (from back to front) */}
+            {chartData.optionIds.slice(0, 4).map((optId, idx) => {
+              const points = chartData.series[optId] || [];
+              if (points.length < 2) return null;
+              const color = colors[idx % colors.length];
+              const pathD = points.map((p, i) => {
+                const x = padding.left + (i / Math.max(1, timeCount - 1)) * innerWidth;
+                const y = padding.top + (1 - p.pct / 100) * innerHeight;
+                return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+              }).join(' ');
+              const areaD = `${pathD} L ${padding.left + innerWidth} ${padding.top + innerHeight} L ${padding.left} ${padding.top + innerHeight} Z`;
+              return <path key={`area-${optId}`} d={areaD} fill={color} opacity="0.08" />;
+            })}
+
+            {/* Draw lines and points */}
+            {chartData.optionIds.slice(0, 4).map((optId, idx) => {
+              const points = chartData.series[optId] || [];
+              if (points.length < 2) return null;
+              const color = colors[idx % colors.length];
+              const label = chartData.labels[optId] || "?";
+              const lastPoint = points[points.length - 1];
+              
+              const pathD = points.map((p, i) => {
+                const x = padding.left + (i / Math.max(1, timeCount - 1)) * innerWidth;
+                const y = padding.top + (1 - p.pct / 100) * innerHeight;
+                return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+              }).join(' ');
+
+              const lastX = padding.left + ((points.length - 1) / Math.max(1, timeCount - 1)) * innerWidth;
+              const lastY = padding.top + (1 - lastPoint.pct / 100) * innerHeight;
+
+              return (
+                <g key={`line-${optId}`}>
+                  {/* Line */}
+                  <polyline points={points.map((p, i) => {
+                    const x = padding.left + (i / Math.max(1, timeCount - 1)) * innerWidth;
+                    const y = padding.top + (1 - p.pct / 100) * innerHeight;
+                    return `${x},${y}`;
+                  }).join(' ')} fill="none" stroke={color} strokeWidth="1.5" opacity="0.9" />
+                  
+                  {/* Last point marker */}
+                  <circle cx={lastX} cy={lastY} r="3" fill={color} />
+                  
+                  {/* Percentage label at end of line */}
+                  <text x={lastX + 6} y={lastY - 4} fontSize="9" fontWeight="700" fill={color}>
+                    {lastPoint.pct.toFixed(1)}%
+                  </text>
+                  
+                  {/* Option name below chart */}
+                  <text x={lastX} y={padding.top + innerHeight + 14} textAnchor="middle" fontSize="8" fill="var(--muted, #888)">
+                    {label.length > 14 ? label.substring(0, 14) + "…" : label}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      );
+    }
+
+    // ── Fallback: current snapshot only (no history yet) ──
     return (
       <div style={{ margin: "8px 0 4px 0" }}>
         <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: "100%", height: "auto", maxHeight: `${chartHeight}px`, display: "block" }}>
-          {/* Background */}
           <rect x="0" y="0" width={chartWidth} height={chartHeight} fill="transparent" />
           
-          {/* Draw area-fill under each line (from back to front) */}
-          {top4.map((opt, idx) => {
-            const x = padding.left + (idx / Math.max(3, top4.length - 1)) * innerWidth;
-            const y = padding.top + (1 - opt.pct / 100) * innerHeight;
-            const areaPath = `M ${padding.left} ${padding.top + innerHeight} L ${x} ${y} L ${x + 1} ${padding.top + innerHeight} Z`;
+          {/* Y-axis grid lines */}
+          {[0, 25, 50, 75, 100].map(pct => {
+            const y = padding.top + (1 - pct / 100) * innerHeight;
             return (
-              <path key={`area-${opt.id}`} d={areaPath} fill={colors[idx % colors.length]} opacity="0.12" />
+              <line key={`grid-${pct}`} x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} 
+                stroke="var(--hairline, #333)" strokeWidth="0.5" opacity="0.15" strokeDasharray="2,3" />
             );
           })}
 
-          {/* Draw lines and points */}
+          {/* Bars for current percentages */}
           {top4.map((opt, idx) => {
-            const x = padding.left + (idx / Math.max(3, top4.length - 1)) * innerWidth;
-            const y = padding.top + (1 - opt.pct / 100) * innerHeight;
+            const barWidth = innerWidth / top4.length - 8;
+            const barX = padding.left + idx * (barWidth + 8) + 4;
+            const barHeight = (opt.pct / 100) * innerHeight;
+            const barY = padding.top + innerHeight - barHeight;
             const color = colors[idx % colors.length];
+            
             return (
-              <g key={`line-${opt.id}`}>
-                {/* Label above point */}
-                <text x={x} y={y - 6} textAnchor="middle" fontSize="10" fontWeight="700" fill={color}>
+              <g key={`bar-${opt.id}`}>
+                <rect x={barX} y={barY} width={barWidth} height={barHeight} fill={color} opacity="0.6" rx="2" />
+                {/* Percentage on top */}
+                <text x={barX + barWidth / 2} y={barY - 4} textAnchor="middle" fontSize="9" fontWeight="700" fill={color}>
                   {opt.pct.toFixed(1)}%
                 </text>
-                {/* Point */}
-                <circle cx={x} cy={y} r="4" fill={color} />
-                {/* Name below chart */}
-                <text x={x} y={padding.top + innerHeight + 14} textAnchor="middle" fontSize="9" fill="var(--muted, #888)" fontWeight="500">
+                {/* Name below */}
+                <text x={barX + barWidth / 2} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill="var(--muted, #888)">
                   {opt.name.length > 12 ? opt.name.substring(0, 12) + "…" : opt.name}
                 </text>
               </g>
             );
           })}
-
-          {/* Connect lines between points */}
-          <polyline
-            points={top4.map((opt, idx) => {
-              const x = padding.left + (idx / Math.max(3, top4.length - 1)) * innerWidth;
-              const y = padding.top + (1 - opt.pct / 100) * innerHeight;
-              return `${x},${y}`;
-            }).join(" ")}
-            fill="none"
-            stroke="var(--hairline, #333)"
-            strokeWidth="1"
-            strokeDasharray="3,3"
-            opacity="0.3"
-          />
         </svg>
       </div>
     );
@@ -1694,6 +1798,8 @@ export default function SuperWinPrototype() {
                         } else {
                           setActiveQuestion(question.id);
                           setOpenDropdown(null);
+                          // Load chart history when expanding a question
+                          loadChartData(question.id);
                         }
                       }}>
                         {/* Header */}
