@@ -465,7 +465,6 @@ export default function SuperWinPrototype() {
   const [youtubeOpenNow, setYoutubeOpenNow] = useState(false);
   const [frontendFeaturesEnabled, setFrontendFeaturesEnabled] = useState(true);
   const [chatEnabled, setChatEnabled] = useState(true);
-  const [userQuestionsEnabled, setUserQuestionsEnabled] = useState(true);
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [liveQuestions, setLiveQuestions] = useState<Question[]>([]);
@@ -691,7 +690,6 @@ export default function SuperWinPrototype() {
           if (json.data.frontend_features !== undefined) {
             setFrontendFeaturesEnabled(json.data.frontend_features.enabled !== false);
             setChatEnabled(json.data.frontend_features.chatEnabled !== false);
-            setUserQuestionsEnabled(json.data.frontend_features.userQuestionsEnabled !== false);
           }
         }
       })
@@ -1567,37 +1565,35 @@ export default function SuperWinPrototype() {
                   </button>
                   <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                   <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory(); }}>History</button>
-                  {(userQuestionsEnabled || accountRole === "admin") && (
-                    <button
-                      className="button"
-                      onClick={() => {
-                        if (!isSignedIn && !devBypass) {
-                          alert("You must be logged in to create questions. Please sign in first.");
-                          return;
-                        }
-                        // Admin bypass — skip rank check, go straight to modal
-                        if (accountRole === "admin") {
-                          setOpenModal("createQuestion");
-                          return;
-                        }
+                  <button
+                    className="button"
+                    onClick={() => {
+                      if (!isSignedIn && !devBypass) {
+                        alert("You must be logged in to create questions. Please sign in first.");
+                        return;
+                      }
+                      // Admin bypass — skip rank check, go straight to modal
+                      if (accountRole === "admin") {
                         setOpenModal("createQuestion");
-                      }}
-                      style={{
-                        border: "1px dashed var(--yellow)",
-                        color: "var(--yellow)",
-                        background: "transparent",
-                        fontSize: "11px",
-                        padding: "0 10px",
-                        height: "32px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                      title="Create a new question (Diamond+ only, Admin always allowed)"
-                    >
-                      ✏️ Create Question
-                    </button>
-                  )}
+                        return;
+                      }
+                      setOpenModal("createQuestion");
+                    }}
+                    style={{
+                      border: "1px dashed var(--yellow)",
+                      color: "var(--yellow)",
+                      background: "transparent",
+                      fontSize: "11px",
+                      padding: "0 10px",
+                      height: "32px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                    title="Create a new question (Diamond+ only, Admin always allowed)"
+                  >
+                    ✏️ Create Question
+                  </button>
                   {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
                 </span>
 
@@ -1805,12 +1801,6 @@ export default function SuperWinPrototype() {
                           )}
                           <span className="dot" />
                           <span>Players: <b>{question.playerCount.toLocaleString()}</b></span>
-                          {question.createdBy && (
-                            <>
-                              <span className="dot" />
-                              <span style={{ fontSize: 11, color: "var(--yellow)" }}>✏️ by <b>{question.createdBy}</b></span>
-                            </>
-                          )}
                         </div>
 
                         {/* Compact row when inactive */}

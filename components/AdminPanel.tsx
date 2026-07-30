@@ -277,7 +277,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   }
 
   // แท็บเมนูหลังบ้าน
-  const [activeTab, setActiveTab] = useState<"questions" | "userQuestions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "contests">("dashboard");
+  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "contests">("dashboard");
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [userSort, setUserSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
@@ -293,7 +293,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [youtubeOpenNow, setYoutubeOpenNow] = useState(false);
   const [frontendEnabled, setFrontendEnabled] = useState(true);
   const [chatEnabled, setChatEnabled] = useState(true);
-  const [userQuestionsEnabled, setUserQuestionsEnabled] = useState(true);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [showEditContestForm, setShowEditContestForm] = useState(false);
@@ -456,7 +455,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   // การแบ่งหน้าสำหรับคำถามที่กำลังรัน
   const [runningPage, setRunningPage] = useState(1);
   const [runningTournamentFilter, setRunningTournamentFilter] = useState("");
-  const [userQuestionsTournamentFilter, setUserQuestionsTournamentFilter] = useState("");
   const runningPageSize = 5;
 
   const filteredRunningPredictions = useMemo(() => {
@@ -677,7 +675,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         if (json.data.frontend_features !== undefined) {
           setFrontendEnabled(!!json.data.frontend_features.enabled);
           setChatEnabled(json.data.frontend_features.chatEnabled !== false);
-          setUserQuestionsEnabled(json.data.frontend_features.userQuestionsEnabled !== false);
         }
       }
     } catch (e) {
@@ -705,7 +702,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          frontend_features: { enabled: frontendEnabled, chatEnabled, userQuestionsEnabled },
+          frontend_features: { enabled: frontendEnabled, chatEnabled },
           ...(Object.keys(youtubeEmbedValue).length > 0 ? { youtube_embed: youtubeEmbedValue } : {}),
         }),
       });
@@ -1724,7 +1721,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "dashboard" ? "active" : ""}`} onClick={() => { setActiveTab("dashboard"); loadDashboardData().catch(() => undefined); }} style={{ borderRadius: "999px" }}>แดชบอร์ด</button>
           <button className={`button ${activeTab === "tournaments" ? "active" : ""}`} onClick={() => setActiveTab("tournaments")} style={{ borderRadius: "999px" }}>จัดการทัวร์นาเมนต์</button>
           <button className={`button ${activeTab === "questions" ? "active" : ""}`} onClick={() => setActiveTab("questions")} style={{ borderRadius: "999px" }}>สร้างคำถามใหม่</button>
-          <button className={`button ${activeTab === "userQuestions" ? "active" : ""}`} onClick={() => { setActiveTab("userQuestions"); loadAllPredictions(); }} style={{ borderRadius: "999px" }}>คำถามจากผู้ใช้ ({allPredictions.filter(p => p.createdByUserId && (!userQuestionsTournamentFilter || p.tournamentName === userQuestionsTournamentFilter)).length})</button>
           <button className={`button ${activeTab === "running" ? "active" : ""}`} onClick={() => setActiveTab("running")} style={{ borderRadius: "999px" }}>จัดการคำถาม</button>
           <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => { setActiveTab("settings"); loadChatMessages(); }} style={{ borderRadius: "999px" }}>ตั้งค่าหน้าเว็บ</button>
           <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>แอดมิน ({admins.length})</button>
@@ -2380,193 +2376,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
             </section>
           )}
 
-          {activeTab === "userQuestions" && (
-            <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "16px", margin: "0 auto" }}>
-              <div className="panel-head">
-                <h2>คำถามจากผู้ใช้</h2>
-                <span className="micro">จัดการคำถามที่ผู้ใช้สร้าง — สามารถแก้ไข ลบ หรอปดไดเหมอนคำถามปกต</span>
-              </div>
-
-              {/* Enable/Disable Toggle */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: userQuestionsEnabled ? "rgba(14, 203, 129, 0.08)" : "rgba(255, 60, 60, 0.08)", borderRadius: "8px", border: `1px solid ${userQuestionsEnabled ? "var(--green)" : "var(--red)"}` }}>
-                <div>
-                  <div style={{ fontSize: "12px", fontWeight: "700", color: userQuestionsEnabled ? "var(--green)" : "var(--red)" }}>
-                    {userQuestionsEnabled ? "✅ ฟงกชันสร้างคำถามเปิดอยู่" : "🚫 ฟงกชันสร้างคำถามปิดอยู่"}
-                  </div>
-                  <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "2px" }}>
-                    {userQuestionsEnabled ? "ผู้ใช้ Diamond+ สามารถสร้างคำถามได้" : "ผู้ใช้ไม่สามารถสร้างคำถามได้ชั่วคราว"}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setUserQuestionsEnabled(v => !v)}
-                  style={{
-                    width: "48px",
-                    height: "26px",
-                    borderRadius: "13px",
-                    border: "none",
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                    background: userQuestionsEnabled ? "var(--green)" : "var(--hairline)",
-                    position: "relative",
-                  }}
-                >
-                  <div style={{
-                    width: "20px",
-                    height: "20px",
-                    borderRadius: "50%",
-                    background: "#fff",
-                    position: "absolute",
-                    top: "3px",
-                    left: userQuestionsEnabled ? "24px" : "3px",
-                    transition: "left 0.2s",
-                  }} />
-                </button>
-              </div>
-
-              {/* Save button */}
-              <button 
-                className="button primary" 
-                type="button" 
-                onClick={async () => {
-                  try {
-                    const res = await fetch('/api/admin/settings', {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ frontend_features: { enabled: frontendEnabled, chatEnabled, userQuestionsEnabled } }),
-                    });
-                    const payload = await res.json();
-                    if (res.ok && payload.ok) {
-                      alert(userQuestionsEnabled ? 'เปิดฟังก์ชันสร้างคำถามแล้ว' : 'ปิดฟังก์ชันสร้างคำถามแล้ว');
-                    } else {
-                      alert('บันทึกไม่สำเร็จ: ' + (payload.error || res.status));
-                    }
-                  } catch (e: any) {
-                    alert('เกิดข้อผิดพลาด: ' + (e?.message || String(e)));
-                  }
-                }}
-                style={{ width: "100%", height: "36px", fontWeight: "bold" }}
-              >
-                💾 บันทึกการตั้งค่าฟังก์ชันสร้างคำถาม
-              </button>
-
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                <button className="button" onClick={() => { setUserQuestionsTournamentFilter(""); loadAllPredictions(); }} style={{ fontSize: "11px", padding: "4px 12px" }}>🔄 รีเฟรช</button>
-              </div>
-
-              {/* Tournament Filter */}
-              <div style={{ display: "grid", gap: "4px", marginBottom: "8px" }}>
-                <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>กรองตามทัวรนาเมนต</span>
-                <select className="button" value={userQuestionsTournamentFilter} onChange={(e) => setUserQuestionsTournamentFilter(e.target.value)} style={{ width: "100%", height: "38px" }}>
-                  <option value="">-- ดูทังหมด --</option>
-                  {Array.from(new Set(allPredictions.filter(p => p.createdByUserId).map(p => p.tournamentName))).sort().map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-              {allPredictions.filter(p => p.createdByUserId && (!userQuestionsTournamentFilter || p.tournamentName === userQuestionsTournamentFilter)).length === 0 ? (
-                <div style={{ padding: "30px", textAlign: "center", color: "var(--muted)", fontSize: 12 }}>
-                  ยังไม่มมีคำถามจากผู้ใช้
-                </div>
-              ) : (
-                <div className="leaderboard-body" style={{ gap: "10px", padding: "12px 0" }}>
-                  {allPredictions
-                    .filter(p => p.createdByUserId && (!userQuestionsTournamentFilter || p.tournamentName === userQuestionsTournamentFilter))
-                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                    .map((item) => (
-                      <div key={item.id} className="question running" style={{ padding: "12px", display: "grid", gap: "8px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                          <div style={{ flex: 1 }}>
-                            <strong style={{ fontSize: 13, color: "var(--text)" }}>{item.question}</strong>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "4px", fontSize: 11, color: "var(--muted)" }}>
-                              <span>📋 {item.tournamentName}</span>
-                              <span>·</span>
-                              <span>สถานะ: <strong style={{ color: item.status === "open" ? "var(--green)" : item.status === "resolved" ? "var(--yellow)" : "var(--red)" }}>{item.status}</strong></span>
-                              <span>·</span>
-                              <span>ปิด {displayDate(item.closesAt)} UTC+7</span>
-                              <span>·</span>
-                              <span>{item.options.length} คำตอบ</span>
-                              <span>·</span>
-                              <span>{item.entryCount} ทาย</span>
-                              <span>·</span>
-                              <span>Fee: {(item.feeRate * 100).toFixed(0)}%</span>
-                            </div>
-                          </div>
-                          <div style={{ display: "flex", gap: "6px" }}>
-                            <button
-                              className="button gold"
-                              type="button"
-                              onClick={async () => {
-                                try {
-                                  const res = await fetch(`/api/admin/predictions/${item.id}/resolve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ winningOptionId: "" }) });
-                                  if (res.status === 400) {
-                                    window.open(`/api/admin/predictions/${item.id}/resolve`, "_blank");
-                                  }
-                                } catch { /* ignore */ }
-                              }}
-                              style={{ fontSize: "10px", padding: "3px 8px", height: "auto" }}
-                            >
-                              สรปุผล
-                            </button>
-                            <button
-                              className="button"
-                              type="button"
-                              disabled={loading || item.status === "resolved" || item.status === "canceled"}
-                              onClick={async () => {
-                                if (item.status === "resolved" || item.status === "canceled") return;
-                                const confirmed = window.confirm(`ยืนยันยกเลิกและคืนเหรียญ?\n\nคำถาม: ${item.question}`);
-                                if (!confirmed) return;
-                                setLoading(true);
-                                try {
-                                  const data = await requestJson<{ refundedEntries: number; totalRefunded: number }>(`/api/admin/predictions/${item.id}/refund`, { method: "POST" });
-                                  setMessage(`คืนเหรียญแล้ว: ${data.refundedEntries || 0} รายการ, ${data.totalRefunded || 0} เหรียญ`);
-                                  setAllPredictions((current) => current.map((row) => row.id === item.id ? { ...row, status: "canceled" } : row));
-                                } catch (error) {
-                                  const msg = error instanceof Error ? error.message : "คืนเหรียญไม่สำเร็จ";
-                                  if (msg.includes("No running entries")) {
-                                    setMessage("ไม่มีรายการทายผลที่ต้องคืนเหรียญ");
-                                  } else {
-                                    setMessage(msg);
-                                  }
-                                } finally {
-                                  setLoading(false);
-                                }
-                              }}
-                              style={{ fontSize: "10px", padding: "3px 8px", height: "auto" }}
-                            >
-                              ยกเลิก + คืนเหรียญ
-                            </button>
-                            <button
-                              className="button"
-                              type="button"
-                              onClick={async () => {
-                                if (!confirm(`ลบคำถาม "${item.question.slice(0, 40)}..."?`)) return;
-                                try {
-                                  const res = await fetch(`/api/admin/predictions/${item.id}`, { method: "DELETE" });
-                                  const result = await res.json();
-                                  if (res.ok && result.ok) {
-                                    alert("ลบทันที");
-                                    loadAllPredictions();
-                                  } else {
-                                    alert("ลบไมสำเรจุ: " + (result.error || res.status));
-                                  }
-                                } catch (e: any) {
-                                  alert("Error: " + (e?.message || "Failed to delete"));
-                                }
-                              }}
-                              style={{ fontSize: "10px", padding: "3px 8px", height: "auto", color: "var(--red)", border: "1px solid var(--red)" }}
-                            >
-                              ลบ
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </section>
-          )}
-
           {activeTab === "running" && (
             <section className="panel" style={{ width: "100%", maxWidth: "760px", display: "grid", gap: "16px", margin: "0 auto" }}>
               <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
@@ -2968,7 +2777,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         const res = await fetch('/api/admin/settings', {
                           method: 'PATCH',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ frontend_features: { enabled: frontendEnabled, chatEnabled, userQuestionsEnabled } }),
+                          body: JSON.stringify({ frontend_features: { enabled: frontendEnabled, chatEnabled } }),
                         });
                         const payload = await res.json();
                         if (res.ok && payload.ok) {
