@@ -1904,7 +1904,7 @@ export default function SuperWinPrototype() {
                             {/* Polymarket-style probability chart */}
                             {renderProbabilityChart(question)}
 
-                            {/* Top 5 Bettors */}
+                            {/* Top 3 Predictors */}
                             {(question.topBettors || []).length > 0 && (
                               <div style={{ margin: "8px 0", padding: "10px 12px", background: "var(--card, #1a1a1a)", borderRadius: "8px", border: "1px solid var(--hairline, #333)" }}>
                                 <div style={{ fontSize: "11px", fontWeight: "700", color: "var(--muted, #888)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Top Predictors</div>

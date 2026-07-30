@@ -181,7 +181,7 @@ export async function GET() {
       }
     }
 
-    // Calculate top 5 bettors per prediction (by total amount, locked option)
+    // Calculate top 3 predictors per prediction (by total amount, locked option)
     const topBettorsByPrediction = (entryRows || []).reduce<Record<string, Array<{ userId: string; userName: string; optionId: string; optionName: string; totalAmount: number }>>>((acc, entry) => {
       acc[entry.prediction_id] = acc[entry.prediction_id] || [];
       const existing = acc[entry.prediction_id].find(b => b.userId === entry.user_id);
@@ -206,9 +206,9 @@ export async function GET() {
         const opt = opts.find(o => o.id === bettor.optionId);
         bettor.optionName = opt?.label || "?";
       }
-      // Sort by totalAmount desc, take top 5
+      // Sort by totalAmount desc, take top 3
       bettors.sort((a, b) => b.totalAmount - a.totalAmount);
-      topBettorsByPrediction[predId] = bettors.slice(0, 5);
+      topBettorsByPrediction[predId] = bettors.slice(0, 3);
     }
 
     function computeReturn(predictionId: string, optionId: string, feeRate: number, sponsorPool: number): number {
