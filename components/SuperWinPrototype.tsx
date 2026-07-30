@@ -1221,8 +1221,14 @@ export default function SuperWinPrototype() {
       console.log("[Chart] Fetched data for", questionId, ":", json.ok ? `timestamps=${json.data?.timestamps?.length}, options=${json.data?.optionIds?.length}` : json.error);
       if (json.ok && json.data) {
         setChartDataMap(prev => ({ ...prev, [questionId]: json.data }));
+      } else {
+        // Mark as loaded (even if empty) to prevent re-fetching and showing loading state forever
+        setChartDataMap(prev => ({ ...prev, [questionId]: null }));
       }
-    } catch (e) { console.warn("[Chart] Error:", e); }
+    } catch (e) { 
+      console.warn("[Chart] Error:", e);
+      setChartDataMap(prev => ({ ...prev, [questionId]: null }));
+    }
     finally {
       setLoadingCharts(prev => {
         const next = new Set(prev);
@@ -1236,7 +1242,7 @@ export default function SuperWinPrototype() {
   function renderProbabilityChart(question: Question) {
     const chartData = chartDataMap[question.id];
     
-    // Calculate current percentages
+    // Calculate current percentages from live pool data
     const opts = [...question.options];
     const totalCoins = opts.reduce((sum, o) => sum + (o.coinsOnOption || 0), 0);
     const withPct = opts.map((o) => ({
@@ -1258,148 +1264,150 @@ export default function SuperWinPrototype() {
     const innerWidth = chartWidth - padding.left - padding.right;
     const innerHeight = chartHeight - padding.top - padding.bottom;
 
-    // ── Time-series mode: draw lines across time ──
-    if (chartData && chartData.timestamps.length > 1 && top4.length > 0) {
-      const timestamps = chartData.timestamps;
-      const timeCount = timestamps.length;
-      
-      // Debug: log chart data to verify percentages are non-zero
-      console.log("[Chart] Time-series data:", {
-        timestamps: timeCount,
-        optionIds: chartData.optionIds,
-        series: Object.fromEntries(
-          chartData.optionIds.map(id => [id, chartData.series[id]?.map(p => p.pct)])
-        )
-      });
-      
+    // ── Still loading: render NOTHING (no flash of bars) ──
+    if (chartData === undefined) return null;
+
+    // ── No chart data available: show current % as bar chart ──
+    if (!chartData || chartData.timestamps.length === 0) {
+      const activeOptions = top4.length;
+      const barWidth = activeOptions <= 2 ? 60 : activeOptions === 3 ? 40 : 30;
+      const gap = activeOptions <= 2 ? 16 : activeOptions === 3 ? 10 : 6;
+      const totalBarWidth = activeOptions * barWidth + (activeOptions - 1) * gap;
+      const startX = (chartWidth - totalBarWidth) / 2;
+
       return (
         <div style={{ margin: "8px 0 4px 0" }}>
           <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: "100%", height: "auto", maxHeight: `${chartHeight}px`, display: "block" }}>
-            {/* Background */}
             <rect x="0" y="0" width={chartWidth} height={chartHeight} fill="transparent" />
             
-            {/* Y-axis grid lines (0%, 50%, 100%) — simplified for small data */}
+            {/* Y-axis reference lines */}
             {[0, 50, 100].map(pct => {
               const y = padding.top + (1 - pct / 100) * innerHeight;
               return (
-                <line key={`grid-${pct}`} x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} 
-                  stroke="var(--hairline, #333)" strokeWidth="0.5" opacity="0.1" strokeDasharray="2,3" />
+                <line key={`ref-${pct}`} x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} 
+                  stroke="var(--hairline, #333)" strokeWidth="0.5" opacity="0.08" strokeDasharray="2,3" />
               );
             })}
 
-            {/* Draw area-fill under each line (from back to front) */}
-            {chartData.optionIds.slice(0, 4).map((optId, idx) => {
-              const points = chartData.series[optId] || [];
-              if (points.length < 2) return null;
+            {/* Bars for current percentages */}
+            {top4.map((opt, idx) => {
+              const barX = startX + idx * (barWidth + gap);
+              const barHeight = Math.max(2, (opt.pct / 100) * innerHeight);
+              const barY = padding.top + innerHeight - barHeight;
               const color = colors[idx % colors.length];
-              const pathD = points.map((p, i) => {
-                const x = padding.left + (i / Math.max(1, timeCount - 1)) * innerWidth;
-                const y = padding.top + (1 - p.pct / 100) * innerHeight;
-                return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-              }).join(' ');
-              const areaD = `${pathD} L ${padding.left + innerWidth} ${padding.top + innerHeight} L ${padding.left} ${padding.top + innerHeight} Z`;
-              return <path key={`area-${optId}`} d={areaD} fill={color} opacity="0.06" />;
+              const centerX = barX + barWidth / 2;
+              
+              return (
+                <g key={`bar-${opt.id}`}>
+                  <rect x={barX} y={barY} width={barWidth} height={barHeight} fill={color} opacity="0.65" rx="3" />
+                  <text x={centerX} y={barY - 5} textAnchor="middle" fontSize="10" fontWeight="700" fill={color}>
+                    {opt.pct.toFixed(1)}%
+                  </text>
+                  <text x={centerX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill="var(--muted, #888)">
+                    {opt.name.length > 14 ? opt.name.substring(0, 14) + "…" : opt.name}
+                  </text>
+                </g>
+              );
             })}
-
-            {/* Draw lines and points */}
-            {(() => {
-              // Distribute option names evenly across chart width (not bunched at right edge)
-              const visibleOpts = chartData.optionIds.slice(0, 4);
-              const optCount = visibleOpts.length;
-              const nameBarWidth = optCount <= 2 ? 60 : optCount === 3 ? 45 : 34;
-              const nameGap = optCount <= 2 ? 16 : optCount === 3 ? 10 : 6;
-              const nameTotalWidth = optCount * nameBarWidth + (optCount - 1) * nameGap;
-              const nameStartX = (chartWidth - nameTotalWidth) / 2;
-
-              return visibleOpts.map((optId, idx) => {
-                const points = chartData.series[optId] || [];
-                if (points.length < 2) return null;
-                const color = colors[idx % colors.length];
-                const label = chartData.labels[optId] || "?";
-                const lastPoint = points[points.length - 1];
-                
-                const lastX = padding.left + ((points.length - 1) / Math.max(1, timeCount - 1)) * innerWidth;
-                const lastY = padding.top + (1 - lastPoint.pct / 100) * innerHeight;
-
-                // Name position: evenly distributed, NOT at lastX
-                const nameCenterX = nameStartX + idx * (nameBarWidth + nameGap) + nameBarWidth / 2;
-
-                return (
-                  <g key={`line-${optId}`}>
-                    {/* Line */}
-                    <polyline points={points.map((p, i) => {
-                      const x = padding.left + (i / Math.max(1, timeCount - 1)) * innerWidth;
-                      const y = padding.top + (1 - p.pct / 100) * innerHeight;
-                      return `${x},${y}`;
-                    }).join(' ')} fill="none" stroke={color} strokeWidth="1.5" opacity="0.85" />
-                    
-                    {/* Last point marker */}
-                    <circle cx={lastX} cy={lastY} r="3" fill={color} />
-                    
-                    {/* Percentage label at end of line */}
-                    <text x={lastX + 6} y={lastY - 4} fontSize="9" fontWeight="700" fill={color}>
-                      {lastPoint.pct.toFixed(1)}%
-                    </text>
-                    
-                    {/* Option name below chart — evenly distributed */}
-                    <text x={nameCenterX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill="var(--muted, #888)">
-                      {label.length > 14 ? label.substring(0, 14) + "…" : label}
-                    </text>
-                  </g>
-                );
-              });
-            })()}
           </svg>
         </div>
       );
     }
 
-    // ── Fallback: current snapshot only (no history / few bets) ──
-    const activeOptions = top4.length;
-    const barWidth = activeOptions <= 2 ? 60 : activeOptions === 3 ? 40 : 30;
-    const gap = activeOptions <= 2 ? 16 : activeOptions === 3 ? 10 : 6;
-    const totalBarWidth = activeOptions * barWidth + (activeOptions - 1) * gap;
-    const startX = (chartWidth - totalBarWidth) / 2;
-
+    // ── Time-series mode: draw lines across time ──
+    const timestamps = chartData.timestamps;
+    const timeCount = timestamps.length;
+    
+    // Build series with current % as the LAST point (so graph always ends at real-time %)
+    // This fixes the "0%" issue — even if snapshots are empty/wrong, we show current pool %
+    const currentPctMap = Object.fromEntries(top4.map(o => [o.id, o.pct]));
+    
     return (
       <div style={{ margin: "8px 0 4px 0" }}>
         <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: "100%", height: "auto", maxHeight: `${chartHeight}px`, display: "block" }}>
-          <rect x="0" y="0" width={chartWidth} height={chartHeight} fill="transparent" />
-          
-          {/* Y-axis reference lines (subtle) */}
+          {/* Y-axis grid lines (0%, 50%, 100%) */}
           {[0, 50, 100].map(pct => {
             const y = padding.top + (1 - pct / 100) * innerHeight;
             return (
-              <line key={`ref-${pct}`} x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} 
-                stroke="var(--hairline, #333)" strokeWidth="0.5" opacity="0.08" strokeDasharray="2,3" />
+              <line key={`grid-${pct}`} x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} 
+                stroke="var(--hairline, #333)" strokeWidth="0.5" opacity="0.1" strokeDasharray="2,3" />
             );
           })}
 
-          {/* Bars for current percentages */}
+          {/* Draw area-fill under each line (from back to front) */}
           {top4.map((opt, idx) => {
-            const barX = startX + idx * (barWidth + gap);
-            const barHeight = Math.max(2, (opt.pct / 100) * innerHeight);
-            const barY = padding.top + innerHeight - barHeight;
+            const points = chartData.series[opt.id] || [];
+            if (points.length === 0) return null;
             const color = colors[idx % colors.length];
-            const centerX = barX + barWidth / 2;
             
-            return (
-              <g key={`bar-${opt.id}`}>
-                {/* Bar */}
-                <rect x={barX} y={barY} width={barWidth} height={barHeight} fill={color} opacity="0.65" rx="3" />
-                
-                {/* Percentage on top (always show, even if small) */}
-                <text x={centerX} y={barY - 5} textAnchor="middle" fontSize="10" fontWeight="700" fill={color}>
-                  {opt.pct.toFixed(1)}%
-                </text>
-                
-                {/* Option name below */}
-                <text x={centerX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill="var(--muted, #888)">
-                  {opt.name.length > 14 ? opt.name.substring(0, 14) + "…" : opt.name}
-                </text>
-              </g>
-            );
+            // Use snapshot points, but append current % as final point
+            const allPoints = [...points, { t: 'now', pct: currentPctMap[opt.id] || 0, coins: 0 }];
+            const ptCount = allPoints.length;
+            
+            const pathD = allPoints.map((p, i) => {
+              const x = padding.left + (i / Math.max(1, ptCount - 1)) * innerWidth;
+              const y = padding.top + (1 - p.pct / 100) * innerHeight;
+              return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+            }).join(' ');
+            const areaD = `${pathD} L ${padding.left + innerWidth} ${padding.top + innerHeight} L ${padding.left} ${padding.top + innerHeight} Z`;
+            return <path key={`area-${opt.id}`} d={areaD} fill={color} opacity="0.06" />;
           })}
+
+          {/* Draw lines and points */}
+          {(() => {
+            const optCount = top4.length;
+            const nameBarWidth = optCount <= 2 ? 60 : optCount === 3 ? 45 : 34;
+            const nameGap = optCount <= 2 ? 16 : optCount === 3 ? 10 : 6;
+            const nameTotalWidth = optCount * nameBarWidth + (optCount - 1) * nameGap;
+            const nameStartX = (chartWidth - nameTotalWidth) / 2;
+
+            return top4.map((opt, idx) => {
+              const points = chartData.series[opt.id] || [];
+              const color = colors[idx % colors.length];
+              const label = chartData.labels[opt.id] || opt.name;
+              
+              // Use current % as the displayed value (always accurate)
+              const currentPct = currentPctMap[opt.id] || 0;
+              
+              // Position based on snapshot data or just current point
+              const hasHistory = points.length > 0;
+              const displayPoints = hasHistory 
+                ? [...points, { t: 'now', pct: currentPct, coins: 0 }]
+                : [{ t: 'now', pct: currentPct, coins: 0 }];
+              
+              const ptCount = displayPoints.length;
+              const lastPt = displayPoints[displayPoints.length - 1];
+              const lastX = padding.left + ((ptCount - 1) / Math.max(1, ptCount - 1)) * innerWidth;
+              const lastY = padding.top + (1 - lastPt.pct / 100) * innerHeight;
+
+              // Name position: evenly distributed
+              const nameCenterX = nameStartX + idx * (nameBarWidth + nameGap) + nameBarWidth / 2;
+
+              return (
+                <g key={`line-${opt.id}`}>
+                  {/* Line */}
+                  <polyline points={displayPoints.map((p, i) => {
+                    const x = padding.left + (i / Math.max(1, ptCount - 1)) * innerWidth;
+                    const y = padding.top + (1 - p.pct / 100) * innerHeight;
+                    return `${x},${y}`;
+                  }).join(' ')} fill="none" stroke={color} strokeWidth="1.5" opacity="0.85" />
+                  
+                  {/* Last point marker */}
+                  <circle cx={lastX} cy={lastY} r="3" fill={color} />
+                  
+                  {/* Percentage label at end of line */}
+                  <text x={lastX + 6} y={lastY - 4} fontSize="9" fontWeight="700" fill={color}>
+                    {currentPct.toFixed(1)}%
+                  </text>
+                  
+                  {/* Option name below chart — evenly distributed */}
+                  <text x={nameCenterX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill="var(--muted, #888)">
+                    {label.length > 14 ? label.substring(0, 14) + "…" : label}
+                  </text>
+                </g>
+              );
+            });
+          })()}
         </svg>
       </div>
     );
