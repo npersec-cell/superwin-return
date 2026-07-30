@@ -1917,7 +1917,7 @@ export default function SuperWinPrototype() {
                                         <span style={{ width: "20px", flexShrink: 0, textAlign: "center", color: rankColors[idx] || "var(--muted, #888)", fontWeight: "700" }}>{rankIcon}</span>
                                         <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text, #eee)", fontWeight: "500" }}>{bettor.userName}</span>
                                         <span style={{ fontSize: "10px", color: "var(--muted, #888)", padding: "1px 6px", background: "var(--hairline, #333)", borderRadius: "4px", flexShrink: 0 }}>{bettor.optionName}</span>
-                                        <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--orange, #ff8c00)", flexShrink: 0, whiteSpace: "nowrap" }}>{bettor.totalAmount.toLocaleString()} 🟡</span>
+                                        <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--orange, #ff8c00)", flexShrink: 0, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "3px" }}>{bettor.totalAmount.toLocaleString()} <img src="https://superwinhub.app/ammo-icon.webp" alt="" style={{ width: "14px", height: "14px", verticalAlign: "middle", display: "inline-block" }} /></span>
                                       </div>
                                     );
                                   })}
