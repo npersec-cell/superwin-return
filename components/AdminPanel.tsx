@@ -456,6 +456,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   // ── Pagination for Running Questions ──
   const [runningPage, setRunningPage] = useState(1);
   const [runningTournamentFilter, setRunningTournamentFilter] = useState("");
+  const MAX_HISTORY_PAGES = 10;
   const runningPageSize = 5;
 
   const filteredRunningPredictions = useMemo(() => {
@@ -463,7 +464,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     return sortedRunningPredictions.filter(p => p.tournamentName === runningTournamentFilter);
   }, [sortedRunningPredictions, runningTournamentFilter]);
 
-  const runningTotalPages = Math.max(1, Math.ceil(filteredRunningPredictions.length / runningPageSize));
+  const runningTotalPages = Math.max(1, Math.min(MAX_HISTORY_PAGES, Math.ceil(filteredRunningPredictions.length / runningPageSize)));
   const currentRunning = useMemo(() => {
     const start = (runningPage - 1) * runningPageSize;
     return filteredRunningPredictions.slice(start, start + runningPageSize);
@@ -480,7 +481,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     if (!runningTournamentFilter) return pendingPredictions;
     return pendingPredictions.filter(p => p.tournamentName === runningTournamentFilter);
   }, [pendingPredictions, runningTournamentFilter]);
-  const pendingTotalPages = Math.max(1, Math.ceil(filteredPendingPredictions.length / pendingPageSize));
+  const pendingTotalPages = Math.max(1, Math.min(MAX_HISTORY_PAGES, Math.ceil(filteredPendingPredictions.length / pendingPageSize)));
   const currentPending = useMemo(() => {
     const start = (pendingPage - 1) * pendingPageSize;
     return filteredPendingPredictions.slice(start, start + pendingPageSize);
@@ -495,7 +496,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     if (!runningTournamentFilter) return resolvedPredictions;
     return resolvedPredictions.filter(p => p.tournamentName === runningTournamentFilter);
   }, [resolvedPredictions, runningTournamentFilter]);
-  const resolvedTotalPages = Math.max(1, Math.ceil(filteredResolvedPredictions.length / resolvedPageSize));
+  const resolvedTotalPages = Math.max(1, Math.min(MAX_HISTORY_PAGES, Math.ceil(filteredResolvedPredictions.length / resolvedPageSize)));
   const currentResolved = useMemo(() => {
     const start = (resolvedPage - 1) * resolvedPageSize;
     return filteredResolvedPredictions.slice(start, start + resolvedPageSize);
