@@ -3608,7 +3608,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         {reports.map((r) => (
                           <tr key={r.id} style={{ borderBottom: "1px solid var(--hairline-soft)", transition: "background 120ms" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--card-2)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                             <td style={{ padding: "8px", color: "var(--text)", whiteSpace: "nowrap" }}>{r.email || "-"}</td>
-                            <td style={{ padding: "8px", color: "var(--text-strong)", maxWidth: "300px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.message || "-"}</td>
+                            <td style={{ padding: "8px", color: "var(--text-strong)", maxWidth: "400px", whiteSpace: "normal", wordBreak: "break-word", lineHeight: "1.5" }}>{r.message || "-"}</td>
                             <td style={{ padding: "8px", textAlign: "center" }}>
                               {r.status === "pending" ? (
                                 <span style={{ color: "var(--yellow)", fontWeight: 700, fontSize: "10px" }}>⏳ รอดำเนินการ</span>
