@@ -1289,40 +1289,53 @@ export default function SuperWinPrototype() {
             })}
 
             {/* Draw lines and points */}
-            {chartData.optionIds.slice(0, 4).map((optId, idx) => {
-              const points = chartData.series[optId] || [];
-              if (points.length < 2) return null;
-              const color = colors[idx % colors.length];
-              const label = chartData.labels[optId] || "?";
-              const lastPoint = points[points.length - 1];
-              
-              const lastX = padding.left + ((points.length - 1) / Math.max(1, timeCount - 1)) * innerWidth;
-              const lastY = padding.top + (1 - lastPoint.pct / 100) * innerHeight;
+            {(() => {
+              // Distribute option names evenly across chart width (not bunched at right edge)
+              const visibleOpts = chartData.optionIds.slice(0, 4);
+              const optCount = visibleOpts.length;
+              const nameBarWidth = optCount <= 2 ? 60 : optCount === 3 ? 45 : 34;
+              const nameGap = optCount <= 2 ? 16 : optCount === 3 ? 10 : 6;
+              const nameTotalWidth = optCount * nameBarWidth + (optCount - 1) * nameGap;
+              const nameStartX = (chartWidth - nameTotalWidth) / 2;
 
-              return (
-                <g key={`line-${optId}`}>
-                  {/* Line */}
-                  <polyline points={points.map((p, i) => {
-                    const x = padding.left + (i / Math.max(1, timeCount - 1)) * innerWidth;
-                    const y = padding.top + (1 - p.pct / 100) * innerHeight;
-                    return `${x},${y}`;
-                  }).join(' ')} fill="none" stroke={color} strokeWidth="1.5" opacity="0.85" />
-                  
-                  {/* Last point marker */}
-                  <circle cx={lastX} cy={lastY} r="3" fill={color} />
-                  
-                  {/* Percentage label at end of line */}
-                  <text x={lastX + 6} y={lastY - 4} fontSize="9" fontWeight="700" fill={color}>
-                    {lastPoint.pct.toFixed(1)}%
-                  </text>
-                  
-                  {/* Option name below chart */}
-                  <text x={lastX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill="var(--muted, #888)">
-                    {label.length > 14 ? label.substring(0, 14) + "…" : label}
-                  </text>
-                </g>
-              );
-            })}
+              return visibleOpts.map((optId, idx) => {
+                const points = chartData.series[optId] || [];
+                if (points.length < 2) return null;
+                const color = colors[idx % colors.length];
+                const label = chartData.labels[optId] || "?";
+                const lastPoint = points[points.length - 1];
+                
+                const lastX = padding.left + ((points.length - 1) / Math.max(1, timeCount - 1)) * innerWidth;
+                const lastY = padding.top + (1 - lastPoint.pct / 100) * innerHeight;
+
+                // Name position: evenly distributed, NOT at lastX
+                const nameCenterX = nameStartX + idx * (nameBarWidth + nameGap) + nameBarWidth / 2;
+
+                return (
+                  <g key={`line-${optId}`}>
+                    {/* Line */}
+                    <polyline points={points.map((p, i) => {
+                      const x = padding.left + (i / Math.max(1, timeCount - 1)) * innerWidth;
+                      const y = padding.top + (1 - p.pct / 100) * innerHeight;
+                      return `${x},${y}`;
+                    }).join(' ')} fill="none" stroke={color} strokeWidth="1.5" opacity="0.85" />
+                    
+                    {/* Last point marker */}
+                    <circle cx={lastX} cy={lastY} r="3" fill={color} />
+                    
+                    {/* Percentage label at end of line */}
+                    <text x={lastX + 6} y={lastY - 4} fontSize="9" fontWeight="700" fill={color}>
+                      {lastPoint.pct.toFixed(1)}%
+                    </text>
+                    
+                    {/* Option name below chart — evenly distributed */}
+                    <text x={nameCenterX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill="var(--muted, #888)">
+                      {label.length > 14 ? label.substring(0, 14) + "…" : label}
+                    </text>
+                  </g>
+                );
+              });
+            })()}
           </svg>
         </div>
       );
