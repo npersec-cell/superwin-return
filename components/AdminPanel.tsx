@@ -1533,7 +1533,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         )}
         {(!hasEntries || item.status === "resolved" || item.status === "canceled") && (
           <button className="button" type="button" disabled={loading} onClick={() => deletePrediction(item.id)} style={{ color: "#ff4d4f", borderColor: "#ff4d4f", background: "transparent" }}>
-            🗑️ Delete Permanently
+            Delete Permanently
           </button>
         )}
       </div>
@@ -1691,7 +1691,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     }}>
                       <span style={{ fontWeight: "500", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {p.userName}
-                        {p.hasInsurance && <span title="Has insurance">🛡️</span>}
+                        {p.hasInsurance && <span title="Has insurance">Insured</span>}
                       </span>
                       <span className="meta" style={{ fontSize: "9px", color: p.optionLabel === data.prediction.winningOptionLabel ? "var(--green)" : "var(--muted)" }}>
                         {p.optionLabel === data.prediction.winningOptionLabel ? "✅" : ""} {p.optionLabel}
@@ -1773,7 +1773,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
                 {/* ── Tournament Selector ── */}
                 <div style={{ display: "grid", gap: "4px" }}>
-                  <label className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>Select Tournament</label>
+                  <label className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Select Tournament</label>
                   <select className="button" value={selectedDashboardTournament} onChange={(e) => setSelectedDashboardTournament(e.target.value)} style={{ width: "100%", height: "40px", fontSize: "13px", fontWeight: "600" }}>
                     <option value="">-- Select Tournament --</option>
                     {Array.from(new Set(dashboardData.map((d) => d.tournamentName)))
@@ -1801,7 +1801,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   if (!selectedDashboardTournament) {
                     return (
                       <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--muted)" }}>
-                        <div style={{ fontSize: "40px", marginBottom: "12px" }}>👆</div>
+                        <div style={{ fontSize: "40px", marginBottom: "12px", fontWeight: "700", color: "var(--yellow)" }}>?</div>
                         <p style={{ fontSize: "14px", fontWeight: "600", color: "var(--text)" }}>Select a tournament to view statistics</p>
                         <p style={{ fontSize: "12px", marginTop: "4px" }}>Charts and data will appear when you select a tournament</p>
                       </div>
@@ -1857,20 +1857,20 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
                       {/* ── Summary Stat Cards (4 cards) ── */}
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
-                        <div style={{ background: colors.goldDim, border: `1px solid ${colors.gold}`, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
-                          <div style={{ fontSize: "22px", marginBottom: "4px" }}>💰</div>
+                        <div style={{ background: "rgba(255,225,0,0.04)", border: `1px solid ${colors.gold}`, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
+                          <div style={{ fontSize: "22px", marginBottom: "4px", fontWeight: "700", color: "var(--yellow)" }}>$</div>
                           <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>TOTAL POOL</div>
                           <strong style={{ fontSize: "24px", color: colors.gold, display: "block", marginTop: "2px" }}>{totalTourCoins.toLocaleString()}</strong>
                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>Coins</span>
                         </div>
-                        <div style={{ background: "rgba(255, 140, 0, 0.08)", border: "1px solid rgba(255, 140, 0, 0.2)", borderRadius: "12px", padding: "14px", textAlign: "center" }}>
+                        <div style={{ background: "rgba(255, 140, 0, 0.04)", border: "1px solid rgba(255, 140, 0, 0.2)", borderRadius: "12px", padding: "14px", textAlign: "center" }}>
                           <div style={{ fontSize: "22px", marginBottom: "4px" }}>+</div>
                           <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>SPONSOR POOL</div>
                           <strong style={{ fontSize: "24px", color: "#ff8c00", display: "block", marginTop: "2px" }}>{totalSponsorPool.toLocaleString()}</strong>
                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>Coins</span>
                         </div>
                         <div style={{ background: colors.blueDim, border: `1px solid ${colors.blue}`, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
-                          <div style={{ fontSize: "22px", marginBottom: "4px" }}>👥</div>
+                          <div style={{ fontSize: "22px", marginBottom: "4px", fontWeight: "700", color: "var(--info)" }}>P</div>
                           <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>TOTAL PLAYERS</div>
                           <strong style={{ fontSize: "24px", color: colors.blue, display: "block", marginTop: "2px" }}>{totalTourPlayers}</strong>
                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>players</span>
@@ -1882,7 +1882,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>questions</span>
                         </div>
                         <div style={{ background: colors.greenDim, border: `1px solid ${colors.green}`, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
-                          <div style={{ fontSize: "22px", marginBottom: "4px" }}>🎯</div>
+                          <div style={{ fontSize: "22px", marginBottom: "4px", fontWeight: "700", color: "var(--green)" }}>B</div>
                           <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>TOTAL BETS</div>
                           <strong style={{ fontSize: "24px", color: colors.green, display: "block", marginTop: "2px" }}>{totalBets}</strong>
                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>bets</span>
@@ -1891,8 +1891,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
                       {/* ── Status Overview (3 boxes) ── */}
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
-                        <div style={{ background: "rgba(255, 225, 0, 0.06)", border: "1px solid rgba(255, 225, 0, 0.2)", borderRadius: "10px", padding: "10px", textAlign: "center" }}>
-                          <div style={{ fontSize: "16px" }}>🔴</div>
+                        <div style={{ background: "rgba(255, 225, 0, 0.04)", border: "1px solid rgba(255, 225, 0, 0.2)", borderRadius: "10px", padding: "10px", textAlign: "center" }}>
+                          <div style={{ fontSize: "16px", fontWeight: "700", color: "var(--yellow)" }}>●</div>
                           <strong style={{ fontSize: "16px", color: "var(--yellow)" }}>{openCount}</strong>
                           <div className="meta" style={{ fontSize: "9px" }}>Open for betting</div>
                         </div>
@@ -1902,7 +1902,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           <div className="meta" style={{ fontSize: "9px" }}>Resolved</div>
                         </div>
                         <div style={{ background: "rgba(255, 255, 255, 0.04)", border: "1px solid var(--hairline)", borderRadius: "10px", padding: "10px", textAlign: "center" }}>
-                          <div style={{ fontSize: "16px" }}>📈</div>
+                          <div style={{ fontSize: "16px", fontWeight: "700", color: "#fff" }}>Avg</div>
                           <strong style={{ fontSize: "16px", color: "#fff" }}>{sortedQuestions.length > 0 ? Math.round(totalTourCoins / sortedQuestions.length).toLocaleString() : 0}</strong>
                           <div className="meta" style={{ fontSize: "9px" }}>Avg/Question (Coins)</div>
                         </div>
@@ -1917,7 +1917,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             {/* Header with icon, question, status badge */}
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
                               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                <span style={{ fontSize: "16px" }}>{["🎮","🏆","⚔️","🎯","🔥","💎","🌟","👑"][qIdx % 8]}</span>
+                                <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--muted)", minWidth: "20px", textAlign: "center" }}>{qIdx + 1}.</span>
                                 <strong style={{ fontSize: "14px", color: "#fff" }}>{q.question}</strong>
                               </div>
                               <span className="pill" style={{ 
@@ -1929,10 +1929,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                 display: "inline-flex",
                                 alignItems: "center",
                                 gap: "4px",
-                                background: q.status === "open" ? "rgba(255, 225, 0, 0.12)" : q.status === "resolved" ? "rgba(14, 203, 129, 0.12)" : "rgba(255, 255, 255, 0.06)", 
+                                background: q.status === "open" ? "rgba(255, 225, 0, 0.08)" : q.status === "resolved" ? "rgba(14, 203, 129, 0.12)" : "rgba(255, 255, 255, 0.06)", 
                                 color: q.status === "open" ? "var(--yellow)" : q.status === "resolved" ? "var(--green)" : "var(--text)" 
                               }}>
-                                {q.status === "open" ? "🔴" : q.status === "resolved" ? "✅" : "⏸️"} {statusLabel(q.status)}
+                                {statusLabel(q.status)}
                               </span>
                             </div>
 
@@ -2099,7 +2099,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Round</span>
                     <button className="button" type="button" disabled={!round.trim()} onClick={saveRoundTemplate} style={{ height: "18px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--yellow)", color: "var(--yellow)", borderRadius: "4px" }}>
-                      💾 Save This Round
+                      Save This Round
                     </button>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "6px", alignItems: "center" }}>
@@ -2146,7 +2146,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Question</span>
                     <button className="button" type="button" disabled={!question.trim()} onClick={saveQuestionTemplate} style={{ height: "18px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--yellow)", color: "var(--yellow)", borderRadius: "4px" }}>
-                      💾 Save Question Template
+                      Save Question Template
                     </button>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "10px" }}>
@@ -2259,7 +2259,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           style={{ height: "28px", fontSize: "11px", padding: "0 10px" }}
                           onClick={() => setShowSaveOptionSet(!showSaveOptionSet)}
                         >
-                          {showSaveOptionSet ? "Cancel" : "💾 Save Option Set"}
+                          {showSaveOptionSet ? "Cancel" : "Save Option Set"}
                         </button>
                       )}
                     </div>
@@ -2416,7 +2416,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     {runningTournamentFilter && filteredRunningPredictions.length > 1 && (
                       <button className="button gold" type="button" disabled={loading} onClick={savePredictionOrder} style={{ height: "24px", fontSize: "10px", padding: "0 10px" }}>
-                        💾 Save Question Order
+                        Save Question Order
                       </button>
                     )}
                     <span className="micro">{runningTournamentFilter ? `${filteredRunningPredictions.length} Question` : `${runningPredictions.length} items`}</span>
@@ -2513,7 +2513,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             {editingId === item.id && (
                               <div style={{ display: "grid", gap: "10px", marginTop: "10px", marginBottom: "10px", background: "rgba(255,225,0,0.03)", padding: "12px", borderRadius: "8px", border: "1px solid var(--hairline)", width: "100%", textAlign: "left" }}>
                                 <div style={{ display: "grid", gap: "4px" }}>
-                                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>🔄 Move Tournament:</span>
+                                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Move Tournament:</span>
                                   <select
                                     value={editTournamentNames[item.id] || item.tournamentName}
                                     onChange={(e) => setEditTournamentNames((current) => ({ ...current, [item.id]: e.target.value }))}
@@ -2585,7 +2585,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   onClick={() => savePredictionEdits(item.id)} 
                                   style={{ height: "32px", fontSize: "11px", fontWeight: "bold", marginTop: "4px" }}
                                 >
-                                  💾 Save Question & Answer Edits
+                                  Save Q&A Edits
                                 </button>
                               </div>
                             )}
@@ -2758,7 +2758,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     <span className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>Leave end time empty to display continuously</span>
                   </div>
 
-                  <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "36px", fontWeight: "bold", marginTop: "4px" }}>💾 Save Frontpage Settings</button>
+                  <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "36px", fontWeight: "bold", marginTop: "4px" }}>Save Frontpage Settings</button>
                 </form>
               </div>
 
@@ -2823,7 +2823,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     }}
                     style={{ width: "100%", height: "36px", fontWeight: "bold" }}
                   >
-                    💾 Save Chat Settings
+                    Save Chat Settings
                   </button>
                 </div>
               </div>
@@ -2963,14 +2963,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                     {tLogo ? (
                                       <img src={tLogo} alt="" style={{ width: "20px", height: "20px", borderRadius: "4px", objectFit: "contain", background: "transparent" }} />
                                     ) : (
-                                      <span style={{ fontSize: "12px" }}>🏆</span>
+                                      <span style={{ fontSize: "12px" }}>#</span>
                                     )}
                                     <span>{tName}</span>
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                     <label style={{ cursor: "pointer" }}>
                                       <span className="button gold" style={{ height: "24px", fontSize: "10px", padding: "0 8px", display: "inline-flex", alignItems: "center" }}>
-                                        🖼️ {tLogo ? "Change Logo" : "Upload Logo"}
+                                        {tLogo ? "Change Logo" : "Upload Logo"}
                                       </span>
                                       <input 
                                         type="file" 
@@ -3052,7 +3052,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           setLoading(false);
                         }
                       }} style={{ height: "34px", fontSize: "12px", padding: "0 16px", marginTop: "12px", width: "100%" }}>
-                        💾 Save Tournament Order
+                        Save Tournament Order
                       </button>
                     )}
                   </div>
@@ -3094,7 +3094,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <h3>User Management ({users.length} users)</h3>
                   <button className="button gold" onClick={loadUsers} disabled={usersLoading} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
-                    🔄 Refresh
+                    Refresh
                   </button>
                 </div>
 
@@ -3210,7 +3210,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🏆 1st Prize *</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>1st Prize *</label>
                       <input
                         type="text"
                         className="button"
@@ -3327,7 +3327,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🏆 1st Prize *</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>1st Prize *</label>
                       <input
                         type="text"
                         className="button"
@@ -3465,7 +3465,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                       loadContests();
                                       const winner = updatePayload.winner;
                                       if (winner) {
-                                        alert(`Contest ended!\n\n🏆 Winner: ${winner.display_name || winner.shipping_name || winner.id}\n\n${winner.shipping_address ? '✅ Shipping Address:\n' + winner.shipping_name + '\n' + winner.shipping_address + '\n' + winner.shipping_zipcode + '\n' + winner.shipping_phone : '⚠️ Winner has not filled in shipping address!'}`);
+                                        alert(`Contest ended!\n\nWinner: ${winner.display_name || winner.shipping_name || winner.id}\n\n${winner.shipping_address ? '✅ Shipping Address:\n' + winner.shipping_name + '\n' + winner.shipping_address + '\n' + winner.shipping_zipcode + '\n' + winner.shipping_phone : '⚠️ Winner has not filled in shipping address!'}`);
                                       } else {
                                         alert("Contest ended! Winner (Top 1) receives all prizes");
                                       }
@@ -3477,7 +3477,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   }
                                 }
                               }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px" }}>
-                                🏆 End Contest (Top 1 gets all prizes)
+                                End Contest (Top 1 gets all prizes)
                               </button>
                               <button className="button" onClick={async () => {
                                 if (confirm("Confirm canceling this contest?")) {
@@ -3522,7 +3522,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   alert("Failed");
                                 }
                               }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px" }}>
-                                🔄 Change Winner
+                                Change Winner
                               </button>
                               <button className="button" onClick={async () => {
                                 if (confirm("Confirm deleting this contest?")) {
@@ -3539,7 +3539,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   }
                                 }
                               }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px", color: "#ff4d4f", borderColor: "#ff4d4f" }}>
-                                🗑️ Delete
+                                Delete
                               </button>
                             </>
                           )}
@@ -3560,7 +3560,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           </strong>
                         </div>
                         <div>
-                          <span style={{ color: "var(--muted)" }}>🏆 All prizes (Top 1 gets all):</span>
+                          <span style={{ color: "var(--muted)" }}>All prizes (Top 1 gets all):</span>
                           <div style={{ marginLeft: "4px", marginTop: "4px" }}>
                             {contest.prize_1 && <div style={{ color: "var(--yellow)", fontSize: "11px" }}>{contest.prize_1}</div>}
                             {contest.prize_2 && <div style={{ color: "var(--text)", fontSize: "11px" }}>{contest.prize_2}</div>}
@@ -3575,7 +3575,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       {contest.winner_user_id && (
                         <div style={{ marginTop: "12px", padding: "8px", background: "rgba(255, 225, 0, 0.1)", borderRadius: "6px", border: "1px solid rgba(255, 225, 0, 0.3)" }}>
                           <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "4px" }}>
-                            🏆 Winner:
+                            Winner:
                             <strong style={{ color: "var(--yellow)", marginLeft: "4px" }}>
                               {contest.winner?.display_name || contest.winner?.shipping_name || "Unknown"}
                             </strong>
@@ -3618,7 +3618,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <h3>Reports ({reports.length} items)</h3>
                   <button className="button gold" onClick={loadReports} disabled={reportsLoading} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
-                    🔄 Refresh
+                    Refresh
                   </button>
                 </div>
 
