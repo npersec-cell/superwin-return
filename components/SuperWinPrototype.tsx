@@ -1721,9 +1721,6 @@ export default function SuperWinPrototype() {
                           <span>Players: <b>{question.playerCount.toLocaleString()}</b></span>
                         </div>
 
-                        {/* Polymarket-style probability chart */}
-                        {renderProbabilityChart(question)}
-
                         {/* Compact row when inactive */}
                         {!isActive && (
                           <div className="question-compact-row">
@@ -1741,6 +1738,9 @@ export default function SuperWinPrototype() {
                         {/* Expanded form when active */}
                         {isActive && (
                           <>
+                            {/* Polymarket-style probability chart */}
+                            {renderProbabilityChart(question)}
+
                             {/* Step 1 */}
                             <div className="question-step">
                               <span className="step-num">1.</span>
