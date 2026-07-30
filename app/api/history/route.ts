@@ -67,6 +67,24 @@ export async function GET(request: NextRequest) {
       throw new Error(error.message || "Failed to load history");
     }
 
+    // ── Cleanup: Delete ledger entries beyond page 10 (100 items) per user ──
+    // Keep only the most recent 100 ledger entries; older ones are no longer needed.
+    // This reduces database size and improves performance.
+    const MAX_LEDGER_ENTRIES = 100; // 10 pages × 10 items/page
+    if ((ledgerData || []).length > MAX_LEDGER_ENTRIES) {
+      const toDelete = (ledgerData || []).slice(MAX_LEDGER_ENTRIES);
+      const deleteIds = toDelete.map(e => e.id);
+      if (deleteIds.length > 0) {
+        await supabase
+          .from("coin_ledger")
+          .delete()
+          .in("id", deleteIds);
+        console.log(`[History] Cleaned up ${deleteIds.length} old ledger entries for user ${user.id}`);
+      }
+      // Trim the fetched array to match what remains in DB
+      ledgerData.splice(MAX_LEDGER_ENTRIES);
+    }
+
     // Get all prediction entries for this user
     const { data: userEntries } = await supabase
       .from("prediction_entries")

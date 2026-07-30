@@ -2331,7 +2331,8 @@ function HistoryModal({
     return map;
   }, [running]);
 
-  const totalPages = Math.max(1, Math.ceil(history.length / historyPageSize));
+  const MAX_HISTORY_PAGES = 10;
+  const totalPages = Math.max(1, Math.min(MAX_HISTORY_PAGES, Math.ceil(history.length / historyPageSize)));
   const start = (historyPage - 1) * historyPageSize;
   const rows = history.slice(start, start + historyPageSize);
 
