@@ -103,17 +103,17 @@ function displayDate(value: string | null) {
 }
 
 function statusLabel(status: string) {
-  if (status === "open") return "กำลังเปิด";
-  if (status === "closed") return "ปิดรับแล้ว";
-  if (status === "resolved") return "สรุปผลแล้ว";
-  if (status === "canceled") return "ยกเลิกแล้ว";
-  if (status === "draft") return "ฉบับร่าง";
+  if (status === "open") return "Open";
+  if (status === "closed") return "Closed";
+  if (status === "resolved") return "Resolved";
+  if (status === "canceled") return "Canceled";
+  if (status === "draft") return "Draft";
   return status;
 }
 
 const defaultSettings: SiteSettings = {
   info: {
-    content: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล\n\nแต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
+    content: "Login → Claim free coins every hour → Choose your team prediction → Enter coin amount and confirm your bet\n\nEach question has an independent countdown timer. When it closes, the admin resolves and distributes prize coins immediately"
   },
   tournaments: [{ name: "Super League", logoUrl: "" }],
   savedQuestions: [
@@ -122,10 +122,10 @@ const defaultSettings: SiteSettings = {
     "Who will get the most kills in this match?"
   ],
   savedRounds: [
-    "แบ่งกลุ่ม",
-    "รอบ 16 ทีม",
-    "รอบ 8 ทีม",
-    "รอบชิงชนะเลิศ"
+    "Group Stage",
+    "Round of 16",
+    "Quarter-finals",
+    "Finals"
   ],
   announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the All time Top 10!"
 };
@@ -160,7 +160,7 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   if (!contentType.includes("application/json")) {
     const text = await response.text();
     const shortText = text.replace(/\s+/g, " ").slice(0, 120);
-    throw new Error(`API ${url} ไม่ได้ตอบ JSON (status ${response.status}, type ${contentType || "none"}) ${shortText}`);
+    throw new Error(`API ${url} did not return JSON (status ${response.status}, type ${contentType || "none"}) ${shortText}`);
   }
   const payload = (await response.json()) as ApiResponse<T>;
   if (!response.ok || !payload.ok || payload.data === undefined) {
@@ -168,7 +168,7 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
     const detailStr = (payload as any).details?.length
       ? `\n→ ${(payload as any).details.join(", ")}`
       : "";
-    throw new Error(`API ${url}: ${payload.error || "คำสั่งไม่สำเร็จ"}${detailStr}`);
+    throw new Error(`API ${url}: ${payload.error || "Request failed"}${detailStr}`);
   }
   return payload.data;
 }
@@ -183,7 +183,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [allPredictions, setAllPredictions] = useState<AdminPrediction[]>([]);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setmessage] = useState("");
   const [tournamentName, setTournamentName] = useState("");
   const [question, setQuestion] = useState("");
   const [round, setRound] = useState("");
@@ -277,7 +277,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }
   }
 
-  // แท็บเมนูหลังบ้าน
+  // ── Admin panel tabs ──
   const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "contests">("dashboard");
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -294,7 +294,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [youtubeOpenNow, setYoutubeOpenNow] = useState(false);
   const [frontendEnabled, setFrontendEnabled] = useState(true);
   const [chatEnabled, setChatEnabled] = useState(true);
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatmessages, setChatmessages] = useState<any[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [showEditContestForm, setShowEditContestForm] = useState(false);
   const [editingContestId, setEditingContestId] = useState<string | null>(null);
@@ -312,7 +312,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   async function handleCreateContest() {
     if (!newContestName.trim() || !newContestEndTime || !newContestPrize1.trim()) {
-      alert("กรุณากรอกข้อมูลให้ครบถ้วน (ชื่อกิจกรรม, วันเวลาสิ้นสุด, รางวัลที่ 1)");
+      alert("Please fill in all required fields (Contest Name, End Time, 1st Prize)");
       return;
     }
     try {
@@ -346,20 +346,20 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         setNewContestPrize5("");
         loadContests();
       } else {
-        alert("สร้างกิจกรรมไม่สำเร็จ: " + (payload.error || ""));
+        alert("Failed to create contest: " + (payload.error || ""));
       }
     } catch {
-      alert("สร้างกิจกรรมไม่สำเร็จ");
+      alert("Failed to create contest");
     }
   }
 
   async function handleEditContest() {
     if (!newContestName.trim() || !newContestEndTime || !newContestPrize1.trim()) {
-      alert("กรุณากรอกข้อมูลให้ครบถ้วน (ชื่อกิจกรรม, วันเวลาสิ้นสุด, รางวัลที่ 1)");
+      alert("Please fill in all required fields (Contest Name, End Time, 1st Prize)");
       return;
     }
     if (!editingContestId) {
-      alert("ไม่พบกิจกรรมที่จะแก้ไข");
+      alert("No contest found to edit");
       return;
     }
     try {
@@ -395,10 +395,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         setNewContestPrize5("");
         loadContests();
       } else {
-        alert("แก้ไขกิจกรรมไม่สำเร็จ: " + (payload.error || ""));
+        alert("Failed to edit contest: " + (payload.error || ""));
       }
     } catch {
-      alert("แก้ไขกิจกรรมไม่สำเร็จ");
+      alert("Failed to edit contest");
     }
   }
 
@@ -407,7 +407,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   useEffect(() => {
     if (message) {
       const timer = setTimeout(() => {
-        setMessage("");
+        setmessage("");
       }, 4000);
       return () => clearTimeout(timer);
     }
@@ -453,7 +453,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const pendingPredictions = useMemo(() => predictions.filter(isPendingResult), [predictions]);
   const resolvedPredictions = useMemo(() => predictions.filter((item) => item.status === "resolved"), [predictions]);
 
-  // การแบ่งหน้าสำหรับคำถามที่กำลังรัน
+  // ── Pagination for Running Questions ──
   const [runningPage, setRunningPage] = useState(1);
   const [runningTournamentFilter, setRunningTournamentFilter] = useState("");
   const runningPageSize = 5;
@@ -473,7 +473,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     setRunningPage(1);
   }, [runningTournamentFilter]);
 
-  // การแบ่งหน้าสำหรับคำถามที่หมดเวลา รอคำตอบ
+  // ── Pagination for Awaiting Results ──
   const [pendingPage, setPendingPage] = useState(1);
   const pendingPageSize = 5;
   const filteredPendingPredictions = useMemo(() => {
@@ -488,7 +488,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   useEffect(() => { setPendingPage(1); }, [runningTournamentFilter]);
 
-  // การแบ่งหน้าสำหรับคำถามที่สรุปผลแล้ว
+  // ── Pagination for Resolved Questions ──
   const [resolvedPage, setResolvedPage] = useState(1);
   const resolvedPageSize = 5;
   const filteredResolvedPredictions = useMemo(() => {
@@ -503,7 +503,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   useEffect(() => { setResolvedPage(1); }, [runningTournamentFilter]);
 
-  // การแบ่งหน้าสำหรับคำถามทั้งหมด
+  // ── Pagination for All Questions ──
   const [allPage, setAllPage] = useState(1);
   const allPageSize = 5;
   const allTotalPages = Math.max(1, Math.ceil(predictions.length / allPageSize));
@@ -603,18 +603,18 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       if (response.ok && payload.ok) {
         await loadReports();
       } else {
-        alert(payload.error || "ทำรายการไม่สำเร็จ");
+        alert(payload.error || "Action failed");
       }
     } catch {
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
+      alert("Network error occurred");
     }
   }
 
-  async function loadChatMessages() {
+  async function loadChatmessages() {
     setChatLoading(true);
     try {
       const data = await requestJson<any[]>('/api/admin/chat?limit=200');
-      setChatMessages(data || []);
+      setChatmessages(data || []);
     } catch (e) {
       console.error('Failed to load chat:', e);
     } finally {
@@ -622,17 +622,17 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }
   }
 
-  async function deleteChatMessage(id: string) {
-    if (!confirm('ลบข้อความนี้?')) return;
+  async function deleteChatmessage(id: string) {
+    if (!confirm('Delete this message?')) return;
     try {
       const res = await fetch(`/api/chat/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        setChatMessages(prev => prev.filter(m => m.id !== id));
+        setChatmessages(prev => prev.filter(m => m.id !== id));
       } else {
-        alert('ลบไม่สำเร็จ');
+        alert('Delete failed');
       }
     } catch {
-      alert('เกิดข้อผิดพลาด');
+      alert('An error occurred');
     }
   }
 
@@ -641,7 +641,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   }
 
   useEffect(() => {
-    reloadAll().catch((error) => setMessage(error.message));
+    reloadAll().catch((error) => setmessage(error.message));
   }, []);
 
   async function loadYoutubeEmbed() {
@@ -719,12 +719,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       });
       const payload = await res.json();
       if (res.ok && payload.ok) {
-        alert('บันทึก Frontpage Settings สำเร็จ');
+        alert('Frontpage Settings saved successfully');
       } else {
-        alert('บันทึกไม่สำเร็จ: ' + (payload.error || res.status));
+        alert('Save failed: ' + (payload.error || res.status));
       }
     } catch (e: any) {
-      alert('เกิดข้อผิดพลาด: ' + (e?.message || String(e)));
+      alert('An error occurred: ' + (e?.message || String(e)));
     }
   }
 
@@ -802,12 +802,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({ key: 'youtube_embed', value: scheduleData }),
       });
       if (res.ok) {
-        alert('บันทึกสำเร็จ');
+        alert('Saved successfully');
       } else {
-        alert('บันทึกไม่สำเร็จ');
+        alert('Save failed');
       }
     } catch {
-      alert('เกิดข้อผิดพลาด');
+      alert('An error occurred');
     }
   }
 
@@ -827,7 +827,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       const data = await requestJson<any[]>("/api/admin/users");
       setUsers(data);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "โหลดรายชื่อผู้ใช้ไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Failed to load users");
     } finally {
       setUsersLoading(false);
     }
@@ -855,15 +855,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       return timeB - timeA;
     })[0];
     if (!latest || !latest.options.length) {
-      setMessage("ไม่พบคำถามก่อนหน้า");
+      setmessage("No previous question found");
       return;
     }
     const labels = latest.options.sort((a, b) => a.sortOrder - b.sortOrder).map((o) => o.label);
     setDraftOptions(labels);
-    setMessage(`ดึงตัวเลือกจากคำถามก่อนหน้า: ${latest.question}`);
+    setmessage(`Loaded options from previous question: ${latest.question}`);
   }
 
-  // ── Option Set (ชุดตัวเลือก) management ───────────────────────
+  // ── Option Set management ───────────────────────
   function persistOptionSets(sets: OptionSet[]) {
     setSavedOptionSets(sets);
     localStorage.setItem("superwin_option_sets", JSON.stringify(sets));
@@ -872,11 +872,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   function saveOptionSet() {
     const name = optionSetNameInput.trim();
     if (!name) {
-      setMessage("กรุณาใส่ชื่อชุดตัวเลือก");
+      setmessage("Please enter a name for this option set");
       return;
     }
     if (draftOptions.length < 2) {
-      setMessage("ต้องมีตัวเลือกอย่างน้อย 2 ข้อถึงจะบันทึกเป็นชุดได้");
+      setmessage("At least 2 options required to save as a set");
       return;
     }
     const newSet: OptionSet = {
@@ -889,27 +889,27 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     persistOptionSets(updated);
     setOptionSetNameInput("");
     setShowSaveOptionSet(false);
-    setMessage(`บันทึกชุด "${name}" แล้ว (${draftOptions.length} ตัวเลือก)`);
+    setmessage(`Saved set "${name}" (${draftOptions.length} options)`);
   }
 
   function loadOptionSet(id: string) {
     const set = savedOptionSets.find((s) => s.id === id);
     if (!set) return;
     setDraftOptions([...set.options]);
-    setMessage(`โหลดชุด "${set.name}" แล้ว (${set.options.length} ตัวเลือก)`);
+    setmessage(`Loaded set "${set.name}" (${set.options.length} options)`);
   }
 
   function deleteOptionSet(id: string) {
     const set = savedOptionSets.find((s) => s.id === id);
     if (!set) return;
-    if (!window.confirm(`ลบชุดตัวเลือก "${set.name}"?`)) return;
+    if (!window.confirm(`Delete option set "${set.name}"?`)) return;
     const updated = savedOptionSets.filter((s) => s.id !== id);
     persistOptionSets(updated);
     if (editingOptionSetId === id) {
       setEditingOptionSetId(null);
       setEditOptionSetNameInput("");
     }
-    setMessage(`ลบชุด "${set.name}" แล้ว`);
+    setmessage(`Deleted set "${set.name}"`);
   }
 
   function updateOptionSetName(id: string) {
@@ -921,7 +921,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     persistOptionSets(updated);
     setEditingOptionSetId(null);
     setEditOptionSetNameInput("");
-    setMessage(`แก้ไขชื่อชุดเป็น "${name}" แล้ว`);
+    setmessage(`Edited set name to "${name}"`);
   }
 
   function overwriteOptionSet(id: string) {
@@ -929,7 +929,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     if (!set) return;
     if (
       !window.confirm(
-        `บันทึกทับชุด "${set.name}" ด้วยตัวเลือกปัจจุบัน (${draftOptions.length} ข้อ)?`
+        `Overwrite set "${set.name}" with current options (${draftOptions.length} options)?`
       )
     )
       return;
@@ -937,20 +937,20 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       s.id === id ? { ...s, options: [...draftOptions] } : s
     );
     persistOptionSets(updated);
-    setMessage(`บันทึกทับชุด "${set.name}" แล้ว`);
+    setmessage(`Overwrote set "${set.name}"`);
   }
 
   async function createPrediction(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!tournamentName.trim()) {
-      setMessage("⚠️ กรุณาเลือกทัวร์นาเมนต์ (Tournament) ก่อนสร้างคำถาม");
+      setmessage("⚠️ Please select a tournament before creating a question");
       return;
     }
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       const options = draftOptions.map((item) => item.trim()).filter(Boolean);
-      const fullQuestion = round.trim() ? `รอบ ${round.trim()} - ${question.trim()}` : question.trim();
+      const fullQuestion = round.trim() ? `Round ${round.trim()} - ${question.trim()}` : question.trim();
       const data = await requestJson<AdminPrediction>("/api/admin/predictions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -970,14 +970,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ predictionOrder: newOrder })
       });
-      setMessage("สร้างคำถามแล้ว");
+      setmessage("Question created");
       setQuestion("");
       setRound("");
       setDraftOptions([]);
       setTournamentName("");
       await loadPredictions();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "สร้างคำถามไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Failed to create question");
     } finally {
       setLoading(false);
     }
@@ -986,18 +986,18 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   async function makeAdmin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       const data = await requestJson<{ email: string; role: string }>("/api/admin/users/make-admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: adminEmailInput })
       });
-      setMessage(`เพิ่ม ${data.email} เป็นแอดมินแล้ว`);
+      setmessage(`Added ${data.email} as admin`);
       setAdminEmailInput("");
       await loadAdmins();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "เพิ่มแอดมินไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Failed to add admin");
     } finally {
       setLoading(false);
     }
@@ -1011,11 +1011,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       return tName.toLowerCase() === name.toLowerCase();
     });
     if (exists) {
-      setMessage("มีชื่อทัวร์นาเมนต์นี้อยู่แล้ว");
+      setmessage("A tournament with this name already exists");
       return;
     }
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       const newTour: TournamentItem = { name, logoUrl: newTournamentLogoUrl };
       const nextTournaments = [...(settings.tournaments || []), newTour];
@@ -1027,19 +1027,19 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       setSettings(data);
       setNewTournamentInput("");
       setNewTournamentLogoUrl("");
-      setMessage(`เพิ่มทัวร์นาเมนต์ ${name} สำเร็จ`);
+      setmessage(`Tournament added: ${name}`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "เพิ่มทัวร์นาเมนต์ไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Tournament addedFailed");
     } finally {
       setLoading(false);
     }
   }
 
   async function removeTournament(name: string) {
-    const confirmed = window.confirm(`ลบทัวร์นาเมนต์ "${name}"? (คำถามที่มีอยู่จะไม่ถูกลบ แต่ทัวร์นาเมนต์นี้จะไม่แสดงในตัวเลือกสร้างคำถามใหม่)`);
+    const confirmed = window.confirm(`Delete tournament "${name}"? (Existing questions will not be deleted, but this tournament will no longer appear in the new question dropdown)`);
     if (!confirmed) return;
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       const nextTournaments = (settings.tournaments || []).filter((t) => {
         const tName = typeof t === "string" ? t : t.name;
@@ -1056,9 +1056,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         const firstName = typeof first === "string" ? first : (first?.name || "");
         setTournamentName(firstName);
       }
-      setMessage(`ลบทัวร์นาเมนต์ ${name} สำเร็จ`);
+      setmessage(`Tournament deleted: ${name}`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "ลบทัวร์นาเมนต์ไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Tournament deletedFailed");
     } finally {
       setLoading(false);
     }
@@ -1066,7 +1066,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   async function toggleArchiveTournament(name: string) {
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       const nextTournaments = (settings.tournaments || []).map((t) => {
         const tName = typeof t === "string" ? t : t.name;
@@ -1085,9 +1085,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       });
       setSettings(data);
       const info = getTournamentInfo(nextTournaments.find((t) => getTournamentInfo(t).name === name) || name);
-      setMessage(info.archived ? `ซ่อนทัวร์นาเมนต์ ${name} สำเร็จ` : `แสดงทัวร์นาเมนต์ ${name} สำเร็จ`);
+      setmessage(info.archived ? `Tournament hidden: ${name}` : `Tournament shown: ${name}`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "อัปเดตสถานะทัวร์นาเมนต์ไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Failed to update tournament status");
     } finally {
       setLoading(false);
     }
@@ -1097,7 +1097,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     if (!file) return;
     compressImage(file, async (b64) => {
       setLoading(true);
-      setMessage("");
+      setmessage("");
       try {
         const nextTournaments = (settings.tournaments || []).map((t) => {
           const name = typeof t === "string" ? t : t.name;
@@ -1112,9 +1112,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           body: JSON.stringify({ tournaments: nextTournaments })
         });
         setSettings(data);
-        setMessage(`อัปเดตโลโก้ทัวร์นาเมนต์ "${tName}" สำเร็จ`);
+        setmessage(`Tournament logo updated: "${tName}"`);
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : "อัปเดตโลโก้ไม่สำเร็จ");
+        setmessage(error instanceof Error ? error.message : "Failed to update logo");
       } finally {
         setLoading(false);
       }
@@ -1183,11 +1183,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const name = question.trim();
     if (!name) return;
     if (settings.savedQuestions?.includes(name)) {
-      setMessage("มีคำถามนี้ในระบบแล้ว");
+      setmessage("This question template already exists");
       return;
     }
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       const nextQuestions = [...(settings.savedQuestions || []), name];
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
@@ -1196,19 +1196,19 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({ savedQuestions: nextQuestions })
       });
       setSettings(data);
-      setMessage(`บันทึกแม่แบบคำถามสำเร็จ`);
+      setmessage(`Question template saved`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "บันทึกแม่แบบคำถามไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Failed to save question template");
     } finally {
       setLoading(false);
     }
   }
 
   async function removeQuestionTemplate(name: string) {
-    const confirmed = window.confirm(`ลบแม่แบบคำถาม "${name}"?`);
+    const confirmed = window.confirm(`Delete question template "${name}"?`);
     if (!confirmed) return;
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       const nextQuestions = (settings.savedQuestions || []).filter((q) => q !== name);
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
@@ -1217,9 +1217,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({ savedQuestions: nextQuestions })
       });
       setSettings(data);
-      setMessage(`ลบแม่แบบคำถามสำเร็จ`);
+      setmessage(`Question template deleted`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "ลบแม่แบบคำถามไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Failed to delete question template");
     } finally {
       setLoading(false);
     }
@@ -1233,11 +1233,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       return;
     }
     if (settings.savedQuestions?.includes(trimmed)) {
-      setMessage("มีชื่อคำถามนี้ในระบบแล้ว");
+      setmessage("A question with this name already exists");
       return;
     }
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       const nextQuestions = (settings.savedQuestions || []).map((q) => (q === oldName ? trimmed : q));
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
@@ -1247,9 +1247,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       });
       setSettings(data);
       setEditingTemplate(null);
-      setMessage("แก้ไขแม่แบบคำถามสำเร็จ");
+      setmessage("Question template edited successfully");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "แก้ไขแม่แบบคำถามไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Failed to edit question template");
     } finally {
       setLoading(false);
     }
@@ -1259,11 +1259,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const name = round.trim();
     if (!name) return;
     if (settings.savedRounds?.includes(name)) {
-      setMessage("มีรอบนี้ในระบบแล้ว");
+      setmessage("This round already exists");
       return;
     }
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       const nextRounds = [...(settings.savedRounds || []), name];
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
@@ -1272,19 +1272,19 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({ savedRounds: nextRounds })
       });
       setSettings(data);
-      setMessage("บันทึกแม่แบบรอบสำเร็จ");
+      setmessage("Round template saved");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "บันทึกแม่แบบรอบไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Failed to save round template");
     } finally {
       setLoading(false);
     }
   }
 
   async function removeRoundTemplate(name: string) {
-    const confirmed = window.confirm(`ลบแม่แบบรอบ "${name}"?`);
+    const confirmed = window.confirm(`Delete round template "${name}"?`);
     if (!confirmed) return;
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       const nextRounds = (settings.savedRounds || []).filter((r) => r !== name);
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
@@ -1293,9 +1293,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({ savedRounds: nextRounds })
       });
       setSettings(data);
-      setMessage("ลบแม่แบบรอบสำเร็จ");
+      setmessage("Round template deleted");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "ลบแม่แบบรอบไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Failed to delete round template");
     } finally {
       setLoading(false);
     }
@@ -1312,11 +1312,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       return;
     }
     if (settings.savedRounds?.includes(trimmed)) {
-      setMessage("มีชื่อรอบนี้ในระบบแล้ว");
+      setmessage("A round with this name already exists");
       return;
     }
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       const nextRounds = (settings.savedRounds || []).map((r) => (r === oldName ? trimmed : r));
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
@@ -1326,9 +1326,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       });
       setSettings(data);
       setEditingRound(null);
-      setMessage("แก้ไขแม่แบบรอบสำเร็จ");
+      setmessage("Round template edited successfully");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "แก้ไขแม่แบบรอบไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Failed to edit round template");
     } finally {
       setLoading(false);
     }
@@ -1348,7 +1348,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   async function savePredictionOrder() {
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
         method: "PATCH",
@@ -1356,9 +1356,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({ predictionOrder: localOrder })
       });
       setSettings(data);
-      setMessage("บันทึกลำดับคำถามเข้าสู่ระบบสำเร็จ");
+      setmessage("Question order saved successfully");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "บันทึกลำดับคำถามไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Failed to save question order");
     } finally {
       setLoading(false);
     }
@@ -1376,7 +1376,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }));
 
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       await requestJson<{ ok: boolean }>(`/api/admin/predictions/${id}`, {
         method: "PATCH",
@@ -1388,31 +1388,31 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           options: updatedOptionsList
         })
       });
-      setMessage("อัปเดตรายละเอียดคำถามและคำตอบสำเร็จ");
+      setmessage("Question details updated successfully");
       setEditingId(null);
       await reloadAll();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "อัปเดตไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Update failed");
     } finally {
       setLoading(false);
     }
   }
 
   async function removeAdmin(email: string) {
-    const confirmed = window.confirm(`ถอดสิทธิ์แอดมินของ ${email}?`);
+    const confirmed = window.confirm(`Remove admin privileges from ${email}?`);
     if (!confirmed) return;
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       await requestJson<{ email: string; role: string }>("/api/admin/users/remove-admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })
       });
-      setMessage(`ถอด ${email} ออกจากแอดมินแล้ว`);
+      setmessage(`${email} removed from admins`);
       await loadAdmins();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "ถอดแอดมินไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Failed to remove admin");
     } finally {
       setLoading(false);
     }
@@ -1420,34 +1420,34 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   async function updateStatus(id: string, nextStatus: string) {
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       await requestJson<unknown>(`/api/admin/predictions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: nextStatus })
       });
-      setMessage(`เปลี่ยนสถานะเป็น ${statusLabel(nextStatus)} แล้ว`);
+      setmessage(`Status changed to ${statusLabel(nextStatus)}`);
       setPredictions((current) => current.map((item) => item.id === id ? { ...item, status: nextStatus } : item));
       await loadPredictions();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "อัปเดตไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Update failed");
     } finally {
       setLoading(false);
     }
   }
 
   async function deletePrediction(id: string) {
-    const confirmed = window.confirm("ลบคำถามนี้ถาวรออกจากระบบ? (ตัวเลือกคำตอบและรายการทายผลของคำถามนี้ทั้งหมดจะถูกลบออกไปด้วย และไม่สามารถย้อนคืนได้)");
+    const confirmed = window.confirm("Permanently delete this question from the system? (All answer options and bet entries for this question will also be deleted and cannot be recovered.)");
     if (!confirmed) return;
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       await requestJson<unknown>(`/api/admin/predictions/${id}`, { method: "DELETE" });
-      setMessage("ลบคำถามถาวรเรียบร้อยแล้ว");
+      setmessage("Question permanently deleted");
       await loadPredictions();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "ลบคำถามไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Failed to delete question");
     } finally {
       setLoading(false);
     }
@@ -1456,48 +1456,48 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   async function resolvePrediction(item: AdminPrediction) {
     const winningOptionId = winningOptions[item.id];
     if (!winningOptionId) {
-      setMessage("เลือกคำตอบที่ชนะก่อน");
+      setmessage("Select the winning answer first");
       return;
     }
     const winningLabel = item.options.find((option) => option.id === winningOptionId)?.label || "";
-    const confirmed = window.confirm(`ยืนยันสรุปผล?\n\nคำถาม: ${item.question}\nคำตอบที่ชนะ: ${winningLabel}\n\nหลังยืนยัน ระบบจะจ่ายผลและแก้กลับเองไม่ได้ในหน้านี้`);
+    const confirmed = window.confirm(`Confirm resolution?\n\nQuestion: ${item.question}\nWinning Answer: ${winningLabel}\n\nAfter confirmation, the system will process payouts and this cannot be undone from this page.`);
     if (!confirmed) return;
 
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       const data = await requestJson<{ winnersCount: number; totalLosersCount: number; totalPaid: number }>(`/api/admin/predictions/${item.id}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ winningOptionId })
       });
-      setMessage(`สรุปผลแล้ว: ชนะ ${data.winnersCount || 0}, แพ้ ${data.totalLosersCount || 0}, จ่าย ${data.totalPaid || 0}`);
+      setmessage(`Resolved: Won ${data.winnersCount || 0}, Lost ${data.totalLosersCount || 0}, Paid ${data.totalPaid || 0}`);
       setPredictions((current) => current.map((row) => row.id === item.id ? { ...row, status: "resolved" } : row));
       await loadPredictions();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "สรุปผลไม่สำเร็จ");
+      setmessage(error instanceof Error ? error.message : "Failed to resolve");
     } finally {
       setLoading(false);
     }
   }
 
   async function refundPrediction(item: AdminPrediction) {
-    const confirmed = window.confirm(`ยืนยันยกเลิกและคืนเหรียญ?\n\nคำถาม: ${item.question}`);
+    const confirmed = window.confirm(`Confirm cancellation and refund?\n\nQuestion: ${item.question}`);
     if (!confirmed) return;
 
     setLoading(true);
-    setMessage("");
+    setmessage("");
     try {
       const data = await requestJson<{ refundedEntries: number; totalRefunded: number }>(`/api/admin/predictions/${item.id}/refund`, { method: "POST" });
-      setMessage(`คืนเหรียญแล้ว: ${data.refundedEntries || 0} รายการ, ${data.totalRefunded || 0} เหรียญ`);
+      setmessage(`Refunded: ${data.refundedEntries || 0} entries, ${data.totalRefunded || 0} coins`);
       setPredictions((current) => current.map((row) => row.id === item.id ? { ...row, status: "canceled" } : row));
       await loadPredictions();
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "คืนเหรียญไม่สำเร็จ";
+      const msg = error instanceof Error ? error.message : "Refund failed";
       if (msg.includes("No running entries")) {
-        setMessage("ไม่มีรายการทายผลที่ต้องคืนเหรียญ (อาจไม่มีผู้เล่นทาย หรือถูกคืนไปแล้ว)");
+        setmessage("No entries to refund (no bets placed or already refunded)");
       } else {
-        setMessage(msg);
+        setmessage(msg);
       }
     } finally {
       setLoading(false);
@@ -1509,31 +1509,31 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const hasEntries = (item.entryCount || 0) > 0;
     return (
       <div className="admin-actions">
-        {/* ปิดทันที / เปิดรับคำทาย */}
+        {/* Close Now / Reopen Betting */}
         {item.status !== "resolved" && item.status !== "canceled" && (
           item.status === "open" ? (
-            <button className="button" disabled={loading} onClick={() => updateStatus(item.id, "closed")}>ปิดทันที</button>
+            <button className="button" disabled={loading} onClick={() => updateStatus(item.id, "closed")}>Close Now</button>
           ) : (
-            <button className="button gold" disabled={loading} onClick={() => updateStatus(item.id, "open")}>เปิดรับคำทาย</button>
+            <button className="button gold" disabled={loading} onClick={() => updateStatus(item.id, "open")}>Reopen Betting</button>
           )
         )}
-        {/* สรุปผล */}
+        {/* Resolve */}
         {!disabled && (
           <>
             <select className="button" value={winningOptions[item.id] || ""} onChange={(event) => setWinningOptions((current) => ({ ...current, [item.id]: event.target.value }))}>
-              <option value="">เลือกคำตอบที่ชนะ</option>
+              <option value="">Select Winning Answer</option>
               {item.options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
             </select>
-            <button className="button primary" disabled={disabled} onClick={() => resolvePrediction(item)}>สรุปผล</button>
+            <button className="button primary" disabled={disabled} onClick={() => resolvePrediction(item)}>Resolve</button>
           </>
         )}
-        {/* ยกเลิก + คืนเหรียญ หรือ ลบ */}
+        {/* Cancel + Refund or Delete */}
         {!disabled && hasEntries && (
-          <button className="button" disabled={loading} onClick={() => refundPrediction(item)}>ยกเลิก + คืนเหรียญ</button>
+          <button className="button" disabled={loading} onClick={() => refundPrediction(item)}>Cancel + Refund</button>
         )}
         {(!hasEntries || item.status === "resolved" || item.status === "canceled") && (
           <button className="button" type="button" disabled={loading} onClick={() => deletePrediction(item.id)} style={{ color: "#ff4d4f", borderColor: "#ff4d4f", background: "transparent" }}>
-            🗑️ ลบคำถามถาวร
+            🗑️ Delete Permanently
           </button>
         )}
       </div>
@@ -1566,7 +1566,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
             gap: "4px"
           }}
         >
-          {isExpanded ? "▼" : "▶"} 📊 รายการจ่ายเงิน ({item.entryCount || 0} คน)
+          {isExpanded ? "▼" : "▶"} Payout Details ({item.entryCount || 0} players)
         </button>
 
         {isExpanded && (
@@ -1580,11 +1580,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
             gap: "10px"
           }}>
             {isLoading && (
-              <div style={{ textAlign: "center", color: "var(--muted)", fontSize: "11px", padding: "12px" }}>กำลังโหลด...</div>
+              <div style={{ textAlign: "center", color: "var(--muted)", fontSize: "11px", padding: "12px" }}>Loading...</div>
             )}
 
             {!isLoading && !data && (
-              <div style={{ textAlign: "center", color: "var(--muted)", fontSize: "11px", padding: "8px" }}>ไม่สามารถโหลดข้อมูลได้</div>
+              <div style={{ textAlign: "center", color: "var(--muted)", fontSize: "11px", padding: "8px" }}>Unable to load data</div>
             )}
 
             {!isLoading && data && (
@@ -1600,22 +1600,22 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   border: "1px solid var(--hairline)"
                 }}>
                   <div style={{ textAlign: "center" }}>
-                    <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>Pool ทั้งหมด</div>
+                    <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>Total Pool</div>
                     <strong style={{ fontSize: "13px", color: "var(--yellow)" }}>{data.summary.totalPool.toLocaleString()}</strong>
                     {data.summary.sponsorPool ? (
-                      <div style={{ fontSize: "8px", color: "#ff8c00", marginTop: "2px" }}>🍊รวมกระสุมส้ม {data.summary.sponsorPool.toLocaleString()}</div>
+                      <div style={{ fontSize: "8px", color: "#ff8c00", marginTop: "2px" }}>++ Sponsor {data.summary.sponsorPool.toLocaleString()}</div>
                     ) : null}
                   </div>
                   <div style={{ textAlign: "center" }}>
-                    <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>ค่าธรรมเนียม ({Math.round(data.summary.feeRate * 100)}%)</div>
+                    <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>Fee ({Math.round(data.summary.feeRate * 100)}%)</div>
                     <strong style={{ fontSize: "13px", color: "var(--red)" }}>-{data.summary.feeTaken.toLocaleString()}</strong>
                   </div>
                   <div style={{ textAlign: "center" }}>
-                    <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>จ่ายจริง</div>
+                    <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>Net Paid</div>
                     <strong style={{ fontSize: "13px", color: "var(--green)" }}>{data.summary.totalDistributed.toLocaleString()}</strong>
                   </div>
                   <div style={{ textAlign: "center" }}>
-                    <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>ต่าง (FLOOR)</div>
+                    <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>Difference (FLOOR)</div>
                     <strong style={{ fontSize: "11px", color: data.summary.roundingDifference === 0 ? "var(--green)" : "var(--yellow)" }}>
                       {data.summary.roundingDifference === 0 ? "0 ✅" : `${data.summary.roundingDifference > 0 ? "+" : ""}${data.summary.roundingDifference}`}
                     </strong>
@@ -1636,15 +1636,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   <span style={{ fontSize: "16px" }}>{data.summary.verificationOk ? "✅" : "⚠️"}</span>
                   <span style={{ color: data.summary.verificationOk ? "var(--green)" : "var(--red)", fontWeight: "bold" }}>
                     {data.summary.verificationOk
-                      ? `แจกจ่ายถูกต้อง — จ่ายทั้งหมด ${data.summary.totalDistributed.toLocaleString()} เหรียญ จาก pool ${data.summary.totalPool.toLocaleString()} (รวม🍊กระสุมส้ม ${data.summary.sponsorPool.toLocaleString()}) (${Math.round(data.summary.feeRate * 100)}% fee = ${data.summary.feeTaken.toLocaleString()})`
-                      : `⚠️ ต่าง ${Math.abs(data.summary.roundingDifference)} เหรียญ — ตรวจสอบอีกครั้ง`
+                      ? `Distribution verified — paid ${data.summary.totalDistributed.toLocaleString()} coins from pool ${data.summary.totalPool.toLocaleString()} (+ Sponsor ${data.summary.sponsorPool.toLocaleString()}) (${Math.round(data.summary.feeRate * 100)}% fee = ${data.summary.feeTaken.toLocaleString()})`
+                      : `⚠️ Difference ${Math.abs(data.summary.roundingDifference)} coins — please verify`
                     }
                   </span>
                 </div>
 
                 {/* ── Participant List ── */}
                 <div style={{ fontSize: "10px", color: "var(--muted)", fontWeight: "bold" }}>
-                  ▸ รายชื่อผู้เข้าร่วม ({data.participants.length} คน) — ชนะ {data.summary.winnersCount} · แพ้ {data.summary.losersCount}
+                  ▸ Participants ({data.participants.length} players) — Won {data.summary.winnersCount} · Lost {data.summary.losersCount}
                 </div>
                 <div style={{
                   display: "grid",
@@ -1663,11 +1663,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     fontWeight: "bold",
                     borderBottom: "1px solid var(--hairline)"
                   }}>
-                    <span>ผู้ใช้</span>
-                    <span>เลือก</span>
-                    <span>ตัวเลือก</span>
-                    <span style={{ textAlign: "right" }}>เดิมพัน</span>
-                    <span style={{ textAlign: "right" }}>ผลลัพธ์</span>
+                    <span>Player</span>
+                    <span>Pick</span>
+                    <span>Option</span>
+                    <span style={{ textAlign: "right" }}>Bet</span>
+                    <span style={{ textAlign: "right" }}>Result</span>
                   </div>
 
                   {/* Rows - sort by won first, then by amount desc */}
@@ -1691,12 +1691,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     }}>
                       <span style={{ fontWeight: "500", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {p.userName}
-                        {p.hasInsurance && <span title="มีประกัน">🛡️</span>}
+                        {p.hasInsurance && <span title="Has insurance">🛡️</span>}
                       </span>
                       <span className="meta" style={{ fontSize: "9px", color: p.optionLabel === data.prediction.winningOptionLabel ? "var(--green)" : "var(--muted)" }}>
                         {p.optionLabel === data.prediction.winningOptionLabel ? "✅" : ""} {p.optionLabel}
                       </span>
-                      <span className="meta">{p.status === "won" ? "ชนะ" : p.hasInsurance && p.insuranceRefund > 0 ? "แพ้+คืนประกัน" : "แพ้"}</span>
+                      <span className="meta">{p.status === "won" ? "Won" : p.hasInsurance && p.insuranceRefund > 0 ? "Lost+Refund" : "Lost"}</span>
                       <span style={{ textAlign: "right" }}>{p.betAmount.toLocaleString()}</span>
                       <span style={{
                         textAlign: "right",
@@ -1722,7 +1722,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 </div>
                 {data.prediction.winningOptionLabel && (
                   <div className="meta" style={{ fontSize: "9px", textAlign: "center", paddingTop: "4px" }}>
-                    คำตอบที่ชนะ: <strong style={{ color: "var(--green)" }}>{data.prediction.winningOptionLabel}</strong>
+                    Winning Answer: <strong style={{ color: "var(--green)" }}>{data.prediction.winningOptionLabel}</strong>
                   </div>
                 )}
               </>
@@ -1738,26 +1738,26 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       <div className="app admin-app" style={{ maxWidth: "1000px" }}>
         <header className="topbar" style={{ marginBottom: "8px" }}>
           <div className="brand-text">
-            <h1>หลังบ้าน SUPERWIN</h1>
-            <span>{adminEmail} · แอดมิน</span>
+            <h1>SUPERWIN Admin</h1>
+            <span>{adminEmail} · Admin</span>
           </div>
           <div className="actions" style={{ gap: "6px" }}>
-            <Link className="button gold" href="/">กลับหน้าเว็บ</Link>
+            <Link className="button gold" href="/">Back to Site</Link>
           </div>
         </header>
 
         {message && <div className="admin-message" style={{ marginBottom: "12px" }}>{message}</div>}
 
         <div className="filter-row" style={{ justifyContent: "center", gap: "8px", marginBottom: "16px" }}>
-          <button className={`button ${activeTab === "dashboard" ? "active" : ""}`} onClick={() => { setActiveTab("dashboard"); loadDashboardData().catch(() => undefined); }} style={{ borderRadius: "999px" }}>แดชบอร์ด</button>
-          <button className={`button ${activeTab === "tournaments" ? "active" : ""}`} onClick={() => setActiveTab("tournaments")} style={{ borderRadius: "999px" }}>จัดการทัวร์นาเมนต์</button>
-          <button className={`button ${activeTab === "questions" ? "active" : ""}`} onClick={() => setActiveTab("questions")} style={{ borderRadius: "999px" }}>สร้างคำถามใหม่</button>
-          <button className={`button ${activeTab === "running" ? "active" : ""}`} onClick={() => setActiveTab("running")} style={{ borderRadius: "999px" }}>จัดการคำถาม</button>
-          <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => { setActiveTab("settings"); loadChatMessages(); }} style={{ borderRadius: "999px" }}>ตั้งค่าหน้าเว็บ</button>
-          <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>แอดมิน ({admins.length})</button>
-          <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>แจ้งปัญหา ({reports.length})</button>
-          <button className={`button ${activeTab === "users" ? "active" : ""}`} onClick={() => setActiveTab("users")} style={{ borderRadius: "999px" }}>จัดการผู้ใช้ ({users.length})</button>
-          <button className={`button ${activeTab === "contests" ? "active" : ""}`} onClick={() => { setActiveTab("contests"); loadContests().catch(() => undefined); }} style={{ borderRadius: "999px" }}>กิจกรรมชิงรางวัล ({contests.length})</button>
+          <button className={`button ${activeTab === "dashboard" ? "active" : ""}`} onClick={() => { setActiveTab("dashboard"); loadDashboardData().catch(() => undefined); }} style={{ borderRadius: "999px" }}>Dashboard</button>
+          <button className={`button ${activeTab === "tournaments" ? "active" : ""}`} onClick={() => setActiveTab("tournaments")} style={{ borderRadius: "999px" }}>Tournaments</button>
+          <button className={`button ${activeTab === "questions" ? "active" : ""}`} onClick={() => setActiveTab("questions")} style={{ borderRadius: "999px" }}>Create Question</button>
+          <button className={`button ${activeTab === "running" ? "active" : ""}`} onClick={() => setActiveTab("running")} style={{ borderRadius: "999px" }}>Running Questions</button>
+          <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => { setActiveTab("settings"); loadChatmessages(); }} style={{ borderRadius: "999px" }}>Settings</button>
+          <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>Admins ({admins.length})</button>
+          <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>Reports ({reports.length})</button>
+          <button className={`button ${activeTab === "users" ? "active" : ""}`} onClick={() => setActiveTab("users")} style={{ borderRadius: "999px" }}>User Management ({users.length})</button>
+          <button className={`button ${activeTab === "contests" ? "active" : ""}`} onClick={() => { setActiveTab("contests"); loadContests().catch(() => undefined); }} style={{ borderRadius: "999px" }}>Contests ({contests.length})</button>
         </div>
 
         <section className="admin-content" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", width: "100%", maxWidth: "100%", justifyItems: "center", alignContent: "start", margin: "0 auto" }}>
@@ -1767,15 +1767,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
               <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "20px", margin: "0 auto" }}>
                 <div className="panel-head" style={{ padding: "0 0 4px 0", borderBottom: "1px solid var(--hairline)" }}>
-                  <h2>แดชบอรดภาพรวม</h2>
-                  <span className="micro">มองปุ๊บเขามาใจ ทุกสถิติในหน้าเดียว</span>
+                  <h2>Dashboard Overview</h2>
+                  <span className="micro">All tournament statistics at a glance</span>
                 </div>
 
                 {/* ── Tournament Selector ── */}
                 <div style={{ display: "grid", gap: "4px" }}>
-                  <label className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>เลือกทัวร์นาเมนต์</label>
+                  <label className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>Select Tournament</label>
                   <select className="button" value={selectedDashboardTournament} onChange={(e) => setSelectedDashboardTournament(e.target.value)} style={{ width: "100%", height: "40px", fontSize: "13px", fontWeight: "600" }}>
-                    <option value="">-- เลือกทัวร์นาเมนต์ --</option>
+                    <option value="">-- Select Tournament --</option>
                     {Array.from(new Set(dashboardData.map((d) => d.tournamentName)))
                       .sort((a, b) => {
                         const aInfo = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === a.toLowerCase());
@@ -1790,7 +1790,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         const isArchived = info ? getTournamentInfo(info).archived : false;
                         return (
                           <option key={tour} value={tour}>
-                            {isArchived ? "📦 " : ""}{tour}
+                            {isArchived ? "" : ""}{tour}
                           </option>
                         );
                       })}
@@ -1802,15 +1802,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     return (
                       <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--muted)" }}>
                         <div style={{ fontSize: "40px", marginBottom: "12px" }}>👆</div>
-                        <p style={{ fontSize: "14px", fontWeight: "600", color: "var(--text)" }}>เลือกทัวร์นาเมนต์เพื่อดูสถิติ</p>
-                        <p style={{ fontSize: "12px", marginTop: "4px" }}>กราฟและข้อมูลจะปรากฏขึ้นเมื่อเลือกทัวร์นาเมนต์</p>
+                        <p style={{ fontSize: "14px", fontWeight: "600", color: "var(--text)" }}>Select a tournament to view statistics</p>
+                        <p style={{ fontSize: "12px", marginTop: "4px" }}>Charts and data will appear when you select a tournament</p>
                       </div>
                     );
                   }
 
                   const tournamentQuestions = dashboardData.filter((d) => d.tournamentName === selectedDashboardTournament);
                   if (tournamentQuestions.length === 0) {
-                    return <div className="question"><span>ไม่พบข้อมูลคำถามในทัวร์นาเมนต์นี้</span></div>;
+                    return <div className="question"><span>No questions found in this tournament</span></div>;
                   }
 
                   // Sort: open questions first (by closesAt ascending), then resolved (by closesAt descending)
@@ -1859,33 +1859,33 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
                         <div style={{ background: colors.goldDim, border: `1px solid ${colors.gold}`, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
                           <div style={{ fontSize: "22px", marginBottom: "4px" }}>💰</div>
-                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>พูลรวมทั้งทัวร์</div>
+                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>TOTAL POOL</div>
                           <strong style={{ fontSize: "24px", color: colors.gold, display: "block", marginTop: "2px" }}>{totalTourCoins.toLocaleString()}</strong>
                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>Coins</span>
                         </div>
                         <div style={{ background: "rgba(255, 140, 0, 0.08)", border: "1px solid rgba(255, 140, 0, 0.2)", borderRadius: "12px", padding: "14px", textAlign: "center" }}>
-                          <div style={{ fontSize: "22px", marginBottom: "4px" }}>🍊</div>
-                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>กระสุมส้มรวม</div>
+                          <div style={{ fontSize: "22px", marginBottom: "4px" }}>+</div>
+                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>SPONSOR POOL</div>
                           <strong style={{ fontSize: "24px", color: "#ff8c00", display: "block", marginTop: "2px" }}>{totalSponsorPool.toLocaleString()}</strong>
                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>Coins</span>
                         </div>
                         <div style={{ background: colors.blueDim, border: `1px solid ${colors.blue}`, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
                           <div style={{ fontSize: "22px", marginBottom: "4px" }}>👥</div>
-                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>ผู้เล่นทั้งหมด</div>
+                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>TOTAL PLAYERS</div>
                           <strong style={{ fontSize: "24px", color: colors.blue, display: "block", marginTop: "2px" }}>{totalTourPlayers}</strong>
-                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>คน</span>
+                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>players</span>
                         </div>
                         <div style={{ background: colors.purpleDim, border: `1px solid ${colors.purple}`, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
                           <div style={{ fontSize: "22px", marginBottom: "4px" }}>❓</div>
-                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>จำนวนคำถาม</div>
+                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>QUESTIONS</div>
                           <strong style={{ fontSize: "24px", color: colors.purple, display: "block", marginTop: "2px" }}>{tournamentQuestions.length}</strong>
-                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>ข้อ</span>
+                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>questions</span>
                         </div>
                         <div style={{ background: colors.greenDim, border: `1px solid ${colors.green}`, borderRadius: "12px", padding: "14px", textAlign: "center" }}>
                           <div style={{ fontSize: "22px", marginBottom: "4px" }}>🎯</div>
-                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>ทายทั้งหมด</div>
+                          <div className="meta" style={{ fontSize: "10px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>TOTAL BETS</div>
                           <strong style={{ fontSize: "24px", color: colors.green, display: "block", marginTop: "2px" }}>{totalBets}</strong>
-                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>ครั้ง</span>
+                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>bets</span>
                         </div>
                       </div>
 
@@ -1894,23 +1894,23 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         <div style={{ background: "rgba(255, 225, 0, 0.06)", border: "1px solid rgba(255, 225, 0, 0.2)", borderRadius: "10px", padding: "10px", textAlign: "center" }}>
                           <div style={{ fontSize: "16px" }}>🔴</div>
                           <strong style={{ fontSize: "16px", color: "var(--yellow)" }}>{openCount}</strong>
-                          <div className="meta" style={{ fontSize: "9px" }}>กำลังเปิดรับทาย</div>
+                          <div className="meta" style={{ fontSize: "9px" }}>Open for betting</div>
                         </div>
                         <div style={{ background: "rgba(14, 203, 129, 0.06)", border: "1px solid rgba(14, 203, 129, 0.2)", borderRadius: "10px", padding: "10px", textAlign: "center" }}>
                           <div style={{ fontSize: "16px" }}>✅</div>
                           <strong style={{ fontSize: "16px", color: "var(--green)" }}>{resolvedCount}</strong>
-                          <div className="meta" style={{ fontSize: "9px" }}>สรุปผลแล้ว</div>
+                          <div className="meta" style={{ fontSize: "9px" }}>Resolved</div>
                         </div>
                         <div style={{ background: "rgba(255, 255, 255, 0.04)", border: "1px solid var(--hairline)", borderRadius: "10px", padding: "10px", textAlign: "center" }}>
                           <div style={{ fontSize: "16px" }}>📈</div>
                           <strong style={{ fontSize: "16px", color: "#fff" }}>{sortedQuestions.length > 0 ? Math.round(totalTourCoins / sortedQuestions.length).toLocaleString() : 0}</strong>
-                          <div className="meta" style={{ fontSize: "9px" }}>เฉลี่ย/ข้อ (Coins)</div>
+                          <div className="meta" style={{ fontSize: "9px" }}>Avg/Question (Coins)</div>
                         </div>
                       </div>
                       {/* ── Question Details ── */}
                       <div style={{ display: "grid", gap: "14px" }}>
                         <div style={{ fontSize: "13px", fontWeight: "700", color: "var(--text)", padding: "8px 4px", borderBottom: "1px solid var(--hairline)" }}>
-                          📋 รายละเอียดคำถาม ({sortedQuestions.length} ข้อ)
+                          Question Details ({sortedQuestions.length} questions)
                         </div>
                         {sortedQuestions.map((q, qIdx) => (
                           <div key={q.id} style={{ border: "1px solid var(--hairline)", borderRadius: "12px", background: "var(--bg)", padding: "14px", display: "grid", gap: "10px" }}>
@@ -1938,20 +1938,20 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
                             {/* Quick Stats Row */}
                             <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", fontSize: "11px", color: "var(--muted)" }}>
-                              <span>💰 พูลรวม: <strong style={{ color: "var(--yellow)" }}>{q.totalPoolCoins.toLocaleString()} Coins</strong></span>
+                              <span>Pool: <strong style={{ color: "var(--yellow)" }}>{q.totalPoolCoins.toLocaleString()} Coins</strong></span>
                               {q.sponsorPool ? (
-                                <span>🍊 กระสุมส้ม: <strong style={{ color: "#ff8c00" }}>{q.sponsorPool.toLocaleString()}</strong></span>
+                                <span>+ Sponsor: <strong style={{ color: "#ff8c00" }}>{q.sponsorPool.toLocaleString()}</strong></span>
                               ) : null}
-                              <span>👥 ผู้ทาย: <strong style={{ color: "#fff" }}>{q.uniquePlayers} คน</strong></span>
-                              <span>📝 จำนวนทาย: <strong style={{ color: colors.blue }}>{q.playerBets.length} ครั้ง</strong></span>
+                              <span>Players: <strong style={{ color: "#fff" }}>{q.uniquePlayers} players</strong></span>
+                              <span>Bets: <strong style={{ color: colors.blue }}>{q.playerBets.length} bets</strong></span>
                               {q.totalPoolCoins > 0 && q.playerBets.length > 0 && (
-                                <span>📊 เฉลี่ย/คน: <strong style={{ color: colors.purple }}>{Math.round(q.totalPoolCoins / q.uniquePlayers).toLocaleString()}</strong></span>
+                                <span>Avg/Player: <strong style={{ color: colors.purple }}>{Math.round(q.totalPoolCoins / q.uniquePlayers).toLocaleString()}</strong></span>
                               )}
                             </div>
 
                             {/* Visual Odds Bars (colored progress bars) */}
                             <div style={{ display: "grid", gap: "6px", marginTop: "2px" }}>
-                              <span className="meta" style={{ color: "var(--yellow)", fontSize: "10px", fontWeight: "600" }}>📊 สัดส่วนการทาย (Odds)</span>
+                              <span className="meta" style={{ color: "var(--yellow)", fontSize: "10px", fontWeight: "600" }}>Betting Distribution (Odds)</span>
                               <div style={{ display: "grid", gap: "6px" }}>
                                 {q.optionStats.map((stat, si) => {
                                   const pct = q.totalPoolCoins > 0 ? ((stat.totalCoins / q.totalPoolCoins) * 100).toFixed(1) : "0";
@@ -1962,7 +1962,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                         <span style={{ color: "#fff" }}>{stat.label}</span>
                                         <span>
                                           <strong style={{ color: barColor }}>{pct}%</strong>
-                                          <span style={{ color: "var(--muted)", marginLeft: "8px" }}>คูณ {stat.multiplier > 0 ? `~${stat.multiplier}x` : "--"}</span>
+                                          <span style={{ color: "var(--muted)", marginLeft: "8px" }}>Multiplier {stat.multiplier > 0 ? `~${stat.multiplier}x` : "--"}</span>
                                         </span>
                                       </div>
                                       <div style={{ width: "100%", height: "8px", background: "var(--bg)", borderRadius: "4px", overflow: "hidden" }}>
@@ -1978,16 +1978,16 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             <div style={{ marginTop: "4px" }}>
                               <details style={{ cursor: "pointer" }}>
                                 <summary style={{ fontSize: "11px", color: "var(--yellow)", outline: "none", fontWeight: "500", padding: "4px 0" }}>
-                                  ▸ รายชื่อผู้เข้าร่วม ({q.playerBets.length} คน){q.status === "resolved" && q.winningOptionId ? ` — ชนะ ${q.playerBets.filter(b => { const winOpt = q.optionStats.find(s => s.id === q.winningOptionId); return b.optionLabel === winOpt?.label; }).length} · แพ้ ${q.playerBets.length - q.playerBets.filter(b => { const winOpt = q.optionStats.find(s => s.id === q.winningOptionId); return b.optionLabel === winOpt?.label; }).length}` : ""}
+                                  ▸ Participants ({q.playerBets.length} players){q.status === "resolved" && q.winningOptionId ? ` — Won ${q.playerBets.filter(b => { const winOpt = q.optionStats.find(s => s.id === q.winningOptionId); return b.optionLabel === winOpt?.label; }).length} · Lost ${q.playerBets.length - q.playerBets.filter(b => { const winOpt = q.optionStats.find(s => s.id === q.winningOptionId); return b.optionLabel === winOpt?.label; }).length}` : ""}
                                 </summary>
                                 <div style={{ display: "grid", gap: "5px", marginTop: "8px", maxHeight: "200px", overflowY: "auto", padding: "4px", background: "var(--card)", borderRadius: "8px", border: "1px solid var(--hairline)" }}>
                                   {/* Header */}
                                   <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 120px 70px 70px", gap: "6px", padding: "4px 8px", fontSize: "9px", color: "var(--muted)", fontWeight: "bold", borderBottom: "1px solid var(--hairline)" }}>
-                                    <span>ผู้ใช้</span>
-                                    <span>เลือก</span>
-                                    <span>ตัวเลือก</span>
-                                    <span style={{ textAlign: "right" }}>เดิมพัน</span>
-                                    <span style={{ textAlign: "right" }}>ผลลัพธ์</span>
+                                    <span>Player</span>
+                                    <span>Pick</span>
+                                    <span>Option</span>
+                                    <span style={{ textAlign: "right" }}>Bet</span>
+                                    <span style={{ textAlign: "right" }}>Result</span>
                                   </div>
                                   {/* Rows */}
                                   {[...q.playerBets]
@@ -2009,12 +2009,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                       return (
                                         <div key={bet.id} style={{ display: "grid", gridTemplateColumns: "1fr 80px 120px 70px 70px", gap: "6px", padding: "5px 8px", fontSize: "10px", background: isWinner ? "rgba(14,203,129,0.04)" : "transparent", borderRadius: "4px", alignItems: "center" }}>
                                           <span style={{ fontWeight: "500", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#fff" }}>
-                                            {bet.displayName || bet.email || bet.userId || "ผู้ใช้ไม่ทราบ"}
+                                            {bet.displayName || bet.email || bet.userId || "Unknown User"}
                                           </span>
                                           <span className="meta" style={{ fontSize: "9px", color: isWinner ? "var(--green)" : "var(--muted)" }}>
                                             {isWinner ? "✅ " : ""}{bet.optionLabel}
                                           </span>
-                                          <span className="meta" style={{ fontSize: "10px" }}>{q.status === "resolved" ? (isWinner ? "ชนะ" : "แพ้") : "--"}</span>
+                                          <span className="meta" style={{ fontSize: "10px" }}>{q.status === "resolved" ? (isWinner ? "Won" : "Lost") : "--"}</span>
                                           <span style={{ textAlign: "right", color: "var(--yellow)", fontWeight: "600" }}>{bet.amount.toLocaleString()}</span>
                                           <span style={{ textAlign: "right", fontWeight: "bold", color: q.status === "resolved" ? (isWinner ? "var(--green)" : "var(--red)") : "var(--muted)" }}>
                                             {q.status === "resolved" ? (isWinner ? `${Math.round(bet.amount * 0.63).toLocaleString()}` : `-${bet.amount.toLocaleString()}`) : "--"}
@@ -2022,7 +2022,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                         </div>
                                       );
                                     })}
-                                  {!q.playerBets.length && <div style={{ fontSize: "11px", color: "var(--muted)", textAlign: "center", padding: "8px" }}>ยังไม่มีรายการทายผล</div>}
+                                  {!q.playerBets.length && <div style={{ fontSize: "11px", color: "var(--muted)", textAlign: "center", padding: "8px" }}>No bets yet</div>}
                                 </div>
                               </details>
                             </div>
@@ -2040,10 +2040,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
           {activeTab === "questions" && (
             <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px", maxWidth: "600px", width: "100%", margin: "0 auto" }}>
-              <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h2>สร้างคำถามใหม่</h2><span className="micro">เปิดทันทีหลังสร้าง</span></div>
+              <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h2>Create Question</h2><span className="micro">Opens immediately after creation</span></div>
               <form className="modal-body" onSubmit={createPrediction} style={{ padding: "12px 0 0 0" }}>
                 <div style={{ display: "grid", gap: "4px" }}>
-                  <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>Tournament (ชื่อทัวร์นาเมนต์)</span>
+                  <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Tournament</span>
                   <select
                     className="button"
                     value={tournamentName}
@@ -2065,7 +2065,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         : "var(--muted)",
                     }}
                   >
-                    <option value="">⚠️ -- ต้องเลือกทัวร์นาเมนต์ก่อน --</option>
+                    <option value="">⚠️ -- Must select a tournament first --</option>
                     {(settings.tournaments || [])
                       .map((t) => {
                         const name = getTournamentInfo(t).name;
@@ -2097,16 +2097,16 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
                 <div style={{ display: "grid", gap: "4px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>รอบ (Round)</span>
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Round</span>
                     <button className="button" type="button" disabled={!round.trim()} onClick={saveRoundTemplate} style={{ height: "18px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--yellow)", color: "var(--yellow)", borderRadius: "4px" }}>
-                      💾 บันทึกรอบนี้
+                      💾 Save This Round
                     </button>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "6px", alignItems: "center" }}>
-                    <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-strong)", whiteSpace: "nowrap" }}>รอบ</span>
-                    <input value={round} onChange={(event) => setRound(event.target.value)} placeholder="เช่น แบ่งกลุ่ม, รอบ 16 ทีม" style={{ height: "34px" }} />
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-strong)", whiteSpace: "nowrap" }}>Round</span>
+                    <input value={round} onChange={(event) => setRound(event.target.value)} placeholder="e.g., Group Stage, Round of 16" style={{ height: "34px" }} />
                     <select className="button" value="" onChange={(event) => { if (event.target.value) setRound(event.target.value); }} style={{ height: "34px", width: "auto", minWidth: "140px", maxWidth: "200px" }}>
-                      <option value="">-- รอบ --</option>
+                      <option value="">-- Round --</option>
                       {(settings.savedRounds || []).map((r) => (
                         <option key={r} value={r}>{r}</option>
                       ))}
@@ -2114,7 +2114,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
                   {settings.savedRounds && settings.savedRounds.length > 0 && (
                     <details style={{ marginTop: "4px", cursor: "pointer" }}>
-                      <summary className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>✏️ จัดการรอบที่บันทึกไว้</summary>
+                      <summary className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>✏️ Manage Saved Rounds</summary>
                       <div style={{ display: "grid", gap: "4px", marginTop: "4px", maxHeight: "120px", overflowY: "auto", padding: "4px", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)" }}>
                         {settings.savedRounds.map((r) => (
                           <div key={r} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", padding: "4px 8px", background: "var(--card)", borderRadius: "4px" }}>
@@ -2122,16 +2122,16 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                               <>
                                 <input value={editRoundInput} onChange={(event) => setEditRoundInput(event.target.value)} style={{ flex: 1, height: "26px", fontSize: "11px" }} autoFocus />
                                 <div style={{ display: "flex", gap: "4px" }}>
-                                  <button className="button" type="button" onClick={() => renameRoundTemplate(r, editRoundInput)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", color: "var(--green)" }}>บันทึก</button>
-                                  <button className="button" type="button" onClick={() => setEditingRound(null)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--muted)", color: "var(--muted)" }}>ยกเลิก</button>
+                                  <button className="button" type="button" onClick={() => renameRoundTemplate(r, editRoundInput)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", color: "var(--green)" }}>Save</button>
+                                  <button className="button" type="button" onClick={() => setEditingRound(null)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--muted)", color: "var(--muted)" }}>Cancel</button>
                                 </div>
                               </>
                             ) : (
                               <>
                                 <span style={{ fontSize: "11px", color: "var(--text)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{r}</span>
                                 <div style={{ display: "flex", gap: "4px" }}>
-                                  <button className="button" type="button" onClick={() => { setEditingRound(r); setEditRoundInput(r); }} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(59, 130, 246, 0.1)", border: "1px solid var(--info)", color: "var(--info)" }}>แก้ไข</button>
-                                  <button className="button" type="button" onClick={() => removeRoundTemplate(r)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(240, 84, 84, 0.1)", border: "1px solid #ef4444", color: "#ef4444" }}>ลบ</button>
+                                  <button className="button" type="button" onClick={() => { setEditingRound(r); setEditRoundInput(r); }} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(59, 130, 246, 0.1)", border: "1px solid var(--info)", color: "var(--info)" }}>Edit</button>
+                                  <button className="button" type="button" onClick={() => removeRoundTemplate(r)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(240, 84, 84, 0.1)", border: "1px solid #ef4444", color: "#ef4444" }}>Delete</button>
                                 </div>
                               </>
                             )}
@@ -2144,15 +2144,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
                 <div style={{ display: "grid", gap: "4px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>Question (คำถาม)</span>
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Question</span>
                     <button className="button" type="button" disabled={!question.trim()} onClick={saveQuestionTemplate} style={{ height: "18px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--yellow)", color: "var(--yellow)", borderRadius: "4px" }}>
-                      💾 บันทึกแม่แบบคำถามนี้
+                      💾 Save Question Template
                     </button>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "10px" }}>
-                    <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="คีย์คำถาม หรือเลือกจากแม่แบบขวา" style={{ height: "34px" }} />
+                    <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Type question or pick from templates" style={{ height: "34px" }} />
                     <select className="button" value="" onChange={(event) => { if (event.target.value) setQuestion(event.target.value); }} style={{ height: "34px", width: "auto", minWidth: "260px", maxWidth: "400px" }}>
-                      <option value="">-- แม่แบบคำถาม --</option>
+                      <option value="">-- Question Template --</option>
                       {(settings.savedQuestions || []).map((q) => (
                         <option key={q} value={q}>{q}</option>
                       ))}
@@ -2160,7 +2160,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   </div>
                   {settings.savedQuestions && settings.savedQuestions.length > 0 && (
                     <details style={{ marginTop: "6px", cursor: "pointer" }}>
-                      <summary className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>✏️ จัดการแม่แบบคำถามที่บันทึกไว้</summary>
+                      <summary className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>✏️ Manage Saved Question Templates</summary>
                       <div style={{ display: "grid", gap: "4px", marginTop: "6px", maxHeight: "120px", overflowY: "auto", padding: "4px", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)" }}>
                         {settings.savedQuestions.map((q) => (
                           <div key={q} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", padding: "4px 8px", background: "var(--card)", borderRadius: "4px" }}>
@@ -2168,16 +2168,16 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                               <>
                                 <input value={editTemplateInput} onChange={(event) => setEditTemplateInput(event.target.value)} style={{ flex: 1, height: "26px", fontSize: "11px" }} autoFocus />
                                 <div style={{ display: "flex", gap: "4px" }}>
-                                  <button className="button" type="button" onClick={() => renameQuestionTemplate(q, editTemplateInput)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", color: "var(--green)" }}>บันทึก</button>
-                                  <button className="button" type="button" onClick={() => setEditingTemplate(null)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--muted)", color: "var(--muted)" }}>ยกเลิก</button>
+                                  <button className="button" type="button" onClick={() => renameQuestionTemplate(q, editTemplateInput)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", color: "var(--green)" }}>Save</button>
+                                  <button className="button" type="button" onClick={() => setEditingTemplate(null)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--muted)", color: "var(--muted)" }}>Cancel</button>
                                 </div>
                               </>
                             ) : (
                               <>
                                 <span style={{ fontSize: "11px", color: "var(--text)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{q}</span>
                                 <div style={{ display: "flex", gap: "4px" }}>
-                                  <button className="button" type="button" onClick={() => { setEditingTemplate(q); setEditTemplateInput(q); }} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(59, 130, 246, 0.1)", border: "1px solid var(--info)", color: "var(--info)" }}>แก้ไข</button>
-                                  <button className="button" type="button" onClick={() => removeQuestionTemplate(q)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(240, 84, 84, 0.1)", border: "1px solid #ef4444", color: "#ef4444" }}>ลบ</button>
+                                  <button className="button" type="button" onClick={() => { setEditingTemplate(q); setEditTemplateInput(q); }} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(59, 130, 246, 0.1)", border: "1px solid var(--info)", color: "var(--info)" }}>Edit</button>
+                                  <button className="button" type="button" onClick={() => removeQuestionTemplate(q)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(240, 84, 84, 0.1)", border: "1px solid #ef4444", color: "#ef4444" }}>Delete</button>
                                 </div>
                               </>
                             )}
@@ -2191,51 +2191,51 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 <div className="filter-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", margin: "4px 0" }}>
                   <div style={{ display: "grid", gap: "4px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>Open Time (เวลาเริ่มทาย)</span>
+                      <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Open Time</span>
                       <button className="button" type="button" onClick={() => setOpensAt(toDateTimeLocal(new Date()))} style={{ height: "18px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--yellow)", color: "var(--yellow)", borderRadius: "4px" }}>
-                        ⚡ เปิดทายทันที
+                        Open betting immediately
                       </button>
                     </div>
-                    <label className="pill" style={{ display: "grid", gridTemplateColumns: "auto 1fr", height: "34px", padding: "0 10px" }}>เปิด <input type="datetime-local" value={opensAt} onChange={(event) => setOpensAt(event.target.value)} style={{ border: 0, padding: 0, height: "100%", background: "transparent", color: "var(--text)" }} /></label>
+                    <label className="pill" style={{ display: "grid", gridTemplateColumns: "auto 1fr", height: "34px", padding: "0 10px" }}>Open <input type="datetime-local" value={opensAt} onChange={(event) => setOpensAt(event.target.value)} style={{ border: 0, padding: 0, height: "100%", background: "transparent", color: "var(--text)" }} /></label>
                   </div>
                   <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)", height: "18px", display: "flex", alignItems: "center" }}>Close Time (เวลาปิดทาย)</span>
-                    <label className="pill" style={{ display: "grid", gridTemplateColumns: "auto 1fr", height: "34px", padding: "0 10px" }}>ปิด <input type="datetime-local" value={closesAt} onChange={(event) => setClosesAt(event.target.value)} style={{ border: 0, padding: 0, height: "100%", background: "transparent", color: "var(--text)" }} /></label>
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--muted)", height: "18px", display: "flex", alignItems: "center" }}>Close Time</span>
+                    <label className="pill" style={{ display: "grid", gridTemplateColumns: "auto 1fr", height: "34px", padding: "0 10px" }}>Close <input type="datetime-local" value={closesAt} onChange={(event) => setClosesAt(event.target.value)} style={{ border: 0, padding: 0, height: "100%", background: "transparent", color: "var(--text)" }} /></label>
                   </div>
                 </div>
                 <div className="filter-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", margin: "4px 0" }}>
                   <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>Fee Rate (ค่าธรรมเนียม)</span>
-                    <input value={feeRate} onChange={(event) => setFeeRate(event.target.value)} placeholder="ค่าธรรมเนียม เช่น 0.03" style={{ height: "34px" }} />
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Fee Rate</span>
+                    <input value={feeRate} onChange={(event) => setFeeRate(event.target.value)} placeholder="e.g., 0.03" style={{ height: "34px" }} />
                   </div>
                   <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>Status (สถานะแรกเริ่ม)</span>
-                    <span className="pill gold" style={{ height: "34px", justifyContent: "center" }}>สร้างแล้วเปิดทันที</span>
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Status (Initial Status)</span>
+                    <span className="pill gold" style={{ height: "34px", justifyContent: "center" }}>Create & Open Immediately</span>
                   </div>
                 </div>
 
                 <div className="admin-box" style={{ marginTop: "6px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
-                    <strong>ตัวเลือกคำตอบ</strong>
+                    <strong>Answer Options</strong>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       <button type="button" onClick={usePreviousOptions} style={{ fontSize: "10px", color: "var(--green)", background: "transparent", border: "0", cursor: "pointer", textDecoration: "underline" }}>
-                        ใช้ตัวเลือกจากข้อที่แล้ว
+                        Use options from previous question
                       </button>
                       <button type="button" onClick={() => setShowBulkOptions(!showBulkOptions)} style={{ fontSize: "10px", color: "var(--yellow)", background: "transparent", border: "0", cursor: "pointer", textDecoration: "underline" }}>
-                        {showBulkOptions ? "ใส่ทีละข้อ" : "ใส่ทีละหลายคำตอบ (เว้นบรรทัด)"}
+                        {showBulkOptions ? "Paste multiple at once" : "Enter multiple options (one per line)"}
                       </button>
                     </div>
                   </div>
 
                   {!showBulkOptions ? (
                     <div className="filter-row" style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "10px" }}>
-                      <input value={optionInput} onChange={(event) => setOptionInput(event.target.value)} placeholder="เพิ่มคำตอบทีละข้อ" onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addOption(); } }} style={{ border: "1px solid var(--hairline)", height: "34px" }} />
-                      <button className="button gold" type="button" onClick={addOption}>เพิ่มคำตอบ</button>
+                      <input value={optionInput} onChange={(event) => setOptionInput(event.target.value)} placeholder="Add one option per line" onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addOption(); } }} style={{ border: "1px solid var(--hairline)", height: "34px" }} />
+                      <button className="button gold" type="button" onClick={addOption}>Add Option</button>
                     </div>
                   ) : (
                     <div style={{ display: "grid", gap: "6px" }}>
-                      <textarea rows={3} value={optionsBulkInput} onChange={(event) => setOptionsBulkInput(event.target.value)} placeholder="วางรายชื่อตัวเลือกที่นี่ แยกบรรทัดกัน เช่น&#10;ทีม A&#10;ทีม B&#10;ทีม C" style={{ border: "1px solid var(--hairline)", borderRadius: "8px", background: "var(--bg)", color: "var(--text)", padding: "8px" }} />
-                      <button className="button gold" type="button" onClick={addBulkOptions} style={{ width: "100%", height: "34px" }}>ดึงคำตอบทั้งหมดกระจายเป็นตัวเลือกด่วน</button>
+                      <textarea rows={3} value={optionsBulkInput} onChange={(event) => setOptionsBulkInput(event.target.value)} placeholder="Paste options here, one per line&#10;Team A&#10;Team B&#10;Team C" style={{ border: "1px solid var(--hairline)", borderRadius: "8px", background: "var(--bg)", color: "var(--text)", padding: "8px" }} />
+                      <button className="button gold" type="button" onClick={addBulkOptions} style={{ width: "100%", height: "34px" }}>Quick-add all answers as options</button>
                     </div>
                   )}
 
@@ -2243,15 +2243,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     {draftOptions.map((option, index) => (
                       <div key={`${option}-${index}`} className="reward-line">
                         <span>{index + 1}. {option}</span>
-                        <button className="button" type="button" onClick={() => removeOption(index)}>ลบ</button>
+                        <button className="button" type="button" onClick={() => removeOption(index)}>Delete</button>
                       </div>
                     ))}
                   </div>
 
-                  {/* ── ชุดตัวเลือกที่บันทึกไว้ ── */}
+                  {/* ── Saved Option Sets ── */}
                   <div style={{ marginTop: "10px", borderTop: "1px solid var(--hairline)", paddingTop: "10px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
-                      <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ชุดตัวเลือกที่บันทึกไว้ ({savedOptionSets.length})</span>
+                      <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Saved Option Sets ({savedOptionSets.length})</span>
                       {draftOptions.length >= 2 && (
                         <button
                           type="button"
@@ -2259,7 +2259,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           style={{ height: "28px", fontSize: "11px", padding: "0 10px" }}
                           onClick={() => setShowSaveOptionSet(!showSaveOptionSet)}
                         >
-                          {showSaveOptionSet ? "ยกเลิก" : "💾 บันทึกชุดตัวเลือก"}
+                          {showSaveOptionSet ? "Cancel" : "💾 Save Option Set"}
                         </button>
                       )}
                     </div>
@@ -2269,12 +2269,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         <input
                           value={optionSetNameInput}
                           onChange={(e) => setOptionSetNameInput(e.target.value)}
-                          placeholder="ชื่อชุดตัวเลือก เช่น ทีม 16 ทีม"
+                          placeholder="Option set name, e.g., Top 16 Teams"
                           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveOptionSet(); } }}
                           style={{ border: "1px solid var(--hairline)", height: "34px", flex: 1 }}
                         />
                         <button type="button" className="button gold" onClick={saveOptionSet} style={{ height: "34px", fontSize: "12px", padding: "0 14px" }}>
-                          บันทึก
+                          Save
                         </button>
                       </div>
                     )}
@@ -2304,22 +2304,22 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   autoFocus
                                 />
                                 <button type="button" className="button gold" onClick={() => updateOptionSetName(set.id)} style={{ height: "28px", fontSize: "11px", padding: "0 8px" }}>OK</button>
-                                <button type="button" className="button" onClick={() => { setEditingOptionSetId(null); setEditOptionSetNameInput(""); }} style={{ height: "28px", fontSize: "11px", padding: "0 8px" }}>ยกเลิก</button>
+                                <button type="button" className="button" onClick={() => { setEditingOptionSetId(null); setEditOptionSetNameInput(""); }} style={{ height: "28px", fontSize: "11px", padding: "0 8px" }}>Cancel</button>
                               </>
                             ) : (
                               <>
                                 <span style={{ flex: 1, fontSize: "13px" }}>
                                   <strong>{set.name}</strong>
-                                  <span className="meta" style={{ fontSize: "11px", marginLeft: "6px", color: "var(--muted)" }}>({set.options.length} ตัวเลือก)</span>
+                                  <span className="meta" style={{ fontSize: "11px", marginLeft: "6px", color: "var(--muted)" }}>({set.options.length} options)</span>
                                 </span>
                                 <button
                                   type="button"
                                   className="button gold"
                                   onClick={() => loadOptionSet(set.id)}
                                   style={{ height: "28px", fontSize: "11px", padding: "0 10px" }}
-                                  title="โหลดชุดตัวเลือกนี้"
+                                  title="Load this option set"
                                 >
-                                  โหลด
+                                  Load
                                 </button>
                                 <button
                                   type="button"
@@ -2329,27 +2329,27 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                     setEditOptionSetNameInput(set.name);
                                   }}
                                   style={{ height: "28px", fontSize: "11px", padding: "0 8px" }}
-                                  title="แก้ไขชื่อ"
+                                  title="Edit name"
                                 >
-                                  แก้ไข
+                                  Edit
                                 </button>
                                 <button
                                   type="button"
                                   className="button"
                                   onClick={() => overwriteOptionSet(set.id)}
                                   style={{ height: "28px", fontSize: "11px", padding: "0 8px" }}
-                                  title="บันทึกทับด้วยตัวเลือกปัจจุบัน"
+                                  title="SaveOverwritewith current options"
                                 >
-                                  ทับ
+                                  Overwrite
                                 </button>
                                 <button
                                   type="button"
                                   className="button"
                                   onClick={() => deleteOptionSet(set.id)}
                                   style={{ height: "28px", fontSize: "11px", padding: "0 8px", color: "var(--red)" }}
-                                  title="ลบชุดนี้"
+                                  title="Delete this set"
                                 >
-                                  ลบ
+                                  Delete
                                 </button>
                               </>
                             )}
@@ -2375,7 +2375,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   }}>
                     <span style={{ fontSize: "16px" }}>✅</span>
                     <span style={{ fontSize: "12px", color: "var(--text)" }}>
-                      คำถามนี้จะถูกสร้างภายใต้: <strong style={{ color: "var(--green)", fontSize: "13px" }}>{tournamentName}</strong>
+                      This question will be created under: <strong style={{ color: "var(--green)", fontSize: "13px" }}>{tournamentName}</strong>
                     </span>
                   </div>
                 ) : (
@@ -2391,7 +2391,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   }}>
                     <span style={{ fontSize: "16px" }}>⚠️</span>
                     <span style={{ fontSize: "12px", color: "var(--red)" }}>
-                      ยังไม่ได้เลือกทัวร์นาเมนต์ — ปุ่มสร้างจะปิดใช้งาน
+                      No tournament selected — Create button disabled
                     </span>
                   </div>
                 )}
@@ -2402,7 +2402,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   type="submit"
                   style={{ width: "100%", marginTop: "12px" }}
                 >
-                  สร้างคำถามและเปิดรับทาย
+                  Create Question & Open Betting
                 </button>
               </form>
             </section>
@@ -2412,32 +2412,32 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
             <section className="panel" style={{ width: "100%", maxWidth: "760px", display: "grid", gap: "16px", margin: "0 auto" }}>
               <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h3>คำถามที่กำลังรัน</h3>
+                  <h3>Running Questions</h3>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     {runningTournamentFilter && filteredRunningPredictions.length > 1 && (
                       <button className="button gold" type="button" disabled={loading} onClick={savePredictionOrder} style={{ height: "24px", fontSize: "10px", padding: "0 10px" }}>
-                        💾 บันทึกลำดับคำถาม
+                        💾 Save Question Order
                       </button>
                     )}
-                    <span className="micro">{runningTournamentFilter ? `${filteredRunningPredictions.length} คำถาม` : `${runningPredictions.length} รายการ`}</span>
+                    <span className="micro">{runningTournamentFilter ? `${filteredRunningPredictions.length} Question` : `${runningPredictions.length} items`}</span>
                   </div>
                 </div>
                 <div className="admin-help" style={{ padding: "8px 0", margin: "4px 0" }}>
-                  <span>ปิดทันที = หยุดรับคำทาย (คำถามจะย้ายไปเก็บที่ตารางด้านล่างเพื่อรอสรุปผล)</span>
-                  <span>สรุปผล = เลือกคำตอบที่ชนะและจ่ายผลเหรียญ</span>
-                  <span>ยกเลิก + คืนเหรียญ = ยกเลิกคำถามและคืนเหรียญเต็มจำนวน</span>
+                  <span>Close Now = Stop accepting bets (question moves to table below awaiting resolution)</span>
+                  <span>Resolve = Select winning answer and distribute prizes</span>
+                  <span>Cancel + Refund = Cancel question and refund all coins</span>
                 </div>
 
                 {/* Tournament Selector */}
                 <div style={{ display: "grid", gap: "4px", marginBottom: "12px" }}>
-                  <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>เลือกทัวร์นาเมนต์เพื่อจัดการคำถาม</span>
+                  <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Select Tournament to view Running Questions</span>
                   <select 
                     className="button" 
                     value={runningTournamentFilter} 
                     onChange={(e) => setRunningTournamentFilter(e.target.value)} 
                     style={{ width: "100%", height: "38px" }}
                   >
-                    <option value="">-- เลือกทัวร์นาเมนต์ --</option>
+                    <option value="">-- Select Tournament --</option>
                     {settings.tournaments
                       ?.map((t) => {
                         const info = getTournamentInfo(t);
@@ -2449,7 +2449,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       })
                       .map((t) => (
                         <option key={t.name} value={t.name}>
-                          {t.archived ? "📦 " : ""}{t.name}
+                          {t.archived ? "" : ""}{t.name}
                         </option>
                       ))}
                   </select>
@@ -2457,15 +2457,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 
                 <div className="leaderboard-body" style={{ gap: "10px", padding: "12px 0 0 0" }}>
                   {!runningTournamentFilter ? (
-                    <div className="question"><strong>กรุณาเลือกทัวร์นาเมนต์</strong><span className="meta">เลือกทัวร์นาเมนต์จาก dropdown ด้านบนเพื่อดูและจัดการคำถาม</span></div>
+                    <div className="question"><strong>Please Select a Tournament</strong><span className="meta">Select a tournament from the dropdown above to view and manage questions</span></div>
                   ) : (
                     currentRunning.length > 0 ? currentRunning.map((item) => {
                     const globalIdx = localOrder.indexOf(item.id);
                     return (
                       <div key={item.id} className="question running" style={{ padding: "12px", display: "grid", gridTemplateColumns: "auto 1fr", gap: "12px", alignItems: "center" }}>
-                        {/* แฮมเบอร์เกอร์ & เลื่อนลำดับคำถาม */}
+                        {/* Hamburger menu & reorder questions */}
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", paddingRight: "8px", borderRight: "1px solid var(--hairline)", alignSelf: "stretch", justifyContent: "center" }}>
-                          <span style={{ fontSize: "14px", color: "var(--muted)", cursor: "grab", lineHeight: "1" }} title="ลากหรือเลื่อนคำถาม">☰</span>
+                          <span style={{ fontSize: "14px", color: "var(--muted)", cursor: "grab", lineHeight: "1" }} title="Drag to reorder question">☰</span>
                           <div style={{ display: "flex", gap: "2px" }}>
                             <button className="button" type="button" disabled={globalIdx <= 0} onClick={() => moveLocalOrder(item.id, "up")} style={{ width: "18px", height: "18px", padding: 0, fontSize: "8px", background: "transparent" }}>▲</button>
                             <button className="button" type="button" disabled={globalIdx === -1 || globalIdx >= localOrder.length - 1} onClick={() => moveLocalOrder(item.id, "down")} style={{ width: "18px", height: "18px", padding: 0, fontSize: "8px", background: "transparent" }}>▼</button>
@@ -2476,7 +2476,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           <div className="question-main">
                             <strong>{item.question}</strong>
                             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", marginTop: "2px", marginBottom: "4px" }}>
-                              <span className="meta">{item.tournamentName} · ปิด {displayDate(item.closesAt)} UTC+7 · {item.options.length} คำตอบ</span>
+                              <span className="meta">{item.tournamentName} · Closes {displayDate(item.closesAt)} UTC+7 · {item.options.length} answers</span>
                               {editingId !== item.id ? (
                                 <button 
                                   className="button" 
@@ -2495,7 +2495,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   }} 
                                   style={{ height: "18px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--yellow)", color: "var(--yellow)", borderRadius: "4px", cursor: "pointer" }}
                                 >
-                                  ✏️ แก้ไขคำถาม & คำตอบ
+                                  ✏️ Edit Question & Answers
                                 </button>
                               ) : (
                                 <button 
@@ -2504,16 +2504,16 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   onClick={() => setEditingId(null)} 
                                   style={{ height: "18px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--muted)", color: "var(--muted)", borderRadius: "4px", cursor: "pointer" }}
                                 >
-                                  ยกเลิก
+                                  Cancel
                                 </button>
                               )}
                             </div>
 
-                            {/* กล่องแก้ไขคำถาม & คำตอบ สไลด์เปิดแบบฟอร์มครบชุด */}
+                            {/* Edit Q&A slide-open full form */}
                             {editingId === item.id && (
                               <div style={{ display: "grid", gap: "10px", marginTop: "10px", marginBottom: "10px", background: "rgba(255,225,0,0.03)", padding: "12px", borderRadius: "8px", border: "1px solid var(--hairline)", width: "100%", textAlign: "left" }}>
                                 <div style={{ display: "grid", gap: "4px" }}>
-                                  <span className="meta" style={{ fontSize: "10px", color: "var(--yellow)" }}>🔄 ย้ายทัวร์นาเมนต์:</span>
+                                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>🔄 Move Tournament:</span>
                                   <select
                                     value={editTournamentNames[item.id] || item.tournamentName}
                                     onChange={(e) => setEditTournamentNames((current) => ({ ...current, [item.id]: e.target.value }))}
@@ -2521,27 +2521,27 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   >
                                     {(settings.tournaments || []).map((t) => {
                                       const info = getTournamentInfo(t);
-                                      return <option key={info.name} value={info.name}>{info.archived ? `📦 ${info.name}` : info.name}</option>;
+                                      return <option key={info.name} value={info.name}>{info.archived ? `${info.name}` : info.name}</option>;
                                     })}
                                   </select>
                                   {editTournamentNames[item.id] && editTournamentNames[item.id] !== item.tournamentName && (
-                                    <span className="meta" style={{ fontSize: "9px", color: "var(--yellow)" }}>⚠️ จะย้ายจาก "{item.tournamentName}" → "{editTournamentNames[item.id]}"</span>
+                                    <span className="meta" style={{ fontSize: "9px", color: "var(--yellow)" }}>⚠️ Moving from "{item.tournamentName}" → "{editTournamentNames[item.id]}"</span>
                                   )}
                                 </div>
 
                                 <div style={{ display: "grid", gap: "4px" }}>
-                                  <span className="meta" style={{ fontSize: "10px", color: "var(--yellow)" }}>แก้ไขข้อความคำถาม:</span>
+                                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Edit Question Text:</span>
                                   <input 
                                     type="text" 
                                     value={editQuestions[item.id] !== undefined ? editQuestions[item.id] : item.question} 
                                     onChange={(e) => setEditQuestions((current) => ({ ...current, [item.id]: e.target.value }))} 
-                                    placeholder="กรอกข้อความคำถามใหม่..." 
+                                    placeholder="Enter new question text..." 
                                     style={{ height: "30px", fontSize: "11px", padding: "0 8px", background: "var(--card)", width: "100%" }} 
                                   />
                                 </div>
 
                                 <div style={{ display: "grid", gap: "4px" }}>
-                                  <span className="meta" style={{ fontSize: "10px", color: "var(--yellow)" }}>แก้ไขเวลาปิดทายผล (UTC+7):</span>
+                                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Edit Closing Time (UTC+7):</span>
                                   <input 
                                     type="datetime-local" 
                                     value={editClosesAt[item.id] || ""} 
@@ -2551,7 +2551,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                 </div>
 
                                 <div style={{ display: "grid", gap: "6px" }}>
-                                  <span className="meta" style={{ fontSize: "10px", color: "var(--yellow)" }}>แก้ไขข้อความคำตอบ (ทีมต่าง ๆ):</span>
+                                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Edit Answer Text (different teams):</span>
                                   <div style={{ display: "grid", gap: "6px", maxHeight: "150px", overflowY: "auto", paddingRight: "4px" }}>
                                     {item.options.map((option) => {
                                       const currentVal = editOptionsInputs[item.id]?.[option.id] !== undefined 
@@ -2585,7 +2585,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   onClick={() => savePredictionEdits(item.id)} 
                                   style={{ height: "32px", fontSize: "11px", fontWeight: "bold", marginTop: "4px" }}
                                 >
-                                  💾 บันทึกการแก้ไขคำถาม & คำตอบ
+                                  💾 Save Question & Answer Edits
                                 </button>
                               </div>
                             )}
@@ -2596,43 +2596,43 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       </div>
                     );
                     }
-                  ) : <div className="question"><strong>ไม่มีคำถามในทัวร์นาเมนต์นี้</strong></div>
+                  ) : <div className="question"><strong>No questions in this tournament</strong></div>
                 )}
                 </div>
                 {runningTournamentFilter && runningTotalPages > 1 && (
                   <div className="history-footer" style={{ marginTop: "16px" }}>
-                    <button className="button" disabled={runningPage <= 1} onClick={() => setRunningPage(runningPage - 1)}>ก่อนหน้า</button>
-                    <span className="micro">หน้า {runningPage} / {runningTotalPages}</span>
-                    <button className="button" disabled={runningPage >= runningTotalPages} onClick={() => setRunningPage(runningPage + 1)}>ถัดไป</button>
+                    <button className="button" disabled={runningPage <= 1} onClick={() => setRunningPage(runningPage - 1)}>Previous</button>
+                    <span className="micro">Page {runningPage} / {runningTotalPages}</span>
+                    <button className="button" disabled={runningPage >= runningTotalPages} onClick={() => setRunningPage(runningPage + 1)}>Next</button>
                   </div>
                 )}
               </section>
 
               <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h3>คำถามที่หมดเวลา รอคำตอบ</h3><span className="micro">{filteredPendingPredictions.length} รายการ</span></div>
+                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h3>Awaiting Results</h3><span className="micro">{filteredPendingPredictions.length} items</span></div>
                 <div className="leaderboard-body" style={{ gap: "10px", padding: "12px 0 0 0" }}>
                   {currentPending.length ? currentPending.map((item) => (
                     <div key={item.id} className="question closed" style={{ padding: "12px" }}>
                       <div className="question-main">
                         <strong>{item.question}</strong>
-                        <span className="meta">{item.tournamentName} · ปิดเมื่อ {displayDate(item.closesAt)} UTC+7 · {item.options.length} คำตอบ</span>
+                        <span className="meta">{item.tournamentName} · Closed {displayDate(item.closesAt)} UTC+7 · {item.options.length} answers</span>
                       </div>
                       {renderPredictionControls(item)}
                       {renderPayoutBreakdown(item)}
                     </div>
-                  )) : <div className="question"><strong>ไม่มีคำถามที่หมดเวลาและค้างรอคำตอบในขณะนี้</strong></div>}
+                  )) : <div className="question"><strong>No questions closed and awaiting results at this time</strong></div>}
                 </div>
                 {pendingTotalPages > 1 && (
                   <div className="history-footer" style={{ marginTop: "16px" }}>
-                    <button className="button" disabled={pendingPage <= 1} onClick={() => setPendingPage(pendingPage - 1)}>ก่อนหน้า</button>
-                    <span className="micro">หน้า {pendingPage} / {pendingTotalPages}</span>
-                    <button className="button" disabled={pendingPage >= pendingTotalPages} onClick={() => setPendingPage(pendingPage + 1)}>ถัดไป</button>
+                    <button className="button" disabled={pendingPage <= 1} onClick={() => setPendingPage(pendingPage - 1)}>Previous</button>
+                    <span className="micro">Page {pendingPage} / {pendingTotalPages}</span>
+                    <button className="button" disabled={pendingPage >= pendingTotalPages} onClick={() => setPendingPage(pendingPage + 1)}>Next</button>
                   </div>
                 )}
               </section>
 
               <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h3>คำถามที่สรุปผลแล้ว</h3><span className="micro">{filteredResolvedPredictions.length} รายการ</span></div>
+                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h3>Resolved Questions</h3><span className="micro">{filteredResolvedPredictions.length} items</span></div>
                 <div className="leaderboard-body" style={{ gap: "10px", padding: "12px 0 0 0" }}>
                   {currentResolved.length ? currentResolved.map((item) => (
                     <div key={item.id} className="question resolved" style={{ padding: "12px", display: "grid", gridTemplateColumns: "auto 1fr", gap: "12px", alignItems: "center" }}>
@@ -2643,21 +2643,21 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         <div className="question-main">
                           <strong>{item.question}</strong>
                           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px", marginTop: "2px", marginBottom: "4px" }}>
-                            <span className="meta">{item.tournamentName} · ปิด {displayDate(item.closesAt)} UTC+7 · {item.options.length} คำตอบ · {item.entryCount || 0} คนแทง</span>
-                            <span className="pill" style={{ background: "rgba(14,203,129,0.12)", color: "var(--green)", fontSize: "9px" }}>สรุปผลแล้ว</span>
+                            <span className="meta">{item.tournamentName} · Closes {displayDate(item.closesAt)} UTC+7 · {item.options.length} answers · {item.entryCount || 0} bettors</span>
+                            <span className="pill" style={{ background: "rgba(14,203,129,0.12)", color: "var(--green)", fontSize: "9px" }}>Resolved</span>
                           </div>
                         </div>
                         {renderPredictionControls(item)}
                         {renderPayoutBreakdown(item)}
                       </div>
                     </div>
-                  )) : <div className="question"><strong>ยังไม่มีคำถามที่สรุปผลแล้ว</strong></div>}
+                  )) : <div className="question"><strong>No resolved questions yet</strong></div>}
                 </div>
                 {resolvedTotalPages > 1 && (
                   <div className="history-footer" style={{ marginTop: "16px" }}>
-                    <button className="button" disabled={resolvedPage <= 1} onClick={() => setResolvedPage(resolvedPage - 1)}>ก่อนหน้า</button>
-                    <span className="micro">หน้า {resolvedPage} / {resolvedTotalPages}</span>
-                    <button className="button" disabled={resolvedPage >= resolvedTotalPages} onClick={() => setResolvedPage(resolvedPage + 1)}>ถัดไป</button>
+                    <button className="button" disabled={resolvedPage <= 1} onClick={() => setResolvedPage(resolvedPage - 1)}>Previous</button>
+                    <span className="micro">Page {resolvedPage} / {resolvedTotalPages}</span>
+                    <button className="button" disabled={resolvedPage >= resolvedTotalPages} onClick={() => setResolvedPage(resolvedPage + 1)}>Next</button>
                   </div>
                 )}
               </section>
@@ -2667,10 +2667,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           {activeTab === "settings" && (
             <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "16px", margin: "0 auto" }}>
 
-              {/* ── Frontpage Features (เปิด/ปิด ฟีเจอร์หน้าแรก) ── */}
+              {/* ── Frontpage Features (Enable/Disable) ── */}
               <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
-                  <h2>🎯 Frontpage Features</h2>
+                  <h2>Frontpage Features</h2>
                 </div>
                 <form className="modal-body" onSubmit={(e) => { e.preventDefault(); saveFrontendSettings(); }} style={{ padding: "12px 0 0 0", display: "grid", gap: "12px" }}>
                   
@@ -2709,12 +2709,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
                   {/* YouTube Embed */}
                   <div style={{ display: "grid", gap: "8px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>YouTube URL</span>
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>YouTube URL</span>
                     <input 
                       type="text"
                       value={youtubeUrl} 
                       onChange={(event) => setYoutubeUrl(event.target.value)} 
-                      placeholder="https://www.youtube.com/watch?v=VIDEO_ID หรือ https://youtu.be/VIDEO_ID"
+                      placeholder="https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID"
                       style={{ fontFamily: "monospace", fontSize: "11px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "8px", color: "var(--text)" }}
                     />
                     
@@ -2728,7 +2728,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "var(--green)" }}
                       />
                       <label htmlFor="youtubeOpenNow" style={{ fontSize: "11px", fontWeight: "600", color: "var(--text)", cursor: "pointer" }}>
-                        เปิดทันที (ไม่ต้องตั้งเวลาเปิด)
+                        Always On (No schedule needed)
                       </label>
                     </div>
 
@@ -2736,7 +2736,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     <div style={{ display: "grid", gridTemplateColumns: youtubeOpenNow ? "1fr" : "1fr 1fr", gap: "8px", marginTop: "4px" }}>
                       {!youtubeOpenNow && (
                         <div>
-                          <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>เวลาเปิด (ตามเวลาไทย)</span>
+                          <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Start Time (Thai Time)</span>
                           <input 
                             type="datetime-local"
                             value={youtubeScheduleStart} 
@@ -2746,7 +2746,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         </div>
                       )}
                       <div>
-                        <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>เวลาปิด (ตามเวลาไทย)</span>
+                        <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>End Time (Thai Time)</span>
                         <input 
                           type="datetime-local"
                           value={youtubeScheduleEnd} 
@@ -2755,7 +2755,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         />
                       </div>
                     </div>
-                    <span className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>ปลอย่ างว่างเวลาปิด ถาตองการใหแสดงตลอด</span>
+                    <span className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>Leave end time empty to display continuously</span>
                   </div>
 
                   <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "36px", fontWeight: "bold", marginTop: "4px" }}>💾 Save Frontpage Settings</button>
@@ -2765,14 +2765,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
               {/* ── Chat Enable/Disable Toggle ── */}
               <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
-                  <h2>💬 เปิด/ปิดห้องแชท</h2>
+                  <h2>Enable/Disable Chat Room</h2>
                 </div>
                 <div style={{ padding: "12px 0 0 0", display: "grid", gap: "12px" }}>
                   
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px" }}>
                     <div>
-                      <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--text)" }}>เปิดใช้งานห้องแชท</div>
-                      <div style={{ fontSize: "10px", color: "var(--muted)" }}>แสดงห้องแชทบนหน้าแรก</div>
+                      <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--text)" }}>Enable Chat Room</div>
+                      <div style={{ fontSize: "10px", color: "var(--muted)" }}>Show chat room on homepage</div>
                     </div>
                     <button
                       type="button"
@@ -2813,43 +2813,43 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         });
                         const payload = await res.json();
                         if (res.ok && payload.ok) {
-                          alert('บันทึกการตั้งค่าแชทสำเร็จ');
+                          alert('Chat settings saved successfully');
                         } else {
-                          alert('บันทึกไม่สำเร็จ: ' + (payload.error || res.status));
+                          alert('Save failed: ' + (payload.error || res.status));
                         }
                       } catch (e: any) {
-                        alert('เกิดข้อผิดพลาด: ' + (e?.message || String(e)));
+                        alert('An error occurred: ' + (e?.message || String(e)));
                       }
                     }}
                     style={{ width: "100%", height: "36px", fontWeight: "bold" }}
                   >
-                    💾 บันทึกการตั้งค่าแชท
+                    💾 Save Chat Settings
                   </button>
                 </div>
               </div>
 
-              {/* ── Chat Messages List ── */}
+              {/* ── Chat messages List ── */}
               <div className="panel-head">
-                <h2>จัดการข้อความแชท</h2>
-                <span className="micro">ตรวจสอบและลบข้อความที่ไม่เหมาะสม</span>
+                <h2>Manage Chat messages</h2>
+                <span className="micro">Review and delete inappropriate messages</span>
               </div>
 
               <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
-                <button className="button" onClick={() => loadChatMessages()} disabled={chatLoading} style={{ fontSize: "11px", padding: "4px 12px" }}>
-                  {chatLoading ? 'กำลังโหลด...' : 'รีเฟรช'}
+                <button className="button" onClick={() => loadChatmessages()} disabled={chatLoading} style={{ fontSize: "11px", padding: "4px 12px" }}>
+                  {chatLoading ? 'Loading...' : 'Refresh'}
                 </button>
                 <span style={{ fontSize: "11px", color: "var(--muted)", alignSelf: "center" }}>
-                  ทั้งหมด {chatMessages.length} ข้อความ · {chatMessages.filter(m => !m.isDeleted).length} ยังไม่ลบ
+                  Total {chatmessages.length} messages · {chatmessages.filter(m => !m.isDeleted).length} active
                 </span>
               </div>
 
               <div style={{ display: "grid", gap: "6px", maxHeight: "500px", overflowY: "auto" }}>
-                {chatMessages.length === 0 && !chatLoading && (
+                {chatmessages.length === 0 && !chatLoading && (
                   <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)", fontSize: "12px" }}>
-                    ยังไม่มี่ข้อความแชท
+                    No chat messages yet
                   </div>
                 )}
-                {chatMessages.filter(m => !m.isDeleted).map((msg) => (
+                {chatmessages.filter(m => !m.isDeleted).map((msg) => (
                   <div key={msg.id} style={{
                     display: "grid",
                     gridTemplateColumns: "1fr auto auto",
@@ -2863,7 +2863,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     <div style={{ display: "grid", gap: "2px" }}>
                       <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                         <span style={{ fontSize: "12px", fontWeight: "700", color: msg.userRole === "admin" ? "var(--yellow)" : "var(--info)" }}>
-                          {msg.displayName || "นิรนาม"}
+                          {msg.displayName || "Anonymous"}
                         </span>
                         <span style={{ fontSize: "9px", color: "var(--muted)" }}>
                           @{msg.userEmail?.split("@")[0] || "?"}
@@ -2874,14 +2874,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         {msg.message}
                       </div>
                       <div style={{ fontSize: "9px", color: "var(--muted)" }}>
-                        🕐 {new Date(msg.createdAt).toLocaleString("th-TH")}
+                        {new Date(msg.createdAt).toLocaleString("th-TH")}
                       </div>
                     </div>
                     <div style={{ fontSize: "10px", color: "var(--muted)" }}>
                       ID: {msg.id.slice(0, 8)}
                     </div>
                     <button
-                        onClick={() => deleteChatMessage(msg.id)}
+                        onClick={() => deleteChatmessage(msg.id)}
                         style={{
                           background: "transparent",
                           border: "1px solid var(--red)",
@@ -2893,7 +2893,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           fontWeight: "600",
                         }}
                       >
-                        ลบ
+                        Delete
                       </button>
                   </div>
                 ))}
@@ -2904,16 +2904,16 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           {activeTab === "tournaments" && (
             <section className="panel" style={{ width: "100%", maxWidth: "600px", display: "grid", gap: "16px", margin: "0 auto" }}>
               <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h2>จัดการทัวร์นาเมนต์ (Tournament List)</h2></div>
+                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h2>Tournaments (Tournament List)</h2></div>
                 <div className="modal-body" style={{ padding: "12px 0 0 0" }}>
                   <div style={{ display: "grid", gap: "10px", marginBottom: "12px" }}>
                     <div style={{ display: "grid", gap: "4px" }}>
-                      <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>ชื่อทัวร์นาเมนต์ (Tournament Name)</span>
-                      <input value={newTournamentInput} onChange={(event) => setNewTournamentInput(event.target.value)} placeholder="เช่น PUBG Mobile Pro League" style={{ height: "34px", border: "1px solid var(--hairline)" }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addTournament(); } }} />
+                      <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Tournament Name</span>
+                      <input value={newTournamentInput} onChange={(event) => setNewTournamentInput(event.target.value)} placeholder="e.g., PUBG Mobile Pro League" style={{ height: "34px", border: "1px solid var(--hairline)" }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addTournament(); } }} />
                     </div>
                     
                     <div style={{ display: "grid", gap: "4px" }}>
-                      <span className="meta" style={{ fontSize: "11px", color: "var(--yellow)" }}>รูปโลโก้ทัวร์นาเมนต์ (Tournament Logo - รูปสี่เหลี่ยมจัตุรัสขนาดเล็ก)</span>
+                      <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Tournament Logo (small square image)</span>
                       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <input type="file" accept="image/*" onChange={(event) => handleTournamentLogo(event.target.files?.[0])} style={{ flex: 1 }} />
                         {newTournamentLogoUrl && (
@@ -2922,12 +2922,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       </div>
                     </div>
                     
-                    <button className="button gold" disabled={loading || !newTournamentInput.trim()} type="button" onClick={addTournament} style={{ height: "34px", marginTop: "4px" }}>เพิ่มทัวร์นาเมนต์ใหม่</button>
+                    <button className="button gold" disabled={loading || !newTournamentInput.trim()} type="button" onClick={addTournament} style={{ height: "34px", marginTop: "4px" }}>Add Tournament</button>
                   </div>
                   
                   <div className="admin-option-list">
                     {!(settings.tournaments && settings.tournaments.length > 0) ? (
-                      <div className="reward-line"><span>ไม่มีรายชื่อทัวร์นาเมนต์ในขณะนี้</span></div>
+                      <div className="reward-line"><span>No tournaments listed</span></div>
                     ) : (
                       (() => {
                         const all = (settings.tournaments || []).map((t, i) => ({ ...getTournamentInfo(t), originalIndex: i }));
@@ -2970,7 +2970,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                     <label style={{ cursor: "pointer" }}>
                                       <span className="button gold" style={{ height: "24px", fontSize: "10px", padding: "0 8px", display: "inline-flex", alignItems: "center" }}>
-                                        🖼️ {tLogo ? "เปลี่ยนโลโก้" : "อัปภาพโลโก้"}
+                                        🖼️ {tLogo ? "Change Logo" : "Upload Logo"}
                                       </span>
                                       <input 
                                         type="file" 
@@ -2979,8 +2979,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                         style={{ display: "none" }} 
                                       />
                                     </label>
-                                    <button className="button" type="button" disabled={loading} onClick={() => toggleArchiveTournament(tName)} style={{ height: "24px", fontSize: "10px", padding: "0 8px" }}>ซ่อน</button>
-                                    <button className="button" type="button" disabled={loading} onClick={() => removeTournament(tName)} style={{ height: "24px", fontSize: "10px", padding: "0 8px" }}>ลบ</button>
+                                    <button className="button" type="button" disabled={loading} onClick={() => toggleArchiveTournament(tName)} style={{ height: "24px", fontSize: "10px", padding: "0 8px" }}>hidden</button>
+                                    <button className="button" type="button" disabled={loading} onClick={() => removeTournament(tName)} style={{ height: "24px", fontSize: "10px", padding: "0 8px" }}>Delete</button>
                                   </div>
                                 </div>
                               );
@@ -3008,7 +3008,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   <span style={{ fontSize: "10px", display: "inline-block", width: "12px" }}>
                                     {showArchived ? "▼" : "▶"}
                                   </span>
-                                  <span>ทัวร์นาเมนต์ที่ซ่อน ({archived.length})</span>
+                                  <span>Hidden Tournaments ({archived.length})</span>
                                 </button>
                                 {showArchived && (
                                   <div style={{ marginTop: "4px" }}>
@@ -3018,8 +3018,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                         <div key={tName} className="reward-line" style={{ padding: "4px 0", borderBottom: "1px solid var(--hairline-soft)", display: "grid", gridTemplateColumns: "1fr auto", gap: "8px", alignItems: "center", opacity: 0.5 }}>
                                           <span style={{ fontSize: "12px", textDecoration: "line-through" }}>{tName}</span>
                                           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                            <button className="button" type="button" disabled={loading} onClick={() => toggleArchiveTournament(tName)} style={{ height: "20px", fontSize: "10px", padding: "0 6px" }}>แสดง</button>
-                                            <button className="button" type="button" disabled={loading} onClick={() => removeTournament(tName)} style={{ height: "20px", fontSize: "10px", padding: "0 6px" }}>ลบ</button>
+                                            <button className="button" type="button" disabled={loading} onClick={() => toggleArchiveTournament(tName)} style={{ height: "20px", fontSize: "10px", padding: "0 6px" }}>Show</button>
+                                            <button className="button" type="button" disabled={loading} onClick={() => removeTournament(tName)} style={{ height: "20px", fontSize: "10px", padding: "0 6px" }}>Delete</button>
                                           </div>
                                         </div>
                                       );
@@ -3044,15 +3044,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           const payload = await res.json();
                           if (payload.ok) {
                             setSettings(current => ({ ...current, tournaments: payload.data?.tournaments || current.tournaments }));
-                            alert("บันทึกลำดับทัวร์นาเมนต์สำเร็จ");
+                            alert("Tournament order saved");
                           }
                         } catch (e) {
-                          alert("เกิดข้อผิดพลาด");
+                          alert("An error occurred");
                         } finally {
                           setLoading(false);
                         }
                       }} style={{ height: "34px", fontSize: "12px", padding: "0 16px", marginTop: "12px", width: "100%" }}>
-                        💾 บันทึกลำดับทัวร์นาเมนต์
+                        💾 Save Tournament Order
                       </button>
                     )}
                   </div>
@@ -3064,25 +3064,25 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           {activeTab === "admins" && (
             <section className="panel" style={{ width: "100%", maxWidth: "600px", display: "grid", gap: "16px", margin: "0 auto" }}>
               <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h3>รายชื่อแอดมินระบบ</h3><span className="micro">{admins.length} คน</span></div>
+                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}><h3>System Admins</h3><span className="micro">{admins.length} players</span></div>
                 <form className="modal-body" onSubmit={makeAdmin} style={{ padding: "12px 0 0 0" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "10px", marginBottom: "12px" }}>
-                    <input value={adminEmailInput} onChange={(event) => setAdminEmailInput(event.target.value)} placeholder="ใส่อีเมลผู้ใช้ที่นี่" style={{ height: "34px", border: "1px solid var(--hairline)" }} />
-                    <button className="button gold" disabled={loading} type="submit">เพิ่มแอดมินใหม่</button>
+                    <input value={adminEmailInput} onChange={(event) => setAdminEmailInput(event.target.value)} placeholder="Enter user email here" style={{ height: "34px", border: "1px solid var(--hairline)" }} />
+                    <button className="button gold" disabled={loading} type="submit">Add New Admin</button>
                   </div>
                   <div className="admin-option-list">
                     {admins.map((admin) => (
                       <div key={admin.id} className="reward-line" style={{ padding: "8px 0", borderBottom: "1px solid var(--hairline-soft)" }}>
                         <span>{admin.displayName || admin.email} ({admin.email})</span>
                         {admin.email.toLowerCase() === adminEmail.toLowerCase() ? (
-                          <b className="accent-gold">คุณ (แอดมินหลัก)</b>
+                          <b className="accent-gold">You (Main Admin)</b>
                         ) : (
-                          <button className="button" type="button" disabled={loading} onClick={() => removeAdmin(admin.email)}>ถอดสิทธิ์แอดมิน</button>
+                          <button className="button" type="button" disabled={loading} onClick={() => removeAdmin(admin.email)}>Remove Admin</button>
                         )}
                       </div>
                     ))}
                   </div>
-                  <span className="meta" style={{ display: "block", marginTop: "12px", lineHeight: "1.4" }}>หมายเหตุ: แอดมินใหม่ต้องเคยลงชื่อสมัครใช้บริการ (Sign Up / Sign In) ในหน้าหลักมาก่อนอย่างน้อย 1 ครั้ง เพื่อให้ข้อมูลสร้างขึ้นในฐานข้อมูล Supabase ถึงจะกดเพิ่มรายชื่อจากตรงนี้ได้สำเร็จ</span>
+                  <span className="meta" style={{ display: "block", marginTop: "12px", lineHeight: "1.4" }}>Note: New admin must have previously signed up/in on the main site at least once for their data to exist in the Supabase database</span>
                 </form>
               </section>
             </section>
@@ -3092,26 +3092,26 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
             <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "16px", margin: "0 auto" }}>
               <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h3>จัดการผู้ใช้ ({users.length} คน)</h3>
+                  <h3>User Management ({users.length} users)</h3>
                   <button className="button gold" onClick={loadUsers} disabled={usersLoading} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
-                    🔄 รีเฟรช
+                    🔄 Refresh
                   </button>
                 </div>
 
                 {usersLoading ? (
-                  <div style={{ textAlign: "center", padding: "20px", color: "var(--text-weak)" }}>กำลังโหลดข้อมูลผู้ใช้...</div>
+                  <div style={{ textAlign: "center", padding: "20px", color: "var(--text-weak)" }}>Loading user data...</div>
                 ) : (
                   <div style={{ overflowX: "auto", marginTop: "12px" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
                       <thead>
                         <tr style={{ color: "var(--muted)", textAlign: "left", borderBottom: "1px solid var(--hairline)" }}>
-                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserPage(1); setUserSort(s => ({ key: "name", dir: s.key === "name" && s.dir === "asc" ? "desc" : "asc" })); }}>ชื่อผู้ใช้ ⬍</th>
-                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserPage(1); setUserSort(s => ({ key: "email", dir: s.key === "email" && s.dir === "asc" ? "desc" : "asc" })); }}>อีเมล ⬍</th>
+                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserPage(1); setUserSort(s => ({ key: "name", dir: s.key === "name" && s.dir === "asc" ? "desc" : "asc" })); }}>Username ⬍</th>
+                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserPage(1); setUserSort(s => ({ key: "email", dir: s.key === "email" && s.dir === "asc" ? "desc" : "asc" })); }}>Email ⬍</th>
                           <th style={{ padding: "6px 8px", cursor: "pointer", textAlign: "right", whiteSpace: "nowrap" }} onClick={() => { setUserPage(1); setUserSort(s => ({ key: "coinBalance", dir: s.key === "coinBalance" && s.dir === "asc" ? "desc" : "asc" })); }}>Coin Balance ⬍</th>
                           <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>Admin</th>
-                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserPage(1); setUserSort(s => ({ key: "createdAt", dir: s.key === "createdAt" && s.dir === "asc" ? "desc" : "asc" })); }}>สร้างเมื่อ ⬍</th>
-                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>ที่อยู่</th>
-                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>Claim ล่าสุด</th>
+                          <th style={{ padding: "6px 8px", cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setUserPage(1); setUserSort(s => ({ key: "createdAt", dir: s.key === "createdAt" && s.dir === "asc" ? "desc" : "asc" })); }}>Created ⬍</th>
+                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>Address</th>
+                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>Last Claim</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3150,19 +3150,19 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     {users.length > 0 && (
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "12px", paddingTop: "8px", borderTop: "1px solid var(--hairline-soft)" }}>
                         <span style={{ color: "var(--muted)", fontSize: "11px" }}>
-                          แสดง {Math.min((userPage - 1) * 20 + 1, users.length)}–{Math.min(userPage * 20, users.length)} จาก {users.length} คน
+                          Showing {Math.min((userPage - 1) * 20 + 1, users.length)}–{Math.min(userPage * 20, users.length)} of {users.length} users
                         </span>
                         <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                          <button className="button" disabled={userPage <= 1} onClick={() => setUserPage(p => Math.max(1, p - 1))} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>◀ ก่อนหน้า</button>
-                          <span style={{ color: "var(--text)", fontSize: "11px", fontWeight: 600, minWidth: "40px", textAlign: "center" }}>หน้า {userPage}</span>
-                          <button className="button" disabled={userPage >= Math.max(1, Math.ceil(users.length / 20))} onClick={() => setUserPage(p => p + 1)} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>ถัดไป ▶</button>
+                          <button className="button" disabled={userPage <= 1} onClick={() => setUserPage(p => Math.max(1, p - 1))} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>◀ Previous</button>
+                          <span style={{ color: "var(--text)", fontSize: "11px", fontWeight: 600, minWidth: "40px", textAlign: "center" }}>Page {userPage}</span>
+                          <button className="button" disabled={userPage >= Math.max(1, Math.ceil(users.length / 20))} onClick={() => setUserPage(p => p + 1)} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>Next ▶</button>
                         </div>
                       </div>
                     )}
 
                     {users.length === 0 && (
                       <div style={{ textAlign: "center", padding: "30px", color: "var(--text-weak)", border: "1px dashed var(--hairline)", borderRadius: "8px" }}>
-                        <strong>ไม่มีผู้ใช้ในระบบ</strong>
+                        <strong>No users in the system</strong>
                       </div>
                     )}
                   </div>
@@ -3174,54 +3174,54 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           {activeTab === "contests" && (
             <section className="panel" style={{ width: "100%", maxWidth: "900px", margin: "0 auto", background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <h3>กิจกรรมชิงรางวัล</h3>
+                <h3>Contests</h3>
                 <div>
                   <button className="button gold" onClick={() => setShowNewContestForm(true)} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
-                    + สร้างกิจกรรม
+                    + Create Contest
                   </button>
                 </div>
               </div>
 
               {/* New Contest Form */}
               {showNewContestForm && (
-                <section style={{ border: "1px solid var(--yellow)", background: "rgba(255,225,0,0.05)", borderRadius: "8px", padding: "12px", marginBottom: "16px" }}>
-                  <h4 style={{ color: "var(--yellow)", marginBottom: "12px", fontSize: "12px" }}>+ สร้างกิจกรรมใหม่</h4>
+                <section style={{ border: "1px solid var(--hairline)", background: "rgba(255,255,255,0.02)", borderRadius: "8px", padding: "12px", marginBottom: "16px" }}>
+                  <h4 style={{ color: "var(--yellow)", marginBottom: "12px", fontSize: "12px" }}>+ Create Contest</h4>
                   <div style={{ display: "grid", gap: "10px" }}>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>ชื่อกิจกรรม *</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>Contest Name *</label>
                       <input
                         type="text"
                         className="button"
-                        placeholder="เช่น: แข่งขันเดือนกรกฎาคม"
+                        placeholder="e.g., July Competition"
                         value={newContestName}
                         onChange={(e) => setNewContestName(e.target.value)}
                         style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รายละเอียด</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>Description</label>
                       <input
                         type="text"
                         className="button"
-                        placeholder="รายละเอียดเพิ่มเติม ( facultative)"
+                        placeholder="Additional description (optional)"
                         value={newContestDescription}
                         onChange={(e) => setNewContestDescription(e.target.value)}
                         style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🏆 รางวัลที่ 1 *</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🏆 1st Prize *</label>
                       <input
                         type="text"
                         className="button"
-                        placeholder="เช่น: ตั๋ว concert, เสื้อ, ถ้วย..."
+                        placeholder="e.g., Concert tickets, T-shirt, Trophy..."
                         value={newContestPrize1}
                         onChange={(e) => setNewContestPrize1(e.target.value)}
                         style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 2</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>2nd Prize</label>
                       <input
                         type="text"
                         className="button"
@@ -3232,7 +3232,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 3</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>3rd Prize</label>
                       <input
                         type="text"
                         className="button"
@@ -3243,7 +3243,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 4</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>4th Prize</label>
                       <input
                         type="text"
                         className="button"
@@ -3254,7 +3254,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 5</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>5th Prize</label>
                       <input
                         type="text"
                         className="button"
@@ -3264,11 +3264,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
                       />
                     </div>
-                    <div style={{ color: "var(--yellow)", fontSize: "10px", padding: "4px 8px", background: "rgba(255,225,0,0.05)", borderRadius: "4px" }}>
-                      ⚠️ ผู้ชนะ (Top 1) จะได้รับรางวัลทั้งหมด 5 อย่าง
+                    <div style={{ color: "var(--text)", fontSize: "10px", padding: "4px 8px", background: "rgba(255,255,255,0.02)", borderRadius: "4px" }}>
+                      ⚠️ Winner (Top 1) will receive all 5 prizes
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>วันเวลาสิ้นสุด * (GMT+7)</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>End Time * (GMT+7)</label>
                       <input
                         type="datetime-local"
                         className="button"
@@ -3283,15 +3283,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         setShowEditContestForm(false);
                         setEditingContestId(null);
                       }} style={{ flex: 1, height: "30px", fontSize: "11px" }}>
-                        ยกเลิก
+                        Cancel
                       </button>
                       {editingContestId ? (
                         <button type="button" className="button gold" onClick={handleEditContest} style={{ flex: 1, height: "30px", fontSize: "11px" }}>
-                          บันทึก
+                          Save
                         </button>
                       ) : (
                         <button type="button" className="button gold" onClick={handleCreateContest} style={{ flex: 1, height: "30px", fontSize: "11px" }}>
-                          สร้าง
+                          Create
                         </button>
                       )}
                     </div>
@@ -3301,44 +3301,44 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
               {/* Edit Contest Modal */}
               {showEditContestForm && editingContestId && (
-                <section style={{ border: "1px solid var(--yellow)", background: "rgba(255,225,0,0.05)", borderRadius: "8px", padding: "12px", marginBottom: "16px" }}>
-                  <h4 style={{ color: "var(--yellow)", marginBottom: "12px", fontSize: "12px" }}>✏️ แก้ไขกิจกรรม</h4>
+                <section style={{ border: "1px solid var(--hairline)", background: "rgba(255,255,255,0.02)", borderRadius: "8px", padding: "12px", marginBottom: "16px" }}>
+                  <h4 style={{ color: "var(--yellow)", marginBottom: "12px", fontSize: "12px" }}>✏️ Edit Contest</h4>
                   <div style={{ display: "grid", gap: "10px" }}>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>ชื่อกิจกรรม *</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>Contest Name *</label>
                       <input
                         type="text"
                         className="button"
-                        placeholder="ชื่อกิจกรรม"
+                        placeholder="Contest Name"
                         value={newContestName}
                         onChange={(e) => setNewContestName(e.target.value)}
                         style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>รายละเอียด</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>Description</label>
                       <input
                         type="text"
                         className="button"
-                        placeholder="รายละเอียด ( facultative)"
+                        placeholder="Description ( facultative)"
                         value={newContestDescription}
                         onChange={(e) => setNewContestDescription(e.target.value)}
                         style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🏆 รางวัลที่ 1 *</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🏆 1st Prize *</label>
                       <input
                         type="text"
                         className="button"
-                        placeholder="เช่น: ตั๋ว concert, เสื้อ, ถ้วย..."
+                        placeholder="e.g., Concert tickets, T-shirt, Trophy..."
                         value={newContestPrize1}
                         onChange={(e) => setNewContestPrize1(e.target.value)}
                         style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 2</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>2nd Prize</label>
                       <input
                         type="text"
                         className="button"
@@ -3349,7 +3349,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 3</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>3rd Prize</label>
                       <input
                         type="text"
                         className="button"
@@ -3360,7 +3360,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 4</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>4th Prize</label>
                       <input
                         type="text"
                         className="button"
@@ -3371,7 +3371,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>🎁 รางวัลที่ 5</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>5th Prize</label>
                       <input
                         type="text"
                         className="button"
@@ -3381,11 +3381,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         style={{ width: "100%", height: "32px", padding: "0 8px", fontSize: "12px" }}
                       />
                     </div>
-                    <div style={{ color: "var(--yellow)", fontSize: "10px", padding: "4px 8px", background: "rgba(255,225,0,0.05)", borderRadius: "4px" }}>
-                      ⚠️ ผู้ชนะ (Top 1) จะได้รับรางวัลทั้งหมด 5 อย่าง
+                    <div style={{ color: "var(--text)", fontSize: "10px", padding: "4px 8px", background: "rgba(255,255,255,0.02)", borderRadius: "4px" }}>
+                      ⚠️ Winner (Top 1) will receive all 5 prizes
                     </div>
                     <div>
-                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>วันเวลาสิ้นสุด * (GMT+7)</label>
+                      <label style={{ fontSize: "10px", color: "var(--muted)" }}>End Time * (GMT+7)</label>
                       <input
                         type="datetime-local"
                         className="button"
@@ -3399,10 +3399,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         setShowEditContestForm(false);
                         setEditingContestId(null);
                       }} style={{ flex: 1, height: "30px", fontSize: "11px" }}>
-                        ยกเลิก
+                        Cancel
                       </button>
                       <button type="button" className="button gold" onClick={handleEditContest} style={{ flex: 1, height: "30px", fontSize: "11px" }}>
-                        บันทึก
+                        Save
                       </button>
                     </div>
                   </div>
@@ -3410,10 +3410,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
               )}
 
               {contestsLoading ? (
-                <div style={{ textAlign: "center", padding: "20px", color: "var(--text-weak)" }}>กำลังโหลด...</div>
+                <div style={{ textAlign: "center", padding: "20px", color: "var(--text-weak)" }}>Loading...</div>
               ) : contests.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "30px", color: "var(--text-weak)", border: "1px dashed var(--hairline)", borderRadius: "8px" }}>
-                  <strong>ยังไม่มีกิจกรรมชิงรางวัล</strong>
+                  <strong>No contests yet</strong>
                 </div>
               ) : (
                 <div style={{ display: "grid", gap: "12px" }}>
@@ -3423,13 +3423,13 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         <div>
                           <strong style={{ color: "var(--yellow)", fontSize: "14px" }}>{contest.name}</strong>
                           {contest.status === "active" && (
-                            <span style={{ marginLeft: "8px", fontSize: "10px", padding: "2px 6px", background: "var(--green)", color: "white", borderRadius: "4px" }}>กำลังจัด</span>
+                            <span style={{ marginLeft: "8px", fontSize: "10px", padding: "2px 6px", background: "var(--green)", color: "white", borderRadius: "4px" }}>Active</span>
                           )}
                           {contest.status === "ended" && (
-                            <span style={{ marginLeft: "8px", fontSize: "10px", padding: "2px 6px", background: "var(--muted)", color: "white", borderRadius: "4px" }}>สิ้นสุดแล้ว</span>
+                            <span style={{ marginLeft: "8px", fontSize: "10px", padding: "2px 6px", background: "var(--muted)", color: "white", borderRadius: "4px" }}>Ended</span>
                           )}
                           {contest.status === "cancelled" && (
-                            <span style={{ marginLeft: "8px", fontSize: "10px", padding: "2px 6px", background: "var(--red)", color: "white", borderRadius: "4px" }}>ยกเลิก</span>
+                            <span style={{ marginLeft: "8px", fontSize: "10px", padding: "2px 6px", background: "var(--red)", color: "white", borderRadius: "4px" }}>Cancel</span>
                           )}
                         </div>
                         <div style={{ display: "flex", gap: "6px" }}>
@@ -3450,10 +3450,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                 setNewContestPrize5(contest.prize_5 || "");
                                 setShowEditContestForm(true);
                               }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px" }}>
-                                ✏️ แก้ไข
+                                ✏️ Edit
                               </button>
                               <button className="button gold" onClick={async () => {
-                                if (confirm(`ยืนยันสิ้นสุดกิจกรรมนี้?\nระบบจะตรวจสอบ Rank 1 ใน Leaderboard ณ ขณะนี้ และตั้งเป็นผู้ชนะ\nผู้ชนะจะได้รับรางวัลทั้งหมด ${[contest.prize_1, contest.prize_2, contest.prize_3, contest.prize_4, contest.prize_5].filter(Boolean).length} อย่าง`)) {
+                                if (confirm(`Confirm ending this contest?\nThe system will check Rank 1 on the leaderboard and set as winner\nWinner will receive all prizes ${[contest.prize_1, contest.prize_2, contest.prize_3, contest.prize_4, contest.prize_5].filter(Boolean).length} prizes`)) {
                                   try {
                                     const updateRes = await fetch(`/api/admin/contests/${contest.id}`, {
                                       method: "PATCH",
@@ -3465,22 +3465,22 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                       loadContests();
                                       const winner = updatePayload.winner;
                                       if (winner) {
-                                        alert(`สิ้นสุดกิจกรรมแล้ว!\n\n🏆 ผู้ชนะ: ${winner.display_name || winner.shipping_name || winner.id}\n\n${winner.shipping_address ? '✅ ที่อยู่สำหรับจัดส่ง:\n' + winner.shipping_name + '\n' + winner.shipping_address + '\n' + winner.shipping_zipcode + '\n' + winner.shipping_phone : '⚠️ ผู้ชนะยังไม่ได้กรอกที่อยู่!'}`);
+                                        alert(`Contest ended!\n\n🏆 Winner: ${winner.display_name || winner.shipping_name || winner.id}\n\n${winner.shipping_address ? '✅ Shipping Address:\n' + winner.shipping_name + '\n' + winner.shipping_address + '\n' + winner.shipping_zipcode + '\n' + winner.shipping_phone : '⚠️ Winner has not filled in shipping address!'}`);
                                       } else {
-                                        alert("สิ้นสุดกิจกรรมแล้ว! ผู้ชนะ (Top 1) จะได้รับรางวัลทั้งหมด");
+                                        alert("Contest ended! Winner (Top 1) receives all prizes");
                                       }
                                     } else {
-                                      alert("ไม่สำเร็จ: " + updatePayload.error);
+                                      alert("Failed: " + updatePayload.error);
                                     }
                                   } catch (e) {
-                                    alert("ไม่สำเร็จ");
+                                    alert("Failed");
                                   }
                                 }
                               }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px" }}>
-                                🏆 สิ้นสุดกิจกรรม (Top 1 ได้รางวัลทั้งหมด)
+                                🏆 End Contest (Top 1 gets all prizes)
                               </button>
                               <button className="button" onClick={async () => {
-                                if (confirm("ยืนยันยกเลิกกิจกรรมนี้?")) {
+                                if (confirm("Confirm canceling this contest?")) {
                                   try {
                                     const updateRes = await fetch(`/api/admin/contests/${contest.id}`, {
                                       method: "PATCH",
@@ -3496,14 +3496,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   }
                                 }
                               }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px", color: "#ff4d4f", borderColor: "#ff4d4f" }}>
-                                ❌ ยกเลิก
+                                ❌ Cancel
                               </button>
                             </>
                           )}
                           {contest.status === "ended" && (
                             <>
                               <button className="button" onClick={async () => {
-                                const newWinnerId = prompt("กรอก User ID ใหม่ของผู้ชนะ:");
+                                const newWinnerId = prompt("Enter new winner User ID:");
                                 if (!newWinnerId) return;
                                 try {
                                   const updateRes = await fetch(`/api/admin/contests/${contest.id}`, {
@@ -3514,18 +3514,18 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   const updatePayload = await updateRes.json();
                                   if (updatePayload.ok) {
                                     loadContests();
-                                    alert("อัปเดตผู้ชนะแล้ว");
+                                    alert("Winner updated");
                                   } else {
-                                    alert("ไม่สำเร็จ: " + updatePayload.error);
+                                    alert("Failed: " + updatePayload.error);
                                   }
                                 } catch (e) {
-                                  alert("ไม่สำเร็จ");
+                                  alert("Failed");
                                 }
                               }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px" }}>
-                                🔄 เปลี่ยนผู้ชนะ
+                                🔄 Change Winner
                               </button>
                               <button className="button" onClick={async () => {
-                                if (confirm("ยืนยันลบกิจกรรมนี้?")) {
+                                if (confirm("Confirm deleting this contest?")) {
                                   try {
                                     const updateRes = await fetch(`/api/admin/contests/${contest.id}`, {
                                       method: "DELETE",
@@ -3539,7 +3539,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   }
                                 }
                               }} style={{ fontSize: "10px", padding: "4px 8px", height: "24px", color: "#ff4d4f", borderColor: "#ff4d4f" }}>
-                                🗑️ ลบ
+                                🗑️ Delete
                               </button>
                             </>
                           )}
@@ -3554,20 +3554,20 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "11px" }}>
                         <div>
-                          <span style={{ color: "var(--muted)" }}>วันเวลาสิ้นสุด:</span>
+                          <span style={{ color: "var(--muted)" }}>End Time:</span>
                           <strong style={{ marginLeft: "4px", color: "var(--text-strong)" }}>
                             {new Date(contest.end_time).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}
                           </strong>
                         </div>
                         <div>
-                          <span style={{ color: "var(--muted)" }}>🏆 รางวัลทั้งหมด (Top 1 ได้ทั้งหมด):</span>
+                          <span style={{ color: "var(--muted)" }}>🏆 All prizes (Top 1 gets all):</span>
                           <div style={{ marginLeft: "4px", marginTop: "4px" }}>
-                            {contest.prize_1 && <div style={{ color: "var(--yellow)", fontSize: "11px" }}>🎁 {contest.prize_1}</div>}
-                            {contest.prize_2 && <div style={{ color: "var(--text)", fontSize: "11px" }}>🎁 {contest.prize_2}</div>}
-                            {contest.prize_3 && <div style={{ color: "var(--text)", fontSize: "11px" }}>🎁 {contest.prize_3}</div>}
-                            {contest.prize_4 && <div style={{ color: "var(--muted)", fontSize: "11px" }}>🎁 {contest.prize_4}</div>}
-                            {contest.prize_5 && <div style={{ color: "var(--muted)", fontSize: "11px" }}>🎁 {contest.prize_5}</div>}
-                            {!contest.prize_1 && !contest.prize_2 && !contest.prize_3 && !contest.prize_4 && !contest.prize_5 && <strong style={{ color: "var(--yellow)" }}>ไม่มีรางวัล</strong>}
+                            {contest.prize_1 && <div style={{ color: "var(--yellow)", fontSize: "11px" }}>{contest.prize_1}</div>}
+                            {contest.prize_2 && <div style={{ color: "var(--text)", fontSize: "11px" }}>{contest.prize_2}</div>}
+                            {contest.prize_3 && <div style={{ color: "var(--text)", fontSize: "11px" }}>{contest.prize_3}</div>}
+                            {contest.prize_4 && <div style={{ color: "var(--muted)", fontSize: "11px" }}>{contest.prize_4}</div>}
+                            {contest.prize_5 && <div style={{ color: "var(--muted)", fontSize: "11px" }}>{contest.prize_5}</div>}
+                            {!contest.prize_1 && !contest.prize_2 && !contest.prize_3 && !contest.prize_4 && !contest.prize_5 && <strong style={{ color: "var(--yellow)" }}>No prizes listed</strong>}
                           </div>
                         </div>
                       </div>
@@ -3575,14 +3575,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       {contest.winner_user_id && (
                         <div style={{ marginTop: "12px", padding: "8px", background: "rgba(255, 225, 0, 0.1)", borderRadius: "6px", border: "1px solid rgba(255, 225, 0, 0.3)" }}>
                           <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "4px" }}>
-                            🏆 ผู้ชนะ:
+                            🏆 Winner:
                             <strong style={{ color: "var(--yellow)", marginLeft: "4px" }}>
                               {contest.winner?.display_name || contest.winner?.shipping_name || "Unknown"}
                             </strong>
                           </div>
                           {contest.winner && contest.winner.shipping_address ? (
                             <div style={{ fontSize: "10px", color: "var(--text)", whiteSpace: "pre-wrap" }}>
-                              ✅ ที่อยู่สำหรับจัดส่ง:
+                              ✅ Shipping Address:
                               <div style={{ marginTop: "4px", color: "var(--text-strong)" }}>
                                 {contest.winner.shipping_name}<br />
                                 {contest.winner.shipping_address}<br />
@@ -3592,14 +3592,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             </div>
                           ) : (
                             <div style={{ fontSize: "10px", color: "var(--red)" }}>
-                              ⚠️ ผู้ชนะยังไม่ได้กรอกที่อยู่!
+                              ⚠️ Winner has not filled in shipping address!
                               <button className="button" style={{ marginLeft: "6px", fontSize: "9px", padding: "2px 6px", height: "20px" }} onClick={() => {
-                                if (confirm("ส่งข้อความแจ้งเตือนให้ผู้ชนะกรอกที่อยู่?")) {
+                                if (confirm("Send notification to winner to fill in shipping address?")) {
                                   // Just show alert for now
-                                  alert("ข้อความแจ้งเตือนจะถูกส่งให้ผู้ชนะ");
+                                  alert("Notification will be sent to the winner");
                                 }
                               }}>
-                                แจ้งเตือน
+                                Notify
                               </button>
                             </div>
                           )}
@@ -3616,24 +3616,24 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
             <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "16px", margin: "0 auto" }}>
               <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h3>รายการแจ้งปัญหา ({reports.length} รายการ)</h3>
+                  <h3>Reports ({reports.length} items)</h3>
                   <button className="button gold" onClick={loadReports} disabled={reportsLoading} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
-                    🔄 รีเฟรช
+                    🔄 Refresh
                   </button>
                 </div>
 
                 {reportsLoading ? (
-                  <div style={{ textAlign: "center", padding: "20px", color: "var(--text-weak)" }}>กำลังโหลดข้อมูล...</div>
+                  <div style={{ textAlign: "center", padding: "20px", color: "var(--text-weak)" }}>Loading...</div>
                 ) : (
                   <div style={{ overflowX: "auto", marginTop: "12px" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
                       <thead>
                         <tr style={{ color: "var(--muted)", textAlign: "left", borderBottom: "1px solid var(--hairline)" }}>
-                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>อีเมล</th>
-                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>ข้อความ</th>
-                          <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>สถานะ</th>
-                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>วันที่</th>
-                          <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>จัดการ</th>
+                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>Email</th>
+                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>message</th>
+                          <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>Status</th>
+                          <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>Date</th>
+                          <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3643,9 +3643,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             <td style={{ padding: "8px", color: "var(--text-strong)", maxWidth: "400px", whiteSpace: "normal", wordBreak: "break-word", lineHeight: "1.5" }}>{r.message || "-"}</td>
                             <td style={{ padding: "8px", textAlign: "center" }}>
                               {r.status === "pending" ? (
-                                <span style={{ color: "var(--yellow)", fontWeight: 700, fontSize: "10px" }}>⏳ รอดำเนินการ</span>
+                                <span style={{ color: "var(--yellow)", fontWeight: 700, fontSize: "10px" }}>⏳ Pending</span>
                               ) : (
-                                <span style={{ color: "var(--green)", fontWeight: 700, fontSize: "10px" }}>✅ เสร็จสิ้น</span>
+                                <span style={{ color: "var(--green)", fontWeight: 700, fontSize: "10px" }}>✅ Completed</span>
                               )}
                             </td>
                             <td style={{ padding: "8px", color: "var(--muted)", fontSize: "10px", whiteSpace: "nowrap" }}>
@@ -3654,11 +3654,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             <td style={{ padding: "8px", textAlign: "center", whiteSpace: "nowrap" }}>
                               {r.status === "pending" && (
                                 <button className="button gold" style={{ height: "22px", fontSize: "10px", padding: "0 8px" }} onClick={() => handleUpdateReport(r.id, "resolved")}>
-                                  ทำเครื่องหมายเสร็จสิ้น
+                                  Mark as Resolved
                                 </button>
                               )}
                               <button className="button" style={{ height: "22px", fontSize: "10px", padding: "0 8px", marginLeft: "4px", color: "#ff4d4f", borderColor: "#ff4d4f", background: "transparent" }} onClick={() => handleUpdateReport(r.id, r.status, true)}>
-                                ลบ
+                                Delete
                               </button>
                             </td>
                           </tr>
@@ -3667,7 +3667,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     </table>
                     {reports.length === 0 && (
                       <div style={{ textAlign: "center", padding: "30px", color: "var(--text-weak)", border: "1px dashed var(--hairline)", borderRadius: "8px" }}>
-                        <strong>ไม่มีรายการแจ้งปัญหา</strong>
+                        <strong>No reports</strong>
                       </div>
                     )}
                   </div>
