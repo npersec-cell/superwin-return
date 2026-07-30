@@ -1151,6 +1151,41 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           ctx.clearRect(0, 0, size, size);
           // Draw image beautifully centered with aspect ratio fully preserved
           ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+          
+          // ── Auto-invert dark logos to white ──
+          // Analyze pixel colors to detect if logo is predominantly dark
+          const imageData = ctx.getImageData(0, 0, size, size);
+          const data = imageData.data;
+          let totalBrightness = 0;
+          let opaquePixels = 0;
+          
+          for (let i = 0; i < data.length; i += 4) {
+            const alpha = data[i + 3];
+            if (alpha > 10) { // Only count non-transparent pixels
+              // Calculate perceived brightness (luminance formula)
+              const brightness = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+              totalBrightness += brightness;
+              opaquePixels++;
+            }
+          }
+          
+          const avgBrightness = opaquePixels > 0 ? totalBrightness / opaquePixels : 255;
+          
+          // If average brightness is below threshold (dark logo), invert to white
+          const DARK_THRESHOLD = 100; // 0 = pure black, 255 = pure white
+          if (avgBrightness < DARK_THRESHOLD && opaquePixels > 10) {
+            for (let i = 0; i < data.length; i += 4) {
+              const alpha = data[i + 3];
+              if (alpha > 10) {
+                // Invert RGB channels (creates white from black)
+                data[i] = 255 - data[i];     // R
+                data[i + 1] = 255 - data[i + 1]; // G
+                data[i + 2] = 255 - data[i + 2]; // B
+              }
+            }
+            ctx.putImageData(imageData, 0, 0);
+          }
+          
           // Export as PNG to support transparent backgrounds (prevents black border issues)
           const b64 = canvas.toDataURL("image/png");
           callback(b64);
