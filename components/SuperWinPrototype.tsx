@@ -1218,10 +1218,11 @@ export default function SuperWinPrototype() {
     try {
       const res = await fetch(`/api/predictions/chart/${questionId}`);
       const json = await res.json();
+      console.log("[Chart] Fetched data for", questionId, ":", json.ok ? `timestamps=${json.data?.timestamps?.length}, options=${json.data?.optionIds?.length}` : json.error);
       if (json.ok && json.data) {
         setChartDataMap(prev => ({ ...prev, [questionId]: json.data }));
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.warn("[Chart] Error:", e); }
     finally {
       setLoadingCharts(prev => {
         const next = new Set(prev);
@@ -1261,6 +1262,15 @@ export default function SuperWinPrototype() {
     if (chartData && chartData.timestamps.length > 1 && top4.length > 0) {
       const timestamps = chartData.timestamps;
       const timeCount = timestamps.length;
+      
+      // Debug: log chart data to verify percentages are non-zero
+      console.log("[Chart] Time-series data:", {
+        timestamps: timeCount,
+        optionIds: chartData.optionIds,
+        series: Object.fromEntries(
+          chartData.optionIds.map(id => [id, chartData.series[id]?.map(p => p.pct)])
+        )
+      });
       
       return (
         <div style={{ margin: "8px 0 4px 0" }}>
@@ -1558,7 +1568,10 @@ export default function SuperWinPrototype() {
         setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
         const displayName = isLocked ? lockedOption.name : answer.name;
         setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${displayName} · now running` }));
-        await loadRunningPredictions();
+        // Refresh questions to get updated pool data for chart
+        await loadOpenPredictions();
+        // Clear cached chart data so it re-fetches with new data
+        setChartDataMap(prev => { const next = { ...prev }; delete next[question.id]; return next; });
       } catch (error) {
         // ── ROLLBACK: Restore previous values if API fails ──
         setCoins(previousCoins);
@@ -1593,6 +1606,16 @@ export default function SuperWinPrototype() {
     setCoinInputs((current) => ({ ...current, [question.id]: 0 }));
     const displayName = isLocked ? lockedOption.name : answer.name;
     setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${displayName} · now running` }));
+    
+    // Update demo question's option pools for chart display
+    setLiveQuestions(prev => prev.map(q => {
+      if (q.id !== question.id) return q;
+      const newOpts = q.options.map(o => {
+        if (o.id === answer.id) return { ...o, coinsOnOption: (o.coinsOnOption || 0) + amount };
+        return o;
+      });
+      return { ...q, options: newOpts };
+    }));
   }
 
   function resetDemo() {

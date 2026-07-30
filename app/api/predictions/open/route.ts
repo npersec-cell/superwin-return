@@ -47,19 +47,22 @@ async function savePredictionSnapshot(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   predictionId: string,
   optionPools: Record<string, number>,
-  totalPool: number
+  _totalPool: number
 ) {
-  const totalCoins = Object.values(optionPools).reduce((a, b) => a + b, 0);
+  const userPool = Object.values(optionPools).reduce((a, b) => a + b, 0);
+  console.log(`[Snapshot] Prediction ${predictionId}: userPool=${userPool}, pools=`, optionPools);
   const snapshots = Object.entries(optionPools).map(([optionId, coins]) => ({
     prediction_id: predictionId,
     option_id: optionId,
     coins_on_option: coins,
-    percentage: totalCoins > 0 ? (coins / totalCoins) * 100 : 0,
-    total_pool: totalPool,
+    percentage: userPool > 0 ? (coins / userPool) * 100 : 0,
+    total_pool: userPool,
   }));
 
   if (snapshots.length > 0) {
-    await supabase.from("prediction_snapshots").insert(snapshots);
+    const { error } = await supabase.from("prediction_snapshots").insert(snapshots);
+    if (error) console.warn("[Snapshot] Insert error:", error.message);
+    else console.log(`[Snapshot] Saved ${snapshots.length} records for ${predictionId}`);
   }
 }
 
