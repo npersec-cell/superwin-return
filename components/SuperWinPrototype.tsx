@@ -1380,6 +1380,11 @@ export default function SuperWinPrototype() {
               const lastX = padding.left + ((ptCount - 1) / Math.max(1, ptCount - 1)) * innerWidth;
               const lastY = padding.top + (1 - lastPt.pct / 100) * innerHeight;
 
+              // Clamp percentage label so it never overflows the right edge
+              const maxLabelX = chartWidth - padding.right;
+              const pctLabelX = Math.min(lastX + 6, maxLabelX);
+              const pctLabelAnchor = lastX + 6 > maxLabelX ? "end" : "start";
+
               // Name position: evenly distributed
               const nameCenterX = nameStartX + idx * (nameBarWidth + nameGap) + nameBarWidth / 2;
 
@@ -1395,8 +1400,8 @@ export default function SuperWinPrototype() {
                   {/* Last point marker */}
                   <circle cx={lastX} cy={lastY} r="3" fill={color} />
                   
-                  {/* Percentage label at end of line */}
-                  <text x={lastX + 6} y={lastY - 4} fontSize="9" fontWeight="700" fill={color}>
+                  {/* Percentage label at end of line — clamped to chart bounds */}
+                  <text x={pctLabelX} y={lastY - 4} fontSize="9" fontWeight="700" fill={color} textAnchor={pctLabelAnchor}>
                     {currentPct.toFixed(1)}%
                   </text>
                   
