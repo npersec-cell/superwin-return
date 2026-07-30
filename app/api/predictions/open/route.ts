@@ -184,8 +184,13 @@ export async function GET() {
           id: option.id,
           label: option.label,
           sortOrder: option.sort_order,
-          estimatedReturnPercent: computeReturn(prediction.id, option.id, prediction.fee_rate || 0, sponsorPool)
+          estimatedReturnPercent: computeReturn(prediction.id, option.id, prediction.fee_rate || 0, sponsorPool),
+          coinsOnOption: poolByOption[option.id] || 0
         })),
+        optionPools: optionsByPrediction[prediction.id]?.reduce<Record<string, number>>((acc, opt) => {
+          acc[opt.id] = poolByOption[opt.id] || 0;
+          return acc;
+        }, {}) || {},
         entries: entriesByPrediction[prediction.id] || [],
       };
     });

@@ -11,6 +11,7 @@ type PredictionOption = {
   id: string;
   name: string;
   returns: number;
+  coinsOnOption?: number;
 };
 
 type Question = {
@@ -23,6 +24,7 @@ type Question = {
   sponsorPool?: number;
   playerCount: number;
   options: PredictionOption[];
+  optionPools?: Record<string, number>;
   entries?: { optionId: string; userId: string; amount: number; status: string }[];
 };
 
@@ -65,7 +67,8 @@ type ApiPredictionsResponse = {
     sponsorPool?: number;
     playerCount: number;
     createdBy?: string | null;
-    options: Array<{ id: string; label: string; estimatedReturnPercent: number }>;
+    options: Array<{ id: string; label: string; estimatedReturnPercent: number; coinsOnOption?: number }>;
+    optionPools?: Record<string, number>;
     entries?: Array<{ optionId: string; userId: string; amount: number; status: string }>;
   }>;
   error?: string;
@@ -251,16 +254,16 @@ const demoQuestions: Question[] = [
     totalPool: 0,
     playerCount: 0,
     options: [
-      { id: "demo-1-alpha", name: "Alpha Esports", returns: 185 },
-      { id: "demo-1-bravo", name: "Bravo Gaming", returns: 230 },
-      { id: "demo-1-charlie", name: "Charlie Squad", returns: 310 },
-      { id: "demo-1-delta", name: "Delta Force", returns: 420 },
-      { id: "demo-1-echo", name: "Echo Team", returns: 560 },
-      { id: "demo-1-falcon", name: "Falcon", returns: 690 },
-      { id: "demo-1-ghost", name: "Ghost", returns: 760 },
-      { id: "demo-1-hydra", name: "Hydra", returns: 840 },
-      { id: "demo-1-inferno", name: "Inferno", returns: 920 },
-      { id: "demo-1-joker", name: "Joker", returns: 980 }
+      { id: "demo-1-alpha", name: "Alpha Esports", returns: 185, coinsOnOption: 4200 },
+      { id: "demo-1-bravo", name: "Bravo Gaming", returns: 230, coinsOnOption: 2800 },
+      { id: "demo-1-charlie", name: "Charlie Squad", returns: 310, coinsOnOption: 1500 },
+      { id: "demo-1-delta", name: "Delta Force", returns: 420, coinsOnOption: 800 },
+      { id: "demo-1-echo", name: "Echo Team", returns: 560, coinsOnOption: 400 },
+      { id: "demo-1-falcon", name: "Falcon", returns: 690, coinsOnOption: 200 },
+      { id: "demo-1-ghost", name: "Ghost", returns: 760, coinsOnOption: 100 },
+      { id: "demo-1-hydra", name: "Hydra", returns: 840, coinsOnOption: 50 },
+      { id: "demo-1-inferno", name: "Inferno", returns: 920, coinsOnOption: 30 },
+      { id: "demo-1-joker", name: "Joker", returns: 980, coinsOnOption: 20 }
     ]
   },
   {
@@ -271,12 +274,12 @@ const demoQuestions: Question[] = [
     totalPool: 0,
     playerCount: 0,
     options: [
-      { id: "demo-2-sea", name: "SEA", returns: 210 },
-      { id: "demo-2-sa", name: "South Asia", returns: 280 },
-      { id: "demo-2-eu", name: "Europe", returns: 340 },
-      { id: "demo-2-americas", name: "Americas", returns: 410 },
-      { id: "demo-2-me", name: "Middle East", returns: 530 },
-      { id: "demo-2-wildcard", name: "Wildcard", returns: 720 }
+      { id: "demo-2-sea", name: "SEA", returns: 210, coinsOnOption: 3500 },
+      { id: "demo-2-sa", name: "South Asia", returns: 280, coinsOnOption: 2200 },
+      { id: "demo-2-eu", name: "Europe", returns: 340, coinsOnOption: 1800 },
+      { id: "demo-2-americas", name: "Americas", returns: 410, coinsOnOption: 900 },
+      { id: "demo-2-me", name: "Middle East", returns: 530, coinsOnOption: 500 },
+      { id: "demo-2-wildcard", name: "Wildcard", returns: 720, coinsOnOption: 100 }
     ]
   },
   {
@@ -1099,8 +1102,10 @@ export default function SuperWinPrototype() {
       options: item.options.map((option) => ({
         id: option.id,
         name: option.label,
-        returns: option.estimatedReturnPercent
+        returns: option.estimatedReturnPercent,
+        coinsOnOption: option.coinsOnOption || 0
       })),
+      optionPools: item.optionPools || {},
       entries: item.entries || [],
     }));
 
@@ -1185,6 +1190,84 @@ export default function SuperWinPrototype() {
     if (userEntries.length === 0) return null;
     const option = question.options.find((o) => o.id === userEntries[0].optionId);
     return option?.name || null;
+  }
+
+  // ── Polymarket-style probability chart (SVG line chart, top 4 only) ──
+  function renderProbabilityChart(question: Question) {
+    const opts = [...question.options];
+    // Calculate percentages from coins on each option
+    const totalCoins = opts.reduce((sum, o) => sum + (o.coinsOnOption || 0), 0);
+    const withPct = opts.map((o) => ({
+      ...o,
+      pct: totalCoins > 0 ? ((o.coinsOnOption || 0) / totalCoins) * 100 : 0
+    }));
+    // Sort by percentage descending, take top 4
+    withPct.sort((a, b) => b.pct - a.pct);
+    const top4 = withPct.slice(0, 4);
+    
+    if (top4.length === 0 || top4.every(o => o.pct === 0)) return null;
+
+    // Distinct colors for each rank
+    const colors = ["#FF4D4D", "#4DA6FF", "#FFD93D", "#6BE585"];
+    const chartHeight = 60;
+    const chartWidth = 280;
+    const padding = { top: 20, right: 10, bottom: 20, left: 10 };
+    const innerWidth = chartWidth - padding.left - padding.right;
+    const innerHeight = chartHeight - padding.top - padding.bottom;
+
+    return (
+      <div style={{ margin: "8px 0 4px 0" }}>
+        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: "100%", height: "auto", maxHeight: `${chartHeight}px`, display: "block" }}>
+          {/* Background */}
+          <rect x="0" y="0" width={chartWidth} height={chartHeight} fill="transparent" />
+          
+          {/* Draw area-fill under each line (from back to front) */}
+          {top4.map((opt, idx) => {
+            const x = padding.left + (idx / Math.max(3, top4.length - 1)) * innerWidth;
+            const y = padding.top + (1 - opt.pct / 100) * innerHeight;
+            const areaPath = `M ${padding.left} ${padding.top + innerHeight} L ${x} ${y} L ${x + 1} ${padding.top + innerHeight} Z`;
+            return (
+              <path key={`area-${opt.id}`} d={areaPath} fill={colors[idx % colors.length]} opacity="0.12" />
+            );
+          })}
+
+          {/* Draw lines and points */}
+          {top4.map((opt, idx) => {
+            const x = padding.left + (idx / Math.max(3, top4.length - 1)) * innerWidth;
+            const y = padding.top + (1 - opt.pct / 100) * innerHeight;
+            const color = colors[idx % colors.length];
+            return (
+              <g key={`line-${opt.id}`}>
+                {/* Label above point */}
+                <text x={x} y={y - 6} textAnchor="middle" fontSize="10" fontWeight="700" fill={color}>
+                  {opt.pct.toFixed(1)}%
+                </text>
+                {/* Point */}
+                <circle cx={x} cy={y} r="4" fill={color} />
+                {/* Name below chart */}
+                <text x={x} y={padding.top + innerHeight + 14} textAnchor="middle" fontSize="9" fill="var(--muted, #888)" fontWeight="500">
+                  {opt.name.length > 12 ? opt.name.substring(0, 12) + "…" : opt.name}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Connect lines between points */}
+          <polyline
+            points={top4.map((opt, idx) => {
+              const x = padding.left + (idx / Math.max(3, top4.length - 1)) * innerWidth;
+              const y = padding.top + (1 - opt.pct / 100) * innerHeight;
+              return `${x},${y}`;
+            }).join(" ")}
+            fill="none"
+            stroke="var(--hairline, #333)"
+            strokeWidth="1"
+            strokeDasharray="3,3"
+            opacity="0.3"
+          />
+        </svg>
+      </div>
+    );
   }
 
   function formatQuestionCountdown(question: Question) {
@@ -1637,6 +1720,9 @@ export default function SuperWinPrototype() {
                           <span className="dot" />
                           <span>Players: <b>{question.playerCount.toLocaleString()}</b></span>
                         </div>
+
+                        {/* Polymarket-style probability chart */}
+                        {renderProbabilityChart(question)}
 
                         {/* Compact row when inactive */}
                         {!isActive && (
