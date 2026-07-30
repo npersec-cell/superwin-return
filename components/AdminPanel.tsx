@@ -1479,12 +1479,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const hasEntries = (item.entryCount || 0) > 0;
     return (
       <div className="admin-actions">
-        {item.status !== "open" && item.status !== "resolved" && item.status !== "canceled" && (
-          <button className="button gold" disabled={loading} onClick={() => updateStatus(item.id, "open")}>เปิดรับคำทาย</button>
+        {/* ปิดทันที / เปิดรับคำทาย */}
+        {item.status !== "resolved" && item.status !== "canceled" && (
+          item.status === "open" ? (
+            <button className="button" disabled={loading} onClick={() => updateStatus(item.id, "closed")}>ปิดทันที</button>
+          ) : (
+            <button className="button gold" disabled={loading} onClick={() => updateStatus(item.id, "open")}>เปิดรับคำทาย</button>
+          )
         )}
-        {item.status === "open" && (
-          <button className="button" disabled={loading} onClick={() => updateStatus(item.id, "closed")}>ปิดทันที</button>
-        )}
+        {/* สรุปผล */}
         {!disabled && (
           <>
             <select className="button" value={winningOptions[item.id] || ""} onChange={(event) => setWinningOptions((current) => ({ ...current, [item.id]: event.target.value }))}>
@@ -1492,16 +1495,13 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
               {item.options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
             </select>
             <button className="button primary" disabled={disabled} onClick={() => resolvePrediction(item)}>สรุปผล</button>
-            {hasEntries ? (
-              <button className="button" disabled={disabled || !hasEntries} onClick={() => refundPrediction(item)}>ยกเลิก + คืนเหรียญ</button>
-            ) : (
-              <button className="button" type="button" disabled={loading} onClick={() => deletePrediction(item.id)} style={{ color: "#ff4d4f", borderColor: "#ff4d4f", background: "transparent" }}>
-                🗑️ ลบคำถามถาวร
-              </button>
-            )}
           </>
         )}
-        {(item.status === "resolved" || item.status === "canceled") && (
+        {/* ยกเลิก + คืนเหรียญ หรือ ลบ */}
+        {!disabled && hasEntries && (
+          <button className="button" disabled={loading} onClick={() => refundPrediction(item)}>ยกเลิก + คืนเหรียญ</button>
+        )}
+        {(!hasEntries || item.status === "resolved" || item.status === "canceled") && (
           <button className="button" type="button" disabled={loading} onClick={() => deletePrediction(item.id)} style={{ color: "#ff4d4f", borderColor: "#ff4d4f", background: "transparent" }}>
             🗑️ ลบคำถามถาวร
           </button>
