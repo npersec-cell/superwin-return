@@ -1902,7 +1902,7 @@ export default function SuperWinPrototype() {
                             {/* Top 5 Bettors */}
                             {(question.topBettors || []).length > 0 && (
                               <div style={{ margin: "8px 0", padding: "10px 12px", background: "var(--card, #1a1a1a)", borderRadius: "8px", border: "1px solid var(--hairline, #333)" }}>
-                                <div style={{ fontSize: "11px", fontWeight: "700", color: "var(--muted, #888)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Top Bettors</div>
+                                <div style={{ fontSize: "11px", fontWeight: "700", color: "var(--muted, #888)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Top Predictors</div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                                   {(question.topBettors || []).map((bettor, idx) => {
                                     const rankColors = ["#FFD93D", "#C0C0C0", "#CD7F32", "var(--muted, #888)", "var(--muted, #888)"];
