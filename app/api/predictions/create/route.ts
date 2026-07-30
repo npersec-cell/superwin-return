@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
     // ── Audit Log ──
     await logAudit({
       adminId: user.id, // Using user.id as reference
-      action: "user_create_prediction",
+      action: "create_prediction",
       targetType: "prediction",
       targetId: prediction.id,
       metadata: {

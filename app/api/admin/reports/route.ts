@@ -4,7 +4,7 @@ import { createSupabaseAdminClient } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-// 1. ดึงรายการแจ้งปัญหาทั้งหมดสำหรับแอดมิน
+// 1. Fetch all reports for admin
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin(request);
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// 2. ปรับปรุงสถานะหรือลบรายงานการแจ้งปัญหา
+// 2. Update status or delete a report
 export async function PATCH(request: NextRequest) {
   try {
     await requireAdmin(request);
@@ -41,7 +41,7 @@ export async function PATCH(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
 
     if (shouldDelete) {
-      // ลบรายงาน
+      // Delete report
       const { error: deleteError } = await supabase
         .from("reports")
         .delete()
@@ -50,7 +50,7 @@ export async function PATCH(request: NextRequest) {
       if (deleteError) throw new Error(deleteError.message);
       return NextResponse.json({ ok: true, message: "Report deleted successfully" });
     } else {
-      // อัปเดตสถานะ (pending -> resolved)
+      // Update status (pending -> resolved)
       const { error: updateError } = await supabase
         .from("reports")
         .update({ status })

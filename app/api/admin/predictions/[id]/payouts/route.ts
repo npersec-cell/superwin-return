@@ -110,7 +110,7 @@ export async function GET(request: NextRequest, context: Params) {
       };
     });
 
-    // Fee calculation — รวมกระสุมส้มในพูลทัง้หมด
+    // Fee calculation — includes sponsor pool in total pool
     const totalPool = userPool + sponsorPool;
     const feeRate = pred.fee_rate ?? 0.03;
     const distributablePool = Math.floor(totalPool * (1 - feeRate));

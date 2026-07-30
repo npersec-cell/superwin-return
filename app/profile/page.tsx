@@ -483,7 +483,7 @@ export default function ProfilePage() {
                     type="text"
                     value={form.shippingZipcode}
                     onChange={(e) => setForm((f) => ({ ...f, shippingZipcode: e.target.value }))}
-                    placeholder="รหัสไปรษณีย์"
+                    placeholder="Postal code"
                     style={{
                       width: "100%",
                       height: "32px",

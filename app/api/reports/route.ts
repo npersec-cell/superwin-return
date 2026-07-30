@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Incorrect Captcha answer. Please try again." }, { status: 400 });
     }
 
-    // 2. ดึงผู้เล่นปัจจุบัน (หากล็อกอินอยู่)
+    // 2. Get current player (if logged in)
     let dbUserId = null;
     let userEmail = "guest@superwinhub.app";
     try {
@@ -109,12 +109,12 @@ export async function POST(request: NextRequest) {
         userEmail = user.email;
       }
     } catch {
-      // ปล่อยผ่านสำหรับ Guest
+      // Allow guest access
     }
 
     const supabase = createSupabaseAdminClient();
 
-    // 3. บันทึกลงตาราง reports
+    // 3. Save to reports table reports
     const { error: insertError } = await supabase
       .from("reports")
       .insert({

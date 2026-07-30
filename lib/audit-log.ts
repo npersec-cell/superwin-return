@@ -23,8 +23,8 @@ interface LogAuditParams {
 }
 
 /**
- * บันทึก Audit Log เข้า Supabase
- * ใช้ใน Admin API routes หลังจากกระทำสำเร็จแล้ว
+ * Write audit log entry to Supabase.
+ * Called from Admin API routes after successful operations.
  */
 export async function logAudit({
   adminId,

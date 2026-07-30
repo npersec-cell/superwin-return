@@ -34,10 +34,10 @@ const TYPE_ICONS: Record<string, string> = {
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  prediction_win: "ชนะการพยากรณ์",
-  prediction_resolved: "ผลการพยากรณ์",
-  prediction_refund: "คืนเหรียญ",
-  system: "ระบบ",
+  prediction_win: "Won prediction",
+  prediction_resolved: "Prediction result",
+  prediction_refund: "Coins refunded",
+  system: "System",
 };
 
 function formatTimeAgo(isoString: string): string {
@@ -224,7 +224,7 @@ export default function NotificationBell() {
             {loading && notifications.length === 0 ? (
               <div className="loading">Loading...</div>
             ) : notifications.length === 0 ? (
-              <div className="empty">ไม่มีNotifications</div>
+              <div className="empty">NoNotifications</div>
             ) : (
               <>
                 {notifications.map((notification) => (

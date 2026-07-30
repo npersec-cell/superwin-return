@@ -54,7 +54,7 @@ async function getNotifications(page: number = 1, userId: string): Promise<{
     .eq("user_id", userId)
     .eq("is_read", false);
 
-  const notifications: Notification[] = (data || []).map((notif: any) => ({
+  const notifications: Notification[] = (data || []).map((notif) => ({
     id: notif.id,
     type: notif.type,
     title: notif.title,

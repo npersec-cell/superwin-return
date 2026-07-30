@@ -41,8 +41,8 @@ export async function GET() {
     const supabase = createSupabaseAdminClient();
     const now = new Date().toISOString();
 
-    // ── AUTO-OPEN: เปลี่ยน draft → open อัตโนมัติเมื่อถึงเวลา opens_at ──
-    //      ทำก่อน fetch รายการเปิดเพื่อให้คำถามที่ถึงเวลาโผล่ทันที
+    // ── AUTO-OPEN: Change draft → open automatically when opens_at is reached ──
+    //      Run before fetching open questions so newly opened ones appear immediately
     const { error: autoOpenError } = await supabase
       .from("predictions")
       .update({ status: "open", updated_at: now })
@@ -52,7 +52,7 @@ export async function GET() {
 
     if (autoOpenError) {
       console.warn("[Auto-Open] Failed to auto-open drafts:", autoOpenError.message);
-      // ไม่ throw — แค่ warn แล้วไปต่อได้ เพราะยังมีคำถาม open อยู่แล้ว
+      // Don't throw — just warn and continue since there are already open questions
     }
 
     const { data: predictionRows, error: predictionError } = await supabase
@@ -146,7 +146,7 @@ export async function GET() {
     function computeReturn(predictionId: string, optionId: string, feeRate: number, sponsorPool: number): number {
       const optionPool = poolByOption[optionId] || 0;
       const userPool = poolByPrediction[predictionId] || 0;
-      const totalPool = userPool + sponsorPool; // 🍊 รวมกระสุมส้มในพูลรางวัล
+      const totalPool = userPool + sponsorPool; // includes sponsor pool in prize pool
 
       if (totalPool <= 0) {
         return 0;
@@ -177,7 +177,7 @@ export async function GET() {
         tournamentName: prediction.tournament_name,
         question: prediction.question,
         closesAt: prediction.closes_at,
-        totalPool: userPool + sponsorPool, // 🍊 รวมกระสุมส้ม
+        totalPool: userPool + sponsorPool, // 🍊 includes sponsor pool
         playerCount: playersByPrediction[prediction.id]?.size || 0,
         createdBy: creatorName,
         options: (optionsByPrediction[prediction.id] || []).map((option) => ({

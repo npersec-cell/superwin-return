@@ -5,7 +5,7 @@ import { checkRateLimit, RATE_LIMITS, createRateLimitResponse } from '@/lib/rate
 import { z } from 'zod';
 
 const MESSAGE_LENGTH_LIMIT = 500;
-const RECENT_DUP_WINDOW_MS = 30 * 1000; // 30 วินาที
+const RECENT_DUP_WINDOW_MS = 30 * 1000; // 30 seconds
 
 // ── Custom rate limit for chat ──
 const CHAT_RATE_LIMIT = {
@@ -24,9 +24,9 @@ const CHAT_BURST_LIMIT = {
 const SPAM_PATTERNS = [
   /https?:\/\/[^\s]+/i,           // URLs
   /@\w+/i,                         // @mentions
-  /(ขาย|โปรโมชั่น|โปรโมท|สมัคร|เว็บอื่น|คลิกลิงก์)/i,
-  /^([a-zA-Z0-9])\1{4,}/,         // ตัวอักษรซ้ำๆ เช่น aaaaa
-  /[🎰💰💸🤑]{3,}/,               // Emoji สแปม
+  /(spam|promo|advertisement|click.*link)/i,
+  /^([a-zA-Z0-9])\1{4,}/,         // Repeated characters like aaaaa
+  /[🎰💰💸🤑]{3,}/,               // Spam emojis
 ];
 
 export async function GET(request: NextRequest) {
@@ -77,14 +77,14 @@ export async function POST(request: NextRequest) {
     const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json(
-        { ok: false, error: 'Unauthorized', th: 'กรุณาเข้าสู่ระบบก่อนส่งข้อความ' },
+        { ok: false, error: 'Unauthorized', message_th: 'Please sign in before sending messages' },
         { status: 401 }
       );
     }
 
     if (user.status !== 'active') {
       return NextResponse.json(
-        { ok: false, error: 'Account suspended', th: 'บัญชีของคุณถูกระงับ ไม่สามารถส่งข้อความได้' },
+        { ok: false, error: 'Account suspended', message_th: 'Account suspended, cannot send messages' },
         { status: 403 }
       );
     }
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: 'Invalid message', th: 'ข้อความไม่ถูกต้อง' },
+        { ok: false, error: 'Invalid message', message_th: 'Invalid message' },
         { status: 400 }
       );
     }
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     if (!rawMessage) {
       return NextResponse.json(
-        { ok: false, error: 'Empty message', th: 'ข้อความว่างเปล่า' },
+        { ok: false, error: 'Empty message', message_th: 'Message is empty' },
         { status: 400 }
       );
     }
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     for (const pattern of SPAM_PATTERNS) {
       if (pattern.test(rawMessage)) {
         return NextResponse.json(
-          { ok: false, error: 'Message blocked by spam filter', th: 'ข้อความของคุณถูกปฎิเสธเนื่องจากมีเนื้อหาที่ไม่เหมาะสมหรือเป็นสแปม' },
+          { ok: false, error: 'Message blocked by spam filter', message_th: 'Message rejected due to inappropriate content or spam' },
           { status: 400 }
         );
       }
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
       const timeDiff = Date.now() - new Date(lastMsg.created_at).getTime();
       if (timeDiff < RECENT_DUP_WINDOW_MS && lastMsg.message === rawMessage) {
         return NextResponse.json(
-          { ok: false, error: 'Duplicate message', th: 'คุณเพิ่งส่งข้อความนี้ไป รอสักครู่ก่อนส่งอีกครั้ง' },
+          { ok: false, error: 'Duplicate message', message_th: 'Duplicate message, please wait before sending again' },
           { status: 429 }
         );
       }
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
 // ── Helper: convert email to display name (same as LIVE PREDICT) ──
 // e.g. "nontapon.xxx@gmail.com" → "nontapon.xx" (masked last 2 chars)
 function emailToName(emailOrId: string | null | undefined): string {
-  if (!emailOrId) return 'นรนาม';
+  if (!emailOrId) return 'Anonymous';
   // If it looks like an email, extract prefix and mask last 2 chars
   if (emailOrId.includes('@')) {
     const prefix = emailOrId.split('@')[0];

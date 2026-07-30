@@ -1,7 +1,21 @@
 "use client";
 
 interface WinnerNotificationProps {
-  contest: any;
+  contest: {
+    id: string;
+    name: string;
+    prize_1?: string;
+    prize_2?: string;
+    prize_3?: string;
+    prize_4?: string;
+    prize_5?: string;
+    winner?: {
+      shipping_name?: string;
+      shipping_address?: string;
+      shipping_zipcode?: string;
+      shipping_phone?: string;
+    };
+  };
   onClose: () => void;
   visible: boolean;
 }
@@ -39,10 +53,10 @@ export default function WinnerNotificationPopup({ contest, onClose, visible }: W
         textAlign: "center",
         boxShadow: "0 8px 32px rgba(0,0,0,0.5)"
       }}>
-        <div style={{ fontSize: "48px", marginBottom: "12px" }}>🏆</div>
-        <h3 style={{ color: "var(--yellow)", marginBottom: "8px" }}>คุณได้รับรางวัลแล้ว!</h3>
+        <div style={{ fontSize: "48px", marginBottom: "12px" }}>#</div>
+        <h3 style={{ color: "var(--yellow)", marginBottom: "8px" }}>You Won a Prize!</h3>
         <p style={{ color: "var(--text)", marginBottom: "12px" }}>
-          คุณได้รับรางวัลจากกิจกรรม "{contest.name}"
+          You won a prize from "{contest.name}"
         </p>
         
         {/* Show all prizes */}
@@ -56,9 +70,9 @@ export default function WinnerNotificationPopup({ contest, onClose, visible }: W
             marginBottom: "12px"
           }}>
             <div style={{ color: "var(--yellow)", fontWeight: "bold", marginBottom: "8px" }}>
-              🎁 รางวัลที่ได้รับ ({prizes.length} รายการ):
+              Prizes ({prizes.length}):
             </div>
-            {prizes.map((prize: string, idx: number) => (
+            {prizes.map((prize, idx) => (
               <div key={idx} style={{ 
                 color: "var(--text)", 
                 padding: "4px 0",
@@ -81,7 +95,7 @@ export default function WinnerNotificationPopup({ contest, onClose, visible }: W
             fontSize: "11px",
             color: "var(--text)"
           }}>
-            ✅ ที่อยู่สำหรับจัดส่ง:
+            Shipping Address:
             <div style={{ marginTop: "6px", color: "var(--text-strong)" }}>
               {contest.winner.shipping_name}<br />
               {contest.winner.shipping_address}<br />
@@ -97,7 +111,7 @@ export default function WinnerNotificationPopup({ contest, onClose, visible }: W
             marginBottom: "12px",
             color: "var(--red)"
           }}>
-            ⚠️ โปรดกรอกที่อยู่เพื่อรับรางวัล!
+            Please provide your shipping address!
           </div>
         )}
         
@@ -117,7 +131,7 @@ export default function WinnerNotificationPopup({ contest, onClose, visible }: W
             marginBottom: "8px"
           }}
         >
-          📍 ไปกรอกที่อยู่
+          Provide Address
         </a>
         <button 
           onClick={onClose}
@@ -129,7 +143,7 @@ export default function WinnerNotificationPopup({ contest, onClose, visible }: W
             cursor: "pointer"
           }}
         >
-          ปิด
+          Close
         </button>
       </div>
     </div>

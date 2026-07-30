@@ -1,4 +1,4 @@
-// Safe error messages mapping - prevents technical leakage
+// Safe error messages mapping - prevents technical information leakage
 // Date: 2026-06-08
 
 import { NextResponse } from "next/server";
@@ -44,40 +44,40 @@ export class AppError extends Error {
 // Safe error message mapping - translates technical errors to user-friendly messages
 const ERROR_MESSAGES: Record<string, string> = {
   // Auth errors
-  'Unauthorized': 'เข้าสู่ก่อนใช้งานระบบ',
-  'Forbidden': 'ไม่มีสิทธิ์ในการทำรายการนี้',
-  'Unauthorized access': 'ไม่มีสิทธิ์ในการเข้าถึง',
+  'Unauthorized': 'Please sign in to use the system',
+  'Forbidden': 'You do not have permission to perform this action',
+  'Unauthorized access': 'Unauthorized access',
 
   // Validation errors
-  'Invalid input': 'ข้อมูลไม่ถูกต้อง',
-  'Validation failed': 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง',
-  'Missing required field': 'กรุณากรอกข้อมูลให้ครบถ้วน',
+  'Invalid input': 'Invalid input',
+  'Validation failed': 'Validation failed. Please check your input',
+  'Missing required field': 'Please fill in all required fields',
 
   // Business logic errors
-  'Insufficient balance': 'เหรียญไม่เพียงพอ',
-  'Coin balance too low': 'เหรียญไม่เพียงพอ',  
-  'Prediction is closed': 'ปิดรับการทายแล้ว',
-  'Prediction already resolved': 'สรุปผลไปแล้ว',
-  'Already predicted': 'คุณได้ทายคำถามนี้แล้ว',
-  'Minimum bet amount': 'จำนวนเหรียญต้องมากกว่า 0',
+  'Insufficient balance': 'Insufficient coin balance',
+  'Coin balance too low': 'Insufficient coin balance',  
+  'Prediction is closed': 'Predictions are now closed',
+  'Prediction already resolved': 'This prediction has already been resolved',
+  'Already predicted': 'You have already predicted on this question',
+  'Minimum bet amount': 'Bet amount must be greater than 0',
 
   // Rate limiting
-  'Rate limit exceeded': 'ทำรายการบ่อยครั้ง กรุณารอสักครู่',
-  'Too many requests': 'ทำรายการบ่อยครั้ง กรุณารอสักครู่',
+  'Rate limit exceeded': 'Too many requests. Please wait a moment',
+  'Too many requests': 'Too many requests. Please wait a moment',
 
   // Database errors (generic - never show technical details)
-  'Database error': 'เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง',
-  'Foreign key violation': 'เกิดข้อผิดพลาดในการบันทึกข้อมูล',
-  'Unique violation': 'ข้อมูลซ้ำกับที่มีอยู่ในระบบ',
-  'Check violation': 'ข้อมูลไม่ถูกต้องตามเงื่อนไขของระบบ',
+  'Database error': 'Connection error. Please try again',
+  'Foreign key violation': 'Failed to save data',
+  'Unique violation': 'Duplicate entry already exists',
+  'Check violation': 'Data does not meet system requirements',
 
   // Generic fallbacks
-  'Internal server error': 'เกิดข้อผิดพลาดภายในระบบ กรุณาติดต่อผู้ดูแล',
-  'Unknown error': 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ กรุณาลองใหม่อีกครั้ง',
+  'Internal server error': 'Internal system error. Please contact support',
+  'Unknown error': 'Unknown error. Please try again',
 };
 
 // Get safe error message (never leak technical details)
-export function getSafeErrorMessage(error: unknown, defaultMessage: string = 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'): string {
+export function getSafeErrorMessage(error: unknown, defaultMessage: string = 'An error occurred. Please try again'): string {
   if (error instanceof AppError) {
     return error.userMessage;
   }

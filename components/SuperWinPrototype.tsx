@@ -20,6 +20,7 @@ type Question = {
   closeOffsetMinutes?: number;
   closesAt?: string;
   totalPool: number;
+  sponsorPool?: number;
   playerCount: number;
   options: PredictionOption[];
   entries?: { optionId: string; userId: string; amount: number; status: string }[];

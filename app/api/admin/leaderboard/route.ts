@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     await requireAdmin(request);
     const supabase = createSupabaseAdminClient();
 
-    // ดึงผู้ใช้ 10 อันดับแรกที่มี lifetime_profit สูงสุดเพื่อทำ dropdown หน้ารางวัล
+    // Fetch top 10 users by lifetime_profit for contest prize dropdown
     const { data: allUsers, error } = await supabase
       .from("users")
       .select("id, email, display_name, lifetime_profit")
@@ -23,14 +23,14 @@ export async function GET(request: NextRequest) {
 
     if (error) throw new Error(error.message);
 
-    // กรอง user ทดสอบออก (ทำใน JS เพื่อจัดการ NULL ได้ถูกต้อง)
+    // Filter out test users (done in JS to handle NULL correctly)
     const data = (allUsers || []).filter((u) => {
       const email = (u.email || "").toLowerCase();
       const displayName = (u.display_name || "").toLowerCase();
       return (
         !email.includes("test") &&
         !displayName.includes("test") &&
-        !displayName.includes("ทดสอบ")
+        !displayName.includes("test")
       );
     }).slice(0, 10);
 
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       displayName: user.display_name || user.email.split("@")[0]
     }));
 
-    // รวมรายชื่อ default และผู้ใช้จริงไม่ให้ซ้ำกัน
+    // Merge default list with real users, no duplicates
     const unique = [...mapped];
     for (const item of defaultLeaderboard) {
       if (!unique.some((u) => u.email === item.email)) {

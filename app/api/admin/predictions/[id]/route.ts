@@ -66,7 +66,7 @@ export async function DELETE(
     // Audit log
     await logAudit({
       adminId: admin.id,
-      action: "delete_user_prediction",
+      action: "cancel_prediction",
       targetType: "prediction",
       targetId: id,
       metadata: {

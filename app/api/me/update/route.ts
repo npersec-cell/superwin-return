@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const hasShippingFields = shippingName !== undefined || shippingAddress !== undefined || shippingZipcode !== undefined || shippingPhone !== undefined;
     if (hasShippingFields && (!shippingName || !shippingAddress || !shippingZipcode || !shippingPhone)) {
       return NextResponse.json(
-        { ok: false, error: "กรุณากรอกข้อมูลให้ครบทุกช่อง" },
+        { ok: false, error: "Please fill in all fields" },
         { status: 400 }
       );
     }
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     // Validate display name length
     if (displayName !== undefined && displayName !== null && displayName.length > 8) {
       return NextResponse.json(
-        { ok: false, error: "ชื่อเล่นต้องไม่เกิน 8 ตัวอักษร" },
+        { ok: false, error: "Display name must be 8 characters or less" },
         { status: 400 }
       );
     }
@@ -65,14 +65,14 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error("Error updating user profile:", error);
       return NextResponse.json(
-        { ok: false, error: "ไม่สามารถบันทึกข้อมูลได้" },
+        { ok: false, error: "Failed to save profile data" },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
       ok: true,
-      message: "บันทึกข้อมูลสำเร็จ",
+      message: "Profile updated successfully",
       data: {
         addressCompleted: hasShippingFields
           ? Boolean(shippingName?.trim() && shippingAddress?.trim() && shippingZipcode?.trim() && shippingPhone?.trim())

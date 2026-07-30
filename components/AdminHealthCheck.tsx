@@ -168,7 +168,7 @@ export default function AdminHealthCheck() {
             color: "var(--text-weak)",
             fontSize: "12px"
           }}>
-            ⏳ กำลังตรวจสอบระบบ...
+            ⏳ Checking system status...
           </div>
         )}
 

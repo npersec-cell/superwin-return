@@ -4,7 +4,7 @@ import { createSupabaseAdminClient } from "@/lib/db";
 import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
 
-const SPECIAL_CLAIM_COOLDOWN_MS = 10 * 60 * 1000; // 10 นาที
+const SPECIAL_CLAIM_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
 
 /** Special claim: same weighted random as regular claim */
 function randomClaimAmount(): number {
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       amount: claimAmount,
       balance_after: balanceAfter,
       ref_type: "special_claim",
-      detail: "กระสุนส้มพิเศษ 10 นาที"
+      detail: "Special orange ammo 10 minutes"
     });
 
     return NextResponse.json({

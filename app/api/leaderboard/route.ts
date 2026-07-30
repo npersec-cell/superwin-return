@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const supabase = createSupabaseAdminClient();
 
-    // 1. ตรวจสอบ Cache ก่อน
+    // 1. Check cache first
     const { data: cacheEntry, error: cacheError } = await supabase
       .from("cache")
       .select("value, expires_at")
@@ -18,7 +18,7 @@ export async function GET() {
       .single();
 
     if (!cacheError && cacheEntry && new Date(cacheEntry.expires_at) > new Date()) {
-      // Cache ยังไม่หมดอายุ → ส่งคืนข้อมูลจาก Cache
+      // Cache not expired → return cached data
       return NextResponse.json({
         ok: true,
         data: cacheEntry.value,
@@ -33,15 +33,15 @@ export async function GET() {
       });
     }
 
-    // 2. Cache ไม่มี หรือหมดอายุ → คำนวณใหม่
-    // ดึง users ทั้งหมด (ใช้ coin_balance ซึ่งยังมีอยู่)
+    // 2. No cache or expired → recalculate
+    // Fetch all users (using coin_balance which is still available)
     const { data: allUsers, error: errUsers } = await supabase
       .from("users")
       .select("id, display_name, email, avatar_url, role, lifetime_profit, coin_balance");
 
     if (errUsers) throw new Error(errUsers.message);
 
-    // กรอง admin และ user ทดสอบออก
+    // Filter out admins and test users
     const filteredUsers = (allUsers || []).filter((u) => {
       const email = (u.email || "").toLowerCase();
       const displayName = (u.display_name || "").toLowerCase();
@@ -50,11 +50,11 @@ export async function GET() {
         role !== "admin" &&
         !email.includes("test") &&
         !displayName.includes("test") &&
-        !displayName.includes("ทดสอบ")
+        !displayName.includes("test")
       );
     });
 
-    // 3. ใช้ coin_balance (Orange Ammo) แทน profit_score (ถูกลบไปแล้ว)
+    // 3. Use coin_balance (Orange Ammo) instead of removed profit_score
     const usersWithScore = filteredUsers.map((u) => ({
       id: u.id,
       name: u.display_name || u.email.split("@")[0],
@@ -65,10 +65,10 @@ export async function GET() {
       isReal: true,
     }));
 
-    // 4. เรียงตาม profitScore (coin_balance) มาก → น้อย แล้วเอา top 10
+    // 4. Sort by profitScore (coin_balance) desc, take top 10
     const sorted = usersWithScore.sort((a, b) => b.profitScore - a.profitScore).slice(0, 10);
 
-    // 5. บันทึกลง Cache (UPSERT)
+    // 5. Save to cache (UPSERT)
     const expiresAt = new Date(Date.now() + CACHE_TTL_SECONDS * 1000).toISOString();
 
     await supabase.from("cache").upsert(

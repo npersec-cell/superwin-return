@@ -71,7 +71,7 @@ export async function checkRateLimit(
     };
   }
   
-  const result = data as any;
+  const result = data as { allowed: boolean; count: number; remaining: number; reset_at: string };
   const headers: Record<string, string> = {
     'X-RateLimit-Limit': maxRequests.toString(),
     'X-RateLimit-Remaining': result.remaining.toString(),
@@ -119,7 +119,7 @@ export function createRateLimitResponse(result: RateLimitResult): NextResponse {
     {
       ok: false,
       error: 'Too many requests. Please try again later.',
-      th: 'คำขอถี่เกินไป กรุณารอสักครู่แล้วลองใหม่',
+      retryAfter: 'Too many requests. Please wait before trying again.',
       reset_at: result.resetAt,
     },
     { status: 429 }

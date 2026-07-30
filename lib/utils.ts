@@ -120,7 +120,7 @@ export function getPercentile(value: number, allValues: number[]): number {
 // ── Debounce / Throttle ──────────────────────────────
 
 /** Debounce function — delays execution until after wait ms */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   fn: T,
   wait: number
 ): (...args: Parameters<T>) => void {
@@ -132,7 +132,7 @@ export function debounce<T extends (...args: any[]) => any>(
 }
 
 /** Throttle function — limits execution to once per interval */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   fn: T,
   limit: number
 ): (...args: Parameters<T>) => void {
@@ -182,13 +182,4 @@ export function randomClaimAmount(): number {
   if (r < 0.80) return Math.floor(Math.random() * 30) + 31;       // 31-60 (30%)
   if (r < 0.95) return Math.floor(Math.random() * 30) + 61;       // 61-90 (15%)
   return Math.floor(Math.random() * 10) + 91;                      // 91-100 (5%)
-}
-
-// ── Insurance Cost (deprecated but kept for reference) ─
-
-/** @deprecated Insurance feature removed — kept for historical reference */
-export function getInsuranceCost(betAmount: number): number {
-  const safeAmount = Math.max(betAmount, 10);
-  const rate = Math.max(0.05, 0.20 - Math.log10(safeAmount / 10) * 0.05);
-  return Math.max(Math.floor(betAmount * rate), 1);
 }
