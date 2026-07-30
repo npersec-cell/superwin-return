@@ -665,12 +665,22 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         if (json.data.youtube_embed?.open_now !== undefined) {
           setYoutubeOpenNow(!!json.data.youtube_embed.open_now);
         }
-        // Load schedule times
+        // Load schedule times (convert UTC back to Thai local for datetime-local input)
         if (json.data.youtube_embed?.schedule_start) {
-          setYoutubeScheduleStart(json.data.youtube_embed.schedule_start);
+          const start = new Date(json.data.youtube_embed.schedule_start);
+          if (!isNaN(start.getTime())) {
+            setYoutubeScheduleStart(toLocalDateTimeInput(start));
+          } else {
+            setYoutubeScheduleStart(json.data.youtube_embed.schedule_start);
+          }
         }
         if (json.data.youtube_embed?.schedule_end) {
-          setYoutubeScheduleEnd(json.data.youtube_embed.schedule_end);
+          const end = new Date(json.data.youtube_embed.schedule_end);
+          if (!isNaN(end.getTime())) {
+            setYoutubeScheduleEnd(toLocalDateTimeInput(end));
+          } else {
+            setYoutubeScheduleEnd(json.data.youtube_embed.schedule_end);
+          }
         }
         // Load frontend features enabled state
         if (json.data.frontend_features !== undefined) {
@@ -744,6 +754,29 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     return `<iframe width="720" height="405" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
   }
 
+  /** Convert datetime-local value (Thai time) to UTC ISO string for storage */
+  function thaiLocalToUTC(datetimeLocal: string): string {
+    if (!datetimeLocal) return "";
+    // datetime-local gives "2026-07-30T20:00" without timezone
+    // Treat it as Thai time (UTC+7) and convert to UTC
+    const [datePart, timePart] = datetimeLocal.split("T");
+    if (!datePart || !timePart) return datetimeLocal;
+    const [year, month, day] = datePart.split("-").map(Number);
+    const [hour, minute] = timePart.split(":").map(Number);
+    const utcDate = new Date(Date.UTC(year, month - 1, day, hour - 7, minute));
+    return utcDate.toISOString();
+  }
+
+  /** Convert UTC Date object to datetime-local format (Thai local time for input display) */
+  function toLocalDateTimeInput(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hour = String(date.getHours()).padStart(2, "0");
+    const minute = String(date.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hour}:${minute}`;
+  }
+
   async function saveYoutubeEmbed(e?: React.FormEvent) {
     if (e) e.preventDefault();
     try {
@@ -756,14 +789,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       // Mode 1: Open now — clear start time (shows immediately), keep end time if set
       if (youtubeOpenNow) {
         scheduleData.schedule_start = "";
-        if (youtubeScheduleEnd) scheduleData.schedule_end = youtubeScheduleEnd;
-        else scheduleData.schedule_end = "";
+        scheduleData.schedule_end = youtubeScheduleEnd ? thaiLocalToUTC(youtubeScheduleEnd) : "";
       } else {
-        // Mode 2: Scheduled — use both start and end times
-        if (youtubeScheduleStart) scheduleData.schedule_start = youtubeScheduleStart;
-        else scheduleData.schedule_start = "";
-        if (youtubeScheduleEnd) scheduleData.schedule_end = youtubeScheduleEnd;
-        else scheduleData.schedule_end = "";
+        // Mode 2: Scheduled — use both start and end times (convert Thai local to UTC)
+        scheduleData.schedule_start = youtubeScheduleStart ? thaiLocalToUTC(youtubeScheduleStart) : "";
+        scheduleData.schedule_end = youtubeScheduleEnd ? thaiLocalToUTC(youtubeScheduleEnd) : "";
       }
 
       const res = await fetch('/api/admin/settings', {
