@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     // 1. ดึงข้อมูลคำถามหลักทั้งหมดเพื่อป้องกัน Error PostgREST Embed
     const { data: predictions, error: pError } = await supabase
       .from("predictions")
-      .select("id, tournament_name, question, status, closes_at, created_at, fee_rate, sponsor_pool")
+      .select("id, tournament_name, question, status, closes_at, created_at, fee_rate, sponsor_pool, winning_option_id")
       .order("created_at", { ascending: false });
 
     if (pError) throw new Error(pError.message);
@@ -110,7 +110,8 @@ export async function GET(request: NextRequest) {
         totalPoolCoins,
         uniquePlayers,
         optionStats,
-        playerBets
+        playerBets,
+        winningOptionId: p.winning_option_id
       };
     });
 

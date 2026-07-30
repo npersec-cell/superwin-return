@@ -52,6 +52,7 @@ type DashboardPrediction = {
     amount: number;
     createdAt: string;
   }[];
+  winningOptionId?: string | null;
 };
 
 type TournamentItem = {
@@ -1947,7 +1948,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             <div style={{ marginTop: "4px" }}>
                               <details style={{ cursor: "pointer" }}>
                                 <summary style={{ fontSize: "11px", color: "var(--yellow)", outline: "none", fontWeight: "500", padding: "4px 0" }}>
-                                  ▸ รายชื่อผู้เข้าร่วม ({q.playerBets.length} คน){q.status === "resolved" ? ` — ชนะ ${q.playerBets.filter(b => b.optionLabel === q.optionStats.reduce((max, s) => s.totalCoins > max.totalCoins ? s : max).label).length} · แพ้ ${q.playerBets.length - q.playerBets.filter(b => b.optionLabel === q.optionStats.reduce((max, s) => s.totalCoins > max.totalCoins ? s : max).label).length}` : ""}
+                                  ▸ รายชื่อผู้เข้าร่วม ({q.playerBets.length} คน){q.status === "resolved" && q.winningOptionId ? ` — ชนะ ${q.playerBets.filter(b => { const winOpt = q.optionStats.find(s => s.id === q.winningOptionId); return b.optionLabel === winOpt?.label; }).length} · แพ้ ${q.playerBets.length - q.playerBets.filter(b => { const winOpt = q.optionStats.find(s => s.id === q.winningOptionId); return b.optionLabel === winOpt?.label; }).length}` : ""}
                                 </summary>
                                 <div style={{ display: "grid", gap: "5px", marginTop: "8px", maxHeight: "200px", overflowY: "auto", padding: "4px", background: "var(--card)", borderRadius: "8px", border: "1px solid var(--hairline)" }}>
                                   {/* Header */}
@@ -1962,8 +1963,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                   {[...q.playerBets]
                                     .sort((a, b) => {
                                       // If resolved: sort winners first, then by amount desc
-                                      if (q.status === "resolved") {
-                                        const winningLabel = q.optionStats.reduce((max, s) => s.totalCoins > max.totalCoins ? s : max).label;
+                                      if (q.status === "resolved" && q.winningOptionId) {
+                                        const winOpt = q.optionStats.find(s => s.id === q.winningOptionId);
+                                        const winningLabel = winOpt?.label || "";
                                         const aWon = a.optionLabel === winningLabel;
                                         const bWon = b.optionLabel === winningLabel;
                                         if (aWon && !bWon) return -1;
@@ -1972,7 +1974,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                       return b.amount - a.amount;
                                     })
                                     .map((bet) => {
-                                      const winningLabel = q.status === "resolved" ? q.optionStats.reduce((max, s) => s.totalCoins > max.totalCoins ? s : max).label : null;
+                                      const winningLabel = (q.status === "resolved" && q.winningOptionId) ? (q.optionStats.find(s => s.id === q.winningOptionId)?.label || null) : null;
                                       const isWinner = q.status === "resolved" && bet.optionLabel === winningLabel;
                                       return (
                                         <div key={bet.id} style={{ display: "grid", gridTemplateColumns: "1fr 80px 120px 70px 70px", gap: "6px", padding: "5px 8px", fontSize: "10px", background: isWinner ? "rgba(14,203,129,0.04)" : "transparent", borderRadius: "4px", alignItems: "center" }}>
