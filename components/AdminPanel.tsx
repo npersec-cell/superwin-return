@@ -122,10 +122,10 @@ const defaultSettings: SiteSettings = {
     "Who will get the most kills in this match?"
   ],
   savedRounds: [
-    "Group Stage",
-    "Round of 16",
-    "Quarter-finals",
-    "Finals"
+    "รอบแบ่งกลุ่ม",
+    "รอบ 16 ทีมสุดท้าย",
+    "รอบกอนรองชนะเลิศ",
+    "รอบชิงชนะเลิศ"
   ],
   announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the All time Top 10!"
 };
@@ -950,7 +950,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     setmessage("");
     try {
       const options = draftOptions.map((item) => item.trim()).filter(Boolean);
-      const fullQuestion = round.trim() ? `Round ${round.trim()} - ${question.trim()}` : question.trim();
+      const fullQuestion = round.trim() ? `รอบ ${round.trim()} - ${question.trim()}` : question.trim();
       const data = await requestJson<AdminPrediction>("/api/admin/predictions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1307,7 +1307,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({ savedRounds: nextRounds })
       });
       setSettings(data);
-      setmessage("Round template saved");
+      setmessage("บันทึกรูปแบบรอบเรียบร้อย");
     } catch (error) {
       setmessage(error instanceof Error ? error.message : "Failed to save round template");
     } finally {
@@ -1328,7 +1328,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({ savedRounds: nextRounds })
       });
       setSettings(data);
-      setmessage("Round template deleted");
+      setmessage("ลบรูปแบบรอบเรียบร้อย");
     } catch (error) {
       setmessage(error instanceof Error ? error.message : "Failed to delete round template");
     } finally {
@@ -1361,7 +1361,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       });
       setSettings(data);
       setEditingRound(null);
-      setmessage("Round template edited successfully");
+      setmessage("แก้ไของค์ประกอบรอบเรียบร้อย");
     } catch (error) {
       setmessage(error instanceof Error ? error.message : "Failed to edit round template");
     } finally {
@@ -2124,16 +2124,16 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
                 <div style={{ display: "grid", gap: "4px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Round</span>
+                    <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>รอบ</span>
                     <button className="button" type="button" disabled={!round.trim()} onClick={saveRoundTemplate} style={{ height: "18px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--yellow)", color: "var(--yellow)", borderRadius: "4px" }}>
-                      Save This Round
+                      บันทึกรอบนี้
                     </button>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "6px", alignItems: "center" }}>
-                    <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-strong)", whiteSpace: "nowrap" }}>Round</span>
-                    <input value={round} onChange={(event) => setRound(event.target.value)} placeholder="e.g., Group Stage, Round of 16" style={{ height: "34px" }} />
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-strong)", whiteSpace: "nowrap" }}>รอบ</span>
+                    <input value={round} onChange={(event) => setRound(event.target.value)} placeholder="เช่น รอบแบ่งกลุ่ม, รอบ 8 ทีมสุดท้าย" style={{ height: "34px" }} />
                     <select className="button" value="" onChange={(event) => { if (event.target.value) setRound(event.target.value); }} style={{ height: "34px", width: "auto", minWidth: "140px", maxWidth: "200px" }}>
-                      <option value="">-- Round --</option>
+                      <option value="">-- รอบ --</option>
                       {(settings.savedRounds || []).map((r) => (
                         <option key={r} value={r}>{r}</option>
                       ))}
