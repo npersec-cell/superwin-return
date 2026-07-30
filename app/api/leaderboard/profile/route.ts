@@ -214,6 +214,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Failed to fetch entries" }, { status: 500 });
     }
 
+    // ── Cleanup: Delete entries beyond page 10 (50 items) per user ──
+    // Only keep the most recent 50 settled entries; older ones are already resolved
+    // and no longer needed, reducing database size and improving performance.
+    const MAX_HISTORY_ENTRIES = 50; // 10 pages × 5 items/page
+    if ((historyEntries || []).length > MAX_HISTORY_ENTRIES) {
+      const entriesToDelete = (historyEntries || []).slice(MAX_HISTORY_ENTRIES);
+      const deleteIds = entriesToDelete.map((e: any) => e.id);
+      if (deleteIds.length > 0) {
+        await supabase
+          .from("prediction_entries")
+          .delete()
+          .in("id", deleteIds);
+      }
+      // Trim the fetched array to match what remains in DB
+      historyEntries.splice(MAX_HISTORY_ENTRIES);
+    }
+
     // ── Calculate history stats from entries ──
     let wonCount = 0;
     let lostCount = 0;
