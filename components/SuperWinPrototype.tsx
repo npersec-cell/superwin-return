@@ -533,6 +533,7 @@ export default function SuperWinPrototype() {
   const [userReports, setUserReports] = useState<any[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [selectedReportChat, setSelectedReportChat] = useState<string | null>(null);
+  const [reportsEnabled, setReportsEnabled] = useState(true);
 
   // Auto-refresh profile data while modal is open
   const profileRefreshRef = useRef<NodeJS.Timeout | null>(null);
@@ -603,6 +604,9 @@ export default function SuperWinPrototype() {
       if (data.ok) {
         setCaptchaQuestion(data.question);
         setCaptchaToken(data.token);
+        if (typeof data.enabled === "boolean") {
+          setReportsEnabled(data.enabled);
+        }
       }
     } catch {
       setCaptchaQuestion("Refresh page");
@@ -1705,9 +1709,10 @@ export default function SuperWinPrototype() {
                   </button>
                   <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                   <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory(); }}>History</button>
-                  <button className="button gold" onClick={() => { setShowMessages(true); loadUserReports(); }} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                    💬 Messages
-                    {userReports.some((r) => (r.unread_count || 0) > 0) && (
+                  {reportsEnabled && (
+                    <button className="button gold" onClick={() => { setShowMessages(true); loadUserReports(); }} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      💬 Messages
+                      {userReports.some((r) => (r.unread_count || 0) > 0) && (
                       <span style={{
                         display: "inline-flex",
                         alignItems: "center",
@@ -1723,8 +1728,9 @@ export default function SuperWinPrototype() {
                       }}>
                         ●
                       </span>
-                    )}
-                  </button>
+                                   )}
+                    </button>
+                  )}
                   {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
                 </span>
 
@@ -2307,16 +2313,17 @@ export default function SuperWinPrototype() {
             )}
 
             {/* Sidebar-integrated Bug Report / Feedback Card (ปุ่มเต่าทองสีทองสวยงาม เปิดพับเก็บได้ในตัว) */}
-            <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", marginTop: "12px" }}>
-              {!showReportForm ? (
-                <button
-                  onClick={() => setShowReportForm(true)}
-                  className="button gold"
-                  style={{ height: "24px", borderRadius: "12px", padding: "0 12px", fontSize: "10px", display: "flex", alignItems: "center", gap: "4px", boxShadow: "0 2px 6px rgba(0,0,0,0.3)", cursor: "pointer" }}
-                >
-                  <span>🐞</span> Report Issue
-                </button>
-              ) : (
+            {reportsEnabled && (
+              <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", marginTop: "12px" }}>
+                {!showReportForm ? (
+                  <button
+                    onClick={() => setShowReportForm(true)}
+                    className="button gold"
+                    style={{ height: "24px", borderRadius: "12px", padding: "0 12px", fontSize: "10px", display: "flex", alignItems: "center", gap: "4px", boxShadow: "0 2px 6px rgba(0,0,0,0.3)", cursor: "pointer" }}
+                  >
+                    <span>🐞</span> Report Issue
+                  </button>
+                ) : (
                 <div className="panel" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--card)", display: "flex", flexDirection: "column", gap: "6px", fontSize: "11px", textAlign: "left" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "4px" }}>
                     <b style={{ color: "var(--yellow)" }}>🐞 Report Issue / Feedback</b>
@@ -2369,7 +2376,8 @@ export default function SuperWinPrototype() {
                   )}
                 </div>
               )}
-            </div>
+              </div>
+            )}
           </aside>
         </section>
       </div>

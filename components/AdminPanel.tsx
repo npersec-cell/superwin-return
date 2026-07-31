@@ -307,6 +307,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [frontendEnabled, setFrontendEnabled] = useState(true);
 
   const [chatmessages, setChatmessages] = useState<any[]>([]);
+  const [reportsEnabled, setReportsEnabled] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
   const [showEditContestForm, setShowEditContestForm] = useState(false);
   const [editingContestId, setEditingContestId] = useState<string | null>(null);
@@ -573,6 +574,33 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       // (data[0] = newest prediction, not necessarily the desired tournament).
       // Admin must explicitly select a tournament from the dropdown.
     }
+  }
+
+  // Load reports enabled state from site_settings
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/settings");
+        const json = await res.json();
+        if (json.ok && json.data) {
+          setReportsEnabled(json.data.reportsEnabled !== false);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, []);
+
+  // Toggle reports system on/off
+  async function toggleReportsEnabled(enabled: boolean) {
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "reportsEnabled", value: enabled }),
+      });
+      if (res.ok) {
+        setReportsEnabled(enabled);
+      }
+    } catch { /* ignore */ }
   }
 
   async function loadReports() {
@@ -3545,7 +3573,26 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
             <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "16px", margin: "0 auto" }}>
               <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h3>Reports ({reports.length} items)</h3>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <h3>Reports ({reports.length} items)</h3>
+                    <button
+                      onClick={() => toggleReportsEnabled(!reportsEnabled)}
+                      style={{
+                        height: "22px",
+                        fontSize: "10px",
+                        padding: "0 10px",
+                        borderRadius: "999px",
+                        border: "1px solid " + (reportsEnabled ? "var(--green)" : "var(--red)"),
+                        background: reportsEnabled ? "var(--green)" : "var(--red)",
+                        color: "#fff",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {reportsEnabled ? "✓ ระบบเปิด" : "✗ ระบบปิด"}
+                    </button>
+                  </div>
                   <div style={{ display: "flex", gap: "6px" }}>
                     <button className="button" onClick={() => { setShowStartChat(true); loadUserEmails(); }} style={{ height: "26px", fontSize: "11px", padding: "0 10px", background: "var(--info)", borderColor: "var(--info)", color: "#fff" }}>
                       💬 New Chat

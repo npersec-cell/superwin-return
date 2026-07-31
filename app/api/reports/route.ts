@@ -6,6 +6,22 @@ export const dynamic = "force-dynamic";
 
 const CAPTCHA_SECRET = process.env.CAPTCHA_SECRET || "superwin-captcha-2026";
 
+// Check if Reports system is enabled (from site_settings)
+async function isReportsEnabled(): Promise<boolean> {
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "reportsEnabled")
+      .maybeSingle();
+    // Default to true if not set
+    return data === null || data?.value === true;
+  } catch {
+    return true;
+  }
+}
+
 // Simple in-memory rate limiter: IP -> { count, resetAt }
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_MAX = 3;
@@ -57,18 +73,26 @@ function decodeCaptcha(token: string): { num1: number; num2: number; timestamp: 
 }
 
 export async function GET() {
+  const enabled = await isReportsEnabled();
   const num1 = Math.floor(Math.random() * 90) + 10; // 10-99
   const num2 = Math.floor(Math.random() * 90) + 10; // 10-99
   const token = encodeCaptcha(num1, num2);
   return NextResponse.json({
     ok: true,
     question: `${num1} + ${num2} =`,
-    token
+    token,
+    enabled
   });
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if reports system is enabled
+    const enabled = await isReportsEnabled();
+    if (!enabled) {
+      return NextResponse.json({ ok: false, error: "Report system is currently disabled." }, { status: 403 });
+    }
+
     const ip = getClientIP(request);
     if (!checkRateLimit(ip)) {
       return NextResponse.json(
