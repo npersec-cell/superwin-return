@@ -287,6 +287,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [reports, setReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [chatReportId, setChatReportId] = useState<string | null>(null);
+  const [showStartChat, setShowStartChat] = useState(false);
+  const [startChatEmail, setStartChatEmail] = useState("");
+  const [startChatMessage, setStartChatMessage] = useState("");
+  const [startChatSending, setStartChatSending] = useState(false);
   const [contests, setContests] = useState<any[]>([]);
   const [contestsLoading, setContestsLoading] = useState(false);
   const [showNewContestForm, setShowNewContestForm] = useState(false);
@@ -610,6 +614,39 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       }
     } catch {
       alert("Network error occurred");
+    }
+  }
+
+  async function handleStartChat(e: React.FormEvent) {
+    e.preventDefault();
+    if (!startChatEmail.trim() || !startChatMessage.trim()) {
+      alert("กรุณากรอกอีเมลและข้อความ");
+      return;
+    }
+
+    setStartChatSending(true);
+    try {
+      const response = await fetch("/api/admin/reports/start-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: startChatEmail.trim(), message: startChatMessage.trim() }),
+      });
+      const payload = await response.json();
+      if (response.ok && payload.ok) {
+        alert(`ส่งข้อความถึง ${payload.data.userEmail} สำเร็จ!`);
+        setShowStartChat(false);
+        setStartChatEmail("");
+        setStartChatMessage("");
+        await loadReports();
+        // Open chat modal with the new report
+        setChatReportId(payload.data.reportId);
+      } else {
+        alert(payload.error || "Failed to start chat");
+      }
+    } catch {
+      alert("Network error occurred");
+    } finally {
+      setStartChatSending(false);
     }
   }
 
@@ -3647,9 +3684,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
               <section className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <h3>Reports ({reports.length} items)</h3>
-                  <button className="button gold" onClick={loadReports} disabled={reportsLoading} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
-                    Refresh
-                  </button>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <button className="button" onClick={() => setShowStartChat(true)} style={{ height: "26px", fontSize: "11px", padding: "0 10px", background: "var(--info)", borderColor: "var(--info)", color: "#fff" }}>
+                      💬 New Chat
+                    </button>
+                    <button className="button gold" onClick={loadReports} disabled={reportsLoading} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
+                      Refresh
+                    </button>
+                  </div>
                 </div>
 
                 {reportsLoading ? (
@@ -3729,6 +3771,116 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 )}
               </section>
             </section>
+          )}
+
+          {/* Start New Chat Modal */}
+          {showStartChat && (
+            <div style={{
+              position: "fixed",
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: "rgba(0,0,0,0.7)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10000,
+              padding: "16px",
+            }} onClick={() => setShowStartChat(false)}>
+              <form style={{
+                background: "var(--bg)",
+                borderRadius: "12px",
+                padding: "20px",
+                width: "100%",
+                maxWidth: "400px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }} onClick={(e) => e.stopPropagation()} onSubmit={handleStartChat}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                  <span style={{ fontSize: "16px" }}>💬</span>
+                  <span style={{ fontSize: "14px", fontWeight: "700", color: "var(--text)" }}>เริ่มแชทใหม่นอกเหนือจาก Report</span>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "var(--muted)", marginBottom: "4px" }}>อีเมล User</label>
+                  <input
+                    type="email"
+                    value={startChatEmail}
+                    onChange={(e) => setStartChatEmail(e.target.value)}
+                    placeholder="user@example.com"
+                    required
+                    style={{
+                      width: "100%",
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid var(--hairline)",
+                      borderRadius: "8px",
+                      padding: "8px 12px",
+                      fontSize: "12px",
+                      color: "var(--text)",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "var(--yellow)"}
+                    onBlur={(e) => e.target.style.borderColor = "var(--hairline)"}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "var(--muted)", marginBottom: "4px" }}>ข้อความแรก</label>
+                  <textarea
+                    value={startChatMessage}
+                    onChange={(e) => setStartChatMessage(e.target.value)}
+                    placeholder="พิมพ์ข้อความ..."
+                    required
+                    maxLength={1000}
+                    rows={4}
+                    style={{
+                      width: "100%",
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid var(--hairline)",
+                      borderRadius: "8px",
+                      padding: "8px 12px",
+                      fontSize: "12px",
+                      color: "var(--text)",
+                      outline: "none",
+                      resize: "vertical",
+                      boxSizing: "border-box",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "var(--yellow)"}
+                    onBlur={(e) => e.target.style.borderColor = "var(--hairline)"}
+                  />
+                  <div style={{ textAlign: "right", fontSize: "9px", color: startChatMessage.length > 900 ? "var(--red)" : "var(--muted)", marginTop: "2px" }}>
+                    {startChatMessage.length}/1000
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end", marginTop: "4px" }}>
+                  <button type="button" onClick={() => setShowStartChat(false)} style={{
+                    background: "transparent",
+                    border: "1px solid var(--hairline)",
+                    borderRadius: "8px",
+                    padding: "6px 14px",
+                    fontSize: "12px",
+                    color: "var(--muted)",
+                    cursor: "pointer",
+                  }}>ยกเลิก</button>
+                  <button type="submit" disabled={startChatSending || !startChatEmail.trim() || !startChatMessage.trim()} style={{
+                    background: startChatSending || !startChatEmail.trim() || !startChatMessage.trim()
+                      ? "var(--hairline)"
+                      : "var(--info)",
+                    borderColor: "var(--info)",
+                    color: "#fff",
+                    borderRadius: "8px",
+                    padding: "6px 16px",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    cursor: startChatSending ? "not-allowed" : "pointer",
+                    transition: "all 0.15s",
+                  }}>
+                    {startChatSending ? "กำลังส่ง…" : "สร้างและส่ง"}
+                  </button>
+                </div>
+              </form>
+            </div>
           )}
 
           {/* Report Chat Modal */}
