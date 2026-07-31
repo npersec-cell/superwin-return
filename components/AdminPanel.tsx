@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import ReportChat from "@/components/ReportChat";
 
 type AdminPrediction = {
   id: string;
@@ -288,7 +289,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [userPage, setUserPage] = useState(1);
   const [reports, setReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
-
+  const [chatReportId, setChatReportId] = useState<string | null>(null);
+  const [showStartChat, setShowStartChat] = useState(false);
+  const [startChatEmail, setStartChatEmail] = useState("");
+  const [startChatMessage, setStartChatMessage] = useState("");
+  const [startChatSending, setStartChatSending] = useState(false);
   const [contests, setContests] = useState<any[]>([]);
   const [contestsLoading, setContestsLoading] = useState(false);
   const [showNewContestForm, setShowNewContestForm] = useState(false);
@@ -298,7 +303,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [youtubeOpenNow, setYoutubeOpenNow] = useState(false);
   const [frontendEnabled, setFrontendEnabled] = useState(true);
 
-
+  const [chatmessages, setChatmessages] = useState<any[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
   const [showEditContestForm, setShowEditContestForm] = useState(false);
   const [editingContestId, setEditingContestId] = useState<string | null>(null);
   const [newContestName, setNewContestName] = useState("");
@@ -614,6 +620,64 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }
   }
 
+  async function handleStartChat(e: React.FormEvent) {
+    e.preventDefault();
+    if (!startChatEmail.trim() || !startChatMessage.trim()) {
+      alert("กรุณากรอกอีเมลและข้อความ");
+      return;
+    }
+
+    setStartChatSending(true);
+    try {
+      const response = await fetch("/api/admin/reports/start-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: startChatEmail.trim(), message: startChatMessage.trim() }),
+      });
+      const payload = await response.json();
+      if (response.ok && payload.ok) {
+        alert(`ส่งข้อความถึง ${payload.data.userEmail} สำเร็จ!`);
+        setShowStartChat(false);
+        setStartChatEmail("");
+        setStartChatMessage("");
+        await loadReports();
+        // Open chat modal with the new report
+        setChatReportId(payload.data.reportId);
+      } else {
+        alert(payload.error || "Failed to start chat");
+      }
+    } catch {
+      alert("Network error occurred");
+    } finally {
+      setStartChatSending(false);
+    }
+  }
+
+  async function loadChatmessages() {
+    setChatLoading(true);
+    try {
+      const data = await requestJson<any[]>('/api/admin/chat?limit=200');
+      setChatmessages(data || []);
+    } catch (e) {
+      console.error('Failed to load chat:', e);
+    } finally {
+      setChatLoading(false);
+    }
+  }
+
+  async function deleteChatmessage(id: string) {
+    if (!confirm('Delete this message?')) return;
+    try {
+      const res = await fetch(`/api/chat/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setChatmessages(prev => prev.filter(m => m.id !== id));
+      } else {
+        alert('Delete failed');
+      }
+    } catch {
+      alert('An error occurred');
+    }
+  }
 
   async function reloadAll() {
     await Promise.all([loadPredictions(), loadAdmins(), loadSettings(), loadTopUsers(), loadDashboardData()]);
@@ -1760,7 +1824,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "tournaments" ? "active" : ""}`} onClick={() => setActiveTab("tournaments")} style={{ borderRadius: "999px" }}>Tournaments</button>
           <button className={`button ${activeTab === "questions" ? "active" : ""}`} onClick={() => setActiveTab("questions")} style={{ borderRadius: "999px" }}>Create Question</button>
           <button className={`button ${activeTab === "running" ? "active" : ""}`} onClick={() => setActiveTab("running")} style={{ borderRadius: "999px" }}>Running Questions</button>
-          <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => setActiveTab("settings")} style={{ borderRadius: "999px" }}>Settings</button>
+          <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => { setActiveTab("settings"); loadChatmessages(); }} style={{ borderRadius: "999px" }}>Settings</button>
           <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>Admins ({admins.length})</button>
           <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>Reports ({reports.length})</button>
           <button className={`button ${activeTab === "users" ? "active" : ""}`} onClick={() => setActiveTab("users")} style={{ borderRadius: "999px" }}>User Management ({users.length})</button>
@@ -2745,7 +2809,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 </form>
               </div>
 
-
             </section>
           )}
 
@@ -3466,7 +3529,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <h3>Reports ({reports.length} items)</h3>
                   <div style={{ display: "flex", gap: "6px" }}>
-
+                    <button className="button" onClick={() => setShowStartChat(true)} style={{ height: "26px", fontSize: "11px", padding: "0 10px", background: "var(--info)", borderColor: "var(--info)", color: "#fff" }}>
+                      💬 New Chat
+                    </button>
                     <button className="button gold" onClick={loadReports} disabled={reportsLoading} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
                       Refresh
                     </button>
@@ -3483,7 +3548,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>Email</th>
                           <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>message</th>
                           <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>Status</th>
-
+                          <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>Unread</th>
                           <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>Date</th>
                           <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>Actions</th>
                         </tr>
@@ -3500,10 +3565,34 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                 <span style={{ color: "var(--green)", fontWeight: 700, fontSize: "10px" }}>✅ Completed</span>
                               )}
                             </td>
+                            <td style={{ padding: "8px", textAlign: "center" }}>
+                              {(r.unread_count || 0) > 0 ? (
+                                <span style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  minWidth: "20px",
+                                  height: "20px",
+                                  borderRadius: "10px",
+                                  background: "var(--red)",
+                                  color: "#fff",
+                                  fontSize: "10px",
+                                  fontWeight: "700",
+                                  padding: "0 6px",
+                                }}>
+                                  {r.unread_count}
+                                </span>
+                              ) : (
+                                <span style={{ color: "var(--muted)", fontSize: "10px" }}>—</span>
+                              )}
+                            </td>
                             <td style={{ padding: "8px", color: "var(--muted)", fontSize: "10px", whiteSpace: "nowrap" }}>
                               {r.created_at ? new Date(r.created_at).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "-"}
                             </td>
                             <td style={{ padding: "8px", textAlign: "center", whiteSpace: "nowrap" }}>
+                              <button className="button" style={{ height: "22px", fontSize: "10px", padding: "0 8px", background: "var(--info)", borderColor: "var(--info)", color: "#fff" }} onClick={() => setChatReportId(r.id)}>
+                                💬 Chat
+                              </button>
                               {r.status === "pending" && (
                                 <button className="button gold" style={{ height: "22px", fontSize: "10px", padding: "0 8px", marginLeft: "4px" }} onClick={() => handleUpdateReport(r.id, "resolved")}>
                                   Resolved
@@ -3528,6 +3617,146 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
             </section>
           )}
 
+          {/* Start New Chat Modal */}
+          {showStartChat && (
+            <div style={{
+              position: "fixed",
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: "rgba(0,0,0,0.7)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10000,
+              padding: "16px",
+            }} onClick={() => setShowStartChat(false)}>
+              <form style={{
+                background: "var(--bg)",
+                borderRadius: "12px",
+                padding: "20px",
+                width: "100%",
+                maxWidth: "400px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }} onClick={(e) => e.stopPropagation()} onSubmit={handleStartChat}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                  <span style={{ fontSize: "16px" }}>💬</span>
+                  <span style={{ fontSize: "14px", fontWeight: "700", color: "var(--text)" }}>เริ่มแชทใหม่นอกเหนือจาก Report</span>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "var(--muted)", marginBottom: "4px" }}>อีเมล User</label>
+                  <input
+                    type="email"
+                    value={startChatEmail}
+                    onChange={(e) => setStartChatEmail(e.target.value)}
+                    placeholder="user@example.com"
+                    required
+                    style={{
+                      width: "100%",
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid var(--hairline)",
+                      borderRadius: "8px",
+                      padding: "8px 12px",
+                      fontSize: "12px",
+                      color: "var(--text)",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "var(--yellow)"}
+                    onBlur={(e) => e.target.style.borderColor = "var(--hairline)"}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "var(--muted)", marginBottom: "4px" }}>ข้อความแรก</label>
+                  <textarea
+                    value={startChatMessage}
+                    onChange={(e) => setStartChatMessage(e.target.value)}
+                    placeholder="พิมพ์ข้อความ..."
+                    required
+                    maxLength={1000}
+                    rows={4}
+                    style={{
+                      width: "100%",
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid var(--hairline)",
+                      borderRadius: "8px",
+                      padding: "8px 12px",
+                      fontSize: "12px",
+                      color: "var(--text)",
+                      outline: "none",
+                      resize: "vertical",
+                      boxSizing: "border-box",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "var(--yellow)"}
+                    onBlur={(e) => e.target.style.borderColor = "var(--hairline)"}
+                  />
+                  <div style={{ textAlign: "right", fontSize: "9px", color: startChatMessage.length > 900 ? "var(--red)" : "var(--muted)", marginTop: "2px" }}>
+                    {startChatMessage.length}/1000
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end", marginTop: "4px" }}>
+                  <button type="button" onClick={() => setShowStartChat(false)} style={{
+                    background: "transparent",
+                    border: "1px solid var(--hairline)",
+                    borderRadius: "8px",
+                    padding: "6px 14px",
+                    fontSize: "12px",
+                    color: "var(--muted)",
+                    cursor: "pointer",
+                  }}>ยกเลิก</button>
+                  <button type="submit" disabled={startChatSending || !startChatEmail.trim() || !startChatMessage.trim()} style={{
+                    background: startChatSending || !startChatEmail.trim() || !startChatMessage.trim()
+                      ? "var(--hairline)"
+                      : "var(--info)",
+                    borderColor: "var(--info)",
+                    color: "#fff",
+                    borderRadius: "8px",
+                    padding: "6px 16px",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    cursor: startChatSending ? "not-allowed" : "pointer",
+                    transition: "all 0.15s",
+                  }}>
+                    {startChatSending ? "กำลังส่ง…" : "สร้างและส่ง"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Report Chat Modal */}
+          {chatReportId && (
+            <div style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0,0,0,0.7)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10000,
+              padding: "16px",
+            }} onClick={() => setChatReportId(null)}>
+              <div style={{
+                background: "var(--bg)",
+                borderRadius: "12px",
+                padding: "16px",
+                width: "100%",
+                maxWidth: "420px",
+                maxHeight: "90vh",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+              }} onClick={(e) => e.stopPropagation()}>
+                <ReportChat reportId={chatReportId} isAdmin onClose={() => setChatReportId(null)} />
+              </div>
+            </div>
+          )}
 
         </section>
       </div>

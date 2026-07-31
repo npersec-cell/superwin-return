@@ -1,6 +1,7 @@
 "use client";
 
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
+import ReportChat from "@/components/ReportChat";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, memo } from "react";
 import { compact, getRankFromPosition, maskName, randomClaimAmount, formatCountdown } from "@/lib/utils";
@@ -527,7 +528,11 @@ export default function SuperWinPrototype() {
   const [chartDataMap, setChartDataMap] = useState<Record<string, ChartData | null>>({});
   const [loadingCharts, setLoadingCharts] = useState<Set<string>>(new Set());
 
-
+  // Report chat / Messages
+  const [showMessages, setShowMessages] = useState(false);
+  const [userReports, setUserReports] = useState<any[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [selectedReportChat, setSelectedReportChat] = useState<string | null>(null);
 
   // Auto-refresh profile data while modal is open
   const profileRefreshRef = useRef<NodeJS.Timeout | null>(null);
@@ -1200,7 +1205,28 @@ export default function SuperWinPrototype() {
     }
   }
 
-
+  // ── Load user's reports for chat ──
+  async function loadUserReports() {
+    setMessagesLoading(true);
+    try {
+      const res = await fetch("/api/admin/reports");
+      const json = await res.json();
+      if (json.ok && Array.isArray(json.data)) {
+        // Filter: only show reports from this user (by email match)
+        const userEmail = clerkUser?.primaryEmailAddress?.emailAddress;
+        if (userEmail) {
+          const myReports = json.data.filter((r: any) => r.email === userEmail);
+          setUserReports(myReports);
+        } else {
+          setUserReports([]);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load reports:", e);
+    } finally {
+      setMessagesLoading(false);
+    }
+  }
 
   function selectedOption(question: Question) {
     return question.options.find((option) => option.name === selected[question.id]) || 
@@ -1679,7 +1705,26 @@ export default function SuperWinPrototype() {
                   </button>
                   <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                   <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory(); }}>History</button>
-
+                  <button className="button gold" onClick={() => { setShowMessages(true); loadUserReports(); }} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    💬 Messages
+                    {userReports.some((r) => (r.unread_count || 0) > 0) && (
+                      <span style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minWidth: "16px",
+                        height: "16px",
+                        borderRadius: "8px",
+                        background: "var(--red)",
+                        color: "#fff",
+                        fontSize: "9px",
+                        fontWeight: "700",
+                        padding: "0 4px",
+                      }}>
+                        ●
+                      </span>
+                    )}
+                  </button>
                   {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
                 </span>
 
@@ -2214,7 +2259,6 @@ export default function SuperWinPrototype() {
               </section>
             )}
             
-            {/* ── CHAT BOX ── */}
 
             
             {/* Contest Box - กิจกรรมชิงรางวัล */}
@@ -2386,6 +2430,96 @@ export default function SuperWinPrototype() {
         </section>
       )}
       {openModal === "history" && <HistoryModal history={history} running={running} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} setHistoryPage={(page) => { setHistoryPage(page); }} onClose={() => setOpenModal(null)} />}
+
+      {/* Messages Modal — list of user's reports with chat */}
+      {showMessages && (
+        <div style={{
+          position: "fixed",
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.7)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 10000,
+          padding: "16px",
+        }} onClick={() => setShowMessages(false)}>
+          <div style={{
+            background: "var(--bg)",
+            borderRadius: "12px",
+            padding: "16px",
+            width: "100%",
+            maxWidth: "480px",
+            maxHeight: "90vh",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "12px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid var(--hairline)",
+            }}>
+              <span style={{ fontSize: "14px" }}>💬</span>
+              <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text)", flex: 1 }}>ข้อความจาก Admin</span>
+              <button onClick={() => setShowMessages(false)} style={{
+                background: "transparent", border: "none", cursor: "pointer",
+                fontSize: "16px", color: "var(--muted)", padding: "0 4px", lineHeight: 1,
+              }}>✕</button>
+            </div>
+
+            {/* Content */}
+            <div style={{ flex: 1, overflowY: "auto", minHeight: "200px", maxHeight: "50vh" }}>
+              {messagesLoading ? (
+                <div style={{ textAlign: "center", padding: "20px", color: "var(--muted)", fontSize: "11px" }}>กำลังโหลด...</div>
+              ) : userReports.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "20px", color: "var(--muted)", fontSize: "11px" }}>No messages from the Admin</div>
+              ) : selectedReportChat ? (
+                <ReportChat reportId={selectedReportChat} isAdmin={false} onClose={() => setSelectedReportChat(null)} />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {userReports.map((r) => (
+                    <div key={r.id} onClick={() => setSelectedReportChat(r.id)} style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "10px 12px",
+                      borderRadius: "8px",
+                      background: "rgba(255,255,255,0.02)",
+                      border: "1px solid var(--hairline)",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
+                      <span style={{ fontSize: "16px" }}>{r.status === "resolved" ? "✅" : "⏳"}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: "11px", fontWeight: "700", color: "var(--text)", marginBottom: "2px" }}>
+                          {r.message?.substring(0, 40) || "Report"}{r.message && r.message.length > 40 ? "…" : ""}
+                        </div>
+                        <div style={{ fontSize: "9px", color: "var(--muted)" }}>
+                          {new Date(r.created_at).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" })}
+                        </div>
+                      </div>
+                      {(r.unread_count || 0) > 0 && (
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                          minWidth: "18px", height: "18px", borderRadius: "9px",
+                          background: "var(--red)", color: "#fff", fontSize: "9px", fontWeight: "700", padding: "0 5px",
+                        }}>
+                          {r.unread_count}
+                        </span>
+                      )}
+                      <span style={{ fontSize: "12px", color: "var(--muted)" }}>›</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={closeProfile} />
