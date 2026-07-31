@@ -3649,9 +3649,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     </button>
                   </div>
                   <div style={{ display: "flex", gap: "6px" }}>
-                    <button className="button" onClick={() => { setShowStartChat(true); loadUserEmails(); }} style={{ height: "26px", fontSize: "11px", padding: "0 10px", background: "var(--info)", borderColor: "var(--info)", color: "#fff" }}>
-                      💬 New Chat
-                    </button>
+                    {reportsEnabled && (
+                      <button className="button" onClick={() => { setShowStartChat(true); loadUserEmails(); }} style={{ height: "26px", fontSize: "11px", padding: "0 10px", background: "var(--info)", borderColor: "var(--info)", color: "#fff" }}>
+                        💬 New Chat
+                      </button>
+                    )}
                     <button className="button gold" onClick={loadReports} disabled={reportsLoading} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
                       Refresh
                     </button>
