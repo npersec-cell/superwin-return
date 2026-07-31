@@ -1784,23 +1784,16 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   <select className="button" value={selectedDashboardTournament} onChange={(e) => setSelectedDashboardTournament(e.target.value)} style={{ width: "100%", height: "40px", fontSize: "13px", fontWeight: "600" }}>
                     <option value="">-- Select Tournament --</option>
                     {Array.from(new Set(dashboardData.map((d) => d.tournamentName)))
-                      .sort((a, b) => {
-                        const aInfo = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === a.toLowerCase());
-                        const bInfo = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === b.toLowerCase());
-                        const aArchived = aInfo ? getTournamentInfo(aInfo).archived : false;
-                        const bArchived = bInfo ? getTournamentInfo(bInfo).archived : false;
-                        if (aArchived !== bArchived) return aArchived ? 1 : -1;
-                        return a.localeCompare(b);
-                      })
-                      .map((tour) => {
+                      .filter((tour) => {
                         const info = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === tour.toLowerCase());
-                        const isArchived = info ? getTournamentInfo(info).archived : false;
-                        return (
-                          <option key={tour} value={tour}>
-                            {isArchived ? "" : ""}{tour}
-                          </option>
-                        );
-                      })}
+                        return !info || !getTournamentInfo(info).archived;
+                      })
+                      .sort((a, b) => a.localeCompare(b))
+                      .map((tour) => (
+                        <option key={tour} value={tour}>
+                          {tour}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
