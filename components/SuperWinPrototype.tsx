@@ -1636,6 +1636,8 @@ export default function SuperWinPrototype() {
         setToast((current) => ({ ...current, [question.id]: `${amount} coins used on ${displayName} · now running` }));
         // Refresh questions to get updated pool data for chart
         await loadOpenPredictions();
+        // Refresh running predictions so the new entry appears immediately
+        await loadRunningPredictions().catch(() => undefined);
         // Clear cached chart data so it re-fetches with new data
         setChartDataMap(prev => { const next = { ...prev }; delete next[question.id]; return next; });
       } catch (error) {
