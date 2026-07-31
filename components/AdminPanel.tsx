@@ -1786,7 +1786,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     {Array.from(new Set(dashboardData.map((d) => d.tournamentName)))
                       .filter((tour) => {
                         const info = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === tour.toLowerCase());
-                        return !info || !getTournamentInfo(info).archived;
+                        return info && !getTournamentInfo(info).archived;
                       })
                       .sort((a, b) => a.localeCompare(b))
                       .map((tour) => (
