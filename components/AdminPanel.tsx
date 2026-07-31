@@ -217,7 +217,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [topUsers, setTopUsers] = useState<Array<{ id: string; email: string; displayName: string; lifetimeProfit?: number }>>([]);
   const [editClosesAt, setEditClosesAt] = useState<Record<string, string>>({});
   const [editQuestions, setEditQuestions] = useState<Record<string, string>>({});
-  const [editOptionsInputs, setEditOptionsInputs] = useState<Record<string, Record<string, string>>>({});
+  const [editOptionsInputs, setEditOptionsInputs] = useState<Record<string, Record<string, string>>>({}); // deprecated — options are now locked
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTournamentNames, setEditTournamentNames] = useState<Record<string, string>>({});
 
@@ -1447,12 +1447,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const newQuestion = editQuestions[id];
     const newTournament = editTournamentNames[id];
 
-    const updatedOptionsMap = editOptionsInputs[id] || {};
-    const updatedOptionsList = Object.entries(updatedOptionsMap).map(([optId, label]) => ({
-      id: optId,
-      label
-    }));
-
     setLoading(true);
     setmessage("");
     try {
@@ -1462,8 +1456,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({
           ...(newTournament !== undefined && { tournamentName: newTournament }),
           closesAt: newTime,
-          question: newQuestion,
-          options: updatedOptionsList
+          question: newQuestion
         })
       });
       setmessage("Question details updated successfully");
@@ -2621,26 +2614,17 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                 </div>
 
                                 <div style={{ display: "grid", gap: "6px" }}>
-                                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Edit Answer Text (different teams):</span>
+                                  <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Answer Options (locked — cannot be changed after creation):</span>
                                   <div style={{ display: "grid", gap: "6px", maxHeight: "150px", overflowY: "auto", paddingRight: "4px" }}>
                                     {item.options.map((option) => {
-                                      const currentVal = editOptionsInputs[item.id]?.[option.id] !== undefined 
-                                        ? editOptionsInputs[item.id][option.id] 
-                                        : option.label;
                                       return (
                                         <div key={option.id} style={{ display: "grid", gridTemplateColumns: "30px 1fr", alignItems: "center", gap: "8px" }}>
                                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>#{option.sortOrder + 1}</span>
                                           <input 
                                             type="text" 
-                                            value={currentVal} 
-                                            onChange={(e) => setEditOptionsInputs((current) => ({
-                                              ...current,
-                                              [item.id]: {
-                                                ...(current[item.id] || {}),
-                                                [option.id]: e.target.value
-                                              }
-                                            }))} 
-                                            style={{ height: "26px", fontSize: "11px", padding: "0 8px", background: "var(--card)", width: "100%" }} 
+                                            value={option.label} 
+                                            disabled
+                                            style={{ height: "26px", fontSize: "11px", padding: "0 8px", background: "var(--card-2)", width: "100%", cursor: "not-allowed", opacity: 0.5 }} 
                                           />
                                         </div>
                                       );

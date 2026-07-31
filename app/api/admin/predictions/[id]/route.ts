@@ -6,7 +6,8 @@ import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 /**
  * PATCH /api/admin/predictions/:id
- * Update prediction details: question, closesAt, tournamentName, options.
+ * Update prediction details: question, closesAt, tournamentName.
+ * NOTE: Options are locked and cannot be changed after creation.
  */
 export async function PATCH(
   request: NextRequest,
@@ -29,22 +30,6 @@ export async function PATCH(
     if (Object.keys(updates).length > 0) {
       const { error } = await supabase.from("predictions").update(updates).eq("id", id);
       if (error) throw new Error(error.message || "Failed to update prediction");
-    }
-
-    // Update options if provided
-    if (Array.isArray(body.options)) {
-      // Delete existing options and insert new ones
-      await supabase.from("prediction_options").delete().eq("prediction_id", id);
-
-      if (body.options.length > 0) {
-        const optionRows = body.options.map((opt: { label: string }, idx: number) => ({
-          prediction_id: id,
-          label: opt.label,
-          sort_order: idx,
-        }));
-        const { error: optError } = await supabase.from("prediction_options").insert(optionRows);
-        if (optError) throw new Error(optError.message || "Failed to update options");
-      }
     }
 
     // Audit log
