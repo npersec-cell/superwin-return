@@ -2760,6 +2760,61 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           {activeTab === "settings" && (
             <section className="panel" style={{ width: "100%", maxWidth: "900px", display: "grid", gap: "16px", margin: "0 auto" }}>
 
+              {/* ── Website Announcement Banner ── */}
+              <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
+                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
+                  <h2>📢 Website Announcement</h2>
+                </div>
+                <div style={{ padding: "12px 0 0 0", display: "grid", gap: "10px" }}>
+                  <textarea
+                    value={settings.announcement || ""}
+                    onChange={(e) => setSettings({ ...settings, announcement: e.target.value })}
+                    placeholder="Enter announcement text to display as a banner on the homepage. Leave empty to hide."
+                    rows={4}
+                    style={{
+                      fontFamily: "inherit",
+                      fontSize: "12px",
+                      lineHeight: "1.5",
+                      background: "rgba(0,0,0,0.2)",
+                      border: "1px solid var(--hairline)",
+                      borderRadius: "8px",
+                      padding: "10px 12px",
+                      color: "var(--text)",
+                      resize: "vertical",
+                    }}
+                  />
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: "10px", color: "var(--muted)" }}>
+                      {settings.announcement?.length || 0} characters — displayed as a golden slide-down banner below the topbar
+                    </span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch("/api/admin/settings", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ key: "announcement", value: settings.announcement || "" }),
+                          });
+                          const payload = await res.json();
+                          if (res.ok && payload.ok) {
+                            alert("Announcement saved!");
+                          } else {
+                            alert("Save failed: " + (payload.error || res.status));
+                          }
+                        } catch (e: any) {
+                          alert("Error: " + (e?.message || String(e)));
+                        }
+                      }}
+                      className="button primary"
+                      style={{ height: "32px", padding: "0 16px", fontWeight: "700", fontSize: "11px" }}
+                    >
+                      Save Announcement
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* ── Frontpage Features (Enable/Disable) ── */}
               <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>

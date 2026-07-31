@@ -510,6 +510,7 @@ export default function SuperWinPrototype() {
   const [accountRole, setAccountRole] = useState<"user" | "admin">("user");
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [showAnnouncement, setShowAnnouncement] = useState(true);
   const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[]>(defaultLeaderboard);
   const [leaderboardTotalUsers, setLeaderboardTotalUsers] = useState(0);
   const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
@@ -1691,6 +1692,53 @@ export default function SuperWinPrototype() {
   return (
     <main className="page" suppressHydrationWarning>
       <div className="app" suppressHydrationWarning>
+        {/* ── Announcement Banner (slide-down, dismissible) ── */}
+        {settingsLoaded && settings.announcement && settings.announcement.trim() !== "" && showAnnouncement && (
+          <div style={{
+            position: "relative",
+            background: "linear-gradient(135deg, rgba(255,191,0,0.12) 0%, rgba(255,140,0,0.08) 100%)",
+            borderBottom: "1px solid rgba(255,191,0,0.2)",
+            padding: "10px 40px 10px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            animation: "slideDown 0.4s ease-out",
+          }}>
+            <span style={{ fontSize: "16px", flexShrink: 0 }}>📢</span>
+            <p style={{
+              margin: 0,
+              fontSize: "12px",
+              lineHeight: "1.6",
+              color: "var(--text)",
+              fontWeight: "500",
+              flex: 1,
+            }}>
+              {settings.announcement}
+            </p>
+            <button
+              onClick={() => setShowAnnouncement(false)}
+              style={{
+                position: "absolute",
+                top: "6px",
+                right: "8px",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "16px",
+                color: "var(--muted)",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                transition: "all 0.2s",
+                lineHeight: 1,
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = "var(--text)"}
+              onMouseLeave={(e) => e.currentTarget.style.color = "var(--muted)"}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         <header className="topbar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "6px 8px" }}>
 
           <div className="brand">
