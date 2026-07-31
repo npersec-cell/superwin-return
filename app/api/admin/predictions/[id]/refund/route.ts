@@ -67,6 +67,28 @@ export async function POST(request: NextRequest, context: Params) {
       );
     }
 
+    // Auto-cleanup: keep only 15 most recent resolved/canceled questions
+    try {
+      const { data: allOld } = await supabase
+        .from("predictions")
+        .select("id")
+        .in("status", ["resolved", "canceled"])
+        .order("updated_at", { ascending: false });
+
+      if (allOld && allOld.length > 15) {
+        const toDelete = allOld.slice(15).map(r => r.id);
+        if (toDelete.length > 0) {
+          await supabase.from("prediction_entries").delete().in("prediction_id", toDelete);
+          await supabase.from("prediction_options").delete().in("prediction_id", toDelete);
+          await supabase.from("prediction_snapshots").delete().in("prediction_id", toDelete);
+          await supabase.from("predictions").delete().in("id", toDelete);
+          console.log(`[Refund] Auto-deleted ${toDelete.length} old resolved/canceled predictions`);
+        }
+      }
+    } catch (cleanupErr) {
+      console.error("[Refund] Auto-cleanup failed:", cleanupErr);
+    }
+
     // Audit Log: Record this admin action
     await logAudit({
       adminId: admin.id,
