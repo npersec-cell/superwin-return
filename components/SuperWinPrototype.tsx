@@ -1352,7 +1352,7 @@ export default function SuperWinPrototype() {
                   <text x={centerX} y={barY - 5} textAnchor="middle" fontSize="10" fontWeight="700" fill={color}>
                     {opt.pct.toFixed(1)}%
                   </text>
-                  <text x={centerX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill="var(--muted, #888)">
+                  <text x={centerX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill={color}>
                     {opt.name.length > 14 ? opt.name.substring(0, 14) + "…" : opt.name}
                   </text>
                 </g>
@@ -1458,8 +1458,8 @@ export default function SuperWinPrototype() {
                     {currentPct.toFixed(1)}%
                   </text>
                   
-                  {/* Option name below chart — evenly distributed */}
-                  <text x={nameCenterX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill="var(--muted, #888)">
+                  {/* Option name below chart — evenly distributed, colored to match the line */}
+                  <text x={nameCenterX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill={color}>
                     {label.length > 14 ? label.substring(0, 14) + "…" : label}
                   </text>
                 </g>
