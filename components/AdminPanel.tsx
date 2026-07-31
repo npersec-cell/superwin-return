@@ -15,6 +15,7 @@ type AdminPrediction = {
   createdAt: string;
   entryCount: number;
   createdByUserId?: string | null;
+  userEmail?: string | null;
   options: { id: string; label: string; sortOrder: number }[];
 };
 
@@ -294,6 +295,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [startChatEmail, setStartChatEmail] = useState("");
   const [startChatMessage, setStartChatMessage] = useState("");
   const [startChatSending, setStartChatSending] = useState(false);
+  const [userEmails, setUserEmails] = useState<string[]>([]);
+  const [showEmailSuggestions, setShowEmailSuggestions] = useState(false);
   const [contests, setContests] = useState<any[]>([]);
   const [contestsLoading, setContestsLoading] = useState(false);
   const [showNewContestForm, setShowNewContestForm] = useState(false);
@@ -652,6 +655,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       setStartChatSending(false);
     }
   }
+
+  // ── Load all user emails for autocomplete ──
+  useEffect(() => {
+    const emails = new Set<string>();
+    allPredictions.forEach((p) => {
+      if (p.userEmail) emails.add(p.userEmail);
+    });
+    setUserEmails(Array.from(emails).sort());
+  }, [allPredictions]);
 
   async function loadChatmessages() {
     setChatLoading(true);
@@ -3644,12 +3656,12 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   <span style={{ fontSize: "14px", fontWeight: "700", color: "var(--text)" }}>เริ่มแชทใหม่นอกเหนือจาก Report</span>
                 </div>
 
-                <div>
+                <div style={{ position: "relative" }}>
                   <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "var(--muted)", marginBottom: "4px" }}>อีเมล User</label>
                   <input
                     type="email"
                     value={startChatEmail}
-                    onChange={(e) => setStartChatEmail(e.target.value)}
+                    onChange={(e) => { setStartChatEmail(e.target.value); setShowEmailSuggestions(true); }}
                     placeholder="user@example.com"
                     required
                     style={{
@@ -3663,10 +3675,46 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       outline: "none",
                       boxSizing: "border-box",
                     }}
-                    onFocus={(e) => e.target.style.borderColor = "var(--yellow)"}
-                    onBlur={(e) => e.target.style.borderColor = "var(--hairline)"}
+                    onFocus={(e) => { setShowEmailSuggestions(true); e.target.style.borderColor = "var(--yellow)"; }}
+                    onBlur={() => setTimeout(() => setShowEmailSuggestions(false), 200)}
                   />
+                  {/* Email Autocomplete Dropdown */}
+                  {showEmailSuggestions && startChatEmail.trim().length > 0 && (
+                    <div style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      maxHeight: "200px",
+                      overflowY: "auto",
+                      background: "var(--bg)",
+                      border: "1px solid var(--hairline)",
+                      borderRadius: "8px",
+                      marginTop: "4px",
+                      zIndex: 100,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                    }}>
+                      {userEmails
+                        .filter((email) => email.toLowerCase().startsWith(startChatEmail.toLowerCase()))
+                        .slice(0, 8)
+                        .map((email) => (
+                          <div key={email} onClick={() => { setStartChatEmail(email); setShowEmailSuggestions(false); }} style={{
+                            padding: "6px 12px",
+                            fontSize: "12px",
+                            color: "var(--text)",
+                            cursor: "pointer",
+                            transition: "background 0.1s",
+                          }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+                            {email}
+                          </div>
+                        ))}
+                      {userEmails.filter((email) => email.toLowerCase().startsWith(startChatEmail.toLowerCase())).length === 0 && (
+                        <div style={{ padding: "6px 12px", fontSize: "11px", color: "var(--muted)" }}>ไม่พบอีเมลที่ขึ้นต้นด้วย "{startChatEmail}"</div>
+                      )}
+                    </div>
+                  )}
                 </div>
+
 
                 <div>
                   <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "var(--muted)", marginBottom: "4px" }}>ข้อความแรก</label>
