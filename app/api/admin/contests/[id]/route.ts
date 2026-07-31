@@ -23,7 +23,7 @@ async function getContestWinner(supabase: any): Promise<{ userId: string; overal
 
     if (usersError || !users || users.length === 0) return null;
 
-    const userIds = users.map(u => u.id);
+    const userIds = users.map((u: any) => u.id);
 
     // 2. Get prediction entries for all users
     const { data: entries, error: entriesError } = await supabase
@@ -72,7 +72,7 @@ async function getContestWinner(supabase: any): Promise<{ userId: string; overal
     // 5. Set prediction count and avg claim per day
     for (const [uid, stat] of userStats) {
       stat.predictionCount = stat.predictedQuestionIds.size;
-      const user = users.find(u => u.id === uid);
+      const user = users.find((u: any) => u.id === uid);
       if (user) {
         const daysSinceCreated = Math.max(1, Math.floor(
           (Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24)
