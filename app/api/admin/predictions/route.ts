@@ -110,12 +110,13 @@ export async function GET(request: NextRequest) {
     if (optionError) throw new Error(optionError.message);
 
     // Fetch entry counts and user emails for ALL predictions (any status)
+    // JOIN with users table to get email from user_id
     const { data: entryCounts, error: entryError } = ids.length
       ? await supabase
           .from("prediction_entries")
-          .select("prediction_id, user_email")
+          .select(`prediction_id, user_id, users!inner(email)`)
           .in("prediction_id", ids)
-      : { data: [] as { prediction_id: string; user_email?: string | null }[], error: null };
+      : { data: [] as { prediction_id: string; user_id: string; users?: { email: string } | null }[], error: null };
 
     if (entryError) throw new Error(entryError.message);
 
@@ -123,8 +124,9 @@ export async function GET(request: NextRequest) {
     const emailMap = new Map<string, string>();
     for (const entry of entryCounts || []) {
       countMap.set(entry.prediction_id, (countMap.get(entry.prediction_id) || 0) + 1);
-      if (entry.user_email && !emailMap.has(entry.prediction_id)) {
-        emailMap.set(entry.prediction_id, entry.user_email);
+      const userEmail = entry.users?.email || null;
+      if (userEmail && !emailMap.has(entry.prediction_id)) {
+        emailMap.set(entry.prediction_id, userEmail);
       }
     }
 
