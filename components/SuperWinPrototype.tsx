@@ -1125,7 +1125,7 @@ export default function SuperWinPrototype() {
     // NOTE: track-reload moved to isSignedIn useEffect (fires once on login)
     // Do NOT call track-reload here — this function runs every 10s via setInterval
     
-    const response = await fetch("/api/predictions/open");
+    const response = await fetch("/api/predictions/open?t=" + Date.now(), { cache: "no-store" });
     const payload = (await response.json()) as ApiPredictionsResponse;
     if (!response.ok || !payload.ok) return;
     if (!payload.data || !payload.data.length) {
