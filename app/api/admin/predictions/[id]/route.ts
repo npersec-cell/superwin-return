@@ -5,6 +5,64 @@ import { logAudit } from "@/lib/audit-log";
 import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
 /**
+ * PATCH /api/admin/predictions/:id
+ * Update prediction details: question, closesAt, tournamentName, options.
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const admin = await requireAdmin(request);
+    const { id } = await params;
+    const body = await request.json();
+
+    const supabase = createSupabaseAdminClient();
+
+    // Build update payload
+    const updates: Record<string, any> = {};
+    if (body.question !== undefined) updates.question = body.question;
+    if (body.closesAt !== undefined) updates.closes_at = body.closesAt;
+    if (body.tournamentName !== undefined) updates.tournament_name = body.tournamentName;
+
+    // Update prediction if any field changed
+    if (Object.keys(updates).length > 0) {
+      const { error } = await supabase.from("predictions").update(updates).eq("id", id);
+      if (error) throw new Error(error.message || "Failed to update prediction");
+    }
+
+    // Update options if provided
+    if (Array.isArray(body.options)) {
+      // Delete existing options and insert new ones
+      await supabase.from("prediction_options").delete().eq("prediction_id", id);
+
+      if (body.options.length > 0) {
+        const optionRows = body.options.map((opt: { label: string }, idx: number) => ({
+          prediction_id: id,
+          label: opt.label,
+          sort_order: idx,
+        }));
+        const { error: optError } = await supabase.from("prediction_options").insert(optionRows);
+        if (optError) throw new Error(optError.message || "Failed to update options");
+      }
+    }
+
+    // Audit log
+    await logAudit({
+      adminId: admin.id,
+      action: "update_prediction",
+      targetType: "prediction",
+      targetId: id,
+      metadata: { body },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return createSafeErrorResponse(error);
+  }
+}
+
+/**
  * DELETE /api/admin/predictions/:id
  * Delete a prediction and all its options/entries.
  * Only allowed for questions created by users (has created_by_user_id).
