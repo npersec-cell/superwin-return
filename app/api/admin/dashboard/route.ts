@@ -63,40 +63,6 @@ export async function GET(request: NextRequest) {
 
     if (eError) throw new Error(eError.message);
 
-    // ── Cleanup: Delete entries beyond page 10 (50 items) per user ──
-    // Keep only the most recent 50 settled entries per user; older ones are
-    // already resolved and no longer needed. Reduces DB size and improves perf.
-    const MAX_USER_ENTRIES = 50; // 10 pages × 5 items/page
-    if (entries && entries.length > MAX_USER_ENTRIES) {
-      const entriesByUser = new Map<string, EntryRow[]>();
-      for (const e of entries) {
-        if (!e.user_id) continue;
-        if (!entriesByUser.has(e.user_id)) entriesByUser.set(e.user_id, []);
-        entriesByUser.get(e.user_id)!.push(e);
-      }
-      let totalDeleted = 0;
-      for (const [userId, userEntries] of entriesByUser) {
-        if (userEntries.length > MAX_USER_ENTRIES) {
-          // Sort by created_at desc, keep first 50, delete the rest
-          userEntries.sort((a, b) => 
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-          const toDelete = userEntries.slice(MAX_USER_ENTRIES);
-          const deleteIds = toDelete.map(e => e.id);
-          if (deleteIds.length > 0) {
-            await supabase
-              .from("prediction_entries")
-              .delete()
-              .in("id", deleteIds);
-            totalDeleted += deleteIds.length;
-          }
-        }
-      }
-      if (totalDeleted > 0) {
-        console.log(`[Dashboard] Cleaned up ${totalDeleted} old entries across users`);
-      }
-    }
-
     // 3b. Fetch user data separately
     const userIds = [...new Set((entries || []).map((e: EntryRow) => e.user_id).filter(Boolean))];
     const usersById: Record<string, { email: string; display_name: string }> = {};

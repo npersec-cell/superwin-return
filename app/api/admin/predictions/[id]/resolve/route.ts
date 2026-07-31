@@ -93,33 +93,6 @@ export async function POST(request: NextRequest, context: Params) {
       );
     }
 
-    // 4. Auto-cleanup: keep only 15 most recent resolved questions
-    try {
-      const { data: allResolved } = await supabase
-        .from("predictions")
-        .select("id")
-        .eq("status", "resolved")
-        .order("updated_at", { ascending: false });
-
-      if (allResolved && allResolved.length > 15) {
-        const toDelete = allResolved.slice(15).map(r => r.id);
-        if (toDelete.length > 0) {
-          // Delete entries first
-          await supabase.from("prediction_entries").delete().in("prediction_id", toDelete);
-          // Delete options
-          await supabase.from("prediction_options").delete().in("prediction_id", toDelete);
-          // Delete prediction snapshots
-          await supabase.from("prediction_snapshots").delete().in("prediction_id", toDelete);
-          // Delete predictions
-          await supabase.from("predictions").delete().in("id", toDelete);
-          console.log(`[Resolve] Auto-deleted ${toDelete.length} old resolved predictions`);
-        }
-      }
-    } catch (cleanupErr) {
-      console.error("[Resolve] Auto-cleanup failed:", cleanupErr);
-      // Non-blocking - cleanup will retry on next resolve
-    }
-
     // 5. Audit Log: Record this admin action
     await logAudit({
       adminId: admin.id,
