@@ -164,14 +164,17 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
     throw new Error(`API ${url} did not return JSON (status ${response.status}, type ${contentType || "none"}) ${shortText}`);
   }
   const payload = (await response.json()) as ApiResponse<T>;
-  if (!response.ok || !payload.ok || payload.data === undefined) {
+  // For write operations (POST/PATCH/DELETE), only check response.ok and payload.ok
+  // For read operations (GET), also require payload.data
+  const isReadOperation = !init?.method || init.method.toUpperCase() === "GET";
+  if (!response.ok || !payload.ok || (isReadOperation && payload.data === undefined)) {
     // Include validation details if available
     const detailStr = (payload as any).details?.length
       ? `\n→ ${(payload as any).details.join(", ")}`
       : "";
     throw new Error(`API ${url}: ${payload.error || "Request failed"}${detailStr}`);
   }
-  return payload.data;
+  return (payload.data ?? {}) as T;
 }
 
 function getTournamentInfo(t: string | TournamentItem) {
