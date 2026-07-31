@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
         opens_at: opensAt,
         closes_at: closesAt,
         fee_rate: body.feeRate,
-        sponsor_pool: 500, // sponsor pool — auto bonus pool for every question
+        sponsor_pool: 50, // sponsor pool — auto bonus pool for every question
         created_by: admin.id,
       })
       .select("id, tournament_name, question, status, opens_at, closes_at, fee_rate, sponsor_pool, created_at, updated_at")

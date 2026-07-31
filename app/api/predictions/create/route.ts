@@ -23,7 +23,7 @@ function parseBkkDateTime(localStr: string) {
  * - User must have Diamond rank or higher
  * - Max 2 open questions per user at any time
  * - fee_rate is fixed at 0.05 (5%)
- * - sponsor_pool is NOT set by users (only admins get auto 500)
+ * - sponsor_pool is NOT set by users (only admins get auto 50)
  */
 export async function POST(request: NextRequest) {
   try {
