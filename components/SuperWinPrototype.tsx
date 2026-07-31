@@ -592,9 +592,19 @@ export default function SuperWinPrototype() {
           setCurrentUserId(data.data.id);
           setAccountStatus("synced");
           setAccountRole(data.data.role || "user");
-          if (typeof data.data.reportsEnabled === "boolean") {
-            setReportsEnabled(data.data.reportsEnabled);
-          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Load reports system enabled state on mount (for ALL users, not just dev bypass)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    fetch("/api/reports?t=" + Date.now(), { cache: "no-store" })
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok && typeof data.enabled === "boolean") {
+          setReportsEnabled(data.enabled);
         }
       })
       .catch(() => {});
