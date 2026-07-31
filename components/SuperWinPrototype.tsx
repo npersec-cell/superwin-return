@@ -1307,9 +1307,9 @@ export default function SuperWinPrototype() {
 
     // Distinct colors for each rank
     const colors = ["#FF4D4D", "#4DA6FF", "#FFD93D", "#6BE585"];
-    const chartHeight = 80;
+    const chartHeight = 90;
     const chartWidth = 320;
-    const padding = { top: 18, right: 15, bottom: 22, left: 15 };
+    const padding = { top: 18, right: 15, bottom: 32, left: 15 };
     const innerWidth = chartWidth - padding.left - padding.right;
     const innerHeight = chartHeight - padding.top - padding.bottom;
 
@@ -1352,9 +1352,24 @@ export default function SuperWinPrototype() {
                   <text x={centerX} y={barY - 5} textAnchor="middle" fontSize="10" fontWeight="700" fill={color}>
                     {opt.pct.toFixed(1)}%
                   </text>
-                  <text x={centerX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill={color}>
-                    {opt.name.length > 14 ? opt.name.substring(0, 14) + "…" : opt.name}
-                  </text>
+                  {/* Option name: wrap at ~7 chars, show up to 2 lines */}
+                  {(() => {
+                    const n = opt.name;
+                    if (n.length <= 10) {
+                      return <text x={centerX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill={color}>{n}</text>;
+                    }
+                    const mid = Math.ceil(n.length / 2);
+                    let split = n.indexOf(" ", mid);
+                    if (split === -1 || split > mid + 4) split = mid;
+                    const line1 = n.substring(0, split);
+                    const line2 = n.substring(split).trim();
+                    return (
+                      <text x={centerX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill={color}>
+                        <tspan x={centerX} dy="0">{line1}</tspan>
+                        <tspan x={centerX} dy="10">{line2}</tspan>
+                      </text>
+                    );
+                  })()}
                 </g>
               );
             })}
@@ -1458,10 +1473,24 @@ export default function SuperWinPrototype() {
                     {currentPct.toFixed(1)}%
                   </text>
                   
-                  {/* Option name below chart — evenly distributed, colored to match the line */}
-                  <text x={nameCenterX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill={color}>
-                    {label.length > 14 ? label.substring(0, 14) + "…" : label}
-                  </text>
+                  {/* Option name below chart — wrap at ~7 chars, show up to 2 lines */}
+                  {(() => {
+                    const n = label;
+                    if (n.length <= 10) {
+                      return <text x={nameCenterX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill={color}>{n}</text>;
+                    }
+                    const mid = Math.ceil(n.length / 2);
+                    let split = n.indexOf(" ", mid);
+                    if (split === -1 || split > mid + 4) split = mid;
+                    const line1 = n.substring(0, split);
+                    const line2 = n.substring(split).trim();
+                    return (
+                      <text x={nameCenterX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill={color}>
+                        <tspan x={nameCenterX} dy="0">{line1}</tspan>
+                        <tspan x={nameCenterX} dy="10">{line2}</tspan>
+                      </text>
+                    );
+                  })()}
                 </g>
               );
             });
