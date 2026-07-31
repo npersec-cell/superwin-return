@@ -582,26 +582,19 @@ export default function SuperWinPrototype() {
     fetch(meUrl, { credentials: "include" })
       .then(res => res.json())
       .then(data => {
-        if (data.ok && data.user) {
+        if (data.ok && data.data) {
           if (hasUrlBypass) {
             setDevBypass(true);
           }
-          setDevUser(data.user);
-          setCoins(data.user.coinBalance ?? 500);
-          setProfit(data.user.lifetimeProfit ?? 0);
-          setCurrentUserId(data.user.id);
+          setDevUser(data.data);
+          setCoins(data.data.coinBalance ?? 500);
+          setProfit(data.data.lifetimeProfit ?? 0);
+          setCurrentUserId(data.data.id);
           setAccountStatus("synced");
-          setAccountRole(data.user.role || "user");
-        }
-      })
-      .catch(() => {});
-
-    // Load reports system enabled state on mount (with cache bust)
-    fetch("/api/reports?t=" + Date.now(), { cache: "no-store" })
-      .then(res => res.json())
-      .then(data => {
-        if (data.ok && typeof data.enabled === "boolean") {
-          setReportsEnabled(data.enabled);
+          setAccountRole(data.data.role || "user");
+          if (typeof data.data.reportsEnabled === "boolean") {
+            setReportsEnabled(data.data.reportsEnabled);
+          }
         }
       })
       .catch(() => {});

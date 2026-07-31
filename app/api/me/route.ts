@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 
+// Check if Reports system is enabled (from site_settings)
+async function isReportsEnabled(): Promise<boolean> {
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "reportsEnabled")
+      .maybeSingle();
+    // Default to true if not set
+    return data === null || data?.value === true;
+  } catch {
+    return true;
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const user = await requireUser(request);
@@ -16,6 +32,8 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error("Error fetching user shipping info:", error);
     }
+
+    const reportsEnabled = await isReportsEnabled();
 
     return NextResponse.json({
       ok: true,
@@ -35,6 +53,7 @@ export async function GET(request: NextRequest) {
         shippingAddress: userData?.shipping_address || null,
         shippingZipcode: userData?.shipping_zipcode || null,
         shippingPhone: userData?.shipping_phone || null,
+        reportsEnabled,
       },
     });
   } catch (error) {
