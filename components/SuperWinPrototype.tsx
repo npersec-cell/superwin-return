@@ -1,6 +1,7 @@
 "use client";
 
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
+import ReportChat from "@/components/ReportChat";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, memo } from "react";
 import { compact, getRankFromPosition, maskName, randomClaimAmount, formatCountdown } from "@/lib/utils";
@@ -21,6 +22,8 @@ type ChartData = {
   labels: Record<string, string>;
   series: Record<string, ChartSeriesPoint[]>;
   timestamps: string[];
+  opensAt: string | null;
+  closesAt: string | null;
 };
 
 type Question = {
@@ -525,6 +528,12 @@ export default function SuperWinPrototype() {
   // Chart data cache per question
   const [chartDataMap, setChartDataMap] = useState<Record<string, ChartData | null>>({});
   const [loadingCharts, setLoadingCharts] = useState<Set<string>>(new Set());
+
+  // Report chat / Messages
+  const [showMessages, setShowMessages] = useState(false);
+  const [userReports, setUserReports] = useState<any[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [selectedReportChat, setSelectedReportChat] = useState<string | null>(null);
 
   // Auto-refresh profile data while modal is open
   const profileRefreshRef = useRef<NodeJS.Timeout | null>(null);
@@ -1197,6 +1206,29 @@ export default function SuperWinPrototype() {
     }
   }
 
+  // ── Load user's reports for chat ──
+  async function loadUserReports() {
+    setMessagesLoading(true);
+    try {
+      const res = await fetch("/api/admin/reports");
+      const json = await res.json();
+      if (json.ok && Array.isArray(json.data)) {
+        // Filter: only show reports from this user (by email match)
+        const userEmail = clerkUser?.primaryEmailAddress?.emailAddress;
+        if (userEmail) {
+          const myReports = json.data.filter((r: any) => r.email === userEmail);
+          setUserReports(myReports);
+        } else {
+          setUserReports([]);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load reports:", e);
+    } finally {
+      setMessagesLoading(false);
+    }
+  }
+
   function selectedOption(question: Question) {
     return question.options.find((option) => option.name === selected[question.id]) || 
       question.options.reduce((max, o) => (o.returns || 0) > (max.returns || 0) ? o : max, question.options[0]);
@@ -1314,12 +1346,12 @@ export default function SuperWinPrototype() {
       );
     }
 
-    // ── Time-series mode: draw lines across time ──
-    const timestamps = chartData.timestamps;
-    const timeCount = timestamps.length;
+    // ── Time-series mode: draw lines across full question timeframe ──
+    const opensAt = chartData.opensAt ? new Date(chartData.opensAt).getTime() : Date.now() - 86400000;
+    const closesAt = chartData.closesAt ? new Date(chartData.closesAt).getTime() : Date.now() + 86400000;
+    const totalDuration = Math.max(1, closesAt - opensAt);
     
-    // Build series with current % as the LAST point (so graph always ends at real-time %)
-    // This fixes the "0%" issue — even if snapshots are empty/wrong, we show current pool %
+    // Build series with current % as the LAST point
     const currentPctMap = Object.fromEntries(top4.map(o => [o.id, o.pct]));
     
     return (
@@ -1340,16 +1372,21 @@ export default function SuperWinPrototype() {
             if (points.length === 0) return null;
             const color = colors[idx % colors.length];
             
-            // Use snapshot points, but append current % as final point
-            const allPoints = [...points, { t: 'now', pct: currentPctMap[opt.id] || 0, coins: 0 }];
-            const ptCount = allPoints.length;
+            // Map each snapshot to X position based on actual time
+            const mappedPoints = points.map(p => ({
+              x: padding.left + ((new Date(p.t).getTime() - opensAt) / totalDuration) * innerWidth,
+              y: padding.top + (1 - p.pct / 100) * innerHeight,
+              pct: p.pct,
+            }));
             
-            const pathD = allPoints.map((p, i) => {
-              const x = padding.left + (i / Math.max(1, ptCount - 1)) * innerWidth;
-              const y = padding.top + (1 - p.pct / 100) * innerHeight;
-              return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-            }).join(' ');
-            const areaD = `${pathD} L ${padding.left + innerWidth} ${padding.top + innerHeight} L ${padding.left} ${padding.top + innerHeight} Z`;
+            // Append current % at current time position
+            const nowRatio = Math.min(1, Math.max(0, (Date.now() - opensAt) / totalDuration));
+            const currentX = padding.left + nowRatio * innerWidth;
+            const currentPct = currentPctMap[opt.id] || 0;
+            mappedPoints.push({ x: currentX, y: padding.top + (1 - currentPct / 100) * innerHeight, pct: currentPct });
+            
+            const pathD = mappedPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+            const areaD = `${pathD} L ${currentX} ${padding.top + innerHeight} L ${padding.left} ${padding.top + innerHeight} Z`;
             return <path key={`area-${opt.id}`} d={areaD} fill={color} opacity="0.06" />;
           })}
 
@@ -1366,42 +1403,41 @@ export default function SuperWinPrototype() {
               const color = colors[idx % colors.length];
               const label = chartData.labels[opt.id] || opt.name;
               
-              // Use current % as the displayed value (always accurate)
               const currentPct = currentPctMap[opt.id] || 0;
               
-              // Position based on snapshot data or just current point
-              const hasHistory = points.length > 0;
-              const displayPoints = hasHistory 
-                ? [...points, { t: 'now', pct: currentPct, coins: 0 }]
-                : [{ t: 'now', pct: currentPct, coins: 0 }];
+              // Map snapshot points to X positions based on actual time
+              const nowRatio = Math.min(1, Math.max(0, (Date.now() - opensAt) / totalDuration));
+              const currentX = padding.left + nowRatio * innerWidth;
+              const currentY = padding.top + (1 - currentPct / 100) * innerHeight;
               
-              const ptCount = displayPoints.length;
-              const lastPt = displayPoints[displayPoints.length - 1];
-              const lastX = padding.left + ((ptCount - 1) / Math.max(1, ptCount - 1)) * innerWidth;
-              const lastY = padding.top + (1 - lastPt.pct / 100) * innerHeight;
-
+              const displayPoints = points.map(p => ({
+                x: padding.left + ((new Date(p.t).getTime() - opensAt) / totalDuration) * innerWidth,
+                y: padding.top + (1 - p.pct / 100) * innerHeight,
+              }));
+              
+              // Only draw line if we have history points
+              const hasHistory = displayPoints.length > 0;
+              
               // Clamp percentage label so it never overflows the right edge
               const maxLabelX = chartWidth - padding.right;
-              const pctLabelX = Math.min(lastX + 6, maxLabelX);
-              const pctLabelAnchor = lastX + 6 > maxLabelX ? "end" : "start";
+              const pctLabelX = Math.min(currentX + 6, maxLabelX);
+              const pctLabelAnchor = currentX + 6 > maxLabelX ? "end" : "start";
 
               // Name position: evenly distributed
               const nameCenterX = nameStartX + idx * (nameBarWidth + nameGap) + nameBarWidth / 2;
 
               return (
                 <g key={`line-${opt.id}`}>
-                  {/* Line */}
-                  <polyline points={displayPoints.map((p, i) => {
-                    const x = padding.left + (i / Math.max(1, ptCount - 1)) * innerWidth;
-                    const y = padding.top + (1 - p.pct / 100) * innerHeight;
-                    return `${x},${y}`;
-                  }).join(' ')} fill="none" stroke={color} strokeWidth="1.5" opacity="0.85" />
+                  {/* Line from first snapshot to current */}
+                  {hasHistory && (
+                    <polyline points={[...displayPoints, { x: currentX, y: currentY }].map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={color} strokeWidth="1.5" opacity="0.85" />
+                  )}
                   
-                  {/* Last point marker */}
-                  <circle cx={lastX} cy={lastY} r="3" fill={color} />
+                  {/* Current point marker */}
+                  <circle cx={currentX} cy={currentY} r="3" fill={color} />
                   
-                  {/* Percentage label at end of line — clamped to chart bounds */}
-                  <text x={pctLabelX} y={lastY - 4} fontSize="9" fontWeight="700" fill={color} textAnchor={pctLabelAnchor}>
+                  {/* Percentage label at current position — clamped to chart bounds */}
+                  <text x={pctLabelX} y={currentY - 4} fontSize="9" fontWeight="700" fill={color} textAnchor={pctLabelAnchor}>
                     {currentPct.toFixed(1)}%
                   </text>
                   
@@ -1670,6 +1706,26 @@ export default function SuperWinPrototype() {
                   </button>
                   <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                   <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory(); }}>History</button>
+                  <button className="button gold" onClick={() => { setShowMessages(true); loadUserReports(); }} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    💬 Messages
+                    {userReports.some((r) => (r.unread_count || 0) > 0) && (
+                      <span style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minWidth: "16px",
+                        height: "16px",
+                        borderRadius: "8px",
+                        background: "var(--red)",
+                        color: "#fff",
+                        fontSize: "9px",
+                        fontWeight: "700",
+                        padding: "0 4px",
+                      }}>
+                        ●
+                      </span>
+                    )}
+                  </button>
                   {accountRole === "admin" && <Link className="button gold" href="/admin">Admin</Link>}
                 </span>
 
@@ -2376,6 +2432,97 @@ export default function SuperWinPrototype() {
         </section>
       )}
       {openModal === "history" && <HistoryModal history={history} running={running} historyLoading={historyLoading} historyPage={historyPage} historyPageSize={historyPageSize} setHistoryPage={(page) => { setHistoryPage(page); }} onClose={() => setOpenModal(null)} />}
+
+      {/* Messages Modal — list of user's reports with chat */}
+      {showMessages && (
+        <div style={{
+          position: "fixed",
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.7)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 10000,
+          padding: "16px",
+        }} onClick={() => setShowMessages(false)}>
+          <div style={{
+            background: "var(--bg)",
+            borderRadius: "12px",
+            padding: "16px",
+            width: "100%",
+            maxWidth: "480px",
+            maxHeight: "90vh",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "12px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid var(--hairline)",
+            }}>
+              <span style={{ fontSize: "14px" }}>💬</span>
+              <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text)", flex: 1 }}>ข้อความจาก Admin</span>
+              <button onClick={() => setShowMessages(false)} style={{
+                background: "transparent", border: "none", cursor: "pointer",
+                fontSize: "16px", color: "var(--muted)", padding: "0 4px", lineHeight: 1,
+              }}>✕</button>
+            </div>
+
+            {/* Content */}
+            <div style={{ flex: 1, overflowY: "auto", minHeight: "200px", maxHeight: "50vh" }}>
+              {messagesLoading ? (
+                <div style={{ textAlign: "center", padding: "20px", color: "var(--muted)", fontSize: "11px" }}>กำลังโหลด...</div>
+              ) : userReports.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "20px", color: "var(--muted)", fontSize: "11px" }}>ยังไม่มีข้อความ<br/>แจ้งปัญหาผ่านเมนู Report เพื่อเริ่มต้นบทสนทนา</div>
+              ) : selectedReportChat ? (
+                <ReportChat reportId={selectedReportChat} isAdmin={false} onClose={() => setSelectedReportChat(null)} />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {userReports.map((r) => (
+                    <div key={r.id} onClick={() => setSelectedReportChat(r.id)} style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "10px 12px",
+                      borderRadius: "8px",
+                      background: "rgba(255,255,255,0.02)",
+                      border: "1px solid var(--hairline)",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
+                      <span style={{ fontSize: "16px" }}>{r.status === "resolved" ? "✅" : "⏳"}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: "11px", fontWeight: "700", color: "var(--text)", marginBottom: "2px" }}>
+                          {r.message?.substring(0, 40) || "Report"}{r.message && r.message.length > 40 ? "…" : ""}
+                        </div>
+                        <div style={{ fontSize: "9px", color: "var(--muted)" }}>
+                          {new Date(r.created_at).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" })}
+                        </div>
+                      </div>
+                      {(r.unread_count || 0) > 0 && (
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                          minWidth: "18px", height: "18px", borderRadius: "9px",
+                          background: "var(--red)", color: "#fff", fontSize: "9px", fontWeight: "700", padding: "0 5px",
+                        }}>
+                          {r.unread_count}
+                        </span>
+                      )}
+                      <span style={{ fontSize: "12px", color: "var(--muted)" }}>›</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {selectedProfile && (
         <ProfileModal profile={selectedProfile} onClose={closeProfile} />
       )}

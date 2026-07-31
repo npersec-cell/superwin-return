@@ -11,21 +11,26 @@ export async function GET(
     const { id: predictionId } = await params;
     const supabase = createSupabaseAdminClient();
 
-    // Fetch snapshots grouped by time buckets
-    // For questions < 24h old: bucket by minute
-    // For questions > 24h old: bucket by hour
+    // Fetch prediction time range
+    const { data: prediction } = await supabase
+      .from("predictions")
+      .select("opens_at, closes_at")
+      .eq("id", predictionId)
+      .single();
+
+    // Fetch snapshots
     const { data: snapshots, error } = await supabase
       .from("prediction_snapshots")
       .select("option_id, coins_on_option, percentage, total_pool, created_at")
       .eq("prediction_id", predictionId)
       .order("created_at", { ascending: true })
-      .limit(500); // Max 500 data points
+      .limit(500);
 
     if (error) {
       throw new Error(error.message || "Failed to load chart data");
     }
 
-    // Group by time and option
+    // Group by option
     const byOption: Record<string, Array<{ t: string; pct: number; coins: number }>> = {};
     const timestamps = new Set<string>();
     
@@ -58,6 +63,8 @@ export async function GET(
         ),
         series: byOption,
         timestamps: Array.from(timestamps).sort(),
+        opensAt: prediction?.opens_at || null,
+        closesAt: prediction?.closes_at || null,
       },
     });
   } catch (error) {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import ReportChat from "@/components/ReportChat";
 
 type AdminPrediction = {
   id: string;
@@ -285,6 +286,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [userPage, setUserPage] = useState(1);
   const [reports, setReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
+  const [chatReportId, setChatReportId] = useState<string | null>(null);
   const [contests, setContests] = useState<any[]>([]);
   const [contestsLoading, setContestsLoading] = useState(false);
   const [showNewContestForm, setShowNewContestForm] = useState(false);
@@ -3660,6 +3662,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>Email</th>
                           <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>message</th>
                           <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>Status</th>
+                          <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>Unread</th>
                           <th style={{ padding: "6px 8px", whiteSpace: "nowrap" }}>Date</th>
                           <th style={{ padding: "6px 8px", textAlign: "center", whiteSpace: "nowrap" }}>Actions</th>
                         </tr>
@@ -3676,13 +3679,37 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                 <span style={{ color: "var(--green)", fontWeight: 700, fontSize: "10px" }}>✅ Completed</span>
                               )}
                             </td>
+                            <td style={{ padding: "8px", textAlign: "center" }}>
+                              {(r.unread_count || 0) > 0 ? (
+                                <span style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  minWidth: "20px",
+                                  height: "20px",
+                                  borderRadius: "10px",
+                                  background: "var(--red)",
+                                  color: "#fff",
+                                  fontSize: "10px",
+                                  fontWeight: "700",
+                                  padding: "0 6px",
+                                }}>
+                                  {r.unread_count}
+                                </span>
+                              ) : (
+                                <span style={{ color: "var(--muted)", fontSize: "10px" }}>—</span>
+                              )}
+                            </td>
                             <td style={{ padding: "8px", color: "var(--muted)", fontSize: "10px", whiteSpace: "nowrap" }}>
                               {r.created_at ? new Date(r.created_at).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" }) : "-"}
                             </td>
                             <td style={{ padding: "8px", textAlign: "center", whiteSpace: "nowrap" }}>
+                              <button className="button" style={{ height: "22px", fontSize: "10px", padding: "0 8px", background: "var(--info)", borderColor: "var(--info)", color: "#fff" }} onClick={() => setChatReportId(r.id)}>
+                                💬 Chat
+                              </button>
                               {r.status === "pending" && (
-                                <button className="button gold" style={{ height: "22px", fontSize: "10px", padding: "0 8px" }} onClick={() => handleUpdateReport(r.id, "resolved")}>
-                                  Mark as Resolved
+                                <button className="button gold" style={{ height: "22px", fontSize: "10px", padding: "0 8px", marginLeft: "4px" }} onClick={() => handleUpdateReport(r.id, "resolved")}>
+                                  Resolved
                                 </button>
                               )}
                               <button className="button" style={{ height: "22px", fontSize: "10px", padding: "0 8px", marginLeft: "4px", color: "#ff4d4f", borderColor: "#ff4d4f", background: "transparent" }} onClick={() => handleUpdateReport(r.id, r.status, true)}>
@@ -3702,6 +3729,37 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 )}
               </section>
             </section>
+          )}
+
+          {/* Report Chat Modal */}
+          {chatReportId && (
+            <div style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0,0,0,0.7)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10000,
+              padding: "16px",
+            }} onClick={() => setChatReportId(null)}>
+              <div style={{
+                background: "var(--bg)",
+                borderRadius: "12px",
+                padding: "16px",
+                width: "100%",
+                maxWidth: "420px",
+                maxHeight: "90vh",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+              }} onClick={(e) => e.stopPropagation()}>
+                <ReportChat reportId={chatReportId} isAdmin onClose={() => setChatReportId(null)} />
+              </div>
+            </div>
           )}
 
         </section>
