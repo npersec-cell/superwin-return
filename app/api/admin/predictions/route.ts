@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
     const emailMap = new Map<string, string>();
     for (const entry of entryCounts || []) {
       countMap.set(entry.prediction_id, (countMap.get(entry.prediction_id) || 0) + 1);
-      const userEmail = entry.users?.email || null;
+      const userEmail = (entry.users as { email: string } | null)?.email || null;
       if (userEmail && !emailMap.has(entry.prediction_id)) {
         emailMap.set(entry.prediction_id, userEmail);
       }
