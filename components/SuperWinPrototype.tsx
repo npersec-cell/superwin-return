@@ -2478,7 +2478,7 @@ export default function SuperWinPrototype() {
               {messagesLoading ? (
                 <div style={{ textAlign: "center", padding: "20px", color: "var(--muted)", fontSize: "11px" }}>กำลังโหลด...</div>
               ) : userReports.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "20px", color: "var(--muted)", fontSize: "11px" }}>ยังไม่มีข้อความ<br/>แจ้งปัญหาผ่านเมนู Report เพื่อเริ่มต้นบทสนทนา</div>
+                <div style={{ textAlign: "center", padding: "20px", color: "var(--muted)", fontSize: "11px" }}>ยั งไม่มี่ข้อความจาก Admin<br/>แจ้งปัญหาผ่านเมนู Report เพื่อเริ่มต้นบทสนทนา</div>
               ) : selectedReportChat ? (
                 <ReportChat reportId={selectedReportChat} isAdmin={false} onClose={() => setSelectedReportChat(null)} />
               ) : (
