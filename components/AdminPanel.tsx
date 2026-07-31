@@ -657,13 +657,18 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   }
 
   // ── Load all user emails for autocomplete ──
-  useEffect(() => {
-    const emails = new Set<string>();
-    allPredictions.forEach((p) => {
-      if (p.userEmail) emails.add(p.userEmail);
-    });
-    setUserEmails(Array.from(emails).sort());
-  }, [allPredictions]);
+  // Load user emails for autocomplete — fetch directly from users table
+  async function loadUserEmails() {
+    if (userEmails.length > 0) return; // already loaded
+    try {
+      const data = await requestJson<string[]>("/api/admin/user-emails");
+      if (data && Array.isArray(data)) {
+        setUserEmails(data);
+      }
+    } catch (e) {
+      console.warn("Failed to load user emails:", e);
+    }
+  }
 
   async function loadChatmessages() {
     setChatLoading(true);
@@ -697,6 +702,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   useEffect(() => {
     reloadAll().catch((error) => setmessage(error.message));
+    loadUserEmails().catch(console.warn);
   }, []);
 
   async function loadYoutubeEmbed() {
@@ -3541,7 +3547,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                 <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <h3>Reports ({reports.length} items)</h3>
                   <div style={{ display: "flex", gap: "6px" }}>
-                    <button className="button" onClick={() => setShowStartChat(true)} style={{ height: "26px", fontSize: "11px", padding: "0 10px", background: "var(--info)", borderColor: "var(--info)", color: "#fff" }}>
+                    <button className="button" onClick={() => { setShowStartChat(true); loadUserEmails(); }} style={{ height: "26px", fontSize: "11px", padding: "0 10px", background: "var(--info)", borderColor: "var(--info)", color: "#fff" }}>
                       💬 New Chat
                     </button>
                     <button className="button gold" onClick={loadReports} disabled={reportsLoading} style={{ height: "26px", fontSize: "11px", padding: "0 10px" }}>
