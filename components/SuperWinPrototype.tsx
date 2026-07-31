@@ -595,6 +595,16 @@ export default function SuperWinPrototype() {
         }
       })
       .catch(() => {});
+
+    // Load reports system enabled state on mount
+    fetch("/api/reports")
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok && typeof data.enabled === "boolean") {
+          setReportsEnabled(data.enabled);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const loadCaptcha = async () => {
