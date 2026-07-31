@@ -1317,75 +1317,17 @@ export default function SuperWinPrototype() {
     // ── Still loading: render NOTHING (no flash of bars) ──
     if (chartData === undefined) return null;
 
-    // ── No chart data available: show current % as bar chart ──
-    if (!chartData || chartData.timestamps.length === 0) {
-      const activeOptions = top4.length;
-      const barWidth = activeOptions <= 2 ? 60 : activeOptions === 3 ? 40 : 30;
-      const gap = activeOptions <= 2 ? 16 : activeOptions === 3 ? 10 : 6;
-      const totalBarWidth = activeOptions * barWidth + (activeOptions - 1) * gap;
-      const startX = (chartWidth - totalBarWidth) / 2;
-
-      return (
-        <div style={{ margin: "8px 0 4px 0" }}>
-          <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: "100%", height: "auto", maxHeight: `${chartHeight}px`, display: "block" }}>
-            <rect x="0" y="0" width={chartWidth} height={chartHeight} fill="transparent" />
-            
-            {/* Y-axis reference lines */}
-            {[0, 50, 100].map(pct => {
-              const y = padding.top + (1 - pct / 100) * innerHeight;
-              return (
-                <line key={`ref-${pct}`} x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} 
-                  stroke="var(--hairline, #333)" strokeWidth="0.5" opacity="0.08" strokeDasharray="2,3" />
-              );
-            })}
-
-            {/* Bars for current percentages */}
-            {top4.map((opt, idx) => {
-              const barX = startX + idx * (barWidth + gap);
-              const barHeight = Math.max(2, (opt.pct / 100) * innerHeight);
-              const barY = padding.top + innerHeight - barHeight;
-              const color = colors[idx % colors.length];
-              const centerX = barX + barWidth / 2;
-              
-              return (
-                <g key={`bar-${opt.id}`}>
-                  <rect x={barX} y={barY} width={barWidth} height={barHeight} fill={color} opacity="0.65" rx="3" />
-                  <text x={centerX} y={barY - 5} textAnchor="middle" fontSize="10" fontWeight="700" fill={color}>
-                    {opt.pct.toFixed(1)}%
-                  </text>
-                  {/* Option name: wrap at ~7 chars, show up to 2 lines */}
-                  {(() => {
-                    const n = opt.name;
-                    if (n.length <= 10) {
-                      return <text x={centerX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill={color}>{n}</text>;
-                    }
-                    const mid = Math.ceil(n.length / 2);
-                    let split = n.indexOf(" ", mid);
-                    if (split === -1 || split > mid + 4) split = mid;
-                    const line1 = n.substring(0, split);
-                    const line2 = n.substring(split).trim();
-                    return (
-                      <text x={centerX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill={color}>
-                        <tspan x={centerX} dy="0">{line1}</tspan>
-                        <tspan x={centerX} dy="10">{line2}</tspan>
-                      </text>
-                    );
-                  })()}
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-      );
-    }
-
-    // ── Time-series mode: draw lines across full question timeframe ──
-    const opensAt = chartData.opensAt ? new Date(chartData.opensAt).getTime() : Date.now() - 86400000;
-    const closesAt = chartData.closesAt ? new Date(chartData.closesAt).getTime() : Date.now() + 86400000;
+    // ── Polymarket-style timeline: always show full timeframe from opensAt to closesAt ──
+    const opensAt = chartData?.opensAt ? new Date(chartData.opensAt).getTime() : Date.now() - 86400000;
+    const closesAt = chartData?.closesAt ? new Date(chartData.closesAt).getTime() : Date.now() + 86400000;
     const totalDuration = Math.max(1, closesAt - opensAt);
     
     // Build series with current % as the LAST point
     const currentPctMap = Object.fromEntries(top4.map(o => [o.id, o.pct]));
+    
+    // Current time position on the timeline
+    const nowRatio = Math.min(1, Math.max(0, (Date.now() - opensAt) / totalDuration));
+    const currentX = padding.left + nowRatio * innerWidth;
     
     return (
       <div style={{ margin: "8px 0 4px 0" }}>
@@ -1399,10 +1341,27 @@ export default function SuperWinPrototype() {
             );
           })}
 
+          {/* X-axis timeline: mark opensAt (left) and closesAt (right) */}
+          <line x1={padding.left} y1={padding.top + innerHeight} x2={chartWidth - padding.right} y2={padding.top + innerHeight}
+            stroke="var(--hairline, #333)" strokeWidth="0.5" opacity="0.15" />
+          
+          {/* Timeline labels */}
+          <text x={padding.left} y={padding.top + innerHeight + 12} fontSize="7" fill="var(--muted, #888)" textAnchor="start">
+            {chartData?.opensAt ? new Date(chartData.opensAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "Start"}
+          </text>
+          <text x={chartWidth - padding.right} y={padding.top + innerHeight + 12} fontSize="7" fill="var(--muted, #888)" textAnchor="end">
+            {chartData?.closesAt ? new Date(chartData.closesAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "End"}
+          </text>
+
+          {/* Current time marker (vertical dashed line) */}
+          {nowRatio > 0 && nowRatio < 1 && (
+            <line x1={currentX} y1={padding.top} x2={currentX} y2={padding.top + innerHeight}
+              stroke="var(--muted, #888)" strokeWidth="0.5" opacity="0.15" strokeDasharray="3,3" />
+          )}
+
           {/* Draw area-fill under each line (from back to front) */}
           {top4.map((opt, idx) => {
-            const points = chartData.series[opt.id] || [];
-            if (points.length === 0) return null;
+            const points = chartData?.series[opt.id] || [];
             const color = colors[idx % colors.length];
             
             // Map each snapshot to X position based on actual time
@@ -1413,10 +1372,13 @@ export default function SuperWinPrototype() {
             }));
             
             // Append current % at current time position
-            const nowRatio = Math.min(1, Math.max(0, (Date.now() - opensAt) / totalDuration));
-            const currentX = padding.left + nowRatio * innerWidth;
             const currentPct = currentPctMap[opt.id] || 0;
             mappedPoints.push({ x: currentX, y: padding.top + (1 - currentPct / 100) * innerHeight, pct: currentPct });
+            
+            // If no history points, start from opensAt with current value
+            if (points.length === 0) {
+              mappedPoints.unshift({ x: padding.left, y: padding.top + (1 - currentPct / 100) * innerHeight, pct: currentPct });
+            }
             
             const pathD = mappedPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
             const areaD = `${pathD} L ${currentX} ${padding.top + innerHeight} L ${padding.left} ${padding.top + innerHeight} Z`;
@@ -1432,24 +1394,23 @@ export default function SuperWinPrototype() {
             const nameStartX = (chartWidth - nameTotalWidth) / 2;
 
             return top4.map((opt, idx) => {
-              const points = chartData.series[opt.id] || [];
+              const points = chartData?.series[opt.id] || [];
               const color = colors[idx % colors.length];
-              const label = chartData.labels[opt.id] || opt.name;
+              const label = chartData?.labels[opt.id] || opt.name;
               
               const currentPct = currentPctMap[opt.id] || 0;
-              
-              // Map snapshot points to X positions based on actual time
-              const nowRatio = Math.min(1, Math.max(0, (Date.now() - opensAt) / totalDuration));
-              const currentX = padding.left + nowRatio * innerWidth;
               const currentY = padding.top + (1 - currentPct / 100) * innerHeight;
               
+              // Map snapshot points to X positions based on actual time
               const displayPoints = points.map(p => ({
                 x: padding.left + ((new Date(p.t).getTime() - opensAt) / totalDuration) * innerWidth,
                 y: padding.top + (1 - p.pct / 100) * innerHeight,
               }));
               
-              // Only draw line if we have history points
-              const hasHistory = displayPoints.length > 0;
+              // If no history, create a line from opensAt to current position
+              const allLinePoints = displayPoints.length > 0 
+                ? [...displayPoints, { x: currentX, y: currentY }]
+                : [{ x: padding.left, y: currentY }, { x: currentX, y: currentY }];
               
               // Clamp percentage label so it never overflows the right edge
               const maxLabelX = chartWidth - padding.right;
@@ -1461,10 +1422,8 @@ export default function SuperWinPrototype() {
 
               return (
                 <g key={`line-${opt.id}`}>
-                  {/* Line from first snapshot to current */}
-                  {hasHistory && (
-                    <polyline points={[...displayPoints, { x: currentX, y: currentY }].map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={color} strokeWidth="1.5" opacity="0.85" />
-                  )}
+                  {/* Line from opensAt (or first snapshot) to current position */}
+                  <polyline points={allLinePoints.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={color} strokeWidth="1.5" opacity="0.85" />
                   
                   {/* Current point marker */}
                   <circle cx={currentX} cy={currentY} r="3" fill={color} />
