@@ -596,8 +596,8 @@ export default function SuperWinPrototype() {
       })
       .catch(() => {});
 
-    // Load reports system enabled state on mount
-    fetch("/api/reports")
+    // Load reports system enabled state on mount (with cache bust)
+    fetch("/api/reports?t=" + Date.now(), { cache: "no-store" })
       .then(res => res.json())
       .then(data => {
         if (data.ok && typeof data.enabled === "boolean") {
