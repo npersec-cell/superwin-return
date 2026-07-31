@@ -152,6 +152,7 @@ type SiteSettings = {
   savedQuestions: string[];
   predictionOrder?: string[];
   announcement?: string;
+  announcementEnabled?: boolean;
 };
 
 type UserProfileStats = {
@@ -1724,7 +1725,7 @@ export default function SuperWinPrototype() {
     <main className="page" suppressHydrationWarning>
       <div className="app" suppressHydrationWarning>
         {/* ── Announcement Banner (slide-down, dismissible) ── */}
-        {settingsLoaded && settings.announcement && settings.announcement.trim() !== "" && showAnnouncement && (
+        {settingsLoaded && settings.announcementEnabled !== false && settings.announcement && settings.announcement.trim() !== "" && showAnnouncement && (
           <div style={{
             position: "relative",
             background: "linear-gradient(135deg, rgba(255,191,0,0.12) 0%, rgba(255,140,0,0.08) 100%)",

@@ -72,6 +72,7 @@ type SiteSettings = {
   savedRounds: string[];
   predictionOrder?: string[];
   announcement?: string;
+  announcementEnabled?: boolean;
 };
 
 type ApiResponse<T> = {
@@ -129,7 +130,8 @@ const defaultSettings: SiteSettings = {
     "รอบกอนรองชนะเลิศ",
     "รอบชิงชนะเลิศ"
   ],
-  announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the All time Top 10!"
+  announcement: "Welcome to SUPERWIN HUB! Claim your free coins every hour and predict live matches to reach the All time Top 10!",
+  announcementEnabled: true
 };
 
 function isRunningNow(item: AdminPrediction) {
@@ -2762,14 +2764,27 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
               {/* ── Website Announcement Banner ── */}
               <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
-                  <h2>📢 Website Announcement</h2>
+                <div style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
+                  {/* Toggle and title moved inside body */}
                 </div>
                 <div style={{ padding: "12px 0 0 0", display: "grid", gap: "10px" }}>
+                  {/* Toggle: Enable / Disable announcement */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text)" }}>📢 Website Announcement</span>
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "11px", color: settings.announcementEnabled !== false ? "var(--accent, #FFD700)" : "var(--muted)" }}>
+                      <input
+                        type="checkbox"
+                        checked={settings.announcementEnabled !== false}
+                        onChange={(e) => setSettings({ ...settings, announcementEnabled: e.target.checked })}
+                        style={{ accentColor: "var(--accent, #FFD700)", width: "16px", height: "16px", cursor: "pointer" }}
+                      />
+                      {settings.announcementEnabled !== false ? "Visible" : "Hidden"}
+                    </label>
+                  </div>
                   <textarea
                     value={settings.announcement || ""}
                     onChange={(e) => setSettings({ ...settings, announcement: e.target.value })}
-                    placeholder="Enter announcement text to display as a banner on the homepage. Leave empty to hide."
+                    placeholder="Enter announcement text to display as a banner on the homepage."
                     rows={4}
                     style={{
                       fontFamily: "inherit",
@@ -2781,26 +2796,36 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       padding: "10px 12px",
                       color: "var(--text)",
                       resize: "vertical",
+                      opacity: settings.announcementEnabled !== false ? 1 : 0.5,
+                      transition: "opacity 0.2s",
                     }}
                   />
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", flexWrap: "wrap" }}>
                     <span style={{ fontSize: "10px", color: "var(--muted)" }}>
-                      {settings.announcement?.length || 0} characters — displayed as a golden slide-down banner below the topbar
+                      {settings.announcement?.length || 0} characters — use the toggle above to show/hide
                     </span>
                     <button
                       type="button"
                       onClick={async () => {
                         try {
-                          const res = await fetch("/api/admin/settings", {
+                          // Save announcement text
+                          const res1 = await fetch("/api/admin/settings", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ key: "announcement", value: settings.announcement || "" }),
                           });
-                          const payload = await res.json();
-                          if (res.ok && payload.ok) {
-                            alert("Announcement saved!");
+                          // Save enabled/disabled state
+                          const res2 = await fetch("/api/admin/settings", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ key: "announcementEnabled", value: settings.announcementEnabled !== false }),
+                          });
+                          const payload1 = await res1.json();
+                          const payload2 = await res2.json();
+                          if (res1.ok && payload1.ok && res2.ok && payload2.ok) {
+                            alert("Announcement " + (settings.announcementEnabled !== false ? "visible!" : "hidden!"));
                           } else {
-                            alert("Save failed: " + (payload.error || res.status));
+                            alert("Save failed: " + ((payload1.error || payload2.error) || res1.status));
                           }
                         } catch (e: any) {
                           alert("Error: " + (e?.message || String(e)));
