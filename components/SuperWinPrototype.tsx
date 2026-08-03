@@ -2439,9 +2439,9 @@ export default function SuperWinPrototype() {
         <section className="modal" aria-label="Confirm high stakes bet" onClick={(event) => event.target === event.currentTarget && setConfirmHighBet(null)}>
           <div className="modal-card" style={{ maxWidth: 380, textAlign: "center", padding: "32px 24px", border: "2px solid var(--yellow)" }}>
             <div style={{ fontSize: 44, marginBottom: 8 }}>🔥</div>
-            <h3 style={{ fontSize: 20, fontWeight: 800, color: "var(--yellow)", marginBottom: 8 }}>High Stakes Bet!</h3>
+            <h3 style={{ fontSize: 20, fontWeight: 800, color: "var(--yellow)", marginBottom: 8 }}>High Stakes Prediction!</h3>
             <p style={{ fontSize: 14, color: "var(--text)", margin: "8px 0" }}>
-              You are about to bet <strong style={{ color: "var(--yellow)", fontSize: 18 }}>{confirmHighBet.amount.toLocaleString()}</strong> coins
+              You are about to predict with <strong style={{ color: "var(--yellow)", fontSize: 18 }}>{confirmHighBet.amount.toLocaleString()}</strong> coins
             </p>
             <p style={{ fontSize: 12, color: "var(--muted)", margin: "12px 0" }}>
               Are you sure? This cannot be undone.
@@ -2468,7 +2468,7 @@ export default function SuperWinPrototype() {
                   }, 50);
                 }}
               >
-                Confirm Bet 🔥
+                Confirm Prediction 🔥
               </button>
             </div>
           </div>
