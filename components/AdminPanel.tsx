@@ -1938,11 +1938,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   });
 
                   const totalTourCoins = sortedQuestions.reduce((sum, q) => sum + q.totalPoolCoins, 0);
-                  const totalSponsorPool = sortedQuestions.reduce((sum, q) => sum + (q.sponsorPool || 0), 0);
                   const totalTourPlayers = new Set(sortedQuestions.flatMap((q) => q.playerBets.map((b) => b.email))).size;
-                  const totalBets = sortedQuestions.reduce((sum, q) => sum + q.playerBets.length, 0);
-                  const openCount = sortedQuestions.filter((q) => q.status === "open").length;
-                  const resolvedCount = sortedQuestions.filter((q) => q.status === "resolved").length;
 
                   // Colors for charts and UI
                   const colors = {
@@ -1968,15 +1964,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     <div style={{ display: "grid", gap: "24px" }}>
 
                       {/* -- Summary Stat Cards -- */}
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
                         <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px", textAlign: "center" }}>
                           <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>Total Pool</div>
                           <strong style={{ fontSize: "26px", color: "#fff", fontWeight: 600, display: "block", letterSpacing: "-0.5px" }}>{totalTourCoins.toLocaleString()}</strong>
-                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>coins</span>
-                        </div>
-                        <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px", textAlign: "center" }}>
-                          <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>Sponsor Pool</div>
-                          <strong style={{ fontSize: "26px", color: "#fff", fontWeight: 600, display: "block", letterSpacing: "-0.5px" }}>{totalSponsorPool.toLocaleString()}</strong>
                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>coins</span>
                         </div>
                         <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px", textAlign: "center" }}>
@@ -1984,33 +1975,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           <strong style={{ fontSize: "26px", color: "#fff", fontWeight: 600, display: "block", letterSpacing: "-0.5px" }}>{totalTourPlayers}</strong>
                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>active</span>
                         </div>
-                        <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px", textAlign: "center" }}>
-                          <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>Questions</div>
-                          <strong style={{ fontSize: "26px", color: "#fff", fontWeight: 600, display: "block", letterSpacing: "-0.5px" }}>{tournamentQuestions.length}</strong>
-                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>total</span>
-                        </div>
-                        <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px", textAlign: "center" }}>
-                          <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>Total Bets</div>
-                          <strong style={{ fontSize: "26px", color: "#fff", fontWeight: 600, display: "block", letterSpacing: "-0.5px" }}>{totalBets}</strong>
-                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>placed</span>
-                        </div>
                       </div>
 
-                      {/* -- Status Overview -- */}
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
-                        <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
-                          <strong style={{ fontSize: "20px", color: "#fff", fontWeight: 600 }}>{openCount}</strong>
-                          <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>Open</div>
-                        </div>
-                        <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
-                          <strong style={{ fontSize: "20px", color: "#fff", fontWeight: 600 }}>{resolvedCount}</strong>
-                          <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>Resolved</div>
-                        </div>
-                        <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
-                          <strong style={{ fontSize: "20px", color: "#fff", fontWeight: 600 }}>{sortedQuestions.length > 0 ? Math.round(totalTourCoins / sortedQuestions.length).toLocaleString() : 0}</strong>
-                          <div className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>Avg per Question</div>
-                        </div>
-                      </div>
                       {/* ── Question Details ── */}
                       <div style={{ display: "grid", gap: "14px" }}>
                         <div style={{ fontSize: "13px", fontWeight: "700", color: "var(--text)", padding: "8px 4px", borderBottom: "1px solid var(--hairline)" }}>
