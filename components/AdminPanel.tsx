@@ -939,21 +939,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     setDraftOptions((current) => current.filter((_, itemIndex) => itemIndex !== index));
   }
 
-  function usePreviousOptions() {
-    const latest = [...predictions].sort((a, b) => {
-      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return timeB - timeA;
-    })[0];
-    if (!latest || !latest.options.length) {
-      setmessage("No previous question found");
-      return;
-    }
-    const labels = latest.options.sort((a, b) => a.sortOrder - b.sortOrder).map((o) => o.label);
-    setDraftOptions(labels);
-    setmessage(`Loaded options from previous question: ${latest.question}`);
-  }
-
   // ── Option Set management ───────────────────────
   function persistOptionSets(sets: OptionSet[]) {
     setSavedOptionSets(sets);
@@ -2293,14 +2278,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     <label className="pill" style={{ display: "grid", gridTemplateColumns: "auto 1fr", height: "34px", padding: "0 10px" }}>Close <input type="datetime-local" value={closesAt} onChange={(event) => setClosesAt(event.target.value)} style={{ border: 0, padding: 0, height: "100%", background: "transparent", color: "var(--text)" }} /></label>
                   </div>
                 </div>
-                <div className="filter-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", margin: "4px 0" }}>
+                <div className="filter-row" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px", margin: "4px 0" }}>
                   <div style={{ display: "grid", gap: "4px" }}>
                     <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Fee Rate</span>
                     <input value={feeRate} onChange={(event) => setFeeRate(event.target.value)} placeholder="e.g., 0.03" style={{ height: "34px" }} />
-                  </div>
-                  <div style={{ display: "grid", gap: "4px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Status (Initial Status)</span>
-                    <span className="pill gold" style={{ height: "34px", justifyContent: "center" }}>Create & Open Immediately</span>
                   </div>
                 </div>
 
@@ -2308,9 +2289,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
                     <strong>Answer Options</strong>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <button type="button" onClick={usePreviousOptions} style={{ fontSize: "10px", color: "var(--green)", background: "transparent", border: "0", cursor: "pointer", textDecoration: "underline" }}>
-                        Use options from previous question
-                      </button>
                       <button type="button" onClick={() => setShowBulkOptions(!showBulkOptions)} style={{ fontSize: "10px", color: "var(--yellow)", background: "transparent", border: "0", cursor: "pointer", textDecoration: "underline" }}>
                         {showBulkOptions ? "Paste multiple at once" : "Enter multiple options (one per line)"}
                       </button>
