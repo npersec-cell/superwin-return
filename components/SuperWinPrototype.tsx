@@ -1762,8 +1762,8 @@ export default function SuperWinPrototype() {
                   <button className="button gold" onClick={() => setOpenModal("running")}>Running {running.length}</button>
                   <button className="button gold" onClick={() => { setOpenModal("history"); loadHistory(); }}>History</button>
                   {reportsEnabled && (
-                    <button className="button gold" onClick={() => { setShowMessages(true); loadUserReports(); }} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                      💬 Messages
+                    <button className="button gold" onClick={() => { setShowMessages(true); loadUserReports(); }}>
+                      Inbox
                       {userReports.some((r) => (r.unread_count || 0) > 0) && (
                       <span style={{
                         display: "inline-flex",
@@ -2523,8 +2523,7 @@ export default function SuperWinPrototype() {
               paddingBottom: "8px",
               borderBottom: "1px solid var(--hairline)",
             }}>
-              <span style={{ fontSize: "14px" }}>💬</span>
-              <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text)", flex: 1 }}>ข้อความจาก Admin</span>
+              <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text)", flex: 1 }}>Inbox</span>
               <button onClick={() => setShowMessages(false)} style={{
                 background: "transparent", border: "none", cursor: "pointer",
                 fontSize: "16px", color: "var(--muted)", padding: "0 4px", lineHeight: 1,
