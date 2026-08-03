@@ -1940,6 +1940,16 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   const totalTourCoins = sortedQuestions.reduce((sum, q) => sum + q.totalPoolCoins, 0);
                   const totalTourPlayers = new Set(sortedQuestions.flatMap((q) => q.playerBets.map((b) => b.email))).size;
 
+                  // Compare vs all other tournaments combined
+                  const otherQuestions = dashboardData.filter((d) => d.tournamentName !== selectedDashboardTournament);
+                  const otherTotalCoins = otherQuestions.reduce((sum, q) => sum + q.totalPoolCoins, 0);
+                  const otherTotalPlayers = new Set(otherQuestions.flatMap((q) => q.playerBets.map((b) => b.email))).size;
+                  const otherQuestionCount = otherQuestions.length;
+                  const avgCoinsPerQ = otherQuestionCount > 0 ? Math.round(otherTotalCoins / otherQuestionCount) : 0;
+                  const avgPlayersPerQ = otherQuestionCount > 0 ? Math.round(otherTotalPlayers / otherQuestionCount) : 0;
+                  const tourAvgCoinsPerQ = sortedQuestions.length > 0 ? Math.round(totalTourCoins / sortedQuestions.length) : 0;
+                  const tourAvgPlayersPerQ = sortedQuestions.length > 0 ? Math.round(totalTourPlayers / sortedQuestions.length) : 0;
+
                   // Colors for charts and UI
                   const colors = {
                     gold: "#FFD700",
@@ -1969,11 +1979,21 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>Total Pool</div>
                           <strong style={{ fontSize: "26px", color: "#fff", fontWeight: 600, display: "block", letterSpacing: "-0.5px" }}>{totalTourCoins.toLocaleString()}</strong>
                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>coins</span>
+                          {otherQuestionCount > 0 && sortedQuestions.length > 0 && (
+                            <div style={{ fontSize: "10px", color: tourAvgCoinsPerQ >= avgCoinsPerQ ? "var(--green)" : "var(--red)", marginTop: "4px" }}>
+                              Avg {tourAvgCoinsPerQ.toLocaleString()}/Q vs {avgCoinsPerQ.toLocaleString()} overall
+                            </div>
+                          )}
                         </div>
                         <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px", textAlign: "center" }}>
                           <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>Players</div>
                           <strong style={{ fontSize: "26px", color: "#fff", fontWeight: 600, display: "block", letterSpacing: "-0.5px" }}>{totalTourPlayers}</strong>
                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>active</span>
+                          {otherQuestionCount > 0 && sortedQuestions.length > 0 && (
+                            <div style={{ fontSize: "10px", color: tourAvgPlayersPerQ >= avgPlayersPerQ ? "var(--green)" : "var(--red)", marginTop: "4px" }}>
+                              Avg {tourAvgPlayersPerQ}/Q vs {avgPlayersPerQ} overall
+                            </div>
+                          )}
                         </div>
                       </div>
 
