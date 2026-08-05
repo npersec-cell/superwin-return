@@ -1386,13 +1386,20 @@ export default function SuperWinPrototype() {
             return <path key={`area-${opt.id}`} d={areaD} fill={color} opacity="0.06" />;
           })}
 
-          {/* Draw lines and points */}
+          {/* Draw lines, points and right-edge labels */}
           {(() => {
             const optCount = top4.length;
             const nameBarWidth = optCount <= 2 ? 60 : optCount === 3 ? 45 : 34;
             const nameGap = optCount <= 2 ? 16 : optCount === 3 ? 10 : 6;
             const nameTotalWidth = optCount * nameBarWidth + (optCount - 1) * nameGap;
             const nameStartX = (chartWidth - nameTotalWidth) / 2;
+
+            // Sort options by Y position at current time (top to bottom) to stack labels cleanly
+            const sortedByY = top4.map((opt, idx) => {
+              const currentPct = currentPctMap[opt.id] || 0;
+              const currentY = padding.top + (1 - currentPct / 100) * innerHeight;
+              return { opt, idx, currentPct, currentY };
+            }).sort((a, b) => a.currentY - b.currentY);
 
             return top4.map((opt, idx) => {
               const points = chartData?.series[opt.id] || [];
@@ -1412,14 +1419,15 @@ export default function SuperWinPrototype() {
               const allLinePoints = displayPoints.length > 0 
                 ? [...displayPoints, { x: currentX, y: currentY }]
                 : [{ x: padding.left, y: currentY }, { x: currentX, y: currentY }];
-              
-              // Clamp percentage label so it never overflows the right edge
-              const maxLabelX = chartWidth - padding.right;
-              const pctLabelX = Math.min(currentX + 6, maxLabelX);
-              const pctLabelAnchor = currentX + 6 > maxLabelX ? "end" : "start";
 
               // Name position: evenly distributed
               const nameCenterX = nameStartX + idx * (nameBarWidth + nameGap) + nameBarWidth / 2;
+
+              // Find this option's rank by Y position (for clean label stacking on right edge)
+              const yRank = sortedByY.findIndex(s => s.opt.id === opt.id);
+              const labelX = chartWidth - padding.right - 2;
+              // Stack labels vertically on the right edge with even spacing
+              const labelY = padding.top + (yRank + 1) * (innerHeight / (optCount + 1));
 
               return (
                 <g key={`line-${opt.id}`}>
@@ -1429,8 +1437,8 @@ export default function SuperWinPrototype() {
                   {/* Current point marker */}
                   <circle cx={currentX} cy={currentY} r="3" fill={color} />
                   
-                  {/* Percentage label at current position — clamped to chart bounds */}
-                  <text x={pctLabelX} y={currentY - 4} fontSize="9" fontWeight="700" fill={color} textAnchor={pctLabelAnchor}>
+                  {/* Percentage + label stacked on right edge — no overlap */}
+                  <text x={labelX} y={labelY - 3} fontSize="9" fontWeight="700" fill={color} textAnchor="end">
                     {currentPct.toFixed(1)}%
                   </text>
                   
