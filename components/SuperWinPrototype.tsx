@@ -733,6 +733,8 @@ export default function SuperWinPrototype() {
 
     const interval = setInterval(() => {
       loadOpenPredictions().catch(() => undefined);
+      // Refresh chart data for all visible questions to get latest snapshots
+      Object.keys(chartDataMap).forEach(qid => loadChartData(qid).catch(() => {}));
     }, 10000);
 
     const lbInterval = setInterval(() => {
@@ -1262,17 +1264,16 @@ export default function SuperWinPrototype() {
 
   // ── Fetch chart history for a question ──
   async function loadChartData(questionId: string) {
-    if (chartDataMap[questionId] !== undefined || loadingCharts.has(questionId)) return;
+    // Always re-fetch chart data to get latest snapshots (no caching)
+    if (loadingCharts.has(questionId)) return;
     
     setLoadingCharts(prev => new Set(prev).add(questionId));
     try {
-      const res = await fetch(`/api/predictions/chart/${questionId}`);
+      const res = await fetch(`/api/predictions/chart/${questionId}?t=${Date.now()}`, { cache: "no-store" });
       const json = await res.json();
-      console.log("[Chart] Fetched data for", questionId, ":", json.ok ? `timestamps=${json.data?.timestamps?.length}, options=${json.data?.optionIds?.length}` : json.error);
       if (json.ok && json.data) {
         setChartDataMap(prev => ({ ...prev, [questionId]: json.data }));
       } else {
-        // Mark as loaded (even if empty) to prevent re-fetching and showing loading state forever
         setChartDataMap(prev => ({ ...prev, [questionId]: null }));
       }
     } catch (e) { 
@@ -1627,8 +1628,8 @@ export default function SuperWinPrototype() {
         await loadOpenPredictions();
         // Refresh running predictions so the new entry appears immediately
         await loadRunningPredictions().catch(() => undefined);
-        // Clear cached chart data so it re-fetches with new data
-        setChartDataMap(prev => { const next = { ...prev }; delete next[question.id]; return next; });
+        // Immediately refresh chart data after placing prediction
+        await loadChartData(question.id).catch(() => {});
       } catch (error) {
         // ── ROLLBACK: Restore previous values if API fails ──
         setCoins(previousCoins);
