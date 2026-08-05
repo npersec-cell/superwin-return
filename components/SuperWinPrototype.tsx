@@ -1381,9 +1381,19 @@ export default function SuperWinPrototype() {
             {chartData?.closesAt ? new Date(chartData.closesAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "End"}
           </text>
 
-          {/* ── Draw each data line ── */}
+          {/* ── Draw each data line (step function: horizontal then vertical) ── */}
           {lineData.map(({ opt, color, currentPct, currentY, allPoints }) => {
-            const linePath = allPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+            // Build step path: from each point, go horizontal to next X, then vertical to next Y
+            let stepPath = '';
+            if (allPoints.length > 0) {
+              stepPath = `M ${allPoints[0].x} ${allPoints[0].y}`;
+              for (let i = 1; i < allPoints.length; i++) {
+                const prev = allPoints[i - 1];
+                const curr = allPoints[i];
+                // Horizontal to next X, then vertical to next Y (step pattern)
+                stepPath += ` L ${curr.x} ${prev.y} L ${curr.x} ${curr.y}`;
+              }
+            }
             
             // Right-edge label position (stacked by Y rank)
             const yRank = sortedByY.findIndex(s => s.opt.id === opt.id);
@@ -1392,8 +1402,8 @@ export default function SuperWinPrototype() {
 
             return (
               <g key={`line-${opt.id}`}>
-                {/* Data line — straight segments, no smoothing */}
-                <path d={linePath} fill="none" stroke={color} strokeWidth="1.5" opacity="0.9" />
+                {/* Data line — step function (horizontal then vertical segments) */}
+                <path d={stepPath} fill="none" stroke={color} strokeWidth="1.5" opacity="0.9" />
                 
                 {/* End-point marker — solid circle at rightmost position only */}
                 <circle cx={allPoints[allPoints.length - 1].x} cy={allPoints[allPoints.length - 1].y} r="2.5" fill={color} />
