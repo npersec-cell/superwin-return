@@ -1289,7 +1289,7 @@ export default function SuperWinPrototype() {
     }
   }
 
-  // ── Polymarket-style time-series probability chart (SVG line chart) ──
+  // ── Multi-line Time Series Chart (Dark Mode) ──
   function renderProbabilityChart(question: Question) {
     const chartData = chartDataMap[question.id];
     
@@ -1307,164 +1307,121 @@ export default function SuperWinPrototype() {
     
     if (top4.length === 0) return null;
 
-    // Distinct colors for each rank
+    // High-contrast distinct colors
     const colors = ["#FF4D4D", "#4DA6FF", "#FFD93D", "#6BE585"];
-    const chartHeight = 90;
+    
+    // Chart dimensions
+    const chartHeight = 100;
     const chartWidth = 320;
-    const padding = { top: 18, right: 15, bottom: 32, left: 15 };
+    const padding = { top: 22, right: 50, bottom: 28, left: 12 };
     const innerWidth = chartWidth - padding.left - padding.right;
     const innerHeight = chartHeight - padding.top - padding.bottom;
 
-    // ── Still loading: render NOTHING (no flash of bars) ──
+    // ── Still loading: render NOTHING ──
     if (chartData === undefined) return null;
 
-    // ── Polymarket-style timeline: always show full timeframe from opensAt to closesAt ──
+    // ── Timeline: full timeframe from opensAt to closesAt ──
     const opensAt = chartData?.opensAt ? new Date(chartData.opensAt).getTime() : Date.now() - 86400000;
     const closesAt = chartData?.closesAt ? new Date(chartData.closesAt).getTime() : Date.now() + 86400000;
     const totalDuration = Math.max(1, closesAt - opensAt);
     
-    // Build series with current % as the LAST point
     const currentPctMap = Object.fromEntries(top4.map(o => [o.id, o.pct]));
     
     // Current time position on the timeline
     const nowRatio = Math.min(1, Math.max(0, (Date.now() - opensAt) / totalDuration));
     const currentX = padding.left + nowRatio * innerWidth;
-    
+
+    // Pre-compute all line data
+    const lineData = top4.map((opt, idx) => {
+      const points = chartData?.series[opt.id] || [];
+      const color = colors[idx % colors.length];
+      const currentPct = currentPctMap[opt.id] || 0;
+      const currentY = padding.top + (1 - currentPct / 100) * innerHeight;
+      
+      // Map snapshot points to X/Y positions (linear interpolation, no smoothing)
+      const displayPoints = points.map(p => ({
+        x: padding.left + ((new Date(p.t).getTime() - opensAt) / totalDuration) * innerWidth,
+        y: padding.top + (1 - p.pct / 100) * innerHeight,
+      }));
+      
+      // Build complete line: from first snapshot (or opensAt) to current position
+      const allPoints = displayPoints.length > 0
+        ? [...displayPoints, { x: currentX, y: currentY }]
+        : [{ x: padding.left, y: currentY }, { x: currentX, y: currentY }];
+      
+      return { opt, idx, color, currentPct, currentY, allPoints };
+    });
+
+    // Sort by Y position for clean right-edge label stacking
+    const sortedByY = [...lineData].sort((a, b) => a.currentY - b.currentY);
+
     return (
       <div style={{ margin: "8px 0 4px 0" }}>
         <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: "100%", height: "auto", maxHeight: `${chartHeight}px`, display: "block" }}>
-          {/* Y-axis grid lines (0%, 50%, 100%) */}
-          {[0, 50, 100].map(pct => {
+          
+          {/* ── Y-axis: Horizontal grid lines at key percentage levels ── */}
+          {[0, 25, 50, 75, 100].map(pct => {
             const y = padding.top + (1 - pct / 100) * innerHeight;
             return (
-              <line key={`grid-${pct}`} x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} 
-                stroke="var(--hairline, #333)" strokeWidth="0.5" opacity="0.1" strokeDasharray="2,3" />
+              <line key={`grid-${pct}`} 
+                x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y}
+                stroke="var(--hairline, #333)" strokeWidth="0.5" opacity="0.08" strokeDasharray="3,4" />
             );
           })}
 
-          {/* X-axis timeline: mark opensAt (left) and closesAt (right) */}
+          {/* ── X-axis baseline ── */}
           <line x1={padding.left} y1={padding.top + innerHeight} x2={chartWidth - padding.right} y2={padding.top + innerHeight}
-            stroke="var(--hairline, #333)" strokeWidth="0.5" opacity="0.15" />
-          
-          {/* Timeline labels */}
-          <text x={padding.left} y={padding.top + innerHeight + 12} fontSize="7" fill="var(--muted, #888)" textAnchor="start">
+            stroke="var(--hairline, #333)" strokeWidth="0.5" opacity="0.12" />
+
+          {/* ── Timeline labels (Start / End) ── */}
+          <text x={padding.left} y={padding.top + innerHeight + 14} fontSize="7" fill="var(--muted, #888)" textAnchor="start">
             {chartData?.opensAt ? new Date(chartData.opensAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "Start"}
           </text>
-          <text x={chartWidth - padding.right} y={padding.top + innerHeight + 12} fontSize="7" fill="var(--muted, #888)" textAnchor="end">
+          <text x={chartWidth - padding.right} y={padding.top + innerHeight + 14} fontSize="7" fill="var(--muted, #888)" textAnchor="end">
             {chartData?.closesAt ? new Date(chartData.closesAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "End"}
           </text>
 
-          {/* Current time marker (vertical dashed line) */}
-          {nowRatio > 0 && nowRatio < 1 && (
-            <line x1={currentX} y1={padding.top} x2={currentX} y2={padding.top + innerHeight}
-              stroke="var(--muted, #888)" strokeWidth="0.5" opacity="0.15" strokeDasharray="3,3" />
-          )}
+          {/* ── Draw each data line ── */}
+          {lineData.map(({ opt, color, currentPct, currentY, allPoints }) => {
+            const linePath = allPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+            
+            // Right-edge label position (stacked by Y rank)
+            const yRank = sortedByY.findIndex(s => s.opt.id === opt.id);
+            const labelY = padding.top + (yRank + 1) * (innerHeight / (top4.length + 1));
+            const labelX = chartWidth - padding.right + 4;
 
-          {/* Draw area-fill under each line (from back to front) */}
-          {top4.map((opt, idx) => {
-            const points = chartData?.series[opt.id] || [];
-            const color = colors[idx % colors.length];
-            
-            // Map each snapshot to X position based on actual time
-            const mappedPoints = points.map(p => ({
-              x: padding.left + ((new Date(p.t).getTime() - opensAt) / totalDuration) * innerWidth,
-              y: padding.top + (1 - p.pct / 100) * innerHeight,
-              pct: p.pct,
-            }));
-            
-            // Append current % at current time position
-            const currentPct = currentPctMap[opt.id] || 0;
-            mappedPoints.push({ x: currentX, y: padding.top + (1 - currentPct / 100) * innerHeight, pct: currentPct });
-            
-            // If no history points, start from opensAt with current value
-            if (points.length === 0) {
-              mappedPoints.unshift({ x: padding.left, y: padding.top + (1 - currentPct / 100) * innerHeight, pct: currentPct });
-            }
-            
-            const pathD = mappedPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-            const areaD = `${pathD} L ${currentX} ${padding.top + innerHeight} L ${padding.left} ${padding.top + innerHeight} Z`;
-            return <path key={`area-${opt.id}`} d={areaD} fill={color} opacity="0.06" />;
+            return (
+              <g key={`line-${opt.id}`}>
+                {/* Data line — straight segments, no smoothing */}
+                <path d={linePath} fill="none" stroke={color} strokeWidth="1.5" opacity="0.9" />
+                
+                {/* End-point marker — solid circle at rightmost position only */}
+                <circle cx={allPoints[allPoints.length - 1].x} cy={allPoints[allPoints.length - 1].y} r="2.5" fill={color} />
+                
+                {/* Percentage label on right edge — stacked, no overlap */}
+                <text x={labelX} y={labelY} fontSize="8.5" fontWeight="700" fill={color} textAnchor="start">
+                  {currentPct.toFixed(1)}%
+                </text>
+              </g>
+            );
           })}
-
-          {/* Draw lines, points and right-edge labels */}
-          {(() => {
-            const optCount = top4.length;
-            const nameBarWidth = optCount <= 2 ? 60 : optCount === 3 ? 45 : 34;
-            const nameGap = optCount <= 2 ? 16 : optCount === 3 ? 10 : 6;
-            const nameTotalWidth = optCount * nameBarWidth + (optCount - 1) * nameGap;
-            const nameStartX = (chartWidth - nameTotalWidth) / 2;
-
-            // Sort options by Y position at current time (top to bottom) to stack labels cleanly
-            const sortedByY = top4.map((opt, idx) => {
-              const currentPct = currentPctMap[opt.id] || 0;
-              const currentY = padding.top + (1 - currentPct / 100) * innerHeight;
-              return { opt, idx, currentPct, currentY };
-            }).sort((a, b) => a.currentY - b.currentY);
-
-            return top4.map((opt, idx) => {
-              const points = chartData?.series[opt.id] || [];
-              const color = colors[idx % colors.length];
-              const label = chartData?.labels[opt.id] || opt.name;
-              
-              const currentPct = currentPctMap[opt.id] || 0;
-              const currentY = padding.top + (1 - currentPct / 100) * innerHeight;
-              
-              // Map snapshot points to X positions based on actual time
-              const displayPoints = points.map(p => ({
-                x: padding.left + ((new Date(p.t).getTime() - opensAt) / totalDuration) * innerWidth,
-                y: padding.top + (1 - p.pct / 100) * innerHeight,
-              }));
-              
-              // If no history, create a line from opensAt to current position
-              const allLinePoints = displayPoints.length > 0 
-                ? [...displayPoints, { x: currentX, y: currentY }]
-                : [{ x: padding.left, y: currentY }, { x: currentX, y: currentY }];
-
-              // Name position: evenly distributed
-              const nameCenterX = nameStartX + idx * (nameBarWidth + nameGap) + nameBarWidth / 2;
-
-              // Find this option's rank by Y position (for clean label stacking on right edge)
-              const yRank = sortedByY.findIndex(s => s.opt.id === opt.id);
-              const labelX = chartWidth - padding.right - 2;
-              // Stack labels vertically on the right edge with even spacing
-              const labelY = padding.top + (yRank + 1) * (innerHeight / (optCount + 1));
-
-              return (
-                <g key={`line-${opt.id}`}>
-                  {/* Line from opensAt (or first snapshot) to current position */}
-                  <polyline points={allLinePoints.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke={color} strokeWidth="1.5" opacity="0.85" />
-                  
-                  {/* Current point marker */}
-                  <circle cx={currentX} cy={currentY} r="3" fill={color} />
-                  
-                  {/* Percentage + label stacked on right edge — no overlap */}
-                  <text x={labelX} y={labelY - 3} fontSize="9" fontWeight="700" fill={color} textAnchor="end">
-                    {currentPct.toFixed(1)}%
-                  </text>
-                  
-                  {/* Option name below chart — wrap at ~7 chars, show up to 2 lines */}
-                  {(() => {
-                    const n = label;
-                    if (n.length <= 10) {
-                      return <text x={nameCenterX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill={color}>{n}</text>;
-                    }
-                    const mid = Math.ceil(n.length / 2);
-                    let split = n.indexOf(" ", mid);
-                    if (split === -1 || split > mid + 4) split = mid;
-                    const line1 = n.substring(0, split);
-                    const line2 = n.substring(split).trim();
-                    return (
-                      <text x={nameCenterX} y={padding.top + innerHeight + 12} textAnchor="middle" fontSize="8" fill={color}>
-                        <tspan x={nameCenterX} dy="0">{line1}</tspan>
-                        <tspan x={nameCenterX} dy="10">{line2}</tspan>
-                      </text>
-                    );
-                  })()}
-                </g>
-              );
-            });
-          })()}
         </svg>
+        
+        {/* ── Option names below chart ── */}
+        <div style={{ display: "flex", justifyContent: "center", gap: "16px", marginTop: "2px" }}>
+          {top4.map((opt, idx) => {
+            const color = colors[idx % colors.length];
+            const label = chartData?.labels[opt.id] || opt.name;
+            return (
+              <div key={`legend-${opt.id}`} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <span style={{ width: "10px", height: "2px", background: color, display: "inline-block" }} />
+                <span style={{ fontSize: "8px", color: color, maxWidth: "60px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {label.length > 12 ? label.substring(0, 12) + "…" : label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }
