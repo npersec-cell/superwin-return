@@ -26,6 +26,8 @@ export async function GET(
       .order("created_at", { ascending: true })
       .limit(500);
 
+    console.log(`[Chart] Prediction ${predictionId}: got ${snapshots?.length || 0} snapshots`);
+
     if (error) {
       throw new Error(error.message || "Failed to load chart data");
     }
