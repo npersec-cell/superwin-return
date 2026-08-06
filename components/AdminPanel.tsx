@@ -88,14 +88,21 @@ type OptionSet = {
   createdAt: string;
 };
 
-/** Convert Date to datetime-local string (bare, no timezone — for <input type="datetime-local">) */
+/** Convert Date to datetime-local string in Thai time (GMT+7) — for <input type="datetime-local"> */
 function toDateTimeLocal(value: Date) {
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, "0");
-  const day = String(value.getDate()).padStart(2, "0");
-  const hour = String(value.getHours()).padStart(2, "0");
-  const minute = String(value.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hour}:${minute}`;
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Bangkok"
+  });
+  const parts = fmt.formatToParts(value);
+  const p: Record<string, string> = {};
+  for (const part of parts) { if (part.type !== "literal") p[part.type] = part.value; }
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
 }
 
 function displayDate(value: string | null) {
