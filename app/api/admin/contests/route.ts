@@ -2,27 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/db";
 
-// Convert datetime-local input (YYYY-MM-DDTHH:mm) to ISO string
-// datetime-local is in user's browser timezone (GMT+7), we need to convert to UTC
+/** Convert datetime string to UTC ISO string for database storage. Always treats input as Thai time (GMT+7). */
 function toISO(datetimeLocal: string): string {
-  // datetime-local format: "YYYY-MM-DDTHH:mm"
-  // Parse the date components
-  const [datePart, timePart] = datetimeLocal.split("T");
-  const [year, month, day] = datePart.split("-");
-  const [hour, minute] = timePart.split(":");
-  
-  // Create a date assuming it's in GMT+7 timezone
-  // Subtract 7 hours to get UTC time
-  const date = new Date(
-    parseInt(year),
-    parseInt(month) - 1, // Month is 0-based
-    parseInt(day),
-    parseInt(hour) - 7,  // Subtract 7 hours for GMT+7
-    parseInt(minute),
-    0
-  );
-  
-  return date.toISOString();
+  if (!datetimeLocal) return "";
+  // If already has timezone info, parse directly
+  if (datetimeLocal.includes("Z") || datetimeLocal.includes("+")) {
+    return new Date(datetimeLocal).toISOString();
+  }
+  // Bare datetime (e.g. "2026-08-07T20:00:00") — always treat as Thai time
+  return new Date(datetimeLocal + "+07:00").toISOString();
 }
 
 export async function GET() {

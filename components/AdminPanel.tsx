@@ -88,10 +88,14 @@ type OptionSet = {
   createdAt: string;
 };
 
+/** Convert Date to datetime-local string (bare, no timezone — for <input type="datetime-local">) */
 function toDateTimeLocal(value: Date) {
-  const offset = value.getTimezoneOffset();
-  const local = new Date(value.getTime() - offset * 60000);
-  return local.toISOString().slice(0, 16);
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  const hour = String(value.getHours()).padStart(2, "0");
+  const minute = String(value.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hour}:${minute}`;
 }
 
 function displayDate(value: string | null) {
@@ -190,7 +194,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [allPredictions, setAllPredictions] = useState<AdminPrediction[]>([]);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
-  const [message, setmessage] = useState("");
+  const [message, setMessage] = useState("");
   const [tournamentName, setTournamentName] = useState("");
   const [question, setQuestion] = useState("");
   const [round, setRound] = useState("");
@@ -316,8 +320,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [newContestName, setNewContestName] = useState("");
   const [newContestDescription, setNewContestDescription] = useState("");
   const [newContestEndTime, setNewContestEndTime] = useState(() => {
-    const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    return d.toISOString().slice(0, 16);
+    return toDateTimeLocal(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
   });
   const [newContestPrize1, setNewContestPrize1] = useState("");
   const [newContestPrize2, setNewContestPrize2] = useState("");
@@ -337,7 +340,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({
           name: newContestName.trim(),
           description: newContestDescription.trim(),
-          end_time: newContestEndTime.replace(" ", "T") + ":00", // GMT+7
+          end_time: newContestEndTime.includes("+") ? newContestEndTime : (newContestEndTime.replace(" ", "T") + ":00"), // Always send as Thai time
           prize_1: newContestPrize1.trim(),
           prize_2: newContestPrize2.trim() || null,
           prize_3: newContestPrize3.trim() || null,
@@ -350,10 +353,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         setShowNewContestForm(false);
         setNewContestName("");
         setNewContestDescription("");
-        setNewContestEndTime(() => {
-          const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-          return d.toISOString().slice(0, 16);
-        });
+        setNewContestEndTime(toDateTimeLocal(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)));
         setNewContestPrize1("");
         setNewContestPrize2("");
         setNewContestPrize3("");
@@ -385,7 +385,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           id: editingContestId,
           name: newContestName.trim(),
           description: newContestDescription.trim(),
-          end_time: newContestEndTime.replace(" ", "T") + ":00", // GMT+7
+          end_time: newContestEndTime.includes("+") ? newContestEndTime : (newContestEndTime.replace(" ", "T") + ":00"), // Always send as Thai time
           prize_1: newContestPrize1.trim(),
           prize_2: newContestPrize2.trim() || null,
           prize_3: newContestPrize3.trim() || null,
@@ -399,10 +399,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         setEditingContestId(null);
         setNewContestName("");
         setNewContestDescription("");
-        setNewContestEndTime(() => {
-          const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-          return d.toISOString().slice(0, 16);
-        });
+        setNewContestEndTime(toDateTimeLocal(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)));
         setNewContestPrize1("");
         setNewContestPrize2("");
         setNewContestPrize3("");
@@ -422,7 +419,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   useEffect(() => {
     if (message) {
       const timer = setTimeout(() => {
-        setmessage("");
+        setMessage("");
       }, 4000);
       return () => clearTimeout(timer);
     }
@@ -731,7 +728,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   }
 
   useEffect(() => {
-    reloadAll().catch((error) => setmessage(error.message));
+    reloadAll().catch((error) => setMessage(error.message));
     loadUserEmails().catch(console.warn);
   }, []);
 
@@ -845,20 +842,18 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     return `<iframe width="720" height="405" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
   }
 
-  /** Convert datetime-local value (Thai time) to UTC ISO string for storage */
+  /** Convert datetime-local value (always Thai time) to UTC ISO string for storage */
   function thaiLocalToUTC(datetimeLocal: string): string {
     if (!datetimeLocal) return "";
-    // datetime-local gives "2026-07-30T20:00" without timezone
-    // Treat it as Thai time (UTC+7) and convert to UTC
-    const [datePart, timePart] = datetimeLocal.split("T");
-    if (!datePart || !timePart) return datetimeLocal;
-    const [year, month, day] = datePart.split("-").map(Number);
-    const [hour, minute] = timePart.split(":").map(Number);
-    const utcDate = new Date(Date.UTC(year, month - 1, day, hour - 7, minute));
-    return utcDate.toISOString();
+    // If already has timezone info, parse directly
+    if (datetimeLocal.includes("Z") || datetimeLocal.includes("+")) {
+      return new Date(datetimeLocal).toISOString();
+    }
+    // Bare datetime (e.g. "2026-07-30T20:00") — always treat as Thai time (GMT+7)
+    return new Date(datetimeLocal + "+07:00").toISOString();
   }
 
-  /** Convert UTC Date object to datetime-local format (Thai local time for input display) */
+  /** Parse datetime string (with or without timezone) to datetime-local format for input display */
   function toLocalDateTimeInput(date: Date): string {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -918,7 +913,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       const data = await requestJson<any[]>("/api/admin/users");
       setUsers(data);
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Failed to load users");
+      setMessage(error instanceof Error ? error.message : "Failed to load users");
     } finally {
       setUsersLoading(false);
     }
@@ -948,11 +943,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   function saveOptionSet() {
     const name = optionSetNameInput.trim();
     if (!name) {
-      setmessage("Please enter a name for this option set");
+      setMessage("Please enter a name for this option set");
       return;
     }
     if (draftOptions.length < 2) {
-      setmessage("At least 2 options required to save as a set");
+      setMessage("At least 2 options required to save as a set");
       return;
     }
     const newSet: OptionSet = {
@@ -965,14 +960,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     persistOptionSets(updated);
     setOptionSetNameInput("");
     setShowSaveOptionSet(false);
-    setmessage(`Saved set "${name}" (${draftOptions.length} options)`);
+    setMessage(`Saved set "${name}" (${draftOptions.length} options)`);
   }
 
   function loadOptionSet(id: string) {
     const set = savedOptionSets.find((s) => s.id === id);
     if (!set) return;
     setDraftOptions([...set.options]);
-    setmessage(`Loaded set "${set.name}" (${set.options.length} options)`);
+    setMessage(`Loaded set "${set.name}" (${set.options.length} options)`);
   }
 
   function deleteOptionSet(id: string) {
@@ -985,7 +980,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       setEditingOptionSetId(null);
       setEditOptionSetNameInput("");
     }
-    setmessage(`Deleted set "${set.name}"`);
+    setMessage(`Deleted set "${set.name}"`);
   }
 
   function updateOptionSetName(id: string) {
@@ -997,7 +992,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     persistOptionSets(updated);
     setEditingOptionSetId(null);
     setEditOptionSetNameInput("");
-    setmessage(`Edited set name to "${name}"`);
+    setMessage(`Edited set name to "${name}"`);
   }
 
   function overwriteOptionSet(id: string) {
@@ -1013,17 +1008,17 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       s.id === id ? { ...s, options: [...draftOptions] } : s
     );
     persistOptionSets(updated);
-    setmessage(`Overwrote set "${set.name}"`);
+    setMessage(`Overwrote set "${set.name}"`);
   }
 
   async function createPrediction(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!tournamentName.trim()) {
-      setmessage("⚠️ Please select a tournament before creating a question");
+      setMessage("⚠️ Please select a tournament before creating a question");
       return;
     }
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       const options = draftOptions.map((item) => item.trim()).filter(Boolean);
       const fullQuestion = round.trim() ? `รอบ ${round.trim()} - ${question.trim()}` : question.trim();
@@ -1046,14 +1041,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ predictionOrder: newOrder })
       });
-      setmessage("Question created");
+      setMessage("Question created");
       setQuestion("");
       setRound("");
       setDraftOptions([]);
       setTournamentName("");
       await loadPredictions();
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Failed to create question");
+      setMessage(error instanceof Error ? error.message : "Failed to create question");
     } finally {
       setLoading(false);
     }
@@ -1062,18 +1057,18 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   async function makeAdmin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       const data = await requestJson<{ email: string; role: string }>("/api/admin/users/make-admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: adminEmailInput })
       });
-      setmessage(`Added ${data.email} as admin`);
+      setMessage(`Added ${data.email} as admin`);
       setAdminEmailInput("");
       await loadAdmins();
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Failed to add admin");
+      setMessage(error instanceof Error ? error.message : "Failed to add admin");
     } finally {
       setLoading(false);
     }
@@ -1087,11 +1082,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       return tName.toLowerCase() === name.toLowerCase();
     });
     if (exists) {
-      setmessage("A tournament with this name already exists");
+      setMessage("A tournament with this name already exists");
       return;
     }
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       const newTour: TournamentItem = { name, logoUrl: newTournamentLogoUrl };
       const nextTournaments = [...(settings.tournaments || []), newTour];
@@ -1103,9 +1098,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       setSettings(data);
       setNewTournamentInput("");
       setNewTournamentLogoUrl("");
-      setmessage(`Tournament added: ${name}`);
+      setMessage(`Tournament added: ${name}`);
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Tournament addedFailed");
+      setMessage(error instanceof Error ? error.message : "Tournament addedFailed");
     } finally {
       setLoading(false);
     }
@@ -1115,7 +1110,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const confirmed = window.confirm(`Delete tournament "${name}"? (Existing questions will not be deleted, but this tournament will no longer appear in the new question dropdown)`);
     if (!confirmed) return;
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       const nextTournaments = (settings.tournaments || []).filter((t) => {
         const tName = typeof t === "string" ? t : t.name;
@@ -1132,9 +1127,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         const firstName = typeof first === "string" ? first : (first?.name || "");
         setTournamentName(firstName);
       }
-      setmessage(`Tournament deleted: ${name}`);
+      setMessage(`Tournament deleted: ${name}`);
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Tournament deletedFailed");
+      setMessage(error instanceof Error ? error.message : "Tournament deletedFailed");
     } finally {
       setLoading(false);
     }
@@ -1142,7 +1137,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   async function toggleArchiveTournament(name: string) {
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       const nextTournaments = (settings.tournaments || []).map((t) => {
         const tName = typeof t === "string" ? t : t.name;
@@ -1161,9 +1156,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       });
       setSettings(data);
       const info = getTournamentInfo(nextTournaments.find((t) => getTournamentInfo(t).name === name) || name);
-      setmessage(info.archived ? `Tournament hidden: ${name}` : `Tournament shown: ${name}`);
+      setMessage(info.archived ? `Tournament hidden: ${name}` : `Tournament shown: ${name}`);
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Failed to update tournament status");
+      setMessage(error instanceof Error ? error.message : "Failed to update tournament status");
     } finally {
       setLoading(false);
     }
@@ -1173,7 +1168,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     if (!file) return;
     compressImage(file, async (b64) => {
       setLoading(true);
-      setmessage("");
+      setMessage("");
       try {
         const nextTournaments = (settings.tournaments || []).map((t) => {
           const name = typeof t === "string" ? t : t.name;
@@ -1188,9 +1183,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           body: JSON.stringify({ tournaments: nextTournaments })
         });
         setSettings(data);
-        setmessage(`Tournament logo updated: "${tName}"`);
+        setMessage(`Tournament logo updated: "${tName}"`);
       } catch (error) {
-        setmessage(error instanceof Error ? error.message : "Failed to update logo");
+        setMessage(error instanceof Error ? error.message : "Failed to update logo");
       } finally {
         setLoading(false);
       }
@@ -1294,11 +1289,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const name = question.trim();
     if (!name) return;
     if (settings.savedQuestions?.includes(name)) {
-      setmessage("This question template already exists");
+      setMessage("This question template already exists");
       return;
     }
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       const nextQuestions = [...(settings.savedQuestions || []), name];
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
@@ -1307,9 +1302,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({ savedQuestions: nextQuestions })
       });
       setSettings(data);
-      setmessage(`Question template saved`);
+      setMessage(`Question template saved`);
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Failed to save question template");
+      setMessage(error instanceof Error ? error.message : "Failed to save question template");
     } finally {
       setLoading(false);
     }
@@ -1319,7 +1314,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const confirmed = window.confirm(`Delete question template "${name}"?`);
     if (!confirmed) return;
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       const nextQuestions = (settings.savedQuestions || []).filter((q) => q !== name);
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
@@ -1328,9 +1323,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({ savedQuestions: nextQuestions })
       });
       setSettings(data);
-      setmessage(`Question template deleted`);
+      setMessage(`Question template deleted`);
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Failed to delete question template");
+      setMessage(error instanceof Error ? error.message : "Failed to delete question template");
     } finally {
       setLoading(false);
     }
@@ -1344,11 +1339,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       return;
     }
     if (settings.savedQuestions?.includes(trimmed)) {
-      setmessage("A question with this name already exists");
+      setMessage("A question with this name already exists");
       return;
     }
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       const nextQuestions = (settings.savedQuestions || []).map((q) => (q === oldName ? trimmed : q));
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
@@ -1358,9 +1353,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       });
       setSettings(data);
       setEditingTemplate(null);
-      setmessage("Question template edited successfully");
+      setMessage("Question template edited successfully");
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Failed to edit question template");
+      setMessage(error instanceof Error ? error.message : "Failed to edit question template");
     } finally {
       setLoading(false);
     }
@@ -1370,11 +1365,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const name = round.trim();
     if (!name) return;
     if (settings.savedRounds?.includes(name)) {
-      setmessage("This round already exists");
+      setMessage("This round already exists");
       return;
     }
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       const nextRounds = [...(settings.savedRounds || []), name];
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
@@ -1383,9 +1378,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({ savedRounds: nextRounds })
       });
       setSettings(data);
-      setmessage("บันทึกรูปแบบรอบเรียบร้อย");
+      setMessage("บันทึกรูปแบบรอบเรียบร้อย");
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Failed to save round template");
+      setMessage(error instanceof Error ? error.message : "Failed to save round template");
     } finally {
       setLoading(false);
     }
@@ -1395,7 +1390,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const confirmed = window.confirm(`Delete round template "${name}"?`);
     if (!confirmed) return;
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       const nextRounds = (settings.savedRounds || []).filter((r) => r !== name);
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
@@ -1404,9 +1399,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({ savedRounds: nextRounds })
       });
       setSettings(data);
-      setmessage("ลบรูปแบบรอบเรียบร้อย");
+      setMessage("ลบรูปแบบรอบเรียบร้อย");
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Failed to delete round template");
+      setMessage(error instanceof Error ? error.message : "Failed to delete round template");
     } finally {
       setLoading(false);
     }
@@ -1423,11 +1418,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       return;
     }
     if (settings.savedRounds?.includes(trimmed)) {
-      setmessage("A round with this name already exists");
+      setMessage("A round with this name already exists");
       return;
     }
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       const nextRounds = (settings.savedRounds || []).map((r) => (r === oldName ? trimmed : r));
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
@@ -1437,9 +1432,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       });
       setSettings(data);
       setEditingRound(null);
-      setmessage("แก้ไของค์ประกอบรอบเรียบร้อย");
+      setMessage("แก้ไของค์ประกอบรอบเรียบร้อย");
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Failed to edit round template");
+      setMessage(error instanceof Error ? error.message : "Failed to edit round template");
     } finally {
       setLoading(false);
     }
@@ -1459,7 +1454,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   async function savePredictionOrder() {
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
         method: "PATCH",
@@ -1467,9 +1462,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({ predictionOrder: localOrder })
       });
       setSettings(data);
-      setmessage("Question order saved successfully");
+      setMessage("Question order saved successfully");
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Failed to save question order");
+      setMessage(error instanceof Error ? error.message : "Failed to save question order");
     } finally {
       setLoading(false);
     }
@@ -1481,7 +1476,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const newTournament = editTournamentNames[id];
 
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       await requestJson<{ ok: boolean }>(`/api/admin/predictions/${id}`, {
         method: "PATCH",
@@ -1492,11 +1487,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           question: newQuestion
         })
       });
-      setmessage("Question details updated successfully");
+      setMessage("Question details updated successfully");
       setEditingId(null);
       await reloadAll();
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Update failed");
+      setMessage(error instanceof Error ? error.message : "Update failed");
     } finally {
       setLoading(false);
     }
@@ -1506,17 +1501,17 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const confirmed = window.confirm(`Remove admin privileges from ${email}?`);
     if (!confirmed) return;
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       await requestJson<{ email: string; role: string }>("/api/admin/users/remove-admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })
       });
-      setmessage(`${email} removed from admins`);
+      setMessage(`${email} removed from admins`);
       await loadAdmins();
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Failed to remove admin");
+      setMessage(error instanceof Error ? error.message : "Failed to remove admin");
     } finally {
       setLoading(false);
     }
@@ -1524,18 +1519,18 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   async function updateStatus(id: string, nextStatus: string) {
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       await requestJson<unknown>(`/api/admin/predictions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: nextStatus })
       });
-      setmessage(`Status changed to ${statusLabel(nextStatus)}`);
+      setMessage(`Status changed to ${statusLabel(nextStatus)}`);
       setPredictions((current) => current.map((item) => item.id === id ? { ...item, status: nextStatus } : item));
       await loadPredictions();
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Update failed");
+      setMessage(error instanceof Error ? error.message : "Update failed");
     } finally {
       setLoading(false);
     }
@@ -1545,13 +1540,13 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const confirmed = window.confirm("Permanently delete this question from the system? (All answer options and bet entries for this question will also be deleted and cannot be recovered.)");
     if (!confirmed) return;
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       await requestJson<unknown>(`/api/admin/predictions/${id}`, { method: "DELETE" });
-      setmessage("Question permanently deleted");
+      setMessage("Question permanently deleted");
       await loadPredictions();
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Failed to delete question");
+      setMessage(error instanceof Error ? error.message : "Failed to delete question");
     } finally {
       setLoading(false);
     }
@@ -1560,7 +1555,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   async function resolvePrediction(item: AdminPrediction) {
     const winningOptionId = winningOptions[item.id];
     if (!winningOptionId) {
-      setmessage("Select the winning answer first");
+      setMessage("Select the winning answer first");
       return;
     }
     const winningLabel = item.options.find((option) => option.id === winningOptionId)?.label || "";
@@ -1568,18 +1563,18 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     if (!confirmed) return;
 
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       const data = await requestJson<{ winnersCount: number; totalLosersCount: number; totalPaid: number }>(`/api/admin/predictions/${item.id}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ winningOptionId })
       });
-      setmessage(`Resolved: Won ${data.winnersCount || 0}, Lost ${data.totalLosersCount || 0}, Paid ${data.totalPaid || 0}`);
+      setMessage(`Resolved: Won ${data.winnersCount || 0}, Lost ${data.totalLosersCount || 0}, Paid ${data.totalPaid || 0}`);
       setPredictions((current) => current.map((row) => row.id === item.id ? { ...row, status: "resolved" } : row));
       await loadPredictions();
     } catch (error) {
-      setmessage(error instanceof Error ? error.message : "Failed to resolve");
+      setMessage(error instanceof Error ? error.message : "Failed to resolve");
     } finally {
       setLoading(false);
     }
@@ -1590,18 +1585,18 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     if (!confirmed) return;
 
     setLoading(true);
-    setmessage("");
+    setMessage("");
     try {
       const data = await requestJson<{ refundedEntries: number; totalRefunded: number }>(`/api/admin/predictions/${item.id}/refund`, { method: "POST" });
-      setmessage(`Refunded: ${data.refundedEntries || 0} entries, ${data.totalRefunded || 0} coins`);
+      setMessage(`Refunded: ${data.refundedEntries || 0} entries, ${data.totalRefunded || 0} coins`);
       setPredictions((current) => current.map((row) => row.id === item.id ? { ...row, status: "canceled" } : row));
       await loadPredictions();
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Refund failed";
       if (msg.includes("No running entries")) {
-        setmessage("No entries to refund (no bets placed or already refunded)");
+        setMessage("No entries to refund (no bets placed or already refunded)");
       } else {
-        setmessage(msg);
+        setMessage(msg);
       }
     } finally {
       setLoading(false);
@@ -3441,9 +3436,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                 setEditingContestId(contest.id);
                                 setNewContestName(contest.name || "");
                                 setNewContestDescription(contest.description || "");
-                                // Convert UTC to GMT+7 for datetime-local
-                                const localDate = new Date(new Date(contest.end_time).getTime() + 7 * 60 * 60 * 1000);
-                                setNewContestEndTime(localDate.toISOString().slice(0, 16));
+                                setNewContestEndTime(toDateTimeLocal(new Date(contest.end_time)));
                                 setNewContestPrize1(contest.prize_1 || "");
                                 setNewContestPrize2(contest.prize_2 || "");
                                 setNewContestPrize3(contest.prize_3 || "");
