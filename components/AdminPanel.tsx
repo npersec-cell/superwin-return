@@ -1963,22 +1963,22 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       {/* -- Summary Stat Cards -- */}
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
                         <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px", textAlign: "center" }}>
-                          <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>Total Pool</div>
+                          <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>พูลรวม</div>
                           <strong style={{ fontSize: "26px", color: "#fff", fontWeight: 600, display: "block", letterSpacing: "-0.5px" }}>{totalTourCoins.toLocaleString()}</strong>
-                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>coins</span>
+                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>เหรียญ</span>
                           {otherQuestionCount > 0 && sortedQuestions.length > 0 && (
                             <div style={{ fontSize: "10px", color: tourAvgCoinsPerQ >= avgCoinsPerQ ? "var(--green)" : "var(--red)", marginTop: "4px" }}>
-                              Avg {tourAvgCoinsPerQ.toLocaleString()}/Q vs {avgCoinsPerQ.toLocaleString()} overall
+                              เฉลี่ย {tourAvgCoinsPerQ.toLocaleString()} เหรียญ/ข้อ | อืนๆ เฉลี่ย {avgCoinsPerQ.toLocaleString()}
                             </div>
                           )}
                         </div>
                         <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px", textAlign: "center" }}>
-                          <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>Players</div>
+                          <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>ผู้เล่น</div>
                           <strong style={{ fontSize: "26px", color: "#fff", fontWeight: 600, display: "block", letterSpacing: "-0.5px" }}>{totalTourPlayers}</strong>
-                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>active</span>
+                          <span style={{ fontSize: "10px", color: "var(--muted)" }}>คน</span>
                           {otherQuestionCount > 0 && sortedQuestions.length > 0 && (
                             <div style={{ fontSize: "10px", color: tourAvgPlayersPerQ >= avgPlayersPerQ ? "var(--green)" : "var(--red)", marginTop: "4px" }}>
-                              Avg {tourAvgPlayersPerQ}/Q vs {avgPlayersPerQ} overall
+                              เฉลี่ย {tourAvgPlayersPerQ} คน/ข้อ | อืนๆ เฉลี่ย {avgPlayersPerQ}
                             </div>
                           )}
                         </div>
