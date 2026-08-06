@@ -261,78 +261,16 @@ declare global {
   }
 }
 
-const demoQuestions: Question[] = [
-  {
-    id: "demo-1",
-    tournament: "Super League",
-    title: "Which team will win the championship?",
-    closeOffsetMinutes: 4300,
-    totalPool: 0,
-    playerCount: 0,
-    options: [
-      { id: "demo-1-alpha", name: "Alpha Esports", returns: 185, coinsOnOption: 4200 },
-      { id: "demo-1-bravo", name: "Bravo Gaming", returns: 230, coinsOnOption: 2800 },
-      { id: "demo-1-charlie", name: "Charlie Squad", returns: 310, coinsOnOption: 1500 },
-      { id: "demo-1-delta", name: "Delta Force", returns: 420, coinsOnOption: 800 },
-      { id: "demo-1-echo", name: "Echo Team", returns: 560, coinsOnOption: 400 },
-      { id: "demo-1-falcon", name: "Falcon", returns: 690, coinsOnOption: 200 },
-      { id: "demo-1-ghost", name: "Ghost", returns: 760, coinsOnOption: 100 },
-      { id: "demo-1-hydra", name: "Hydra", returns: 840, coinsOnOption: 50 },
-      { id: "demo-1-inferno", name: "Inferno", returns: 920, coinsOnOption: 30 },
-      { id: "demo-1-joker", name: "Joker", returns: 980, coinsOnOption: 20 }
-    ]
-  },
-  {
-    id: "demo-2",
-    tournament: "Global Open",
-    title: "Which region will finish first?",
-    closeOffsetMinutes: 1480,
-    totalPool: 0,
-    playerCount: 0,
-    options: [
-      { id: "demo-2-sea", name: "SEA", returns: 210, coinsOnOption: 3500 },
-      { id: "demo-2-sa", name: "South Asia", returns: 280, coinsOnOption: 2200 },
-      { id: "demo-2-eu", name: "Europe", returns: 340, coinsOnOption: 1800 },
-      { id: "demo-2-americas", name: "Americas", returns: 410, coinsOnOption: 900 },
-      { id: "demo-2-me", name: "Middle East", returns: 530, coinsOnOption: 500 },
-      { id: "demo-2-wildcard", name: "Wildcard", returns: 720, coinsOnOption: 100 }
-    ]
-  },
-  {
-    id: "demo-3",
-    tournament: "Scrim Night",
-    title: "Most kills team in final map?",
-    closeOffsetMinutes: 360,
-    totalPool: 0,
-    playerCount: 0,
-    options: [
-      { id: "demo-3-rex", name: "Rex", returns: 260 },
-      { id: "demo-3-nova", name: "Nova", returns: 275 },
-      { id: "demo-3-viper", name: "Viper", returns: 330 },
-      { id: "demo-3-ghost", name: "Ghost", returns: 380 },
-      { id: "demo-3-blaze", name: "Blaze", returns: 430 },
-      { id: "demo-3-frost", name: "Frost", returns: 510 },
-      { id: "demo-3-omega", name: "Omega", returns: 620 },
-      { id: "demo-3-ruin", name: "Ruin", returns: 700 }
-    ]
-  },
-  {
-    id: "demo-4",
-    tournament: "Weekly Final",
-    title: "Which team gets the first chicken dinner?",
-    closeOffsetMinutes: 90,
-    totalPool: 0,
-    playerCount: 0,
-    options: [
-      { id: "demo-4-alpha", name: "Alpha", returns: 220 },
-      { id: "demo-4-bravo", name: "Bravo", returns: 260 },
-      { id: "demo-4-charlie", name: "Charlie", returns: 335 },
-      { id: "demo-4-delta", name: "Delta", returns: 430 },
-      { id: "demo-4-echo", name: "Echo", returns: 520 },
-      { id: "demo-4-falcon", name: "Falcon", returns: 640 }
-    ]
-  }
-];
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const HISTORY_PAGE_SIZE = 10;
+const RUNNING_PAGE_SIZE = 10;
+const MAX_HISTORY_PAGES = 10;
+
+const CHART_COLORS = ["#FF4D4D", "#4DA6FF", "#FFD93D", "#6BE585"];
+const CHIP_AMOUNTS = [5, 10, 50, 100, 500];
+
+const HIGH_STAKES_THRESHOLD = 500;
 
 const defaultSettings: SiteSettings = {
   info: {
@@ -344,21 +282,12 @@ const defaultSettings: SiteSettings = {
     "Which team will get the Chicken Dinner?",
     "Who will get the most kills in this match?"
   ],
-  announcement: ""
-};
-
-type LeaderboardRow = {
-  id?: string;
-  name: string;
-  displayName?: string | null;
-  profit: number;
-  overallScore: number;
-  rank: number;
-  isReal?: boolean;
-  avatarUrl?: string | null;
+  announcement: "",
 };
 
 const defaultLeaderboard: LeaderboardRow[] = [];
+
+// ── Utility Functions ────────────────────────────────────────────────────────
 
 function money(amount: number) {
   return `${amount >= 0 ? "+" : ""}${amount}`;
@@ -375,9 +304,18 @@ function safeJson<T>(key: string, fallback: T): T {
   }
 }
 
-function createQuestionDeadlines(sourceQuestions = demoQuestions) {
-  return Object.fromEntries(sourceQuestions.map((question) => [question.id, Date.now() + (question.closeOffsetMinutes || 60) * 60000]));
-}
+// ── Type Aliases ─────────────────────────────────────────────────────────────
+
+type LeaderboardRow = {
+  id?: string;
+  name: string;
+  displayName?: string | null;
+  profit: number;
+  overallScore: number;
+  rank: number;
+  isReal?: boolean;
+  avatarUrl?: string | null;
+};
 
 // ── Memoized YouTube Embed Component (prevents re-renders from parent state changes) ──
 const YouTubeEmbedSection = memo(function YouTubeEmbedSection({ embedCode }: { embedCode: string }) {
