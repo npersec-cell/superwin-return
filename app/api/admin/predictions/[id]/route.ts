@@ -4,6 +4,15 @@ import { createSupabaseAdminClient } from "@/lib/db";
 import { logAudit } from "@/lib/audit-log";
 import { createSafeErrorResponse } from "@/lib/safe-error-handler";
 
+/** Parse bare datetime (Thai time GMT+7) to UTC ISO string for DB storage */
+function parseBkkDateTime(localStr: string): string {
+  if (!localStr) return localStr;
+  if (localStr.includes("Z") || localStr.includes("+")) {
+    return new Date(localStr).toISOString();
+  }
+  return new Date(localStr + "+07:00").toISOString();
+}
+
 /**
  * PATCH /api/admin/predictions/:id
  * Update prediction details: question, closesAt, tournamentName.
@@ -23,7 +32,7 @@ export async function PATCH(
     // Build update payload
     const updates: Record<string, any> = {};
     if (body.question !== undefined) updates.question = body.question;
-    if (body.closesAt !== undefined) updates.closes_at = body.closesAt;
+    if (body.closesAt !== undefined) updates.closes_at = parseBkkDateTime(body.closesAt);
     if (body.tournamentName !== undefined) updates.tournament_name = body.tournamentName;
 
     // Update prediction if any field changed
