@@ -1346,15 +1346,15 @@ export default function SuperWinPrototype() {
         </svg>
         
         {/* ── Option names below chart ── */}
-        <div style={{ display: "flex", justifyContent: "center", gap: "16px", marginTop: "2px" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: "12px", flexWrap: "wrap", marginTop: "2px" }}>
           {top4.map((opt, idx) => {
             const color = colors[idx % colors.length];
             const label = chartData?.labels[opt.id] || opt.name;
             return (
               <div key={`legend-${opt.id}`} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                <span style={{ width: "10px", height: "2px", background: color, display: "inline-block" }} />
-                <span style={{ fontSize: "8px", color: color, maxWidth: "60px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {label.length > 12 ? label.substring(0, 12) + "…" : label}
+                <span style={{ width: "10px", height: "2px", background: color, display: "inline-block", flexShrink: 0 }} />
+                <span style={{ fontSize: "8px", color: color, maxWidth: "140px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {label}
                 </span>
               </div>
             );
