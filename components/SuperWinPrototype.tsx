@@ -344,17 +344,6 @@ export default function SuperWinPrototype() {
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [showAnnouncement, setShowAnnouncement] = useState(true);
-
-  // Restore announcement dismissed state from localStorage
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    try {
-      const dismissed = localStorage.getItem("superwin_announcement_dismissed");
-      if (dismissed) {
-        setShowAnnouncement(false);
-      }
-    } catch { /* ignore */ }
-  }, []);
   const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[]>(defaultLeaderboard);
   const [leaderboardTotalUsers, setLeaderboardTotalUsers] = useState(0);
   const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
@@ -713,11 +702,12 @@ export default function SuperWinPrototype() {
     const response = await fetch("/api/settings");
     const payload = (await response.json()) as ApiSettingsResponse;
     if (response.ok && payload.ok && payload.data) {
-      // If announcement content changed from what user last saw, show it again
-      if (payload.data.announcement !== settings.announcement) {
-        setShowAnnouncement(true);
-        try { localStorage.removeItem("superwin_announcement_dismissed"); } catch { /* ignore */ }
-      }
+      // Check localStorage: did user dismiss THIS specific announcement?
+      const dismissedText = (() => { try { return localStorage.getItem("superwin_announcement_dismissed_text") || ""; } catch { return ""; } })();
+      const currentAnnouncement = payload.data.announcement || "";
+      const wasDismissed = dismissedText.length > 0 && dismissedText === currentAnnouncement;
+      
+      setShowAnnouncement(!wasDismissed);
       setSettings(payload.data);
     }
     setSettingsLoaded(true);
@@ -1425,7 +1415,7 @@ export default function SuperWinPrototype() {
             <button
               onClick={() => {
                 setShowAnnouncement(false);
-                try { localStorage.setItem("superwin_announcement_dismissed", "1"); } catch { /* ignore */ }
+                try { localStorage.setItem("superwin_announcement_dismissed_text", settings.announcement || ""); } catch { /* ignore */ }
               }}
               style={{
                 position: "absolute",
