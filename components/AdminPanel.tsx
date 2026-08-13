@@ -313,11 +313,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [contests, setContests] = useState<any[]>([]);
   const [contestsLoading, setContestsLoading] = useState(false);
   const [showNewContestForm, setShowNewContestForm] = useState(false);
-  const [youtubeUrl, setYoutubeUrl] = useState("");
-  const [youtubeScheduleStart, setYoutubeScheduleStart] = useState("");
-  const [youtubeScheduleEnd, setYoutubeScheduleEnd] = useState("");
-  const [youtubeOpenNow, setYoutubeOpenNow] = useState(false);
-  const [frontendEnabled, setFrontendEnabled] = useState(true);
 
   const [chatmessages, setChatmessages] = useState<any[]>([]);
   const [reportsEnabled, setReportsEnabled] = useState(true);
@@ -739,116 +734,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     loadUserEmails().catch(console.warn);
   }, []);
 
-  async function loadYoutubeEmbed() {
-    try {
-      const res = await fetch('/api/settings');
-      const json = await res.json();
-      if (json.ok && json.data) {
-        // Load YouTube embed code or URL
-        if (json.data.youtube_embed?.embed_code) {
-          // Try to extract URL from embed code for display
-          const urlMatch = json.data.youtube_embed.embed_code.match(/src="([^"]+)"/);
-          if (urlMatch) {
-            setYoutubeUrl(urlMatch[1]);
-          }
-        }
-        // Load YouTube URL directly (new format)
-        if (json.data.youtube_embed?.url) {
-          setYoutubeUrl(json.data.youtube_embed.url);
-        }
-        // Load open_now flag
-        if (json.data.youtube_embed?.open_now !== undefined) {
-          setYoutubeOpenNow(!!json.data.youtube_embed.open_now);
-        }
-        // Load schedule times (convert UTC back to Thai local for datetime-local input)
-        if (json.data.youtube_embed?.schedule_start) {
-          const start = new Date(json.data.youtube_embed.schedule_start);
-          if (!isNaN(start.getTime())) {
-            setYoutubeScheduleStart(toLocalDateTimeInput(start));
-          } else {
-            setYoutubeScheduleStart(json.data.youtube_embed.schedule_start);
-          }
-        }
-        if (json.data.youtube_embed?.schedule_end) {
-          const end = new Date(json.data.youtube_embed.schedule_end);
-          if (!isNaN(end.getTime())) {
-            setYoutubeScheduleEnd(toLocalDateTimeInput(end));
-          } else {
-            setYoutubeScheduleEnd(json.data.youtube_embed.schedule_end);
-          }
-        }
-        // Load frontend features enabled state
-        if (json.data.frontend_features !== undefined) {
-          setFrontendEnabled(!!json.data.frontend_features.enabled);
-
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load YouTube embed:', e);
-    }
-  }
-
-  async function saveFrontendSettings() {
-    try {
-      // Build youtube_embed object to save separately
-      const youtubeEmbedValue: Record<string, any> = {};
-      if (youtubeUrl.trim()) {
-        youtubeEmbedValue.url = youtubeUrl.trim();
-        youtubeEmbedValue.open_now = youtubeOpenNow;
-        if (!youtubeOpenNow && youtubeScheduleStart) {
-          youtubeEmbedValue.schedule_start = youtubeScheduleStart;
-        }
-        if (youtubeScheduleEnd) {
-          youtubeEmbedValue.schedule_end = youtubeScheduleEnd;
-        }
-      }
-
-      // Use PATCH to save multiple keys at once
-      const res = await fetch('/api/admin/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          frontend_features: { enabled: frontendEnabled },
-          ...(Object.keys(youtubeEmbedValue).length > 0 ? { youtube_embed: youtubeEmbedValue } : {}),
-        }),
-      });
-      const payload = await res.json();
-      if (res.ok && payload.ok) {
-        alert('Frontpage Settings saved successfully');
-      } else {
-        alert('Save failed: ' + (payload.error || res.status));
-      }
-    } catch (e: any) {
-      alert('An error occurred: ' + (e?.message || String(e)));
-    }
-  }
-
-  // Convert YouTube URL to embed iframe code
-  function youtubeUrlToEmbed(url: string): string {
-    const trimmed = url.trim();
-    let videoId = "";
-
-    // Match various YouTube URL formats
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
-      /^([a-zA-Z0-9_-]{11})$/, // Direct video ID
-    ];
-
-    for (const pattern of patterns) {
-      const match = trimmed.match(pattern);
-      if (match && match[1]) {
-        videoId = match[1];
-        break;
-      }
-    }
-
-    if (!videoId) {
-      return trimmed; // Return as-is if we can't extract video ID
-    }
-
-    return `<iframe width="720" height="405" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-  }
-
   /** Convert datetime-local value (always Thai time) to UTC ISO string for storage */
   function thaiLocalToUTC(datetimeLocal: string): string {
     if (!datetimeLocal) return "";
@@ -860,53 +745,8 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     return new Date(datetimeLocal + "+07:00").toISOString();
   }
 
-  /** Parse datetime string (with or without timezone) to datetime-local format for input display */
-  function toLocalDateTimeInput(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hour = String(date.getHours()).padStart(2, "0");
-    const minute = String(date.getMinutes()).padStart(2, "0");
-    return `${year}-${month}-${day}T${hour}:${minute}`;
-  }
-
-  async function saveYoutubeEmbed(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-    try {
-      const embedCode = youtubeUrlToEmbed(youtubeUrl);
-      const scheduleData: any = {
-        enabled: true,
-        url: youtubeUrl,
-        embed_code: embedCode,
-      };
-      // Mode 1: Open now — clear start time (shows immediately), keep end time if set
-      if (youtubeOpenNow) {
-        scheduleData.schedule_start = "";
-        scheduleData.schedule_end = youtubeScheduleEnd ? thaiLocalToUTC(youtubeScheduleEnd) : "";
-      } else {
-        // Mode 2: Scheduled — use both start and end times (convert Thai local to UTC)
-        scheduleData.schedule_start = youtubeScheduleStart ? thaiLocalToUTC(youtubeScheduleStart) : "";
-        scheduleData.schedule_end = youtubeScheduleEnd ? thaiLocalToUTC(youtubeScheduleEnd) : "";
-      }
-
-      const res = await fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'youtube_embed', value: scheduleData }),
-      });
-      if (res.ok) {
-        alert('Saved successfully');
-      } else {
-        alert('Save failed');
-      }
-    } catch {
-      alert('An error occurred');
-    }
-  }
-
   useEffect(() => {
     if (activeTab !== "dashboard") return;
-    loadYoutubeEmbed();
     loadDashboardData().catch(() => undefined);
     const timer = setInterval(() => {
       loadDashboardData().catch(() => undefined);
@@ -2804,101 +2644,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     </button>
                   </div>
                 </div>
-              </div>
-
-              {/* ── Frontpage Features (Enable/Disable) ── */}
-              <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
-                <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)" }}>
-                  <h2>Frontpage Features</h2>
-                </div>
-                <form className="modal-body" onSubmit={(e) => { e.preventDefault(); saveFrontendSettings(); }} style={{ padding: "12px 0 0 0", display: "grid", gap: "12px" }}>
-                  
-                  {/* Enable/Disable Toggle */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px" }}>
-                    <div>
-                      <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--text)" }}>Enable Frontpage Features</div>
-                      <div style={{ fontSize: "10px", color: "var(--muted)" }}>Show YouTube embed + Special Claim on homepage</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setFrontendEnabled(v => !v)}
-                      style={{
-                        width: "48px",
-                        height: "26px",
-                        borderRadius: "13px",
-                        border: "none",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                        background: frontendEnabled ? "var(--green)" : "var(--hairline)",
-                        position: "relative",
-                      }}
-                    >
-                      <div style={{
-                        width: "20px",
-                        height: "20px",
-                        borderRadius: "50%",
-                        background: "#fff",
-                        position: "absolute",
-                        top: "3px",
-                        left: frontendEnabled ? "24px" : "3px",
-                        transition: "left 0.2s",
-                      }} />
-                    </button>
-                  </div>
-
-                  {/* YouTube Embed */}
-                  <div style={{ display: "grid", gap: "8px" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>YouTube URL</span>
-                    <input 
-                      type="text"
-                      value={youtubeUrl} 
-                      onChange={(event) => setYoutubeUrl(event.target.value)} 
-                      placeholder="https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID"
-                      style={{ fontFamily: "monospace", fontSize: "11px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "8px", color: "var(--text)" }}
-                    />
-                    
-                    {/* ── Mode Toggle ── */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
-                      <input 
-                        type="checkbox" 
-                        id="youtubeOpenNow"
-                        checked={youtubeOpenNow} 
-                        onChange={(e) => setYoutubeOpenNow(e.target.checked)}
-                        style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "var(--green)" }}
-                      />
-                      <label htmlFor="youtubeOpenNow" style={{ fontSize: "11px", fontWeight: "600", color: "var(--text)", cursor: "pointer" }}>
-                        Always On (No schedule needed)
-                      </label>
-                    </div>
-
-                    {/* Schedule inputs — always show end time, start time only when not "open now" */}
-                    <div style={{ display: "grid", gridTemplateColumns: youtubeOpenNow ? "1fr" : "1fr 1fr", gap: "8px", marginTop: "4px" }}>
-                      {!youtubeOpenNow && (
-                        <div>
-                          <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>Start Time (Thai Time)</span>
-                          <input 
-                            type="datetime-local"
-                            value={youtubeScheduleStart} 
-                            onChange={(event) => setYoutubeScheduleStart(event.target.value)} 
-                            style={{ width: "100%", boxSizing: "border-box", fontFamily: "monospace", fontSize: "11px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "6px", color: "var(--text)", marginTop: "2px" }}
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <span className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>End Time (Thai Time)</span>
-                        <input 
-                          type="datetime-local"
-                          value={youtubeScheduleEnd} 
-                          onChange={(event) => setYoutubeScheduleEnd(event.target.value)} 
-                          style={{ width: "100%", boxSizing: "border-box", fontFamily: "monospace", fontSize: "11px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--hairline)", borderRadius: "6px", padding: "6px", color: "var(--text)", marginTop: "2px" }}
-                        />
-                      </div>
-                    </div>
-                    <span className="meta" style={{ fontSize: "9px", color: "var(--muted)" }}>Leave end time empty to display continuously</span>
-                  </div>
-
-                  <button className="button primary" disabled={loading} type="submit" style={{ width: "100%", height: "36px", fontWeight: "bold", marginTop: "4px" }}>Save Frontpage Settings</button>
-                </form>
               </div>
 
             </section>
