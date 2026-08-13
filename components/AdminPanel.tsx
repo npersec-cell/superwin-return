@@ -81,13 +81,6 @@ type ApiResponse<T> = {
   error?: string;
 };
 
-type OptionSet = {
-  id: string;
-  name: string;
-  options: string[];
-  createdAt: string;
-};
-
 /** Convert Date to datetime-local string in Thai time (GMT+7) — for <input type="datetime-local"> */
 function toDateTimeLocal(value: Date) {
   const fmt = new Intl.DateTimeFormat("en-CA", {
@@ -216,13 +209,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [showBulkOptions, setShowBulkOptions] = useState(false);
   const [dashboardData, setDashboardData] = useState<DashboardPrediction[]>([]);
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
-  const [selectedDashboardTournament, setSelectedDashboardTournament] = useState("");
   const [draftOptions, setDraftOptions] = useState<string[]>([]);
-  const [savedOptionSets, setSavedOptionSets] = useState<OptionSet[]>([]);
-  const [showSaveOptionSet, setShowSaveOptionSet] = useState(false);
-  const [optionSetNameInput, setOptionSetNameInput] = useState("");
-  const [editingOptionSetId, setEditingOptionSetId] = useState<string | null>(null);
-  const [editOptionSetNameInput, setEditOptionSetNameInput] = useState("");
   const [winningOptions, setWinningOptions] = useState<Record<string, string>>({});
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editTemplateInput, setEditTemplateInput] = useState("");
@@ -427,16 +414,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }
   }, [message]);
 
-  // Load saved option sets from localStorage
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("superwin_option_sets");
-      if (raw) setSavedOptionSets(JSON.parse(raw));
-    } catch {
-      // ignore parse errors
-    }
-  }, []);
-
   useEffect(() => {
     const list = predictions.filter(isRunningNow);
     const order = settings.predictionOrder || [];
@@ -566,15 +543,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   async function loadDashboardData() {
     const data = await requestJson<DashboardPrediction[]>("/api/admin/dashboard");
     setDashboardData(data);
-    if (data.length > 0) {
-      if (!selectedDashboardTournament) {
-        setSelectedDashboardTournament(data[0].tournamentName);
-      }
-      // NOTE: Do NOT auto-initialize tournamentName from dashboard data.
-      // That caused bugs where new questions were saved under the wrong tournament
-      // (data[0] = newest prediction, not necessarily the desired tournament).
-      // Admin must explicitly select a tournament from the dropdown.
-    }
   }
 
   // Load reports enabled state from site_settings
@@ -779,83 +747,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   function removeOption(index: number) {
     setDraftOptions((current) => current.filter((_, itemIndex) => itemIndex !== index));
-  }
-
-  // ── Option Set management ───────────────────────
-  function persistOptionSets(sets: OptionSet[]) {
-    setSavedOptionSets(sets);
-    localStorage.setItem("superwin_option_sets", JSON.stringify(sets));
-  }
-
-  function saveOptionSet() {
-    const name = optionSetNameInput.trim();
-    if (!name) {
-      setMessage("Please enter a name for this option set");
-      return;
-    }
-    if (draftOptions.length < 2) {
-      setMessage("At least 2 options required to save as a set");
-      return;
-    }
-    const newSet: OptionSet = {
-      id: crypto.randomUUID(),
-      name,
-      options: [...draftOptions],
-      createdAt: new Date().toISOString()
-    };
-    const updated = [...savedOptionSets, newSet];
-    persistOptionSets(updated);
-    setOptionSetNameInput("");
-    setShowSaveOptionSet(false);
-    setMessage(`Saved set "${name}" (${draftOptions.length} options)`);
-  }
-
-  function loadOptionSet(id: string) {
-    const set = savedOptionSets.find((s) => s.id === id);
-    if (!set) return;
-    setDraftOptions([...set.options]);
-    setMessage(`Loaded set "${set.name}" (${set.options.length} options)`);
-  }
-
-  function deleteOptionSet(id: string) {
-    const set = savedOptionSets.find((s) => s.id === id);
-    if (!set) return;
-    if (!window.confirm(`Delete option set "${set.name}"?`)) return;
-    const updated = savedOptionSets.filter((s) => s.id !== id);
-    persistOptionSets(updated);
-    if (editingOptionSetId === id) {
-      setEditingOptionSetId(null);
-      setEditOptionSetNameInput("");
-    }
-    setMessage(`Deleted set "${set.name}"`);
-  }
-
-  function updateOptionSetName(id: string) {
-    const name = editOptionSetNameInput.trim();
-    if (!name) return;
-    const updated = savedOptionSets.map((s) =>
-      s.id === id ? { ...s, name } : s
-    );
-    persistOptionSets(updated);
-    setEditingOptionSetId(null);
-    setEditOptionSetNameInput("");
-    setMessage(`Edited set name to "${name}"`);
-  }
-
-  function overwriteOptionSet(id: string) {
-    const set = savedOptionSets.find((s) => s.id === id);
-    if (!set) return;
-    if (
-      !window.confirm(
-        `Overwrite set "${set.name}" with current options (${draftOptions.length} options)?`
-      )
-    )
-      return;
-    const updated = savedOptionSets.map((s) =>
-      s.id === id ? { ...s, options: [...draftOptions] } : s
-    );
-    persistOptionSets(updated);
-    setMessage(`Overwrote set "${set.name}"`);
   }
 
   async function createPrediction(event: React.FormEvent<HTMLFormElement>) {
@@ -1717,63 +1608,23 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   <span className="micro">All tournament statistics at a glance</span>
                 </div>
 
-                {/* ── Tournament Selector ── */}
-                <div style={{ display: "grid", gap: "4px" }}>
-                  <label className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Select Tournament</label>
-                  <select className="button" value={selectedDashboardTournament} onChange={(e) => setSelectedDashboardTournament(e.target.value)} style={{ width: "100%", height: "40px", fontSize: "13px", fontWeight: "600" }}>
-                    <option value="">-- Select Tournament --</option>
-                    {Array.from(new Set(dashboardData.map((d) => d.tournamentName)))
-                      .filter((tour) => {
-                        const info = (settings.tournaments || []).find((t) => getTournamentInfo(t).name.toLowerCase() === tour.toLowerCase());
-                        return info && !getTournamentInfo(info).archived;
-                      })
-                      .sort((a, b) => a.localeCompare(b))
-                      .map((tour) => (
-                        <option key={tour} value={tour}>
-                          {tour}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
                 {(() => {
-                  if (!selectedDashboardTournament) {
-                    return (
-                      <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--muted)" }}>
-                        <div style={{ fontSize: "40px", marginBottom: "12px", fontWeight: "700", color: "var(--yellow)" }}>?</div>
-                        <p style={{ fontSize: "14px", fontWeight: "600", color: "var(--text)" }}>Select a tournament to view statistics</p>
-                        <p style={{ fontSize: "12px", marginTop: "4px" }}>Charts and data will appear when you select a tournament</p>
-                      </div>
-                    );
+                  // Filter: only open questions (hide resolved/cancelled)
+                  const openQuestions = dashboardData.filter((d) => d.status === "open");
+                  if (openQuestions.length === 0) {
+                    return <div className="question"><span>ไม่มีคำถามที่เปิดอยู่ในขณะนี้</span></div>;
                   }
 
-                  const tournamentQuestions = dashboardData.filter((d) => d.tournamentName === selectedDashboardTournament);
-                  if (tournamentQuestions.length === 0) {
-                    return <div className="question"><span>No questions found in this tournament</span></div>;
-                  }
-
-                  // Sort: open questions first (by closesAt ascending), then resolved (by closesAt descending)
-                  const sortedQuestions = [...tournamentQuestions].sort((a, b) => {
-                    // Open questions come before resolved
-                    if (a.status === "open" && b.status !== "open") return -1;
-                    if (a.status !== "open" && b.status === "open") return 1;
-                    // Within same status: sort by closesAt
+                  // Sort: by closesAt ascending (soonest first)
+                  const sortedQuestions = [...openQuestions].sort((a, b) => {
                     const aTime = new Date(a.closesAt || a.createdAt || 0).getTime();
                     const bTime = new Date(b.closesAt || b.createdAt || 0).getTime();
-                    // Open: soonest first; Resolved: most recent first
-                    return a.status === "open" ? aTime - bTime : bTime - aTime;
+                    return aTime - bTime;
                   });
 
                   const totalTourCoins = sortedQuestions.reduce((sum, q) => sum + q.totalPoolCoins, 0);
                   const totalTourPlayers = new Set(sortedQuestions.flatMap((q) => q.playerBets.map((b) => b.email))).size;
 
-                  // Compare vs all other tournaments combined
-                  const otherQuestions = dashboardData.filter((d) => d.tournamentName !== selectedDashboardTournament);
-                  const otherTotalCoins = otherQuestions.reduce((sum, q) => sum + q.totalPoolCoins, 0);
-                  const otherTotalPlayers = new Set(otherQuestions.flatMap((q) => q.playerBets.map((b) => b.email))).size;
-                  const otherQuestionCount = otherQuestions.length;
-                  const avgCoinsPerQ = otherQuestionCount > 0 ? Math.round(otherTotalCoins / otherQuestionCount) : 0;
-                  const avgPlayersPerQ = otherQuestionCount > 0 ? Math.round(otherTotalPlayers / otherQuestionCount) : 0;
                   const tourAvgCoinsPerQ = sortedQuestions.length > 0 ? Math.round(totalTourCoins / sortedQuestions.length) : 0;
                   const tourAvgPlayersPerQ = sortedQuestions.length > 0 ? Math.round(totalTourPlayers / sortedQuestions.length) : 0;
 
@@ -1806,21 +1657,17 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                           <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>พูลรวม</div>
                           <strong style={{ fontSize: "26px", color: "#fff", fontWeight: 600, display: "block", letterSpacing: "-0.5px" }}>{totalTourCoins.toLocaleString()}</strong>
                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>เหรียญ</span>
-                          {otherQuestionCount > 0 && sortedQuestions.length > 0 && (
-                            <div style={{ fontSize: "10px", color: tourAvgCoinsPerQ >= avgCoinsPerQ ? "var(--green)" : "var(--red)", marginTop: "4px" }}>
-                              เฉลี่ย {tourAvgCoinsPerQ.toLocaleString()} เหรียญ/ข้อ | อืนๆ เฉลี่ย {avgCoinsPerQ.toLocaleString()}
-                            </div>
-                          )}
+                          <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "4px" }}>
+                            เฉลี่ย {tourAvgCoinsPerQ.toLocaleString()} เหรียญ/ข้อ
+                          </div>
                         </div>
                         <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px", textAlign: "center" }}>
                           <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>ผู้เล่น</div>
                           <strong style={{ fontSize: "26px", color: "#fff", fontWeight: 600, display: "block", letterSpacing: "-0.5px" }}>{totalTourPlayers}</strong>
                           <span style={{ fontSize: "10px", color: "var(--muted)" }}>คน</span>
-                          {otherQuestionCount > 0 && sortedQuestions.length > 0 && (
-                            <div style={{ fontSize: "10px", color: tourAvgPlayersPerQ >= avgPlayersPerQ ? "var(--green)" : "var(--red)", marginTop: "4px" }}>
-                              เฉลี่ย {tourAvgPlayersPerQ} คน/ข้อ | อืนๆ เฉลี่ย {avgPlayersPerQ}
-                            </div>
-                          )}
+                          <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "4px" }}>
+                            เฉลี่ย {tourAvgPlayersPerQ} คน/ข้อ
+                          </div>
                         </div>
                       </div>
 
@@ -2163,117 +2010,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         <button className="button" type="button" onClick={() => removeOption(index)}>Delete</button>
                       </div>
                     ))}
-                  </div>
-
-                  {/* ── Saved Option Sets ── */}
-                  <div style={{ marginTop: "10px", borderTop: "1px solid var(--hairline)", paddingTop: "10px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
-                      <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Saved Option Sets ({savedOptionSets.length})</span>
-                      {draftOptions.length >= 2 && (
-                        <button
-                          type="button"
-                          className="button gold"
-                          style={{ height: "28px", fontSize: "11px", padding: "0 10px" }}
-                          onClick={() => setShowSaveOptionSet(!showSaveOptionSet)}
-                        >
-                          {showSaveOptionSet ? "Cancel" : "Save Option Set"}
-                        </button>
-                      )}
-                    </div>
-
-                    {showSaveOptionSet && (
-                      <div style={{ display: "flex", gap: "8px", marginTop: "8px", alignItems: "center" }}>
-                        <input
-                          value={optionSetNameInput}
-                          onChange={(e) => setOptionSetNameInput(e.target.value)}
-                          placeholder="Option set name, e.g., Top 16 Teams"
-                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveOptionSet(); } }}
-                          style={{ border: "1px solid var(--hairline)", height: "34px", flex: 1 }}
-                        />
-                        <button type="button" className="button gold" onClick={saveOptionSet} style={{ height: "34px", fontSize: "12px", padding: "0 14px" }}>
-                          Save
-                        </button>
-                      </div>
-                    )}
-
-                    {savedOptionSets.length > 0 && (
-                      <div style={{ display: "grid", gap: "6px", marginTop: "8px" }}>
-                        {savedOptionSets.map((set) => (
-                          <div
-                            key={set.id}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                              padding: "8px 10px",
-                              background: "var(--bg)",
-                              borderRadius: "8px",
-                              border: "1px solid var(--hairline)"
-                            }}
-                          >
-                            {editingOptionSetId === set.id ? (
-                              <>
-                                <input
-                                  value={editOptionSetNameInput}
-                                  onChange={(e) => setEditOptionSetNameInput(e.target.value)}
-                                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); updateOptionSetName(set.id); } }}
-                                  style={{ border: "1px solid var(--hairline)", height: "28px", flex: 1, fontSize: "12px" }}
-                                  autoFocus
-                                />
-                                <button type="button" className="button gold" onClick={() => updateOptionSetName(set.id)} style={{ height: "28px", fontSize: "11px", padding: "0 8px" }}>OK</button>
-                                <button type="button" className="button" onClick={() => { setEditingOptionSetId(null); setEditOptionSetNameInput(""); }} style={{ height: "28px", fontSize: "11px", padding: "0 8px" }}>Cancel</button>
-                              </>
-                            ) : (
-                              <>
-                                <span style={{ flex: 1, fontSize: "13px" }}>
-                                  <strong>{set.name}</strong>
-                                  <span className="meta" style={{ fontSize: "11px", marginLeft: "6px", color: "var(--muted)" }}>({set.options.length} options)</span>
-                                </span>
-                                <button
-                                  type="button"
-                                  className="button gold"
-                                  onClick={() => loadOptionSet(set.id)}
-                                  style={{ height: "28px", fontSize: "11px", padding: "0 10px" }}
-                                  title="Load this option set"
-                                >
-                                  Load
-                                </button>
-                                <button
-                                  type="button"
-                                  className="button"
-                                  onClick={() => {
-                                    setEditingOptionSetId(set.id);
-                                    setEditOptionSetNameInput(set.name);
-                                  }}
-                                  style={{ height: "28px", fontSize: "11px", padding: "0 8px" }}
-                                  title="Edit name"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  className="button"
-                                  onClick={() => overwriteOptionSet(set.id)}
-                                  style={{ height: "28px", fontSize: "11px", padding: "0 8px" }}
-                                  title="SaveOverwritewith current options"
-                                >
-                                  Overwrite
-                                </button>
-                                <button
-                                  type="button"
-                                  className="button"
-                                  onClick={() => deleteOptionSet(set.id)}
-                                  style={{ height: "28px", fontSize: "11px", padding: "0 8px", color: "var(--red)" }}
-                                  title="Delete this set"
-                                >
-                                  Delete
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                 </div>
