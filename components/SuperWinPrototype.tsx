@@ -233,20 +233,6 @@ type ApiClaimResponse = {
   error?: string;
 };
 
-type ApiSpecialClaimResponse = {
-  ok: boolean;
-  data?: {
-    amount: number;
-    user: {
-      coinBalance: number;
-      lifetimeProfit: number;
-      nextSpecialClaimAt: string | null;
-    };
-  };
-  error?: string;
-  th?: string;
-};
-
 declare global {
   interface Window {
     google?: {
@@ -317,90 +303,6 @@ type LeaderboardRow = {
   avatarUrl?: string | null;
 };
 
-// ── Memoized YouTube Embed Component (prevents re-renders from parent state changes) ──
-const YouTubeEmbedSection = memo(function YouTubeEmbedSection({ embedCode }: { embedCode: string }) {
-  // Inject autoplay=1&mute=1 into YouTube iframe URLs for autoplay support
-  const autoPlayCode = useMemo(() => {
-    if (!embedCode) return embedCode;
-    // Match any YouTube embed URL variant (youtube.com, youtube-nocookie.com, youtu.be)
-    // and inject autoplay params. Also ensure iframe has allow="autoplay"
-    let result = embedCode.replace(
-      /(https?:\/\/(?:www\.)?(?:youtube\.com|youtube-nocookie\.com)\/embed\/[^\s"'?]+)(\?[^\s"']*)?/g,
-      (match, baseUrl, existingParams) => {
-        const separator = existingParams ? '&' : '?';
-        const params = existingParams || '';
-        // Add autoplay params if not already present
-        let newParams = params;
-        if (!params.includes('autoplay=')) newParams += `${separator}autoplay=1`;
-        if (!params.includes('mute=')) newParams += `${newParams.includes('?') ? '&' : separator}mute=1`;
-        if (!params.includes('controls=')) newParams += `${newParams.includes('?') ? '&' : separator}controls=1`;
-        if (!params.includes('rel=')) newParams += `${newParams.includes('?') ? '&' : separator}rel=0`;
-        return `${baseUrl}${newParams}`;
-      }
-    );
-    // Also handle youtu.be short URLs
-    result = result.replace(
-      /(https?:\/\/(?:www\.)?youtu\.be\/[^\s"'?]+)(\?[^\s"']*)?/g,
-      (match, baseUrl, existingParams) => {
-        const separator = existingParams ? '&' : '?';
-        const params = existingParams || '';
-        let newParams = params;
-        if (!params.includes('autoplay=')) newParams += `${separator}autoplay=1`;
-        if (!params.includes('mute=')) newParams += `${newParams.includes('?') ? '&' : separator}mute=1`;
-        return `${baseUrl}${newParams}`;
-      }
-    );
-    // Ensure iframe has allow attribute for autoplay
-    if (!result.includes('allow="autoplay"') && !result.includes("allow='autoplay'")) {
-      result = result.replace(/<iframe([^>]*)>/gi, '<iframe$1 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>');
-    }
-    // Force iframe to fill container: remove inline width/height and add style for full fill
-    result = result.replace(/<iframe([^>]*)>/gi, (match, attrs) => {
-      // Remove inline width/height attributes that break responsive layout
-      let cleaned = attrs.replace(/\s*width="[^"]*"/gi, '').replace(/\s*height="[^"]*"/gi, '');
-      // Remove style that sets width/height
-      cleaned = cleaned.replace(/\s*style="[^"]*(?:width|height)[^"]*"/gi, (s: string) => {
-        // Keep other style props but strip width/height
-        const inner = s.slice(7, -1);
-        const filtered = inner.split(/;\s*/).filter((p: string) => !/^(?:width|height)\s*:/.test(p.trim())).join('; ');
-        return filtered ? ` style="${filtered}"` : '';
-      });
-      // Add style to make iframe fill the absolutely-positioned parent
-      return `<iframe${cleaned} style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;">`;
-    });
-    return result;
-  }, [embedCode]);
-
-  return (
-    <div style={{
-      margin: "0 0 16px 0",
-      borderRadius: "12px",
-      overflow: "hidden",
-      border: "1px solid var(--hairline)",
-      background: "var(--card)",
-      width: "100%",
-      maxWidth: "720px",
-      marginLeft: "auto",
-      marginRight: "auto",
-    }}>
-      <div style={{
-        position: "relative",
-        width: "100%",
-        paddingBottom: "56.25%", /* 16:9 aspect ratio */
-        height: 0,
-      }}>
-        <div dangerouslySetInnerHTML={{ __html: autoPlayCode || embedCode }} style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-        }} />
-      </div>
-    </div>
-  );
-});
-
 export default function SuperWinPrototype() {
   const { isSignedIn, user: clerkUser } = useUser();
   const [devBypass, setDevBypass] = useState(false);
@@ -414,14 +316,6 @@ export default function SuperWinPrototype() {
   const [rankName, setRankName] = useState<string | null>(null);
   const [rankIcon, setRankIcon] = useState<string | null>(null);
   const [nextClaimAt, setNextClaimAt] = useState(0);
-  const [nextSpecialClaimAt, setNextSpecialClaimAt] = useState(0);
-  const [specialClaimLoading, setSpecialClaimLoading] = useState(false);
-  const [specialClaimLabel, setSpecialClaimLabel] = useState("⭐");
-  const [youtubeEmbed, setYoutubeEmbed] = useState<string>('');
-  const [youtubeScheduleStart, setYoutubeScheduleStart] = useState<string>('');
-  const [youtubeScheduleEnd, setYoutubeScheduleEnd] = useState<string>('');
-  const [youtubeOpenNow, setYoutubeOpenNow] = useState(false);
-  const [frontendFeaturesEnabled, setFrontendFeaturesEnabled] = useState(true);
 
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -611,59 +505,6 @@ export default function SuperWinPrototype() {
     setCoins(Number(localStorage.getItem("sr_coins")) || 500);
     setProfit(Number(localStorage.getItem("sr_profit")) || 0);
     setNextClaimAt(Number(localStorage.getItem("sr_next_claim")) || 0);
-    setNextSpecialClaimAt(Number(localStorage.getItem("sr_next_special_claim")) || 0);
-
-    // Load site settings (YouTube embed, frontend features toggle, etc.)
-    fetch('/api/settings')
-      .then(res => res.json())
-      .then(json => {
-        if (json.ok && json.data) {
-          // Try primary location first: youtube_embed.embed_code
-          let embedCode = '';
-          if (json.data.youtube_embed?.embed_code) {
-            embedCode = json.data.youtube_embed.embed_code;
-          }
-          // New format: youtube_embed.url — convert to iframe
-          if (!embedCode && json.data.youtube_embed?.url) {
-            const url = json.data.youtube_embed.url.trim();
-            let videoId = '';
-            const patterns = [
-              /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
-              /^([a-zA-Z0-9_-]{11})$/,
-            ];
-            for (const p of patterns) {
-              const m = url.match(p);
-              if (m && m[1]) { videoId = m[1]; break; }
-            }
-            if (videoId) {
-              embedCode = `<iframe width="560" height="315" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-            }
-          }
-          // Fallback: frontend_features may contain youtube_embed string directly
-          if (!embedCode && json.data.frontend_features?.youtube_embed) {
-            embedCode = json.data.frontend_features.youtube_embed;
-          }
-          setYoutubeEmbed(embedCode);
-
-          // Load open_now flag — if true, always show regardless of schedule
-          if (json.data.youtube_embed?.open_now !== undefined) {
-            setYoutubeOpenNow(!!json.data.youtube_embed.open_now);
-          }
-          // Load schedule times
-          if (json.data.youtube_embed?.schedule_start) {
-            setYoutubeScheduleStart(json.data.youtube_embed.schedule_start);
-          }
-          if (json.data.youtube_embed?.schedule_end) {
-            setYoutubeScheduleEnd(json.data.youtube_embed.schedule_end);
-          }
-
-          if (json.data.frontend_features !== undefined) {
-            setFrontendFeaturesEnabled(json.data.frontend_features.enabled !== false);
-
-          }
-        }
-      })
-      .catch(() => {});
     setRunning(safeJson("sr_running", []));
     loadOpenPredictions().catch(() => undefined);
     loadSettings().catch(() => undefined);
@@ -785,7 +626,6 @@ export default function SuperWinPrototype() {
     localStorage.setItem("sr_coins", String(coins));
     localStorage.setItem("sr_profit", String(profit));
     localStorage.setItem("sr_next_claim", String(nextClaimAt));
-    localStorage.setItem("sr_next_special_claim", String(nextSpecialClaimAt));
     localStorage.setItem("sr_running", JSON.stringify(running.slice(0, 30)));
   }, [coins, profit, nextClaimAt, running, mounted]);
 
@@ -801,21 +641,11 @@ export default function SuperWinPrototype() {
         const seconds = Math.floor((claimRemaining % 60000) / 1000);
         setClaimLabel(`${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`);
       }
-
-      // ── Special Claim countdown ──
-      if (nextSpecialClaimAt <= Date.now()) {
-        setSpecialClaimLabel("Ready");
-      } else {
-        const specialRemaining = nextSpecialClaimAt - Date.now();
-        const mins = Math.floor(specialRemaining / 60000);
-        const secs = Math.floor((specialRemaining % 60000) / 1000);
-        setSpecialClaimLabel(`${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`);
-      }
     };
     tick();
     const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
-  }, [nextClaimAt, nextSpecialClaimAt]);
+  }, [nextClaimAt]);
 
   // Cleanup profile refresh interval on component unmount
   useEffect(() => {
@@ -1430,41 +1260,7 @@ export default function SuperWinPrototype() {
     }
   }
 
-  // ── Special Claim (กระสุนส้มพิเศษ 10 นาที) ──
-  async function specialClaim() {
-    if ((!devBypass && !isSignedIn) || Date.now() < nextSpecialClaimAt) return;
-
-    setSpecialClaimLoading(true);
-    try {
-      const response = await fetch("/api/special-claim", { method: "POST" });
-      const result: ApiSpecialClaimResponse = await response.json();
-
-      if (!result.ok) {
-        alert(result.th || result.error || "ไม่สามารถกดรับได้");
-        return;
-      }
-
-      if (result.data) {
-        setCoins(result.data.user.coinBalance);
-        setProfit(result.data.user.lifetimeProfit);
-        if (result.data.user.nextSpecialClaimAt) {
-          setNextSpecialClaimAt(new Date(result.data.user.nextSpecialClaimAt).getTime());
-        }
-        // Show reward animation
-        setClaimResult(result.data.amount);
-        setClaimFlash(true);
-        setOpenModal("claimResult");
-        if (claimFlashTimer.current) clearTimeout(claimFlashTimer.current);
-        claimFlashTimer.current = setTimeout(() => { setClaimFlash(false); setOpenModal(null); }, 5000);
-      }
-    } catch (err) {
-      console.error("Special claim error:", err);
-      alert("เกิดข้อผิดพลาด กรุณาลองอีกครั้ง");
-    } finally {
-      setSpecialClaimLoading(false);
-    }
-  }
-
+  // ── Confirm Prediction ──
   async function confirmPrediction(question: Question) {
     const amount = Number(coinInputs[question.id] || 0);
     const answer = selectedOption(question);
@@ -1699,83 +1495,6 @@ export default function SuperWinPrototype() {
             )}
           </div>
         </header>
-
-        {/* ── YouTube Embed Section (only if enabled by admin) ── */}
-        {mounted && frontendFeaturesEnabled && youtubeEmbed && (() => {
-          // If youtubeOpenNow is true, always show regardless of schedule
-          if (youtubeOpenNow) {
-            return <YouTubeEmbedSection embedCode={youtubeEmbed} />;
-          }
-          // Check schedule: only show YouTube embed within scheduled time window
-          const now = new Date();
-          let shouldShow = true;
-          if (youtubeScheduleStart) {
-            const startDate = new Date(youtubeScheduleStart);
-            if (!isNaN(startDate.getTime()) && now < startDate) {
-              shouldShow = false;
-            }
-          }
-          if (youtubeScheduleEnd) {
-            const endDate = new Date(youtubeScheduleEnd);
-            if (!isNaN(endDate.getTime()) && now > endDate) {
-              shouldShow = false;
-            }
-          }
-          return shouldShow ? <YouTubeEmbedSection embedCode={youtubeEmbed} /> : null;
-        })()}
-
-        {/* ── Special 10-min Claim ── */}
-        {frontendFeaturesEnabled && (<div style={{
-          margin: "0 0 12px 0",
-          padding: "12px 16px",
-          background: "var(--card)",
-          border: "1px solid var(--hairline)",
-          borderRadius: "12px",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-        }}>
-          {/* Ammo Icon */}
-          <img src="https://superwinhub.app/ammo-icon.webp" alt="" width={24} height={24} style={{ 
-              flexShrink: 0, 
-              objectFit: "contain",
-            }} />
-          
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--text-strong)", marginBottom: "2px" }}>
-              Special Claim
-            </div>
-            <div style={{ fontSize: "10px", color: "var(--muted)" }}>
-              Free coins every 10 minutes
-            </div>
-          </div>
-
-          <button
-            onClick={specialClaim}
-            disabled={specialClaimLoading || (!devBypass && !isSignedIn) || Date.now() >= nextSpecialClaimAt === false}
-            style={{
-              flexShrink: 0,
-              padding: "6px 14px",
-              fontSize: "11px",
-              fontWeight: "700",
-              borderRadius: "8px",
-              border: "none",
-              cursor: (specialClaimLoading || (!devBypass && !isSignedIn) || Date.now() >= nextSpecialClaimAt === false) ? "not-allowed" : "pointer",
-              background: Date.now() >= nextSpecialClaimAt
-                ? "var(--yellow)"
-                : "var(--hairline)",
-              color: Date.now() >= nextSpecialClaimAt ? "var(--bg)" : "var(--muted)",
-              transition: "all 0.15s",
-              minWidth: "64px",
-            }}
-          >
-            {specialClaimLoading ? (
-              <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⏳</span>
-            ) : (
-              <span style={{ fontSize: "11px", lineHeight: 1, fontWeight: "700" }}>{specialClaimLabel}</span>
-            )}
-          </button>
-        </div>)}
 
         {(devBypass || isSignedIn) && (
         <section className="stats" aria-label="Account stats">
