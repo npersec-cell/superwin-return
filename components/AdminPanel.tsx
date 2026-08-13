@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReportChat from "@/components/ReportChat";
 
 type AdminPrediction = {
@@ -191,7 +191,6 @@ function getTournamentInfo(t: string | TournamentItem) {
 
 export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [predictions, setPredictions] = useState<AdminPrediction[]>([]);
-  const [allPredictions, setAllPredictions] = useState<AdminPrediction[]>([]);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -208,17 +207,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [optionsBulkInput, setOptionsBulkInput] = useState("");
   const [showBulkOptions, setShowBulkOptions] = useState(false);
   const [dashboardData, setDashboardData] = useState<DashboardPrediction[]>([]);
-  const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
   const [draftOptions, setDraftOptions] = useState<string[]>([]);
   const [winningOptions, setWinningOptions] = useState<Record<string, string>>({});
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [editTemplateInput, setEditTemplateInput] = useState("");
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
   const [showArchived, setShowArchived] = useState(false);
-  const [topUsers, setTopUsers] = useState<Array<{ id: string; email: string; displayName: string; lifetimeProfit?: number }>>([]);
   const [editClosesAt, setEditClosesAt] = useState<Record<string, string>>({});
   const [editQuestions, setEditQuestions] = useState<Record<string, string>>({});
-  const [editOptionsInputs, setEditOptionsInputs] = useState<Record<string, Record<string, string>>>({}); // deprecated — options are now locked
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTournamentNames, setEditTournamentNames] = useState<Record<string, string>>({});
 
@@ -301,9 +297,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   const [contestsLoading, setContestsLoading] = useState(false);
   const [showNewContestForm, setShowNewContestForm] = useState(false);
 
-  const [chatmessages, setChatmessages] = useState<any[]>([]);
   const [reportsEnabled, setReportsEnabled] = useState(true);
-  const [chatLoading, setChatLoading] = useState(false);
   const [showEditContestForm, setShowEditContestForm] = useState(false);
   const [editingContestId, setEditingContestId] = useState<string | null>(null);
   const [newContestName, setNewContestName] = useState("");
@@ -495,25 +489,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   useEffect(() => { setResolvedPage(1); }, [runningTournamentFilter]);
 
-  // ── Pagination for All Questions ──
-  const [allPage, setAllPage] = useState(1);
-  const allPageSize = 5;
-  const allTotalPages = Math.max(1, Math.ceil(predictions.length / allPageSize));
-  const currentAll = useMemo(() => {
-    const start = (allPage - 1) * allPageSize;
-    return predictions.slice(start, start + allPageSize);
-  }, [predictions, allPage]);
-
-
   async function loadPredictions() {
     const data = await requestJson<AdminPrediction[]>("/api/admin/predictions");
     setPredictions(data);
-    setAllPredictions(data);
-  }
-
-  async function loadAllPredictions() {
-    const data = await requestJson<AdminPrediction[]>("/api/admin/predictions");
-    setAllPredictions(data);
   }
 
   async function loadAdmins() {
@@ -533,11 +511,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   async function loadSettings() {
     const data = await requestJson<SiteSettings>("/api/admin/settings");
     setSettings(data);
-  }
-
-  async function loadTopUsers() {
-    const data = await requestJson<Array<{ id: string; email: string; displayName: string }>>("/api/admin/leaderboard");
-    setTopUsers(data);
   }
 
   async function loadDashboardData() {
@@ -667,51 +640,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }
   }
 
-  async function loadChatmessages() {
-    setChatLoading(true);
-    try {
-      const data = await requestJson<any[]>('/api/admin/chat?limit=200');
-      setChatmessages(data || []);
-    } catch (e) {
-      console.error('Failed to load chat:', e);
-    } finally {
-      setChatLoading(false);
-    }
-  }
-
-  async function deleteChatmessage(id: string) {
-    if (!confirm('Delete this message?')) return;
-    try {
-      const res = await fetch(`/api/chat/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setChatmessages(prev => prev.filter(m => m.id !== id));
-      } else {
-        alert('Delete failed');
-      }
-    } catch {
-      alert('An error occurred');
-    }
-  }
-
   async function reloadAll() {
-    await Promise.all([loadPredictions(), loadAdmins(), loadSettings(), loadTopUsers(), loadDashboardData()]);
+    await Promise.all([loadPredictions(), loadAdmins(), loadSettings(), loadDashboardData()]);
   }
 
   useEffect(() => {
     reloadAll().catch((error) => setMessage(error.message));
     loadUserEmails().catch(console.warn);
   }, []);
-
-  /** Convert datetime-local value (always Thai time) to UTC ISO string for storage */
-  function thaiLocalToUTC(datetimeLocal: string): string {
-    if (!datetimeLocal) return "";
-    // If already has timezone info, parse directly
-    if (datetimeLocal.includes("Z") || datetimeLocal.includes("+")) {
-      return new Date(datetimeLocal).toISOString();
-    }
-    // Bare datetime (e.g. "2026-07-30T20:00") — always treat as Thai time (GMT+7)
-    return new Date(datetimeLocal + "+07:00").toISOString();
-  }
 
   useEffect(() => {
     if (activeTab !== "dashboard") return;
@@ -766,7 +702,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
         body: JSON.stringify({ tournamentName, question: fullQuestion, opensAt, closesAt, feeRate: Number(feeRate), status: "open", options })
       });
       // Auto-sort: insert new prediction ID into predictionOrder by closesAt
-      const currentOrder = settings.predictionOrder || [];
       const allPredictions = [...predictions, data];
       const sorted = [...allPredictions].sort((a, b) => {
         const timeA = a.closesAt ? new Date(a.closesAt).getTime() : Infinity;
@@ -1274,22 +1209,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     }
   }
 
-  async function deletePrediction(id: string) {
-    const confirmed = window.confirm("Permanently delete this question from the system? (All answer options and bet entries for this question will also be deleted and cannot be recovered.)");
-    if (!confirmed) return;
-    setLoading(true);
-    setMessage("");
-    try {
-      await requestJson<unknown>(`/api/admin/predictions/${id}`, { method: "DELETE" });
-      setMessage("Question permanently deleted");
-      await loadPredictions();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to delete question");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function resolvePrediction(item: AdminPrediction) {
     const winningOptionId = winningOptions[item.id];
     if (!winningOptionId) {
@@ -1364,14 +1283,9 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
             <button className="button primary" disabled={disabled} onClick={() => resolvePrediction(item)}>Resolve</button>
           </>
         )}
-        {/* Cancel + Refund or Delete */}
+        {/* Cancel + Refund */}
         {!disabled && hasEntries && (
           <button className="button" disabled={loading} onClick={() => refundPrediction(item)}>Cancel + Refund</button>
-        )}
-        {(!hasEntries || item.status === "resolved" || item.status === "canceled") && (
-          <button className="button" type="button" disabled={loading} onClick={() => deletePrediction(item.id)} style={{ color: "#ff4d4f", borderColor: "#ff4d4f", background: "transparent" }}>
-            Delete Permanently
-          </button>
         )}
       </div>
     );
@@ -1590,7 +1504,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "tournaments" ? "active" : ""}`} onClick={() => setActiveTab("tournaments")} style={{ borderRadius: "999px" }}>Tournaments</button>
           <button className={`button ${activeTab === "questions" ? "active" : ""}`} onClick={() => setActiveTab("questions")} style={{ borderRadius: "999px" }}>Create Question</button>
           <button className={`button ${activeTab === "running" ? "active" : ""}`} onClick={() => setActiveTab("running")} style={{ borderRadius: "999px" }}>Running Questions</button>
-          <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => { setActiveTab("settings"); loadChatmessages(); }} style={{ borderRadius: "999px" }}>Settings</button>
+          <button className={`button ${activeTab === "settings" ? "active" : ""}`} onClick={() => setActiveTab("settings")} style={{ borderRadius: "999px" }}>Settings</button>
           <button className={`button ${activeTab === "admins" ? "active" : ""}`} onClick={() => setActiveTab("admins")} style={{ borderRadius: "999px" }}>Admins ({admins.length})</button>
           <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>Reports ({reports.length})</button>
           <button className={`button ${activeTab === "users" ? "active" : ""}`} onClick={() => setActiveTab("users")} style={{ borderRadius: "999px" }}>User Management ({users.length})</button>
@@ -2169,7 +2083,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                                     item.options.forEach(o => {
                                       initialOpts[o.id] = o.label;
                                     });
-                                    setEditOptionsInputs((current) => ({ ...current, [item.id]: initialOpts }));
                                   }} 
                                   style={{ height: "18px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--yellow)", color: "var(--yellow)", borderRadius: "4px", cursor: "pointer" }}
                                 >

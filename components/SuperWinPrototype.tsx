@@ -1,10 +1,10 @@
 "use client";
 
-import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
+import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import ReportChat from "@/components/ReportChat";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, memo } from "react";
-import { compact, getRankFromPosition, maskName, randomClaimAmount, formatCountdown } from "@/lib/utils";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { compact, getRankFromPosition, maskName, randomClaimAmount } from "@/lib/utils";
 import LiveBetModal, { type LiveBet } from "@/components/LiveBetModal";
 
 type PredictionOption = {
@@ -124,26 +124,6 @@ type ApiPredictResponse = {
   error?: string;
 };
 
-type CreateQuestionCheckResponse = {
-  ok: boolean;
-  data?: {
-    canCreate: boolean;
-    rank: string;
-    rankIcon: string;
-    openQuestions: number;
-    maxAllowed: number;
-    remainingSlots: number;
-    reason: string | null;
-  };
-  error?: string;
-};
-
-type ActiveTournamentsResponse = {
-  ok: boolean;
-  data?: string[];
-  error?: string;
-};
-
 type SiteSettings = {
   info: {
     content: string;
@@ -249,15 +229,6 @@ declare global {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const HISTORY_PAGE_SIZE = 10;
-const RUNNING_PAGE_SIZE = 10;
-const MAX_HISTORY_PAGES = 10;
-
-const CHART_COLORS = ["#FF4D4D", "#4DA6FF", "#FFD93D", "#6BE585"];
-const CHIP_AMOUNTS = [5, 10, 50, 100, 500];
-
-const HIGH_STAKES_THRESHOLD = 500;
-
 const defaultSettings: SiteSettings = {
   info: {
     content: "ล็อกอิน ➔ กดรับเหรียญฟรีทุก 1 ชั่วโมง ➔ เลือกวิเคราะห์ทีมที่ชอบ ➔ ใส่จำนวนเหรียญแล้วกดยืนยันคำทายผล\n\nแต่ละคำถามมีเวลานับถอยหลังปิดรับทายแยกอิสระ เมื่อปิดทายผลแล้วแอดมินจะทำการสรุปและแจกจ่ายเหรียญรางวัลสุทธิทันที"
@@ -306,7 +277,6 @@ type LeaderboardRow = {
 export default function SuperWinPrototype() {
   const { isSignedIn, user: clerkUser } = useUser();
   const [devBypass, setDevBypass] = useState(false);
-  const [devUser, setDevUser] = useState(null);
   const [mounted, setMounted] = useState(false);
   const [coins, setCoins] = useState(500);
   const [profit, setProfit] = useState(0);
@@ -327,7 +297,6 @@ export default function SuperWinPrototype() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
   const historyPageSize = 10;
-  const [historyTotalPages, setHistoryTotalPages] = useState(1);
   const [runningPage, setRunningPage] = useState(1);
   const runningPageSize = 10;
   const [questionDeadlines, setQuestionDeadlines] = useState<Record<string, number>>({});
@@ -347,7 +316,6 @@ export default function SuperWinPrototype() {
   const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[]>(defaultLeaderboard);
   const [leaderboardTotalUsers, setLeaderboardTotalUsers] = useState(0);
   const [selectedProfile, setSelectedProfile] = useState<UserProfileStats | null>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   // Store leaderboard values for each category (for fallback in ProfileModal)
@@ -376,7 +344,6 @@ export default function SuperWinPrototype() {
   const [reportMessage, setReportMessage] = useState("");
   const [captchaQuestion, setCaptchaQuestion] = useState("");
   const [contest, setContest] = useState<any>(null);
-  const [contestLoading, setContestLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
@@ -385,10 +352,7 @@ export default function SuperWinPrototype() {
   
   // LIVE PREDICT
   const [liveBets, setLiveBets] = useState<LiveBet[]>([]);
-  const [liveBetsLoading, setLiveBetsLoading] = useState(true);
   const [selectedLiveBet, setSelectedLiveBet] = useState<LiveBet | null>(null);
-
-  const [activeTournaments, setActiveTournaments] = useState<string[]>([]);
 
   // DEV BYPASS: Check for dev_bypass cookie OR URL param on mount
   useEffect(() => {
@@ -420,7 +384,6 @@ export default function SuperWinPrototype() {
           if (hasUrlBypass) {
             setDevBypass(true);
           }
-          setDevUser(data.data);
           setCoins(data.data.coinBalance ?? 500);
           setProfit(data.data.lifetimeProfit ?? 0);
           setCurrentUserId(data.data.id);
@@ -533,18 +496,14 @@ export default function SuperWinPrototype() {
   // Load LIVE PREDICT
   useEffect(() => {
     async function fetchLiveBets() {
-      setLiveBetsLoading(true);
       try {
         const response = await fetch("/api/live-bets");
         const data = await response.json();
         if (data.ok && data.data) {
-          // Direct assignment without conversion
           setLiveBets(data.data);
         }
       } catch {
         // ignore
-      } finally {
-        setLiveBetsLoading(false);
       }
     }
 
@@ -820,7 +779,6 @@ export default function SuperWinPrototype() {
       loading: true,
       history: [],
     });
-    setProfileLoading(true);
 
     async function fetchProfile() {
       try {
@@ -849,8 +807,6 @@ export default function SuperWinPrototype() {
         }
       } catch {
         setSelectedProfile(prev => prev ? { ...prev, loading: false } : null);
-      } finally {
-        setProfileLoading(false);
       }
     }
 
@@ -867,7 +823,6 @@ export default function SuperWinPrototype() {
 
   async function loadContest() {
     try {
-      setContestLoading(true);
       const response = await fetch("/api/contests/current");
       const payload = await response.json();
       if (payload.ok && payload.data) {
@@ -875,8 +830,6 @@ export default function SuperWinPrototype() {
       }
     } catch {
       // Ignored
-    } finally {
-      setContestLoading(false);
     }
   }
 
