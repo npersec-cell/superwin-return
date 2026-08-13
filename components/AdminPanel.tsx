@@ -1615,18 +1615,21 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                     return <div className="question"><span>ไม่มีคำถามที่เปิดอยู่ในขณะนี้</span></div>;
                   }
 
-                  // Sort: by closesAt ascending (soonest first)
-                  const sortedQuestions = [...openQuestions].sort((a, b) => {
-                    const aTime = new Date(a.closesAt || a.createdAt || 0).getTime();
-                    const bTime = new Date(b.closesAt || b.createdAt || 0).getTime();
-                    return aTime - bTime;
+                  // Group by tournament
+                  const byTournament: Record<string, typeof openQuestions> = {};
+                  openQuestions.forEach((q) => {
+                    if (!byTournament[q.tournamentName]) byTournament[q.tournamentName] = [];
+                    byTournament[q.tournamentName].push(q);
                   });
 
-                  const totalTourCoins = sortedQuestions.reduce((sum, q) => sum + q.totalPoolCoins, 0);
-                  const totalTourPlayers = new Set(sortedQuestions.flatMap((q) => q.playerBets.map((b) => b.email))).size;
+                  // Sort tournaments alphabetically
+                  const sortedTournaments = Object.keys(byTournament).sort((a, b) => a.localeCompare(b));
 
-                  const tourAvgCoinsPerQ = sortedQuestions.length > 0 ? Math.round(totalTourCoins / sortedQuestions.length) : 0;
-                  const tourAvgPlayersPerQ = sortedQuestions.length > 0 ? Math.round(totalTourPlayers / sortedQuestions.length) : 0;
+                  const totalTourCoins = openQuestions.reduce((sum, q) => sum + q.totalPoolCoins, 0);
+                  const totalTourPlayers = new Set(openQuestions.flatMap((q) => q.playerBets.map((b) => b.email))).size;
+
+                  const tourAvgCoinsPerQ = openQuestions.length > 0 ? Math.round(totalTourCoins / openQuestions.length) : 0;
+                  const tourAvgPlayersPerQ = openQuestions.length > 0 ? Math.round(totalTourPlayers / openQuestions.length) : 0;
 
                   // Colors for charts and UI
                   const colors = {
@@ -1671,12 +1674,30 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                         </div>
                       </div>
 
-                      {/* ── Question Details ── */}
+                      {/* ── Question Details (grouped by tournament) ── */}
                       <div style={{ display: "grid", gap: "14px" }}>
-                        <div style={{ fontSize: "13px", fontWeight: "700", color: "var(--text)", padding: "8px 4px", borderBottom: "1px solid var(--hairline)" }}>
-                          Question Details ({sortedQuestions.length} questions)
-                        </div>
-                        {sortedQuestions.map((q, qIdx) => (
+                        {sortedTournaments.map((tourName) => {
+                          const tourQuestions = byTournament[tourName].sort((a, b) => {
+                            const aTime = new Date(a.closesAt || a.createdAt || 0).getTime();
+                            const bTime = new Date(b.closesAt || b.createdAt || 0).getTime();
+                            return aTime - bTime;
+                          });
+                          const tourCoins = tourQuestions.reduce((sum, q) => sum + q.totalPoolCoins, 0);
+                          const tourPlayers = new Set(tourQuestions.flatMap((q) => q.playerBets.map((b) => b.email))).size;
+                          return (
+                            <div key={tourName} style={{ border: "1px solid var(--hairline)", borderRadius: "12px", background: "var(--bg)", overflow: "hidden" }}>
+                              {/* Tournament Header */}
+                              <div style={{ padding: "12px 16px", background: "rgba(255,255,255,0.02)", borderBottom: "1px solid var(--hairline)", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                                <strong style={{ fontSize: "15px", color: "#fff" }}>{tourName}</strong>
+                                <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>{tourQuestions.length} คำถาม</span>
+                                <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>•</span>
+                                <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>พูลรวม <strong style={{ color: "#fff" }}>{tourCoins.toLocaleString()}</strong></span>
+                                <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>•</span>
+                                <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>{tourPlayers} คน</span>
+                              </div>
+                              {/* Questions */}
+                              <div style={{ padding: "12px", display: "grid", gap: "12px" }}>
+                                {tourQuestions.map((q, qIdx) => (
                           <div key={q.id} style={{ border: "1px solid var(--hairline)", borderRadius: "12px", background: "var(--bg)", padding: "14px", display: "grid", gap: "10px" }}>
                             {/* Header with icon, question, status badge */}
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
@@ -1792,6 +1813,10 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             </div>
                           </div>
                         ))}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
 
                     </div>
