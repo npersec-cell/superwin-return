@@ -68,7 +68,7 @@ type SiteSettings = {
     content: string;
   };
   tournaments: (string | TournamentItem)[];
-  savedQuestions: string[];
+  savedQuestions: Array<{ question: string; options?: string[] }>;
   savedRounds: string[];
   predictionOrder?: string[];
   announcement?: string;
@@ -131,9 +131,9 @@ const defaultSettings: SiteSettings = {
   },
   tournaments: [{ name: "Super League", logoUrl: "" }],
   savedQuestions: [
-    "Which team will win the championship?",
-    "Which team will get the Chicken Dinner?",
-    "Who will get the most kills in this match?"
+    { question: "Which team will win the championship?", options: ["Team A", "Team B", "Team C"] },
+    { question: "Which team will get the Chicken Dinner?", options: ["Squad Alpha", "Squad Bravo", "Squad Charlie"] },
+    { question: "Who will get the most kills in this match?", options: ["Player A", "Player B", "Player C", "Other"] }
   ],
   savedRounds: [
     "รอบแบ่งกลุ่ม",
@@ -1135,21 +1135,21 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   async function saveQuestionTemplate() {
     const name = question.trim();
     if (!name) return;
-    if (settings.savedQuestions?.includes(name)) {
+    if ((settings.savedQuestions || []).some((q) => q.question === name)) {
       setMessage("This question template already exists");
       return;
     }
     setLoading(true);
     setMessage("");
     try {
-      const nextQuestions = [...(settings.savedQuestions || []), name];
+      const nextQuestions = [...(settings.savedQuestions || []), { question: name, options: [...draftOptions] }];
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ savedQuestions: nextQuestions })
       });
       setSettings(data);
-      setMessage(`Question template saved`);
+      setMessage(`Question template saved (${draftOptions.length} options)`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to save question template");
     } finally {
@@ -1163,7 +1163,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     setLoading(true);
     setMessage("");
     try {
-      const nextQuestions = (settings.savedQuestions || []).filter((q) => q !== name);
+      const nextQuestions = (settings.savedQuestions || []).filter((q) => q.question !== name);
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -1185,14 +1185,14 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
       setEditingTemplate(null);
       return;
     }
-    if (settings.savedQuestions?.includes(trimmed)) {
+    if ((settings.savedQuestions || []).some((q) => q.question === trimmed)) {
       setMessage("A question with this name already exists");
       return;
     }
     setLoading(true);
     setMessage("");
     try {
-      const nextQuestions = (settings.savedQuestions || []).map((q) => (q === oldName ? trimmed : q));
+      const nextQuestions = (settings.savedQuestions || []).map((q) => (q.question === oldName ? { ...q, question: trimmed } : q));
       const data = await requestJson<SiteSettings>("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -2059,51 +2059,58 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   )}
                 </div>
 
-                <div style={{ display: "grid", gap: "4px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Question</span>
-                    <button className="button" type="button" disabled={!question.trim()} onClick={saveQuestionTemplate} style={{ height: "18px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--yellow)", color: "var(--yellow)", borderRadius: "4px" }}>
-                      Save Question Template
-                    </button>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "10px" }}>
-                    <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Type question or pick from templates" style={{ height: "34px" }} />
-                    <select className="button" value="" onChange={(event) => { if (event.target.value) setQuestion(event.target.value); }} style={{ height: "34px", width: "auto", minWidth: "260px", maxWidth: "400px" }}>
-                      <option value="">-- Question Template --</option>
-                      {(settings.savedQuestions || []).map((q) => (
-                        <option key={q} value={q}>{q}</option>
-                      ))}
-                    </select>
-                  </div>
-                  {settings.savedQuestions && settings.savedQuestions.length > 0 && (
-                    <details style={{ marginTop: "6px", cursor: "pointer" }}>
-                      <summary className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>✏️ Manage Saved Question Templates</summary>
-                      <div style={{ display: "grid", gap: "4px", marginTop: "6px", maxHeight: "120px", overflowY: "auto", padding: "4px", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)" }}>
-                        {settings.savedQuestions.map((q) => (
-                          <div key={q} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", padding: "4px 8px", background: "var(--card)", borderRadius: "4px" }}>
-                            {editingTemplate === q ? (
-                              <>
-                                <input value={editTemplateInput} onChange={(event) => setEditTemplateInput(event.target.value)} style={{ flex: 1, height: "26px", fontSize: "11px" }} autoFocus />
-                                <div style={{ display: "flex", gap: "4px" }}>
-                                  <button className="button" type="button" onClick={() => renameQuestionTemplate(q, editTemplateInput)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", color: "var(--green)" }}>Save</button>
-                                  <button className="button" type="button" onClick={() => setEditingTemplate(null)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--muted)", color: "var(--muted)" }}>Cancel</button>
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <span style={{ fontSize: "11px", color: "var(--text)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>{q}</span>
-                                <div style={{ display: "flex", gap: "4px" }}>
-                                  <button className="button" type="button" onClick={() => { setEditingTemplate(q); setEditTemplateInput(q); }} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(59, 130, 246, 0.1)", border: "1px solid var(--info)", color: "var(--info)" }}>Edit</button>
-                                  <button className="button" type="button" onClick={() => removeQuestionTemplate(q)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(240, 84, 84, 0.1)", border: "1px solid #ef4444", color: "#ef4444" }}>Delete</button>
-                                </div>
-                              </>
-                            )}
-                          </div>
+                  <div style={{ display: "grid", gap: "4px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span className="meta" style={{ fontSize: "11px", color: "var(--muted)" }}>Question</span>
+                      <button className="button" type="button" disabled={!question.trim()} onClick={saveQuestionTemplate} style={{ height: "18px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--yellow)", color: "var(--yellow)", borderRadius: "4px" }}>
+                        Save Question Template
+                      </button>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "10px" }}>
+                      <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Type question or pick from templates" style={{ height: "34px" }} />
+                      <select className="button" value="" onChange={(event) => { if (event.target.value) { const tpl = (settings.savedQuestions || []).find((q) => q.question === event.target.value); if (tpl) { setQuestion(tpl.question); if (tpl.options && tpl.options.length > 0) setDraftOptions([...tpl.options]); } }} } style={{ height: "34px", width: "auto", minWidth: "260px", maxWidth: "400px" }}>
+                        <option value="">-- Question Template --</option>
+                        {(settings.savedQuestions || []).map((q) => (
+                          <option key={q.question} value={q.question}>{q.question}</option>
                         ))}
-                      </div>
-                    </details>
-                  )}
-                </div>
+                      </select>
+                    </div>
+                    {settings.savedQuestions && settings.savedQuestions.length > 0 && (
+                      <details style={{ marginTop: "6px", cursor: "pointer" }}>
+                        <summary className="meta" style={{ fontSize: "10px", color: "var(--muted)" }}>✏️ Manage Saved Question Templates</summary>
+                        <div style={{ display: "grid", gap: "4px", marginTop: "6px", maxHeight: "200px", overflowY: "auto", padding: "4px", background: "var(--bg)", borderRadius: "6px", border: "1px solid var(--hairline)" }}>
+                          {settings.savedQuestions.map((q) => (
+                            <div key={q.question} style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "6px 8px", background: "var(--card)", borderRadius: "4px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", width: "100%" }}>
+                                {editingTemplate === q.question ? (
+                                  <>
+                                    <input value={editTemplateInput} onChange={(event) => setEditTemplateInput(event.target.value)} style={{ flex: 1, height: "26px", fontSize: "11px" }} autoFocus />
+                                    <div style={{ display: "flex", gap: "4px" }}>
+                                      <button className="button" type="button" onClick={() => renameQuestionTemplate(q.question, editTemplateInput)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(14, 203, 129, 0.1)", border: "1px solid var(--green)", color: "var(--green)" }}>Save</button>
+                                      <button className="button" type="button" onClick={() => setEditingTemplate(null)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "transparent", border: "1px solid var(--muted)", color: "var(--muted)" }}>Cancel</button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span style={{ fontSize: "11px", color: "var(--text)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", flex: 1 }}>{q.question}</span>
+                                    <div style={{ display: "flex", gap: "4px", flexShrink: 0 }}>
+                                      <button className="button" type="button" onClick={() => { setEditingTemplate(q.question); setEditTemplateInput(q.question); }} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(59, 130, 246, 0.1)", border: "1px solid var(--info)", color: "var(--info)" }}>Edit</button>
+                                      <button className="button" type="button" onClick={() => removeQuestionTemplate(q.question)} style={{ height: "20px", fontSize: "9px", padding: "0 6px", background: "rgba(240, 84, 84, 0.1)", border: "1px solid #ef4444", color: "#ef4444" }}>Delete</button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                              {q.options && q.options.length > 0 && (
+                                <div style={{ fontSize: "9px", color: "var(--muted)", paddingLeft: "4px" }}>
+                                  {q.options.length} option{q.options.length > 1 ? "s" : ""}: {q.options.join(", ")}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </div>
 
                 <div className="filter-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", margin: "4px 0" }}>
                   <div style={{ display: "grid", gap: "4px" }}>
