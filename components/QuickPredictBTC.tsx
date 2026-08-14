@@ -69,7 +69,7 @@ const PriceChart = ({ prices }: { prices: number[] }) => {
     const midY = height / 2;
     const priceLabel = `$${prices[0].toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     return (
-      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "50px", display: "block" }}>
+      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "50px", display: "block", overflow: "visible" }}>
         <line x1={padding} y1={midY} x2={width - padding} y2={midY} stroke="rgba(255,255,255,0.05)" strokeWidth="1" strokeDasharray="3,3" />
         <circle cx={width / 2 - 10} cy={midY} r="4" fill="#ffa502" />
         <text
@@ -112,8 +112,12 @@ const PriceChart = ({ prices }: { prices: number[] }) => {
   const lastDotY = padding + (1 - (lastPrice - minPrice) / range) * (height - padding * 2);
   const priceLabel = `$${lastPrice.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
+  // Dynamic font size based on label length to prevent overflow
+  const labelCharCount = priceLabel.length;
+  const dynamicFontSize = labelCharCount > 10 ? 8 : 10;
+
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "50px", display: "block" }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "50px", display: "block", overflow: "visible" }}>
       {/* Fill area */}
       <polygon points={areaPoints} fill={fillColor} />
       {/* Line */}
@@ -127,12 +131,12 @@ const PriceChart = ({ prices }: { prices: number[] }) => {
       />
       {/* End dot */}
       <circle cx={lastDotX} cy={lastDotY} r="3.5" fill={strokeColor} />
-      {/* Price label at end — inside SVG bounds */}
+      {/* Price label at end — with dynamic font size and overflow protection */}
       <text
-        x={lastDotX - 2}
+        x={lastDotX - 1}
         y={lastDotY - 6}
         fill={strokeColor}
-        fontSize="10"
+        fontSize={dynamicFontSize}
         fontWeight="700"
         fontFamily="'JetBrains Mono', monospace"
         textAnchor="end"
@@ -159,7 +163,7 @@ export default function QuickPredictBTC({
   const [btcPrice, setBtcPrice] = useState<BTCPriceData | null>(null);
   const [loadingPrice, setLoadingPrice] = useState(false);
   const [priceHistory, setPriceHistory] = useState<number[]>([]);
-  const [initialPriceLoaded, setInitialPriceLoaded] = useState(false);
+  const initialPriceLoadedRef = useRef(false);
   const [selectedDuration, setSelectedDuration] = useState(300);
   const [selectedStake, setSelectedStake] = useState<number | null>(null);
   const [confirmData, setConfirmData] = useState<ConfirmData | null>(null);
@@ -182,7 +186,7 @@ export default function QuickPredictBTC({
         // Track price history for chart — show first price immediately, keep last 15 points
         setPriceHistory((prev) => {
           const newHistory = [...prev, json.data.price];
-          if (!initialPriceLoaded) setInitialPriceLoaded(true);
+          if (!initialPriceLoadedRef.current) initialPriceLoadedRef.current = true;
           return newHistory.length > 15 ? newHistory.slice(newHistory.length - 15) : newHistory;
         });
       }
@@ -235,7 +239,7 @@ export default function QuickPredictBTC({
   useEffect(() => {
     if (!isSignedIn || runningEntries.length === 0) return;
     triggerResolve();
-    const interval = setInterval(triggerResolve, 30000);
+    const interval = setInterval(triggerResolve, 15000);
     return () => clearInterval(interval);
   }, [isSignedIn, runningEntries.length]);
 

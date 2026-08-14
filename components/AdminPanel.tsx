@@ -303,12 +303,15 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   // ── BTC Quick Predict tab ──
   const [btcPredictions, setBtcPredictions] = useState<any[]>([]);
   const [btcLoading, setBtcLoading] = useState(false);
+  const [btcPage, setBtcPage] = useState(1);
+  const btcPerPage = 50;
 
   async function loadBtcPredictions() {
     setBtcLoading(true);
     try {
       const data = await requestJson<any[]>("/api/admin/btc-predictions");
       setBtcPredictions(data);
+      setBtcPage(1);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to load BTC predictions");
     } finally {
@@ -3099,32 +3102,37 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                   No BTC predictions yet
                 </div>
               ) : (
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
-                    <thead>
-                      <tr style={{ color: "var(--muted)", textAlign: "left", borderBottom: "1px solid var(--hairline)" }}>
-                        <th style={{ padding: "8px", whiteSpace: "nowrap" }}>User</th>
-                        <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Direction</th>
-                        <th style={{ padding: "8px", textAlign: "right", whiteSpace: "nowrap" }}>Stake</th>
-                        <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Entry Price</th>
-                        <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Exit Price</th>
-                        <th style={{ padding: "8px", textAlign: "right", whiteSpace: "nowrap" }}>Payout</th>
-                        <th style={{ padding: "8px", textAlign: "right", whiteSpace: "nowrap" }}>Profit/Loss</th>
-                        <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Status</th>
-                        <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Balance Change</th>
-                        <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Time</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {btcPredictions.map((bet) => {
-                        const isWon = bet.status === "won";
-                        const isLost = bet.status === "lost";
-                        const isRefunded = bet.status === "refunded";
-                        const isRunning = bet.status === "running";
-                        
-                        // Direction arrow & color
-                        const dirArrow = bet.direction === "UP" ? "🔼" : "🔽";
-                        const dirColor = bet.direction === "UP" ? "var(--green)" : "var(--red)";
+                <>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
+                      <thead>
+                        <tr style={{ color: "var(--muted)", textAlign: "left", borderBottom: "1px solid var(--hairline)" }}>
+                          <th style={{ padding: "8px", whiteSpace: "nowrap" }}>User</th>
+                          <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Direction</th>
+                          <th style={{ padding: "8px", textAlign: "right", whiteSpace: "nowrap" }}>Stake</th>
+                          <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Entry Price</th>
+                          <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Exit Price</th>
+                          <th style={{ padding: "8px", textAlign: "right", whiteSpace: "nowrap" }}>Payout</th>
+                          <th style={{ padding: "8px", textAlign: "right", whiteSpace: "nowrap" }}>Profit/Loss</th>
+                          <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Status</th>
+                          <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Balance Change</th>
+                          <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const totalPages = Math.ceil(btcPredictions.length / btcPerPage);
+                          const startIdx = (btcPage - 1) * btcPerPage;
+                          const pageData = btcPredictions.slice(startIdx, startIdx + btcPerPage);
+                          return pageData.map((bet) => {
+                            const isWon = bet.status === "won";
+                            const isLost = bet.status === "lost";
+                            const isRefunded = bet.status === "refunded";
+                            const isRunning = bet.status === "running";
+                            
+                            // Direction arrow & color
+                            const dirArrow = bet.direction === "UP" ? "🔼" : "🔽";
+                            const dirColor = bet.direction === "UP" ? "var(--green)" : "var(--red)";
                         
                         // Status badge
                         let statusBadge;
@@ -3212,10 +3220,62 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             </td>
                           </tr>
                         );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  {/* ── Pagination ── */}
+                  {(() => {
+                    const totalPages = Math.ceil(btcPredictions.length / btcPerPage);
+                    if (totalPages <= 1) return null;
+                    return (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 4px", borderTop: "1px solid var(--hairline)", marginTop: "8px" }}>
+                        <div style={{ fontSize: "10px", color: "var(--muted)" }}>
+                          Showing {(btcPage - 1) * btcPerPage + 1}–{Math.min(btcPage * btcPerPage, btcPredictions.length)} of {btcPredictions.length} bets
+                        </div>
+                        <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                          <button 
+                            className="button" 
+                            onClick={() => setBtcPage(1)} 
+                            disabled={btcPage === 1}
+                            style={{ fontSize: "10px", padding: "4px 8px", height: "26px", opacity: btcPage === 1 ? 0.4 : 1 }}
+                          >
+                            «« First
+                          </button>
+                          <button 
+                            className="button" 
+                            onClick={() => setBtcPage(p => Math.max(1, p - 1))} 
+                            disabled={btcPage === 1}
+                            style={{ fontSize: "10px", padding: "4px 8px", height: "26px", opacity: btcPage === 1 ? 0.4 : 1 }}
+                          >
+                            ‹ Prev
+                          </button>
+                          <span style={{ fontSize: "11px", color: "var(--text)", fontWeight: 600, minWidth: "40px", textAlign: "center" }}>
+                            {btcPage} / {totalPages}
+                          </span>
+                          <button 
+                            className="button" 
+                            onClick={() => setBtcPage(p => Math.min(totalPages, p + 1))} 
+                            disabled={btcPage === totalPages}
+                            style={{ fontSize: "10px", padding: "4px 8px", height: "26px", opacity: btcPage === totalPages ? 0.4 : 1 }}
+                          >
+                            Next ›
+                          </button>
+                          <button 
+                            className="button" 
+                            onClick={() => setBtcPage(totalPages)} 
+                            disabled={btcPage === totalPages}
+                            style={{ fontSize: "10px", padding: "4px 8px", height: "26px", opacity: btcPage === totalPages ? 0.4 : 1 }}
+                          >
+                            Last »»
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </>
               )}
             </section>
           )}
