@@ -510,10 +510,23 @@ export default function SuperWinPrototype() {
 
     fetchLiveBets();
     
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchLiveBets, 30000);
+    // Refresh every 15 seconds for faster updates
+    const interval = setInterval(fetchLiveBets, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  // Expose refreshLiveBets for child components to trigger manually
+  const refreshLiveBets = async () => {
+    try {
+      const response = await fetch("/api/live-bets");
+      const data = await response.json();
+      if (data.ok && data.data) {
+        setLiveBets(data.data);
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   // Load contest
   useEffect(() => {
@@ -1917,6 +1930,7 @@ export default function SuperWinPrototype() {
               <QuickPredictBTC
                 userCoins={coins}
                 onBalanceUpdate={(newBalance) => setCoins(newBalance)}
+                onBetPlaced={() => refreshLiveBets()}
                 isSignedIn={isSignedIn}
               />
             )}

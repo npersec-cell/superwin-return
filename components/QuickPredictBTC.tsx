@@ -56,10 +56,12 @@ const formatPrice = (price: number) => {
 export default function QuickPredictBTC({
   userCoins,
   onBalanceUpdate,
+  onBetPlaced,
   isSignedIn,
 }: {
   userCoins: number;
   onBalanceUpdate: (newBalance: number) => void;
+  onBetPlaced?: () => void;
   isSignedIn: boolean;
 }) {
   // State
@@ -218,6 +220,7 @@ export default function QuickPredictBTC({
 
       if (json.ok) {
         onBalanceUpdate(json.data.balanceAfter);
+        onBetPlaced?.();
         setRunningEntries((prev) => [
           ...prev,
           {
