@@ -56,6 +56,61 @@ const AmmoIcon = () => (
   <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
 );
 
+// ── Sparkline Chart Component ──
+const PriceChart = ({ prices }: { prices: number[] }) => {
+  if (prices.length < 2) return null;
+
+  const width = 280;
+  const height = 50;
+  const padding = 2;
+
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+  const range = maxPrice - minPrice || 1;
+
+  // Generate points for SVG polyline
+  const points = prices.map((price, i) => {
+    const x = padding + (i / (prices.length - 1)) * (width - padding * 2);
+    const y = padding + (1 - (price - minPrice) / range) * (height - padding * 2);
+    return `${x},${y}`;
+  }).join(" ");
+
+  const isUp = prices[prices.length - 1] >= prices[0];
+  const strokeColor = isUp ? "#00ff88" : "#ff4757";
+  const fillColor = isUp ? "rgba(0, 255, 136, 0.08)" : "rgba(255, 71, 87, 0.08)";
+
+  // Area fill path
+  const firstX = padding;
+  const lastX = width - padding;
+  const bottomY = height - padding;
+  const areaPoints = `${firstX},${bottomY} ${points} ${lastX},${bottomY}`;
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "50px", display: "block" }}>
+      {/* Fill area */}
+      <polygon points={areaPoints} fill={fillColor} />
+      {/* Line */}
+      <polyline
+        points={points}
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* End dot */}
+      {(() => {
+        const lastPrice = prices[prices.length - 1];
+        const lastX = width - padding;
+        const lastY = padding + (1 - (lastPrice - minPrice) / range) * (height - padding * 2);
+        return (
+          <circle cx={lastX} cy={lastY} r="3" fill={strokeColor} />
+        );
+      })()}
+    </svg>
+  );
+};
+
 // ── Main Component ──
 export default function QuickPredictBTC({
   userCoins,
@@ -71,6 +126,7 @@ export default function QuickPredictBTC({
   // State
   const [btcPrice, setBtcPrice] = useState<BTCPriceData | null>(null);
   const [loadingPrice, setLoadingPrice] = useState(false);
+  const [priceHistory, setPriceHistory] = useState<number[]>([]);
   const [selectedDuration, setSelectedDuration] = useState(300);
   const [selectedStake, setSelectedStake] = useState<number | null>(null);
   const [confirmData, setConfirmData] = useState<ConfirmData | null>(null);
@@ -90,6 +146,11 @@ export default function QuickPredictBTC({
       const json = await res.json();
       if (json.ok) {
         setBtcPrice(json.data);
+        // Track price history for chart (keep last 30 points)
+        setPriceHistory((prev) => {
+          const newHistory = [...prev, json.data.price];
+          return newHistory.length > 30 ? newHistory.slice(newHistory.length - 30) : newHistory;
+        });
       }
     } catch (e) {
       console.error("Failed to fetch BTC price:", e);
@@ -273,8 +334,8 @@ export default function QuickPredictBTC({
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "16px" }}>₿</span>
           <div>
-            <span style={{ fontSize: "13px", fontWeight: "800", color: "#ffa502", letterSpacing: "0.5px" }}>BTC/USD</span>
-            <span style={{ fontSize: "9px", color: "var(--muted)", marginLeft: "6px", padding: "1px 6px", background: "rgba(255, 165, 0, 0.12)", borderRadius: "3px", fontWeight: "600" }}>QUICK PREDICT 24/7</span>
+            <div style={{ fontSize: "13px", fontWeight: "800", color: "#ffa502", letterSpacing: "0.5px" }}>BTC/USD</div>
+            <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "1px" }}>ทายราคาขึ้น/ลง • ถูกรับ 1.9x</div>
           </div>
         </div>
         <div style={{ display: "flex", gap: "4px" }}>
@@ -341,6 +402,14 @@ export default function QuickPredictBTC({
                 <span style={{ fontSize: "12px", color: "var(--muted)" }}>ไม่สามารถโหลดราคาได้</span>
               )}
             </div>
+
+            {/* ── Mini Price Chart ── */}
+            {priceHistory.length >= 2 && (
+              <div style={{ marginBottom: "12px", padding: "8px 12px", background: "rgba(255, 255, 255, 0.02)", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.05)" }}>
+                <div style={{ fontSize: "9px", color: "var(--muted)", marginBottom: "4px", fontWeight: "600" }}>📈 แนวโนมราคา (5 นาทีล่่าสุุด)</div>
+                <PriceChart prices={priceHistory} />
+              </div>
+            )}
 
             {/* ── Duration Selection ── */}
             <div style={{ marginBottom: "10px" }}>
