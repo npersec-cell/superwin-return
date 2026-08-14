@@ -198,10 +198,12 @@ BEGIN
       SET status = 'refunded', exit_price = p_current_btc_price, resolved_at = v_now
       WHERE id = v_rec.id;
     ELSE
-      -- User lost
+      -- User lost: get current balance (already deducted stake at bet time)
+      SELECT coin_balance INTO v_user_balance FROM users WHERE id = v_rec.user_id;
+      
       INSERT INTO coin_ledger (user_id, type, amount, balance_after, ref_type, ref_id, detail)
       VALUES (
-        v_rec.user_id, 'fee', 0, 0,
+        v_rec.user_id, 'fee', 0, v_user_balance,
         'btc_quick_prediction', v_rec.id,
         format('BTC Quick Predict LOSS: %s @ $%s → $%s (-%s)', v_rec.direction, v_rec.entry_price, p_current_btc_price, v_rec.stake_amount)
       );
