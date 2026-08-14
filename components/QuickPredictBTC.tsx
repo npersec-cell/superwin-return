@@ -520,46 +520,92 @@ export default function QuickPredictBTC({
             )}
 
             {/* ── UP / DOWN Buttons ── */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "4px" }}>
               <button
                 onClick={() => handlePlaceBet("UP")}
                 disabled={!selectedStake || !btcPrice || placing}
                 style={{
-                  padding: "12px",
-                  fontSize: "14px",
-                  fontWeight: "800",
-                  borderRadius: "10px",
-                  border: "none",
-                  background: !selectedStake || !btcPrice || placing ? "rgba(0, 255, 136, 0.15)" : "linear-gradient(135deg, #00b09b 0%, #00ff88 100%)",
-                  color: "#000",
+                  padding: "14px 8px",
+                  fontSize: "13px",
+                  fontWeight: "900",
+                  borderRadius: "12px",
+                  border: "2px solid rgba(0, 255, 136, 0.3)",
+                  background: !selectedStake || !btcPrice || placing 
+                    ? "rgba(0, 255, 136, 0.05)" 
+                    : "linear-gradient(180deg, rgba(0, 255, 136, 0.15) 0%, rgba(0, 255, 136, 0.05) 100%)",
+                  color: !selectedStake || !btcPrice || placing ? "rgba(0, 255, 136, 0.3)" : "#00ff88",
                   cursor: !selectedStake || !btcPrice || placing ? "not-allowed" : "pointer",
-                  opacity: !selectedStake || !btcPrice || placing ? 0.5 : 1,
-                  transition: "all 0.15s",
-                  boxShadow: selectedStake && btcPrice && !placing ? "0 3px 12px rgba(0, 255, 136, 0.25)" : "none",
-                  letterSpacing: "0.5px",
+                  opacity: !selectedStake || !btcPrice || placing ? 0.4 : 1,
+                  transition: "all 0.2s ease",
+                  boxShadow: selectedStake && btcPrice && !placing 
+                    ? "0 4px 20px rgba(0, 255, 136, 0.15), inset 0 1px 0 rgba(255,255,255,0.05)" 
+                    : "none",
+                  letterSpacing: "1px",
+                  textTransform: "uppercase",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedStake && btcPrice && !placing) {
+                    e.currentTarget.style.boxShadow = "0 6px 24px rgba(0, 255, 136, 0.25), inset 0 1px 0 rgba(255,255,255,0.1)";
+                    e.currentTarget.style.borderColor = "rgba(0, 255, 136, 0.5)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedStake && btcPrice && !placing) {
+                    e.currentTarget.style.boxShadow = "0 4px 20px rgba(0, 255, 136, 0.15), inset 0 1px 0 rgba(255,255,255,0.05)";
+                    e.currentTarget.style.borderColor = "rgba(0, 255, 136, 0.3)";
+                  }
                 }}
               >
-                🔼 UP ×1.9
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+                  <span style={{ fontSize: "20px", lineHeight: 1, filter: "drop-shadow(0 2px 4px rgba(0, 255, 136, 0.3))" }}>▲</span>
+                  <span>UP</span>
+                  <span style={{ fontSize: "9px", fontWeight: "700", opacity: 0.7 }}>×1.9</span>
+                </div>
               </button>
               <button
                 onClick={() => handlePlaceBet("DOWN")}
                 disabled={!selectedStake || !btcPrice || placing}
                 style={{
-                  padding: "12px",
-                  fontSize: "14px",
-                  fontWeight: "800",
-                  borderRadius: "10px",
-                  border: "none",
-                  background: !selectedStake || !btcPrice || placing ? "rgba(255, 71, 87, 0.15)" : "linear-gradient(135deg, #eb3b5a 0%, #ff4757 100%)",
-                  color: "#fff",
+                  padding: "14px 8px",
+                  fontSize: "13px",
+                  fontWeight: "900",
+                  borderRadius: "12px",
+                  border: "2px solid rgba(255, 71, 87, 0.3)",
+                  background: !selectedStake || !btcPrice || placing 
+                    ? "rgba(255, 71, 87, 0.05)" 
+                    : "linear-gradient(180deg, rgba(255, 71, 87, 0.15) 0%, rgba(255, 71, 87, 0.05) 100%)",
+                  color: !selectedStake || !btcPrice || placing ? "rgba(255, 71, 87, 0.3)" : "#ff4757",
                   cursor: !selectedStake || !btcPrice || placing ? "not-allowed" : "pointer",
-                  opacity: !selectedStake || !btcPrice || placing ? 0.5 : 1,
-                  transition: "all 0.15s",
-                  boxShadow: selectedStake && btcPrice && !placing ? "0 3px 12px rgba(255, 71, 87, 0.25)" : "none",
-                  letterSpacing: "0.5px",
+                  opacity: !selectedStake || !btcPrice || placing ? 0.4 : 1,
+                  transition: "all 0.2s ease",
+                  boxShadow: selectedStake && btcPrice && !placing 
+                    ? "0 4px 20px rgba(255, 71, 87, 0.15), inset 0 1px 0 rgba(255,255,255,0.05)" 
+                    : "none",
+                  letterSpacing: "1px",
+                  textTransform: "uppercase",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedStake && btcPrice && !placing) {
+                    e.currentTarget.style.boxShadow = "0 6px 24px rgba(255, 71, 87, 0.25), inset 0 1px 0 rgba(255,255,255,0.1)";
+                    e.currentTarget.style.borderColor = "rgba(255, 71, 87, 0.5)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedStake && btcPrice && !placing) {
+                    e.currentTarget.style.boxShadow = "0 4px 20px rgba(255, 71, 87, 0.15), inset 0 1px 0 rgba(255,255,255,0.05)";
+                    e.currentTarget.style.borderColor = "rgba(255, 71, 87, 0.3)";
+                  }
                 }}
               >
-                🔽 DOWN ×1.9
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+                  <span style={{ fontSize: "20px", lineHeight: 1, filter: "drop-shadow(0 2px 4px rgba(255, 71, 87, 0.3))" }}>▼</span>
+                  <span>DOWN</span>
+                  <span style={{ fontSize: "9px", fontWeight: "700", opacity: 0.7 }}>×1.9</span>
+                </div>
               </button>
             </div>
 
