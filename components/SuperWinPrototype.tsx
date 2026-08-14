@@ -1757,9 +1757,9 @@ export default function SuperWinPrototype() {
 
           <aside className="side">
             <section className="panel">
-              <div className="panel-head"><h3>All time Top 10</h3><span className="micro" style={{ display: "flex", alignItems: "center", gap: "4px" }}>Average Score</span></div>
+              <div className="panel-head"><h3>All time Top 5</h3><span className="micro" style={{ display: "flex", alignItems: "center", gap: "4px" }}>Average Score</span></div>
               <div className="leaderboard-body">
-                {leaderboard.map((row, index) => {
+                {leaderboard.slice(0, 5).map((row, index) => {
                   const targetId = row.id || (row.name === "You" ? currentUserId : null);
                   const isClickable = isSignedIn && targetId;
                   const avatarUrl = row.name === "You" ? (clerkUser?.imageUrl || row.avatarUrl) : row.avatarUrl;
