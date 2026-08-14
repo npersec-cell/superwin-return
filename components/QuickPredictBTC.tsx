@@ -60,27 +60,27 @@ const AmmoIcon = () => (
 const PriceChart = ({ prices }: { prices: number[] }) => {
   if (prices.length === 0) return null;
 
-  const width = 280;
+  const width = 320;
   const height = 50;
-  const padding = 2;
+  const padding = 4;
 
   // If only one price point, show just the dot and label
   if (prices.length === 1) {
     const midY = height / 2;
+    const priceLabel = `$${prices[0].toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     return (
       <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "50px", display: "block" }}>
         <line x1={padding} y1={midY} x2={width - padding} y2={midY} stroke="rgba(255,255,255,0.05)" strokeWidth="1" strokeDasharray="3,3" />
-        <circle cx={width / 2} cy={midY} r="4" fill="#ffa502" />
+        <circle cx={width / 2 - 10} cy={midY} r="4" fill="#ffa502" />
         <text
-          x={width / 2}
-          y={midY - 8}
+          x={width / 2 + 6}
+          y={midY + 4}
           fill="#ffa502"
-          fontSize="10"
+          fontSize="11"
           fontWeight="700"
           fontFamily="'JetBrains Mono', monospace"
-          textAnchor="middle"
         >
-          ${prices[0].toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          {priceLabel}
         </text>
       </svg>
     );
@@ -110,6 +110,7 @@ const PriceChart = ({ prices }: { prices: number[] }) => {
   const lastPrice = prices[prices.length - 1];
   const lastDotX = lastX;
   const lastDotY = padding + (1 - (lastPrice - minPrice) / range) * (height - padding * 2);
+  const priceLabel = `$${lastPrice.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "50px", display: "block" }}>
@@ -125,17 +126,18 @@ const PriceChart = ({ prices }: { prices: number[] }) => {
         strokeLinejoin="round"
       />
       {/* End dot */}
-      <circle cx={lastDotX} cy={lastDotY} r="3" fill={strokeColor} />
-      {/* Price label at end */}
+      <circle cx={lastDotX} cy={lastDotY} r="3.5" fill={strokeColor} />
+      {/* Price label at end — inside SVG bounds */}
       <text
-        x={lastDotX + 6}
-        y={lastDotY + 4}
+        x={lastDotX - 2}
+        y={lastDotY - 6}
         fill={strokeColor}
         fontSize="10"
         fontWeight="700"
         fontFamily="'JetBrains Mono', monospace"
+        textAnchor="end"
       >
-        ${lastPrice.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+        {priceLabel}
       </text>
     </svg>
   );
@@ -177,11 +179,11 @@ export default function QuickPredictBTC({
       const json = await res.json();
       if (json.ok) {
         setBtcPrice(json.data);
-        // Track price history for chart — show first price immediately, keep last 20 points
+        // Track price history for chart — show first price immediately, keep last 15 points
         setPriceHistory((prev) => {
           const newHistory = [...prev, json.data.price];
           if (!initialPriceLoaded) setInitialPriceLoaded(true);
-          return newHistory.length > 20 ? newHistory.slice(newHistory.length - 20) : newHistory;
+          return newHistory.length > 15 ? newHistory.slice(newHistory.length - 15) : newHistory;
         });
       }
     } catch (e) {
@@ -193,7 +195,7 @@ export default function QuickPredictBTC({
 
   useEffect(() => {
     fetchPrice();
-    const interval = setInterval(fetchPrice, 10000);
+    const interval = setInterval(fetchPrice, 5000); // Refresh every 5s for faster chart
     return () => clearInterval(interval);
   }, []);
 
@@ -436,7 +438,7 @@ export default function QuickPredictBTC({
             </div>
 
             {/* ── Mini Price Chart ── */}
-            {priceHistory.length >= 2 && (
+            {priceHistory.length >= 1 && (
               <div style={{ marginBottom: "12px", padding: "8px 12px", background: "rgba(255, 255, 255, 0.02)", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.05)" }}>
                 <div style={{ fontSize: "9px", color: "var(--muted)", marginBottom: "4px", fontWeight: "600" }}>📈 แนวโนมราคา (5 นาทีล่่าสุุด)</div>
                 <PriceChart prices={priceHistory} />
