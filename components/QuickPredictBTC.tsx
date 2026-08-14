@@ -381,7 +381,7 @@ export default function QuickPredictBTC({
                       position: "relative",
                     }}
                   >
-                    {stake.toLocaleString()} 🪙
+                    {stake.toLocaleString()} <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
                     {userCoins < stake && (
                       <span style={{ position: "absolute", top: "-8px", right: "-4px", fontSize: "8px", color: "#ff4757" }}>✕</span>
                     )}
@@ -389,7 +389,7 @@ export default function QuickPredictBTC({
                 ))}
               </div>
               <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "3px", textAlign: "center" }}>
-                เหรียญของคุณ: <span style={{ color: "var(--yellow)", fontWeight: "700" }}>{userCoins.toLocaleString()}</span> 🪙
+                เหรียญของคุณ: <span style={{ color: "var(--yellow)", fontWeight: "700" }}>{userCoins.toLocaleString()}</span> <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
               </div>
             </div>
 
@@ -398,7 +398,7 @@ export default function QuickPredictBTC({
               <div style={{ textAlign: "center", padding: "6px", background: "rgba(255, 225, 0, 0.05)", borderRadius: "6px", marginBottom: "10px", fontSize: "11px" }}>
                 <span style={{ color: "var(--muted)" }}>ถ้าทายถูก ได้คืน </span>
                 <span style={{ color: "var(--yellow)", fontWeight: "800", fontSize: "14px" }}>{potentialReturn.toLocaleString()}</span>
-                <span style={{ color: "var(--muted)" }}> 🪙 (×{currentMultiplier})</span>
+                <span style={{ color: "var(--muted)" }}> <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} /> (×{currentMultiplier})</span>
               </div>
             )}
 
@@ -482,7 +482,7 @@ export default function QuickPredictBTC({
                         {entry.direction === "UP" ? "🔼 UP" : "🔽 DOWN"}
                       </span>
                       <span style={{ fontSize: "10px", color: "var(--muted)" }}>
-                        {entry.stake_amount} 🪙 → {entry.potential_payout} 🪙
+                        {entry.stake_amount} <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} /> → {entry.potential_payout} <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
                       </span>
                     </div>
                     <div style={{ fontSize: "10px", color: "var(--text)", marginBottom: "2px" }}>
@@ -585,12 +585,12 @@ export default function QuickPredictBTC({
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--hairline)", paddingBottom: "6px", marginBottom: "6px" }}>
                 <span style={{ color: "var(--muted)" }}>เหรียญที่วาง:</span>
-                <span style={{ fontWeight: "700", color: "var(--text)" }}>{confirmData.stakeAmount.toLocaleString()} 🪙</span>
+                <span style={{ fontWeight: "700", color: "var(--text)" }}>{confirmData.stakeAmount.toLocaleString()} <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "6px" }}>
                 <span style={{ color: "var(--muted)" }}>ถ้าทายถูก ได้คืน:</span>
                 <span style={{ fontWeight: "800", color: "var(--yellow)", fontSize: "16px" }}>
-                  {confirmData.potentialPayout.toLocaleString()} 🪙
+                  {confirmData.potentialPayout.toLocaleString()} <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
                 </span>
               </div>
             </div>
