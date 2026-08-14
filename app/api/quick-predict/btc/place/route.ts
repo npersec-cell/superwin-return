@@ -11,8 +11,8 @@ const quickPredictBodySchema = z.object({
     message: "Duration must be 60, 300, or 900 seconds",
   }),
   entryPrice: z.number().positive("Entry price must be positive"),
-  stakeAmount: z.number().refine((v) => [100, 500, 1000].includes(v), {
-    message: "Stake must be 100, 500, or 1000",
+  stakeAmount: z.number().positive("Stake must be positive").refine((v) => v >= 5 && Number.isInteger(v), {
+    message: "Stake must be at least 5 coins",
   }),
   multiplier: z.number().default(1.9),
 });
