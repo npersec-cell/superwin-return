@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { compact, getRankFromPosition, maskName, randomClaimAmount } from "@/lib/utils";
 import LiveBetModal, { type LiveBet } from "@/components/LiveBetModal";
+import QuickPredictBTC from "@/components/QuickPredictBTC";
 
 type PredictionOption = {
   id: string;
@@ -1835,17 +1836,18 @@ export default function SuperWinPrototype() {
                     const date = new Date(bet.createdAt);
                     const timeStr = date.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
                     const isBigBet = bet.amount >= 1000;
+                    const isBTC = bet.type === 'btc';
                     return (
                       <div 
-                        key={bet.userId + bet.predictionId + bet.createdAt}
-                        onClick={() => setSelectedLiveBet(bet)}
+                        key={bet.id || bet.userId + bet.createdAt}
+                        onClick={() => !isBTC && setSelectedLiveBet(bet)}
                         style={{ 
                           display: "flex",
                           alignItems: "center",
                           gap: "8px",
                           padding: "6px 10px",
                           fontSize: "11px",
-                          cursor: "pointer",
+                          cursor: isBTC ? "default" : "pointer",
                           transition: "background 0.15s",
                           backgroundColor: isBigBet ? "rgba(255, 225, 0, 0.15)" : undefined,
                           border: isBigBet ? "1px solid rgba(255, 225, 0, 0.4)" : undefined,
@@ -1874,7 +1876,13 @@ export default function SuperWinPrototype() {
                           overflow: "hidden",
                           textOverflow: "ellipsis"
                         }}>
-                          {bet.displayName || maskName(bet.rawEmailPrefix || bet.userId?.slice(0, 8) || 'User')}
+                          {isBTC ? (
+                            <span style={{ color: bet.direction === 'UP' ? '#00ff88' : '#ff4757', fontWeight: '700' }}>
+                              {bet.direction === 'UP' ? '🔼' : '🔽'} BTC
+                            </span>
+                          ) : (
+                            bet.displayName || maskName(bet.rawEmailPrefix || bet.userId?.slice(0, 8) || 'User')
+                          )}
                         </span>
                         
                         <span style={{ 
@@ -1904,7 +1912,16 @@ export default function SuperWinPrototype() {
             
 
             
-            {/* Contest Box - กิจกรรมชิงรางวัล */}
+            {/* Quick Predict BTC 24/7 */}
+            {isSignedIn && (
+              <QuickPredictBTC
+                userCoins={coins}
+                onBalanceUpdate={(newBalance) => setCoins(newBalance)}
+                isSignedIn={isSignedIn}
+              />
+            )}
+
+            {/* Contest Box - กิจกรรรมชิงรางวัล */}
             {contest && contest.status === "active" && (
               <section className="panel" style={{ border: "1px solid var(--yellow)", background: "linear-gradient(135deg, rgba(255,225,0,0.06) 0%, var(--card) 60%)" }}>
                 <div className="panel-head">
