@@ -584,7 +584,7 @@ export default function QuickPredictBTC({
                 </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--hairline)", paddingBottom: "6px", marginBottom: "6px" }}>
-                <span style={{ color: "var(--muted)")}>เหรียญที่วาง:</span>
+                <span style={{ color: "var(--muted)" }}>เหรียญที่วาง:</span>
                 <span style={{ fontWeight: "700", color: "var(--text)" }}>{confirmData.stakeAmount.toLocaleString()} 🪙</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "6px" }}>
