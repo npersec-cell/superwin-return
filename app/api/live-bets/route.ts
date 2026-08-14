@@ -4,7 +4,9 @@ import { createSupabaseAdminClient } from '@/lib/db';
 export async function GET() {
   const supabase = createSupabaseAdminClient();
   
-  // ── Get BOTH regular and BTC predictions (fetch more to allow proper sorting) ──
+  console.log('[live-bets] Starting fetch...');
+  
+  // ── Get BOTH regular and BTC predictions ──
   const [regularResult, btcResult] = await Promise.all([
     supabase
       .from('prediction_entries')
@@ -31,17 +33,30 @@ export async function GET() {
   const entries = regularResult.data || [];
   let btcEntries = btcResult.data || null;
 
+  console.log(`[live-bets] Initial fetch - Regular: ${entries.length}, BTC: ${btcEntries?.length || 0}`);
+  if (btcEntries && btcEntries.length > 0) {
+    console.log('[live-bets] BTC entries found:', btcEntries.map(e => ({ id: e.id, createdAt: e.created_at, direction: e.direction })));
+  }
+
   // Retry BTC query if empty (replication lag)
   if (!btcEntries || btcEntries.length === 0) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      await new Promise(r => setTimeout(r, 500));
+    console.log('[live-bets] BTC entries empty, starting retry with delays...');
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const delayMs = (attempt + 1) * 800;
+      console.log(`[live-bets] Retry attempt ${attempt + 1}, waiting ${delayMs}ms...`);
+      await new Promise(r => setTimeout(r, delayMs));
+      
       const retry = await supabase
         .from('btc_quick_predictions')
         .select('id, user_id, direction, stake_amount as amount, entry_price, status, created_at')
         .order('created_at', { ascending: false })
         .limit(5);
+      
+      console.log(`[live-bets] Retry ${attempt + 1} result: count=${retry.data?.length || 0}, error=${retry.error?.message || 'none'}`);
+      
       if (retry.data && retry.data.length > 0) {
         btcEntries = retry.data;
+        console.log('[live-bets] SUCCESS! BTC entries found on retry:', btcEntries.length);
         break;
       }
     }
@@ -128,7 +143,8 @@ export async function GET() {
   allBets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const liveBets = allBets.slice(0, 5);
   
-  console.log(`[live-bets] Regular: ${entries.length}, BTC: ${btcEntries?.length || 0}, Combined: ${allBets.length}, Returning: ${liveBets.length}`);
+  console.log(`[live-bets] Final - Regular: ${entries.length}, BTC: ${btcEntries?.length || 0}, Combined: ${allBets.length}, Returning: ${liveBets.length}`);
+  console.log('[live-bets] Returning bets:', liveBets.map(b => ({ type: b.type, id: b.id?.slice(0,8), amount: b.amount, createdAt: b.createdAt })));
   
   return NextResponse.json({ ok: true, data: liveBets });
 }
