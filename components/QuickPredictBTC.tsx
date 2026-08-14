@@ -58,11 +58,33 @@ const AmmoIcon = () => (
 
 // ── Sparkline Chart Component ──
 const PriceChart = ({ prices }: { prices: number[] }) => {
-  if (prices.length < 2) return null;
+  if (prices.length === 0) return null;
 
   const width = 280;
   const height = 50;
   const padding = 2;
+
+  // If only one price point, show just the dot and label
+  if (prices.length === 1) {
+    const midY = height / 2;
+    return (
+      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "50px", display: "block" }}>
+        <line x1={padding} y1={midY} x2={width - padding} y2={midY} stroke="rgba(255,255,255,0.05)" strokeWidth="1" strokeDasharray="3,3" />
+        <circle cx={width / 2} cy={midY} r="4" fill="#ffa502" />
+        <text
+          x={width / 2}
+          y={midY - 8}
+          fill="#ffa502"
+          fontSize="10"
+          fontWeight="700"
+          fontFamily="'JetBrains Mono', monospace"
+          textAnchor="middle"
+        >
+          ${prices[0].toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+        </text>
+      </svg>
+    );
+  }
 
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
@@ -85,6 +107,10 @@ const PriceChart = ({ prices }: { prices: number[] }) => {
   const bottomY = height - padding;
   const areaPoints = `${firstX},${bottomY} ${points} ${lastX},${bottomY}`;
 
+  const lastPrice = prices[prices.length - 1];
+  const lastDotX = lastX;
+  const lastDotY = padding + (1 - (lastPrice - minPrice) / range) * (height - padding * 2);
+
   return (
     <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "50px", display: "block" }}>
       {/* Fill area */}
@@ -99,14 +125,18 @@ const PriceChart = ({ prices }: { prices: number[] }) => {
         strokeLinejoin="round"
       />
       {/* End dot */}
-      {(() => {
-        const lastPrice = prices[prices.length - 1];
-        const lastX = width - padding;
-        const lastY = padding + (1 - (lastPrice - minPrice) / range) * (height - padding * 2);
-        return (
-          <circle cx={lastX} cy={lastY} r="3" fill={strokeColor} />
-        );
-      })()}
+      <circle cx={lastDotX} cy={lastDotY} r="3" fill={strokeColor} />
+      {/* Price label at end */}
+      <text
+        x={lastDotX + 6}
+        y={lastDotY + 4}
+        fill={strokeColor}
+        fontSize="10"
+        fontWeight="700"
+        fontFamily="'JetBrains Mono', monospace"
+      >
+        ${lastPrice.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+      </text>
     </svg>
   );
 };
@@ -127,6 +157,7 @@ export default function QuickPredictBTC({
   const [btcPrice, setBtcPrice] = useState<BTCPriceData | null>(null);
   const [loadingPrice, setLoadingPrice] = useState(false);
   const [priceHistory, setPriceHistory] = useState<number[]>([]);
+  const [initialPriceLoaded, setInitialPriceLoaded] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState(300);
   const [selectedStake, setSelectedStake] = useState<number | null>(null);
   const [confirmData, setConfirmData] = useState<ConfirmData | null>(null);
@@ -146,10 +177,11 @@ export default function QuickPredictBTC({
       const json = await res.json();
       if (json.ok) {
         setBtcPrice(json.data);
-        // Track price history for chart (keep last 30 points)
+        // Track price history for chart — show first price immediately, keep last 20 points
         setPriceHistory((prev) => {
           const newHistory = [...prev, json.data.price];
-          return newHistory.length > 30 ? newHistory.slice(newHistory.length - 30) : newHistory;
+          if (!initialPriceLoaded) setInitialPriceLoaded(true);
+          return newHistory.length > 20 ? newHistory.slice(newHistory.length - 20) : newHistory;
         });
       }
     } catch (e) {
