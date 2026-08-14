@@ -4,29 +4,53 @@ import { createSupabaseAdminClient } from '@/lib/db';
 export async function GET() {
   const supabase = createSupabaseAdminClient();
   
-  // Get latest 5 regular prediction entries
-  const { data: entries, error: entriesError } = await supabase
-    .from('prediction_entries')
-    .select('id, user_id, prediction_id, amount, option_id, created_at, status')
-    .order('created_at', { ascending: false })
-    .limit(5);
-  
-  if (entriesError) {
-    return NextResponse.json({ error: 'Failed to fetch live bets', detail: entriesError.message }, { status: 500 });
-  }
-  
-  // Get latest 5 BTC quick predictions
-  const { data: btcEntries, error: btcError } = await supabase
-    .from('btc_quick_predictions')
-    .select('id, user_id, direction, stake_amount as amount, entry_price, status, created_at')
-    .order('created_at', { ascending: false })
-    .limit(5);
+  // ── Get BOTH regular and BTC predictions (fetch more to allow proper sorting) ──
+  const [regularResult, btcResult] = await Promise.all([
+    supabase
+      .from('prediction_entries')
+      .select('id, user_id, prediction_id, amount, option_id, created_at, status')
+      .order('created_at', { ascending: false })
+      .limit(10),
+    
+    supabase
+      .from('btc_quick_predictions')
+      .select('id, user_id, direction, stake_amount as amount, entry_price, status, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10),
+  ]);
 
-  // Combine and sort by created_at
+  if (regularResult.error) {
+    console.error('[live-bets] Failed to fetch regular entries:', regularResult.error.message);
+    return NextResponse.json({ error: 'Failed to fetch live bets', detail: regularResult.error.message }, { status: 500 });
+  }
+
+  if (btcResult.error) {
+    console.error('[live-bets] Failed to fetch BTC entries:', btcResult.error.message);
+  }
+
+  const entries = regularResult.data || [];
+  let btcEntries = btcResult.data || null;
+
+  // Retry BTC query if empty (replication lag)
+  if (!btcEntries || btcEntries.length === 0) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await new Promise(r => setTimeout(r, 500));
+      const retry = await supabase
+        .from('btc_quick_predictions')
+        .select('id, user_id, direction, stake_amount as amount, entry_price, status, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      if (retry.data && retry.data.length > 0) {
+        btcEntries = retry.data;
+        break;
+      }
+    }
+  }
+
+  // ── Process regular predictions ──
   let allBets: any[] = [];
   
-  if (entries && entries.length > 0) {
-    // Get user display names for regular predictions
+  if (entries.length > 0) {
     const userIds = [...new Set(entries.map(e => e.user_id))];
     const { data: users } = await supabase
       .from('users')
@@ -74,7 +98,7 @@ export async function GET() {
     });
   }
   
-  // Add BTC quick predictions
+  // ── Add BTC quick predictions ──
   if (btcEntries && btcEntries.length > 0) {
     const btcUserIds = [...new Set(btcEntries.map(e => e.user_id))];
     const { data: btcUsers } = await supabase
@@ -100,9 +124,11 @@ export async function GET() {
     allBets = [...allBets, ...btcBets];
   }
   
-  // Sort all by created_at descending and take top 5
+  // ── Sort ALL combined bets by recency and take top 5 ──
   allBets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const liveBets = allBets.slice(0, 5);
+  
+  console.log(`[live-bets] Regular: ${entries.length}, BTC: ${btcEntries?.length || 0}, Combined: ${allBets.length}, Returning: ${liveBets.length}`);
   
   return NextResponse.json({ ok: true, data: liveBets });
 }

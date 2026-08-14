@@ -501,10 +501,13 @@ export default function SuperWinPrototype() {
         const response = await fetch("/api/live-bets");
         const data = await response.json();
         if (data.ok && data.data) {
+          console.log('[LIVE PREDICT] Received', data.data.length, 'bets:', data.data.map((b: any) => ({ type: b.type, id: b.id?.slice(0,8), amount: b.amount })));
           setLiveBets(data.data);
+        } else {
+          console.warn('[LIVE PREDICT] Bad response:', data);
         }
-      } catch {
-        // ignore
+      } catch (e) {
+        console.error('[LIVE PREDICT] Fetch error:', e);
       }
     }
 
@@ -517,14 +520,16 @@ export default function SuperWinPrototype() {
 
   // Expose refreshLiveBets for child components to trigger manually
   const refreshLiveBets = async () => {
+    console.log('[LIVE PREDICT] Manual refresh triggered');
     try {
       const response = await fetch("/api/live-bets");
       const data = await response.json();
+      console.log('[LIVE PREDICT] Manual refresh result:', data);
       if (data.ok && data.data) {
         setLiveBets(data.data);
       }
-    } catch {
-      // ignore
+    } catch (e) {
+      console.error('[LIVE PREDICT] Manual refresh error:', e);
     }
   };
 

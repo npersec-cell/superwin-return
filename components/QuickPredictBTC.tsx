@@ -219,7 +219,9 @@ export default function QuickPredictBTC({
       const json = await res.json();
 
       if (json.ok) {
+        console.log('[QuickPredictBTC] Bet placed successfully, entryId:', json.data.entryId);
         onBalanceUpdate(json.data.balanceAfter);
+        console.log('[QuickPredictBTC] Calling onBetPlaced callback');
         onBetPlaced?.();
         setRunningEntries((prev) => [
           ...prev,
