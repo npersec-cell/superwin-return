@@ -524,7 +524,7 @@ export default function SuperWinPrototype() {
     try {
       const response = await fetch("/api/live-bets");
       const data = await response.json();
-      console.log('[LIVE PREDICT] Manual refresh result:', data);
+      console.log('[LIVE PREDICT] Manual refresh result:', JSON.stringify(data, null, 2));
       if (data.ok && data.data) {
         setLiveBets(data.data);
       }
