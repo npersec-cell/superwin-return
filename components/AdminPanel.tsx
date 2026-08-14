@@ -279,7 +279,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
   }
 
   // ── Admin panel tabs ──
-  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "contests">("dashboard");
+  const [activeTab, setActiveTab] = useState<"questions" | "running" | "settings" | "admins" | "tournaments" | "dashboard" | "reports" | "users" | "contests" | "btc">("dashboard");
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [userSort, setUserSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "createdAt", dir: "desc" });
@@ -299,6 +299,22 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
 
   const [reportsEnabled, setReportsEnabled] = useState(true);
   const [showEditContestForm, setShowEditContestForm] = useState(false);
+
+  // ── BTC Quick Predict tab ──
+  const [btcPredictions, setBtcPredictions] = useState<any[]>([]);
+  const [btcLoading, setBtcLoading] = useState(false);
+
+  async function loadBtcPredictions() {
+    setBtcLoading(true);
+    try {
+      const data = await requestJson<any[]>("/api/admin/btc-predictions");
+      setBtcPredictions(data);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to load BTC predictions");
+    } finally {
+      setBtcLoading(false);
+    }
+  }
   const [editingContestId, setEditingContestId] = useState<string | null>(null);
   const [newContestName, setNewContestName] = useState("");
   const [newContestDescription, setNewContestDescription] = useState("");
@@ -655,6 +671,16 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     const timer = setInterval(() => {
       loadDashboardData().catch(() => undefined);
     }, 10000);
+    return () => clearInterval(timer);
+  }, [activeTab]);
+
+  // ── Auto-refresh BTC predictions when tab is active ──
+  useEffect(() => {
+    if (activeTab !== "btc") return;
+    loadBtcPredictions().catch(() => undefined);
+    const timer = setInterval(() => {
+      loadBtcPredictions().catch(() => undefined);
+    }, 15000);
     return () => clearInterval(timer);
   }, [activeTab]);
 
@@ -1509,6 +1535,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
           <button className={`button ${activeTab === "reports" ? "active" : ""}`} onClick={() => { setActiveTab("reports"); loadReports().catch(() => undefined); }} style={{ borderRadius: "999px" }}>Reports ({reports.length})</button>
           <button className={`button ${activeTab === "users" ? "active" : ""}`} onClick={() => setActiveTab("users")} style={{ borderRadius: "999px" }}>User Management ({users.length})</button>
           <button className={`button ${activeTab === "contests" ? "active" : ""}`} onClick={() => { setActiveTab("contests"); loadContests().catch(() => undefined); }} style={{ borderRadius: "999px" }}>Contests ({contests.length})</button>
+          <button className={`button ${activeTab === "btc" ? "active" : ""}`} onClick={() => { setActiveTab("btc"); loadBtcPredictions().catch(() => undefined); }} style={{ borderRadius: "999px", border: "2px solid #f7931a", color: "#f7931a" }}>₿ BTC Predictions ({btcPredictions.length})</button>
         </div>
 
         <section className="admin-content" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", width: "100%", maxWidth: "100%", justifyItems: "center", alignContent: "start", margin: "0 auto" }}>
@@ -3034,6 +3061,174 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                       )}
                     </div>
                   ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {activeTab === "btc" && (
+            <section className="panel" style={{ width: "100%", maxWidth: "1100px", margin: "0 auto", background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: "12px", padding: "16px" }}>
+              <div className="panel-head" style={{ padding: "0 0 12px 0", borderBottom: "1px solid var(--hairline)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <h2 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ color: "#f7931a", fontSize: "20px" }}>₿</span> BTC Quick Predict — All Bets
+                  </h2>
+                  <span className="micro">View all user BTC predictions with coin balance changes</span>
+                </div>
+                <button className="button gold" onClick={loadBtcPredictions} disabled={btcLoading} style={{ height: "28px", fontSize: "11px", padding: "0 12px" }}>
+                  {btcLoading ? "Refreshing..." : "↻ Refresh"}
+                </button>
+              </div>
+
+              {/* ── Summary Stats ── */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px", marginTop: "12px", marginBottom: "16px" }}>
+                <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--hairline)", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
+                  <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Total Bets</div>
+                  <strong style={{ fontSize: "22px", color: "#fff", fontWeight: 600 }}>{btcPredictions.length}</strong>
+                </div>
+                <div style={{ background: "rgba(14,203,129,0.06)", border: "1px solid rgba(14,203,129,0.2)", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
+                  <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Won</div>
+                  <strong style={{ fontSize: "22px", color: "var(--green)", fontWeight: 600 }}>{btcPredictions.filter(p => p.status === "won").length}</strong>
+                </div>
+                <div style={{ background: "rgba(240,84,84,0.06)", border: "1px solid rgba(240,84,84,0.2)", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
+                  <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Lost</div>
+                  <strong style={{ fontSize: "22px", color: "var(--red)", fontWeight: 600 }}>{btcPredictions.filter(p => p.status === "lost").length}</strong>
+                </div>
+                <div style={{ background: "rgba(255,225,0,0.06)", border: "1px solid rgba(255,225,0,0.2)", borderRadius: "10px", padding: "12px", textAlign: "center" }}>
+                  <div className="meta" style={{ fontSize: "9px", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Running</div>
+                  <strong style={{ fontSize: "22px", color: "var(--yellow)", fontWeight: 600 }}>{btcPredictions.filter(p => p.status === "running").length}</strong>
+                </div>
+              </div>
+
+              {/* ── Table ── */}
+              {btcLoading ? (
+                <div style={{ textAlign: "center", padding: "30px", color: "var(--muted)" }}>Loading BTC predictions...</div>
+              ) : btcPredictions.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "30px", color: "var(--muted)", border: "1px dashed var(--hairline)", borderRadius: "8px" }}>
+                  No BTC predictions yet
+                </div>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
+                    <thead>
+                      <tr style={{ color: "var(--muted)", textAlign: "left", borderBottom: "1px solid var(--hairline)" }}>
+                        <th style={{ padding: "8px", whiteSpace: "nowrap" }}>User</th>
+                        <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Direction</th>
+                        <th style={{ padding: "8px", textAlign: "right", whiteSpace: "nowrap" }}>Stake</th>
+                        <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Entry Price</th>
+                        <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Exit Price</th>
+                        <th style={{ padding: "8px", textAlign: "right", whiteSpace: "nowrap" }}>Payout</th>
+                        <th style={{ padding: "8px", textAlign: "right", whiteSpace: "nowrap" }}>Profit/Loss</th>
+                        <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Status</th>
+                        <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Balance Change</th>
+                        <th style={{ padding: "8px", whiteSpace: "nowrap" }}>Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {btcPredictions.map((bet) => {
+                        const isWon = bet.status === "won";
+                        const isLost = bet.status === "lost";
+                        const isRefunded = bet.status === "refunded";
+                        const isRunning = bet.status === "running";
+                        
+                        // Direction arrow & color
+                        const dirArrow = bet.direction === "UP" ? "🔼" : "🔽";
+                        const dirColor = bet.direction === "UP" ? "var(--green)" : "var(--red)";
+                        
+                        // Status badge
+                        let statusBadge;
+                        if (isRunning) {
+                          statusBadge = <span style={{ color: "var(--yellow)", fontWeight: 700, fontSize: "10px" }}>⏳ Running</span>;
+                        } else if (isWon) {
+                          statusBadge = <span style={{ color: "var(--green)", fontWeight: 700, fontSize: "10px" }}>✅ Won</span>;
+                        } else if (isLost) {
+                          statusBadge = <span style={{ color: "var(--red)", fontWeight: 700, fontSize: "10px" }}>❌ Lost</span>;
+                        } else {
+                          statusBadge = <span style={{ color: "var(--muted)", fontWeight: 700, fontSize: "10px" }}>↩ Refunded</span>;
+                        }
+
+                        // Profit/Loss display
+                        const profitColor = bet.profit > 0 ? "var(--green)" : bet.profit < 0 ? "var(--red)" : "var(--muted)";
+                        const profitSign = bet.profit > 0 ? "+" : "";
+                        
+                        // Balance change display
+                        const balanceChange = isWon 
+                          ? `-${bet.stakeAmount} → +${bet.payoutAmount}`
+                          : isLost
+                          ? `-${bet.stakeAmount} (fee)`
+                          : isRefunded
+                          ? `-${bet.stakeAmount} → +${bet.stakeAmount}`
+                          : `-${bet.stakeAmount}`;
+
+                        return (
+                          <tr key={bet.id} style={{ borderBottom: "1px solid var(--hairline-soft)", transition: "background 120ms" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--card-2)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                            {/* User */}
+                            <td style={{ padding: "8px" }}>
+                              <div style={{ fontWeight: "600", color: "var(--text-strong)", fontSize: "11px" }}>{bet.displayName}</div>
+                              <div style={{ fontSize: "9px", color: "var(--muted)" }}>{bet.email}</div>
+                              <div style={{ fontSize: "9px", color: "var(--muted)" }}>Current: <strong style={{ color: "#fff" }}>{bet.currentBalance.toLocaleString()}</strong></div>
+                            </td>
+                            
+                            {/* Direction */}
+                            <td style={{ padding: "8px" }}>
+                              <span style={{ fontWeight: 700, color: dirColor, fontSize: "12px" }}>{dirArrow}</span>
+                              <span style={{ marginLeft: "4px", fontWeight: 600, color: "#fff" }}>{bet.direction}</span>
+                              <span style={{ marginLeft: "4px", fontSize: "9px", color: "var(--muted)", background: "rgba(255,255,255,0.05)", padding: "1px 6px", borderRadius: "3px" }}>{bet.duration}</span>
+                            </td>
+                            
+                            {/* Stake */}
+                            <td style={{ padding: "8px", textAlign: "right", fontWeight: 600, color: "#fff" }}>{bet.stakeAmount.toLocaleString()}</td>
+                            
+                            {/* Entry Price */}
+                            <td style={{ padding: "8px", fontSize: "11px", color: "var(--text)" }}>${Number(bet.entryPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            
+                            {/* Exit Price */}
+                            <td style={{ padding: "8px", fontSize: "11px", color: isWon ? "var(--green)" : isLost ? "var(--red)" : "var(--muted)" }}>
+                              {bet.exitPrice ? `$${Number(bet.exitPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "--"}
+                            </td>
+                            
+                            {/* Payout */}
+                            <td style={{ padding: "8px", textAlign: "right", fontWeight: 600, color: isWon ? "var(--green)" : "var(--muted)" }}>
+                              {isWon ? bet.payoutAmount.toLocaleString() : isRefunded ? bet.stakeAmount.toLocaleString() : "--"}
+                            </td>
+                            
+                            {/* Profit/Loss */}
+                            <td style={{ padding: "8px", textAlign: "right", fontWeight: 700, fontSize: "12px", color: profitColor }}>
+                              {profitSign}{bet.profit.toLocaleString()}
+                            </td>
+                            
+                            {/* Status */}
+                            <td style={{ padding: "8px" }}>{statusBadge}</td>
+                            
+                            {/* Balance Change */}
+                            <td style={{ padding: "8px", fontSize: "10px", color: "var(--muted)" }}>
+                              <div>{balanceChange}</div>
+                              {bet.balanceBefore !== null && (
+                                <div style={{ fontSize: "9px", color: "var(--muted)" }}>
+                                  Before: <strong style={{ color: "#fff" }}>{bet.balanceBefore.toLocaleString()}</strong>
+                                </div>
+                              )}
+                              {bet.finalBalanceAfter !== null && (
+                                <div style={{ fontSize: "9px", color: "var(--muted)" }}>
+                                  After: <strong style={{ color: "#fff" }}>{bet.finalBalanceAfter.toLocaleString()}</strong>
+                                </div>
+                              )}
+                            </td>
+                            
+                            {/* Time */}
+                            <td style={{ padding: "8px", whiteSpace: "nowrap", fontSize: "10px", color: "var(--muted)" }}>
+                              <div>{new Date(bet.createdAt).toLocaleString("th-TH", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" })}</div>
+                              {bet.resolvedAt && (
+                                <div style={{ fontSize: "9px", color: "var(--muted)" }}>
+                                  ⏱ {new Date(bet.resolvedAt).toLocaleString("th-TH", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" })}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </section>
