@@ -37,7 +37,7 @@ type ConfirmData = {
 };
 
 // ── Constants ──
-const STAKES = [5, 10, 100] as const;
+const STAKES = [100, 500, 1000] as const;
 const DURATIONS = [
   { seconds: 60, label: "1 นาที", multiplier: 1.9 },
   { seconds: 300, label: "5 นาที", multiplier: 1.9 },
@@ -165,8 +165,7 @@ export default function QuickPredictBTC({
   const [priceHistory, setPriceHistory] = useState<number[]>([]);
   const initialPriceLoadedRef = useRef(false);
   const [selectedDuration, setSelectedDuration] = useState(300);
-  const [selectedStakeBase, setSelectedStakeBase] = useState<number | null>(null); // Which stake button (5/10/100)
-  const [selectedStake, setSelectedStake] = useState<number>(0); // Total accumulated stake
+  const [selectedStake, setSelectedStake] = useState<number | null>(null);
   const [confirmData, setConfirmData] = useState<ConfirmData | null>(null);
   const [placing, setPlacing] = useState(false);
   const [runningEntries, setRunningEntries] = useState<QuickPredictEntry[]>([]);
@@ -277,7 +276,7 @@ export default function QuickPredictBTC({
 
   // ── Handle Place Bet ──
   const handlePlaceBet = async (direction: "UP" | "DOWN") => {
-    if (selectedStake === 0 || !btcPrice) return;
+    if (!selectedStake || !btcPrice) return;
 
     const duration = DURATIONS.find((d) => d.seconds === selectedDuration)!;
     const now = new Date();
@@ -335,8 +334,7 @@ export default function QuickPredictBTC({
           },
         ]);
         setConfirmData(null);
-        setSelectedStake(0);
-        setSelectedStakeBase(null);
+        setSelectedStake(null);
       } else {
         setError(json.error || "วางทายไม่สำเร็จ");
       }
@@ -365,7 +363,7 @@ export default function QuickPredictBTC({
   };
 
   const currentMultiplier = DURATIONS.find((d) => d.seconds === selectedDuration)?.multiplier || 1.9;
-  const potentialReturn = selectedStake > 0 ? Math.floor(selectedStake * currentMultiplier) : 0;
+  const potentialReturn = selectedStake ? Math.floor(selectedStake * currentMultiplier) : 0;
 
   return (
     <section className="panel" style={{ border: "1px solid rgba(255, 165, 0, 0.2)", background: "rgba(255, 165, 0, 0.03)", marginBottom: "12px", borderRadius: "12px" }}>
@@ -479,77 +477,36 @@ export default function QuickPredictBTC({
 
             {/* ── Stake Selection ── */}
             <div style={{ marginBottom: "10px" }}>
-              <div style={{ fontSize: "10px", color: "var(--muted)", marginBottom: "4px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>💰 จำนวนเหรียญ</span>
-                {selectedStake > 0 && (
-                  <button 
-                    onClick={() => { setSelectedStake(0); setSelectedStakeBase(null); }}
-                    style={{ fontSize: "8px", padding: "2px 6px", borderRadius: "4px", border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", cursor: "pointer", transition: "all 0.15s" }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = "#ff4757"; e.currentTarget.style.borderColor = "#ff4757"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.borderColor = "var(--border)"; }}
-                  >
-                    ✕ ล้างค่า
-                  </button>
-                )}
-              </div>
+              <div style={{ fontSize: "10px", color: "var(--muted)", marginBottom: "4px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>💰 จำนวนเหรียญ</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px" }}>
-                {STAKES.map((stake) => {
-                  const isSelected = selectedStakeBase === stake;
-                  const canAfford = userCoins >= stake;
-                  // Calculate how many times this base has been clicked
-                  const clickCount = isSelected && selectedStake > 0 ? Math.floor(selectedStake / stake) : 0;
-                  
-                  return (
-                    <button
-                      key={stake}
-                      onClick={() => {
-                        if (!canAfford || placing) return;
-                        if (selectedStakeBase === stake) {
-                          // Same button clicked again — add more
-                          const newTotal = selectedStake + stake;
-                          if (newTotal <= userCoins) {
-                            setSelectedStake(newTotal);
-                          }
-                        } else {
-                          // New button — start fresh
-                          setSelectedStake(stake);
-                          setSelectedStakeBase(stake);
-                        }
-                      }}
-                      disabled={!canAfford}
-                      style={{
-                        padding: "8px 4px",
-                        fontSize: "12px",
-                        fontWeight: "700",
-                        borderRadius: "8px",
-                        border: isSelected ? "2px solid var(--yellow)" : "1px solid var(--border)",
-                        background: isSelected ? "rgba(255, 225, 0, 0.08)" : "rgba(255, 255, 255, 0.02)",
-                        color: isSelected ? "var(--yellow)" : !canAfford ? "var(--muted)" : "var(--text)",
-                        cursor: !canAfford ? "not-allowed" : "pointer",
-                        opacity: !canAfford ? 0.4 : 1,
-                        transition: "all 0.15s",
-                        position: "relative",
-                        transform: isSelected ? "scale(1.02)" : "scale(1)",
-                      }}
-                    >
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px" }}>
-                        <span>{stake.toLocaleString()} <AmmoIcon /></span>
-                        {clickCount > 0 && (
-                          <span style={{ fontSize: "8px", color: "var(--yellow)", fontWeight: "800" }}>×{clickCount}</span>
-                        )}
-                      </div>
-                      {!canAfford && (
-                        <span style={{ position: "absolute", top: "-8px", right: "-4px", fontSize: "8px", color: "#ff4757", fontWeight: "800" }}>✕</span>
-                      )}
-                    </button>
-                  );
-                })}
+                {STAKES.map((stake) => (
+                  <button
+                    key={stake}
+                    onClick={() => setSelectedStake(stake)}
+                    disabled={userCoins < stake}
+                    style={{
+                      padding: "8px 4px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      borderRadius: "8px",
+                      border: selectedStake === stake ? "2px solid var(--yellow)" : "1px solid var(--border)",
+                      background: selectedStake === stake ? "rgba(255, 225, 0, 0.08)" : "rgba(255, 255, 255, 0.02)",
+                      color: selectedStake === stake ? "var(--yellow)" : userCoins < stake ? "var(--muted)" : "var(--text)",
+                      cursor: userCoins < stake ? "not-allowed" : "pointer",
+                      opacity: userCoins < stake ? 0.4 : 1,
+                      transition: "all 0.15s",
+                      position: "relative",
+                    }}
+                  >
+                    {stake.toLocaleString()} <AmmoIcon />
+                    {userCoins < stake && (
+                      <span style={{ position: "absolute", top: "-8px", right: "-4px", fontSize: "8px", color: "#ff4757", fontWeight: "800" }}>✕</span>
+                    )}
+                  </button>
+                ))}
               </div>
-              <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "4px", textAlign: "center", padding: "6px", background: selectedStake > 0 ? "rgba(255, 225, 0, 0.05)" : "rgba(255, 255, 255, 0.02)", borderRadius: "6px", border: selectedStake > 0 ? "1px dashed rgba(255, 225, 0, 0.1)" : "none", transition: "all 0.2s" }}>
-                <span>เหรียญของคุณ: <span style={{ color: "var(--yellow)", fontWeight: "700", fontSize: "11px" }}>{userCoins.toLocaleString()}</span> <AmmoIcon /></span>
-                {selectedStake > 0 && (
-                  <span style={{ marginLeft: "8px", color: "var(--text)", fontWeight: "600", fontSize: "11px" }}>• ทายรวม: <span style={{ color: "#fff", fontWeight: "800" }}>{selectedStake.toLocaleString()}</span> <AmmoIcon /></span>
-                )}
+              <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "4px", textAlign: "center", padding: "4px", background: "rgba(255, 255, 255, 0.02)", borderRadius: "6px" }}>
+                เหรียญของคุณ: <span style={{ color: "var(--yellow)", fontWeight: "700", fontSize: "11px" }}>{userCoins.toLocaleString()}</span> <AmmoIcon />
               </div>
             </div>
 
@@ -573,14 +530,14 @@ export default function QuickPredictBTC({
                   fontWeight: "900",
                   borderRadius: "12px",
                   border: "2px solid rgba(0, 255, 136, 0.3)",
-                  background: selectedStake === 0 || !btcPrice || placing 
+                  background: !selectedStake || !btcPrice || placing 
                     ? "rgba(0, 255, 136, 0.05)" 
                     : "linear-gradient(180deg, rgba(0, 255, 136, 0.15) 0%, rgba(0, 255, 136, 0.05) 100%)",
-                  color: selectedStake === 0 || !btcPrice || placing ? "rgba(0, 255, 136, 0.3)" : "#00ff88",
-                  cursor: selectedStake === 0 || !btcPrice || placing ? "not-allowed" : "pointer",
-                  opacity: selectedStake === 0 || !btcPrice || placing ? 0.4 : 1,
+                  color: !selectedStake || !btcPrice || placing ? "rgba(0, 255, 136, 0.3)" : "#00ff88",
+                  cursor: !selectedStake || !btcPrice || placing ? "not-allowed" : "pointer",
+                  opacity: !selectedStake || !btcPrice || placing ? 0.4 : 1,
                   transition: "all 0.2s ease",
-                  boxShadow: selectedStake > 0 && btcPrice && !placing 
+                  boxShadow: selectedStake && btcPrice && !placing 
                     ? "0 4px 20px rgba(0, 255, 136, 0.15), inset 0 1px 0 rgba(255,255,255,0.05)" 
                     : "none",
                   letterSpacing: "1px",
@@ -595,7 +552,7 @@ export default function QuickPredictBTC({
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (selectedStake > 0 && btcPrice && !placing) {
+                  if (selectedStake && btcPrice && !placing) {
                     e.currentTarget.style.boxShadow = "0 4px 20px rgba(0, 255, 136, 0.15), inset 0 1px 0 rgba(255,255,255,0.05)";
                     e.currentTarget.style.borderColor = "rgba(0, 255, 136, 0.3)";
                   }
@@ -609,21 +566,21 @@ export default function QuickPredictBTC({
               </button>
               <button
                 onClick={() => handlePlaceBet("DOWN")}
-                disabled={selectedStake === 0 || !btcPrice || placing}
+                disabled={!selectedStake || !btcPrice || placing}
                 style={{
                   padding: "14px 8px",
                   fontSize: "13px",
                   fontWeight: "900",
                   borderRadius: "12px",
                   border: "2px solid rgba(255, 71, 87, 0.3)",
-                  background: selectedStake === 0 || !btcPrice || placing 
+                  background: !selectedStake || !btcPrice || placing 
                     ? "rgba(255, 71, 87, 0.05)" 
                     : "linear-gradient(180deg, rgba(255, 71, 87, 0.15) 0%, rgba(255, 71, 87, 0.05) 100%)",
-                  color: selectedStake === 0 || !btcPrice || placing ? "rgba(255, 71, 87, 0.3)" : "#ff4757",
-                  cursor: selectedStake === 0 || !btcPrice || placing ? "not-allowed" : "pointer",
-                  opacity: selectedStake === 0 || !btcPrice || placing ? 0.4 : 1,
+                  color: !selectedStake || !btcPrice || placing ? "rgba(255, 71, 87, 0.3)" : "#ff4757",
+                  cursor: !selectedStake || !btcPrice || placing ? "not-allowed" : "pointer",
+                  opacity: !selectedStake || !btcPrice || placing ? 0.4 : 1,
                   transition: "all 0.2s ease",
-                  boxShadow: selectedStake > 0 && btcPrice && !placing 
+                  boxShadow: selectedStake && btcPrice && !placing 
                     ? "0 4px 20px rgba(255, 71, 87, 0.15), inset 0 1px 0 rgba(255,255,255,0.05)" 
                     : "none",
                   letterSpacing: "1px",
@@ -632,13 +589,13 @@ export default function QuickPredictBTC({
                   overflow: "hidden",
                 }}
                 onMouseEnter={(e) => {
-                  if (selectedStake > 0 && btcPrice && !placing) {
+                  if (selectedStake && btcPrice && !placing) {
                     e.currentTarget.style.boxShadow = "0 6px 24px rgba(255, 71, 87, 0.25), inset 0 1px 0 rgba(255,255,255,0.1)";
                     e.currentTarget.style.borderColor = "rgba(255, 71, 87, 0.5)";
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (selectedStake > 0 && btcPrice && !placing) {
+                  if (selectedStake && btcPrice && !placing) {
                     e.currentTarget.style.boxShadow = "0 4px 20px rgba(255, 71, 87, 0.15), inset 0 1px 0 rgba(255,255,255,0.05)";
                     e.currentTarget.style.borderColor = "rgba(255, 71, 87, 0.3)";
                   }

@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.btc_quick_predictions (
   duration_seconds integer NOT NULL CHECK (duration_seconds IN (60, 300, 900)),
   entry_price numeric(12, 2) NOT NULL,
   exit_price numeric(12, 2),
-  stake_amount integer NOT NULL CHECK (stake_amount >= 5),
+  stake_amount integer NOT NULL CHECK (stake_amount IN (100, 500, 1000)),
   multiplier numeric(3, 1) NOT NULL DEFAULT 1.9,
   potential_payout integer NOT NULL,
   status text NOT NULL DEFAULT 'running' CHECK (status IN ('running', 'won', 'lost', 'refunded')),
@@ -78,9 +78,9 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'error', 'Account is not active');
   END IF;
 
-  -- ========== 2. Validate stake amount (minimum 5 coins) ==========
-  IF p_stake_amount < 5 THEN
-    RETURN jsonb_build_object('ok', false, 'error', 'Stake must be at least 5 coins');
+  -- ========== 2. Validate stake amount ==========
+  IF p_stake_amount NOT IN (100, 500, 1000) THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'Stake must be 100, 500, or 1000');
   END IF;
 
   -- ========== 3. Check coin balance ==========
