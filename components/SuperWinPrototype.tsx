@@ -1858,14 +1858,14 @@ export default function SuperWinPrototype() {
                     return (
                       <div 
                         key={bet.id || bet.userId + bet.createdAt}
-                        onClick={() => !isBTC && setSelectedLiveBet(bet)}
+                        onClick={() => setSelectedLiveBet(bet)}
                         style={{ 
                           display: "flex",
                           alignItems: "center",
                           gap: "8px",
                           padding: "6px 10px",
                           fontSize: "11px",
-                          cursor: isBTC ? "default" : "pointer",
+                          cursor: "pointer",
                           transition: "background 0.15s",
                           backgroundColor: isBigBet ? "rgba(255, 225, 0, 0.15)" : undefined,
                           border: isBigBet ? "1px solid rgba(255, 225, 0, 0.4)" : undefined,
@@ -1892,12 +1892,20 @@ export default function SuperWinPrototype() {
                           fontWeight: "600",
                           whiteSpace: "nowrap",
                           overflow: "hidden",
-                          textOverflow: "ellipsis"
+                          textOverflow: "ellipsis",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "2px"
                         }}>
                           {isBTC ? (
-                            <span style={{ color: bet.direction === 'UP' ? '#00ff88' : '#ff4757', fontWeight: '700' }}>
-                              {bet.direction === 'UP' ? '🔼' : '🔽'} BTC
-                            </span>
+                            <>
+                              <span style={{ color: bet.direction === 'UP' ? '#00ff88' : '#ff4757', fontWeight: '700', fontSize: '11px' }}>
+                                {bet.direction === 'UP' ? '🔼' : '🔽'} BTC
+                              </span>
+                              <span style={{ fontSize: '9px', color: 'var(--muted)' }}>
+                                ${bet.entryPrice?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || '-'}
+                              </span>
+                            </>
                           ) : (
                             bet.displayName || maskName(bet.rawEmailPrefix || bet.userId?.slice(0, 8) || 'User')
                           )}
