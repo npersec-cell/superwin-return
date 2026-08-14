@@ -52,6 +52,10 @@ const formatPrice = (price: number) => {
   return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(price);
 };
 
+const AmmoIcon = () => (
+  <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
+);
+
 // ── Main Component ──
 export default function QuickPredictBTC({
   userCoins,
@@ -96,7 +100,7 @@ export default function QuickPredictBTC({
 
   useEffect(() => {
     fetchPrice();
-    const interval = setInterval(fetchPrice, 10000); // Refresh every 10s
+    const interval = setInterval(fetchPrice, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -120,28 +124,23 @@ export default function QuickPredictBTC({
     return () => clearInterval(interval);
   }, [isSignedIn]);
 
-  // ── Auto-resolve expired entries (poll every 30s) ──
+  // ── Auto-resolve expired entries ──
   const triggerResolve = async () => {
     try {
       const res = await fetch("/api/quick-predict/btc/resolve", { method: "POST" });
       const json = await res.json();
       if (json.ok && json.data?.resolved > 0) {
-        // Refresh running entries after resolve
         setTimeout(fetchRunning, 1000);
-        // Update balance if user won
-        if (json.data.totalPayout > 0) {
-          // Balance update happens in fetchRunning via refetch of user data
-        }
       }
     } catch (e) {
-      // Silent fail - resolve will happen on next poll
+      // Silent fail
     }
   };
 
   useEffect(() => {
     if (!isSignedIn || runningEntries.length === 0) return;
     triggerResolve();
-    const interval = setInterval(triggerResolve, 30000); // Every 30 seconds
+    const interval = setInterval(triggerResolve, 30000);
     return () => clearInterval(interval);
   }, [isSignedIn, runningEntries.length]);
 
@@ -166,7 +165,6 @@ export default function QuickPredictBTC({
       if (!allResolved) {
         countdownRef.current = setTimeout(tick, 1000);
       } else {
-        // All resolved, refresh
         setTimeout(fetchRunning, 2000);
       }
     };
@@ -219,9 +217,7 @@ export default function QuickPredictBTC({
       const json = await res.json();
 
       if (json.ok) {
-        console.log('[QuickPredictBTC] Bet placed successfully, entryId:', json.data.entryId);
         onBalanceUpdate(json.data.balanceAfter);
-        console.log('[QuickPredictBTC] Calling onBetPlaced callback');
         onBetPlaced?.();
         setRunningEntries((prev) => [
           ...prev,
@@ -271,65 +267,74 @@ export default function QuickPredictBTC({
   const potentialReturn = selectedStake ? Math.floor(selectedStake * currentMultiplier) : 0;
 
   return (
-    <section className="panel" style={{ border: "1px solid rgba(255, 165, 0, 0.3)", background: "rgba(255, 165, 0, 0.04)", marginBottom: "12px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--border)" }}>
+    <section className="panel" style={{ border: "1px solid rgba(255, 165, 0, 0.2)", background: "rgba(255, 165, 0, 0.03)", marginBottom: "12px", borderRadius: "12px" }}>
+      {/* ── Header ── */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderBottom: "1px solid rgba(255, 165, 0, 0.1)", background: "linear-gradient(135deg, rgba(255, 165, 0, 0.05) 0%, transparent 100%)", borderTopLeftRadius: "12px", borderTopRightRadius: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontSize: "14px" }}>₿</span>
-          <span style={{ fontSize: "12px", fontWeight: "700", color: "#ffa502" }}>QUICK PREDICT — BTC/USD</span>
+          <span style={{ fontSize: "16px" }}>₿</span>
+          <div>
+            <span style={{ fontSize: "13px", fontWeight: "800", color: "#ffa502", letterSpacing: "0.5px" }}>BTC/USD</span>
+            <span style={{ fontSize: "9px", color: "var(--muted)", marginLeft: "6px", padding: "1px 6px", background: "rgba(255, 165, 0, 0.12)", borderRadius: "3px", fontWeight: "600" }}>QUICK PREDICT 24/7</span>
+          </div>
         </div>
         <div style={{ display: "flex", gap: "4px" }}>
           <button
             onClick={() => setActiveTab("predict")}
             style={{
               fontSize: "10px",
-              padding: "2px 8px",
-              borderRadius: "4px",
+              padding: "4px 10px",
+              borderRadius: "6px",
               border: "none",
               cursor: "pointer",
-              background: activeTab === "predict" ? "var(--yellow)" : "transparent",
-              color: activeTab === "predict" ? "#000" : "var(--muted)",
-              fontWeight: "600",
+              background: activeTab === "predict" ? "rgba(255, 225, 0, 0.15)" : "rgba(255, 255, 255, 0.03)",
+              color: activeTab === "predict" ? "var(--yellow)" : "var(--muted)",
+              fontWeight: "700",
+              transition: "all 0.15s",
             }}
           >
-            ทายเลย
+            📊 ทายผล
           </button>
           <button
             onClick={() => setActiveTab("running")}
             style={{
               fontSize: "10px",
-              padding: "2px 8px",
-              borderRadius: "4px",
+              padding: "4px 10px",
+              borderRadius: "6px",
               border: "none",
               cursor: "pointer",
-              background: activeTab === "running" ? "var(--yellow)" : "transparent",
-              color: activeTab === "running" ? "#000" : "var(--muted)",
-              fontWeight: "600",
+              background: activeTab === "running" ? "rgba(255, 225, 0, 0.15)" : "rgba(255, 255, 255, 0.03)",
+              color: activeTab === "running" ? "var(--yellow)" : "var(--muted)",
+              fontWeight: "700",
+              transition: "all 0.15s",
             }}
           >
-            กำลังทาย {runningEntries.length > 0 && `(${runningEntries.length})`}
+            ⏳ รายการของฉัน {runningEntries.length > 0 && <span style={{ background: "var(--yellow)", color: "#000", borderRadius: "10px", padding: "0 6px", fontSize: "9px", marginLeft: "2px", fontWeight: "800" }}>{runningEntries.length}</span>}
           </button>
         </div>
       </div>
 
-      {/* Content */}
-      <div style={{ padding: "12px" }}>
+      {/* ── Content ── */}
+      <div style={{ padding: "14px 16px" }}>
         {activeTab === "predict" ? (
           <>
-            {/* BTC Price Display */}
-            <div style={{ textAlign: "center", padding: "10px 0", borderBottom: "1px solid var(--hairline)", marginBottom: "10px" }}>
+            {/* ── BTC Price Display — Trading Card Style ── */}
+            <div style={{ textAlign: "center", padding: "14px 12px", background: "linear-gradient(135deg, rgba(255, 165, 0, 0.05) 0%, rgba(255, 165, 0, 0.02) 100%)", borderRadius: "10px", marginBottom: "12px", border: "1px solid rgba(255, 165, 0, 0.1)" }}>
               {loadingPrice && !btcPrice ? (
-                <span style={{ fontSize: "20px", fontWeight: "800", color: "var(--muted)" }}>Loading...</span>
+                <span style={{ fontSize: "20px", fontWeight: "800", color: "var(--muted)" }}>กำลังโหลดราคา...</span>
               ) : btcPrice ? (
                 <>
-                  <div style={{ fontSize: "24px", fontWeight: "800", color: "#ffa502", fontFamily: "JetBrains Mono, monospace" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "14px", color: "var(--muted)", fontWeight: "600" }}>BTC/USD</span>
+                    <span style={{ fontSize: "10px", color: btcPrice.change24h >= 0 ? "#00ff88" : "#ff4757", padding: "1px 8px", borderRadius: "3px", background: btcPrice.change24h >= 0 ? "rgba(0, 255, 136, 0.1)" : "rgba(255, 71, 87, 0.1)", fontWeight: "700" }}>
+                      {btcPrice.change24h >= 0 ? "▲" : "▼"} {Math.abs(btcPrice.change24h).toFixed(2)}%
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "28px", fontWeight: "900", color: "#fff", fontFamily: "'JetBrains Mono', 'Courier New', monospace", letterSpacing: "-1px", lineHeight: "1.1" }}>
                     ${formatPrice(btcPrice.price)}
                   </div>
-                  <div style={{ fontSize: "11px", marginTop: "2px", color: btcPrice.change24h >= 0 ? "#00ff88" : "#ff4757" }}>
-                    {btcPrice.change24h >= 0 ? "▲" : "▼"} {btcPrice.change24h.toFixed(2)}% (24h)
-                  </div>
-                  <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>
-                    อัปเดตเมื่อ {formatTime(new Date(btcPrice.timestamp))}
+                  <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "4px", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
+                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#00ff88", display: "inline-block" }}></span>
+                    Live • อัปเดตเมื่อ {formatTime(new Date(btcPrice.timestamp))}
                   </div>
                 </>
               ) : (
@@ -337,21 +342,21 @@ export default function QuickPredictBTC({
               )}
             </div>
 
-            {/* Duration Selection */}
+            {/* ── Duration Selection ── */}
             <div style={{ marginBottom: "10px" }}>
-              <div style={{ fontSize: "10px", color: "var(--muted)", marginBottom: "4px", fontWeight: "600" }}>⏱ เลือกเวลา</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
+              <div style={{ fontSize: "10px", color: "var(--muted)", marginBottom: "4px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>⏱ ระยะเวลา</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px" }}>
                 {DURATIONS.map((d) => (
                   <button
                     key={d.seconds}
                     onClick={() => setSelectedDuration(d.seconds)}
                     style={{
-                      padding: "6px 4px",
+                      padding: "8px 4px",
                       fontSize: "11px",
                       fontWeight: "700",
-                      borderRadius: "6px",
+                      borderRadius: "8px",
                       border: selectedDuration === d.seconds ? "2px solid var(--yellow)" : "1px solid var(--border)",
-                      background: selectedDuration === d.seconds ? "rgba(255, 225, 0, 0.1)" : "transparent",
+                      background: selectedDuration === d.seconds ? "rgba(255, 225, 0, 0.08)" : "rgba(255, 255, 255, 0.02)",
                       color: selectedDuration === d.seconds ? "var(--yellow)" : "var(--text)",
                       cursor: "pointer",
                       transition: "all 0.15s",
@@ -363,22 +368,22 @@ export default function QuickPredictBTC({
               </div>
             </div>
 
-            {/* Stake Selection */}
+            {/* ── Stake Selection ── */}
             <div style={{ marginBottom: "10px" }}>
-              <div style={{ fontSize: "10px", color: "var(--muted)", marginBottom: "4px", fontWeight: "600" }}>💰 วางเหรียญ</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
+              <div style={{ fontSize: "10px", color: "var(--muted)", marginBottom: "4px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>💰 จำนวนเหรียญ</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px" }}>
                 {STAKES.map((stake) => (
                   <button
                     key={stake}
                     onClick={() => setSelectedStake(stake)}
                     disabled={userCoins < stake}
                     style={{
-                      padding: "6px 4px",
+                      padding: "8px 4px",
                       fontSize: "12px",
                       fontWeight: "700",
-                      borderRadius: "6px",
+                      borderRadius: "8px",
                       border: selectedStake === stake ? "2px solid var(--yellow)" : "1px solid var(--border)",
-                      background: selectedStake === stake ? "rgba(255, 225, 0, 0.1)" : "transparent",
+                      background: selectedStake === stake ? "rgba(255, 225, 0, 0.08)" : "rgba(255, 255, 255, 0.02)",
                       color: selectedStake === stake ? "var(--yellow)" : userCoins < stake ? "var(--muted)" : "var(--text)",
                       cursor: userCoins < stake ? "not-allowed" : "pointer",
                       opacity: userCoins < stake ? 0.4 : 1,
@@ -386,44 +391,45 @@ export default function QuickPredictBTC({
                       position: "relative",
                     }}
                   >
-                    {stake.toLocaleString()} <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
+                    {stake.toLocaleString()} <AmmoIcon />
                     {userCoins < stake && (
-                      <span style={{ position: "absolute", top: "-8px", right: "-4px", fontSize: "8px", color: "#ff4757" }}>✕</span>
+                      <span style={{ position: "absolute", top: "-8px", right: "-4px", fontSize: "8px", color: "#ff4757", fontWeight: "800" }}>✕</span>
                     )}
                   </button>
                 ))}
               </div>
-              <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "3px", textAlign: "center" }}>
-                เหรียญของคุณ: <span style={{ color: "var(--yellow)", fontWeight: "700" }}>{userCoins.toLocaleString()}</span> <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
+              <div style={{ fontSize: "9px", color: "var(--muted)", marginTop: "4px", textAlign: "center", padding: "4px", background: "rgba(255, 255, 255, 0.02)", borderRadius: "6px" }}>
+                เหรียญของคุณ: <span style={{ color: "var(--yellow)", fontWeight: "700", fontSize: "11px" }}>{userCoins.toLocaleString()}</span> <AmmoIcon />
               </div>
             </div>
 
-            {/* Potential Return Info */}
+            {/* ── Potential Return Info ── */}
             {selectedStake && (
-              <div style={{ textAlign: "center", padding: "6px", background: "rgba(255, 225, 0, 0.05)", borderRadius: "6px", marginBottom: "10px", fontSize: "11px" }}>
-                <span style={{ color: "var(--muted)" }}>ถ้าทายถูก ได้คืน </span>
-                <span style={{ color: "var(--yellow)", fontWeight: "800", fontSize: "14px" }}>{potentialReturn.toLocaleString()}</span>
-                <span style={{ color: "var(--muted)" }}> <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} /> (×{currentMultiplier})</span>
+              <div style={{ textAlign: "center", padding: "8px", background: "rgba(255, 225, 0, 0.05)", borderRadius: "8px", marginBottom: "12px", border: "1px dashed rgba(255, 225, 0, 0.15)" }}>
+                <span style={{ color: "var(--muted)", fontSize: "10px" }}>ถ้าทายถูก รับกลับ </span>
+                <span style={{ color: "var(--yellow)", fontWeight: "800", fontSize: "16px" }}>{potentialReturn.toLocaleString()}</span>
+                <span style={{ color: "var(--muted)", fontSize: "10px" }}> <AmmoIcon /> <span style={{ fontSize: "9px", opacity: 0.7 }}>(×{currentMultiplier})</span></span>
               </div>
             )}
 
-            {/* UP / DOWN Buttons */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+            {/* ── UP / DOWN Buttons ── */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
               <button
                 onClick={() => handlePlaceBet("UP")}
                 disabled={!selectedStake || !btcPrice || placing}
                 style={{
-                  padding: "10px",
-                  fontSize: "13px",
+                  padding: "12px",
+                  fontSize: "14px",
                   fontWeight: "800",
-                  borderRadius: "8px",
+                  borderRadius: "10px",
                   border: "none",
-                  background: !selectedStake || !btcPrice || placing ? "rgba(0, 255, 136, 0.2)" : "linear-gradient(135deg, #00b09b 0%, #00ff88 100%)",
+                  background: !selectedStake || !btcPrice || placing ? "rgba(0, 255, 136, 0.15)" : "linear-gradient(135deg, #00b09b 0%, #00ff88 100%)",
                   color: "#000",
                   cursor: !selectedStake || !btcPrice || placing ? "not-allowed" : "pointer",
                   opacity: !selectedStake || !btcPrice || placing ? 0.5 : 1,
                   transition: "all 0.15s",
-                  boxShadow: selectedStake && btcPrice && !placing ? "0 2px 8px rgba(0, 255, 136, 0.3)" : "none",
+                  boxShadow: selectedStake && btcPrice && !placing ? "0 3px 12px rgba(0, 255, 136, 0.25)" : "none",
+                  letterSpacing: "0.5px",
                 }}
               >
                 🔼 UP ×1.9
@@ -432,17 +438,18 @@ export default function QuickPredictBTC({
                 onClick={() => handlePlaceBet("DOWN")}
                 disabled={!selectedStake || !btcPrice || placing}
                 style={{
-                  padding: "10px",
-                  fontSize: "13px",
+                  padding: "12px",
+                  fontSize: "14px",
                   fontWeight: "800",
-                  borderRadius: "8px",
+                  borderRadius: "10px",
                   border: "none",
-                  background: !selectedStake || !btcPrice || placing ? "rgba(255, 71, 87, 0.2)" : "linear-gradient(135deg, #eb3b5a 0%, #ff4757 100%)",
+                  background: !selectedStake || !btcPrice || placing ? "rgba(255, 71, 87, 0.15)" : "linear-gradient(135deg, #eb3b5a 0%, #ff4757 100%)",
                   color: "#fff",
                   cursor: !selectedStake || !btcPrice || placing ? "not-allowed" : "pointer",
                   opacity: !selectedStake || !btcPrice || placing ? 0.5 : 1,
                   transition: "all 0.15s",
-                  boxShadow: selectedStake && btcPrice && !placing ? "0 2px 8px rgba(255, 71, 87, 0.3)" : "none",
+                  boxShadow: selectedStake && btcPrice && !placing ? "0 3px 12px rgba(255, 71, 87, 0.25)" : "none",
+                  letterSpacing: "0.5px",
                 }}
               >
                 🔽 DOWN ×1.9
@@ -450,22 +457,22 @@ export default function QuickPredictBTC({
             </div>
 
             {!isSignedIn && (
-              <div style={{ textAlign: "center", fontSize: "10px", color: "var(--muted)", marginTop: "8px" }}>
+              <div style={{ textAlign: "center", fontSize: "10px", color: "var(--muted)", marginTop: "10px", padding: "6px", background: "rgba(255, 255, 255, 0.02)", borderRadius: "6px" }}>
                 🔒 ลงชื่อเข้าใช้เพื่อทายผล
               </div>
             )}
 
             {error && (
-              <div style={{ textAlign: "center", fontSize: "10px", color: "#ff4757", marginTop: "6px", padding: "4px", background: "rgba(255, 71, 87, 0.1)", borderRadius: "4px" }}>
+              <div style={{ textAlign: "center", fontSize: "10px", color: "#ff4757", marginTop: "8px", padding: "6px", background: "rgba(255, 71, 87, 0.08)", borderRadius: "6px", border: "1px solid rgba(255, 71, 87, 0.15)" }}>
                 ⚠️ {error}
               </div>
             )}
           </>
         ) : (
-          /* Running Tab */
+          /* ── Running Tab ── */
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             {runningEntries.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "20px 0", color: "var(--muted)", fontSize: "11px" }}>
+              <div style={{ textAlign: "center", padding: "24px 0", color: "var(--muted)", fontSize: "11px" }}>
                 ไม่มีรายการที่กำลังทาย
               </div>
             ) : (
@@ -476,37 +483,41 @@ export default function QuickPredictBTC({
                   <div
                     key={entry.id}
                     style={{
-                      padding: "8px",
-                      borderRadius: "6px",
-                      background: "rgba(255, 255, 255, 0.03)",
-                      border: `1px solid ${entry.direction === "UP" ? "rgba(0, 255, 136, 0.2)" : "rgba(255, 71, 87, 0.2)"}`,
+                      padding: "10px",
+                      borderRadius: "8px",
+                      background: "rgba(255, 255, 255, 0.02)",
+                      border: `1px solid ${entry.direction === "UP" ? "rgba(0, 255, 136, 0.15)" : "rgba(255, 71, 87, 0.15)"}`,
+                      transition: "all 0.2s",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
-                      <span style={{ fontSize: "12px", fontWeight: "800", color: entry.direction === "UP" ? "#00ff88" : "#ff4757" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                      <span style={{ fontSize: "13px", fontWeight: "800", color: entry.direction === "UP" ? "#00ff88" : "#ff4757", letterSpacing: "0.5px" }}>
                         {entry.direction === "UP" ? "🔼 UP" : "🔽 DOWN"}
                       </span>
-                      <span style={{ fontSize: "10px", color: "var(--muted)" }}>
-                        {entry.stake_amount} <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} /> → {entry.potential_payout} <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
+                      <span style={{ fontSize: "11px", color: "var(--text)", fontWeight: "600" }}>
+                        {entry.stake_amount} → <span style={{ color: "var(--yellow)" }}>{entry.potential_payout}</span> <AmmoIcon />
                       </span>
                     </div>
-                    <div style={{ fontSize: "10px", color: "var(--text)", marginBottom: "2px" }}>
-                      ราคาเข้า: <span style={{ fontFamily: "JetBrains Mono, monospace", color: "#ffa502" }}>${formatPrice(entry.entry_price)}</span>
+                    <div style={{ fontSize: "10px", color: "var(--text)", marginBottom: "3px", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                      <span>เข้า: <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#ffa502", fontWeight: "700" }}>${formatPrice(entry.entry_price)}</span></span>
                       {entry.exit_price && (
-                        <span> → ราคาจบ: <span style={{ fontFamily: "JetBrains Mono, monospace", color: getResultColor(entry) }}>${formatPrice(entry.exit_price)}</span></span>
+                        <>
+                          <span style={{ color: "var(--muted)" }}>→</span>
+                          <span>จบ: <span style={{ fontFamily: "'JetBrains Mono', monospace", color: getResultColor(entry), fontWeight: "700" }}>${formatPrice(entry.exit_price)}</span></span>
+                        </>
                       )}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "4px" }}>
-                      <span style={{ fontSize: "9px", color: "var(--muted)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "6px", paddingTop: "6px", borderTop: "1px solid rgba(255, 255, 255, 0.05)" }}>
+                      <span style={{ fontSize: "10px", fontWeight: "700" }}>
                         {entry.status === "running" ? (
                           isExpired ? (
                             <span style={{ color: "#ffa502" }}>⏳ กำลังตรวจผล...</span>
                           ) : (
-                            <span style={{ color: "var(--yellow)", fontFamily: "JetBrains Mono, monospace", fontWeight: "700" }}>⏱ {formatCountdown(timeLeft)}</span>
+                            <span style={{ color: "var(--yellow)", fontFamily: "'JetBrains Mono', monospace" }}>⏱ {formatCountdown(timeLeft)}</span>
                           )
                         ) : (
-                          <span style={{ color: getResultColor(entry), fontWeight: "700" }}>
-                            {entry.status === "won" ? "✅ WIN" : entry.status === "lost" ? "❌ LOSE" : "↩️ REFUND"}
+                          <span style={{ color: getResultColor(entry) }}>
+                            {entry.status === "won" ? "✅ WIN +" + entry.potential_payout : entry.status === "lost" ? "❌ LOSE" : "↩️ REFUND"}
                           </span>
                         )}
                       </span>
@@ -520,7 +531,7 @@ export default function QuickPredictBTC({
         )}
       </div>
 
-      {/* Confirmation Modal */}
+      {/* ── Confirmation Modal ── */}
       {confirmData && (
         <div
           style={{
@@ -529,7 +540,8 @@ export default function QuickPredictBTC({
             left: 0,
             right: 0,
             bottom: 0,
-            background: "rgba(0, 0, 0, 0.8)",
+            background: "rgba(0, 0, 0, 0.85)",
+            backdropFilter: "blur(4px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -541,23 +553,23 @@ export default function QuickPredictBTC({
           <div
             style={{
               background: "var(--card)",
-              borderRadius: "12px",
+              borderRadius: "16px",
               padding: "24px",
               maxWidth: "360px",
               width: "100%",
               border: "2px solid var(--yellow)",
-              boxShadow: "0 4px 20px rgba(255, 225, 0, 0.2)",
+              boxShadow: "0 8px 32px rgba(255, 225, 0, 0.15)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ textAlign: "center", marginBottom: "16px" }}>
-              <span style={{ fontSize: "28px" }}>{confirmData.direction === "UP" ? "🔼" : "🔽"}</span>
-              <h3 style={{ margin: "8px 0", fontSize: "18px", fontWeight: "800", color: "var(--yellow)" }}>
+            <div style={{ textAlign: "center", marginBottom: "18px" }}>
+              <span style={{ fontSize: "32px" }}>{confirmData.direction === "UP" ? "🔼" : "🔽"}</span>
+              <h3 style={{ margin: "8px 0", fontSize: "18px", fontWeight: "800", color: "var(--yellow)", letterSpacing: "0.5px" }}>
                 ยืนยันการทาย BTC
               </h3>
             </div>
 
-            <div style={{ background: "rgba(255, 255, 255, 0.03)", borderRadius: "8px", padding: "16px", fontSize: "12px", lineHeight: "2" }}>
+            <div style={{ background: "rgba(255, 255, 255, 0.03)", borderRadius: "10px", padding: "16px", fontSize: "12px", lineHeight: "2.1" }}>
               <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--hairline)", paddingBottom: "6px", marginBottom: "6px" }}>
                 <span style={{ color: "var(--muted)" }}>ทิศทาง:</span>
                 <span style={{ fontWeight: "800", color: confirmData.direction === "UP" ? "#00ff88" : "#ff4757", fontSize: "14px" }}>
@@ -566,13 +578,13 @@ export default function QuickPredictBTC({
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--hairline)", paddingBottom: "6px", marginBottom: "6px" }}>
                 <span style={{ color: "var(--muted)" }}>เวลาเริ่ม:</span>
-                <span style={{ fontWeight: "700", color: "var(--text)", fontFamily: "JetBrains Mono, monospace" }}>
+                <span style={{ fontWeight: "700", color: "var(--text)", fontFamily: "'JetBrains Mono', monospace" }}>
                   {formatTime(confirmData.startTime)}
                 </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--hairline)", paddingBottom: "6px", marginBottom: "6px" }}>
                 <span style={{ color: "var(--muted)" }}>เวลาจบ:</span>
-                <span style={{ fontWeight: "700", color: "var(--text)", fontFamily: "JetBrains Mono, monospace" }}>
+                <span style={{ fontWeight: "700", color: "var(--text)", fontFamily: "'JetBrains Mono', monospace" }}>
                   {formatTime(confirmData.endTime)}
                 </span>
               </div>
@@ -584,18 +596,18 @@ export default function QuickPredictBTC({
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--hairline)", paddingBottom: "6px", marginBottom: "6px" }}>
                 <span style={{ color: "var(--muted)" }}>ราคา BTC ตอนทาย:</span>
-                <span style={{ fontWeight: "700", color: "#ffa502", fontFamily: "JetBrains Mono, monospace" }}>
+                <span style={{ fontWeight: "700", color: "#ffa502", fontFamily: "'JetBrains Mono', monospace" }}>
                   ${formatPrice(confirmData.entryPrice)}
                 </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--hairline)", paddingBottom: "6px", marginBottom: "6px" }}>
                 <span style={{ color: "var(--muted)" }}>เหรียญที่วาง:</span>
-                <span style={{ fontWeight: "700", color: "var(--text)" }}>{confirmData.stakeAmount.toLocaleString()} <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} /></span>
+                <span style={{ fontWeight: "700", color: "var(--text)" }}>{confirmData.stakeAmount.toLocaleString()} <AmmoIcon /></span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "6px" }}>
                 <span style={{ color: "var(--muted)" }}>ถ้าทายถูก ได้คืน:</span>
                 <span style={{ fontWeight: "800", color: "var(--yellow)", fontSize: "16px" }}>
-                  {confirmData.potentialPayout.toLocaleString()} <img src="https://superwinhub.app/ammo-icon.webp" alt="" width="12" height="12" style={{ display: "inline-block", verticalAlign: "middle" }} />
+                  {confirmData.potentialPayout.toLocaleString()} <AmmoIcon />
                 </span>
               </div>
             </div>
@@ -608,11 +620,12 @@ export default function QuickPredictBTC({
                   padding: "10px",
                   fontSize: "12px",
                   fontWeight: "700",
-                  borderRadius: "6px",
+                  borderRadius: "8px",
                   border: "1px solid var(--border)",
                   background: "transparent",
                   color: "var(--muted)",
                   cursor: placing ? "not-allowed" : "pointer",
+                  transition: "all 0.15s",
                 }}
               >
                 ยกเลิก
@@ -624,12 +637,13 @@ export default function QuickPredictBTC({
                   padding: "10px",
                   fontSize: "12px",
                   fontWeight: "800",
-                  borderRadius: "6px",
+                  borderRadius: "8px",
                   border: "none",
                   background: placing ? "var(--yellow-soft)" : "var(--yellow)",
                   color: placing ? "var(--muted)" : "#000",
                   cursor: placing ? "not-allowed" : "pointer",
-                  boxShadow: "0 2px 8px rgba(255, 225, 0, 0.3)",
+                  boxShadow: "0 2px 12px rgba(255, 225, 0, 0.25)",
+                  transition: "all 0.15s",
                 }}
               >
                 {placing ? "กำลังยืนยัน..." : "✅ ยืนยันการทาย"}
