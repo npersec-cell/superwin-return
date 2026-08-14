@@ -3194,6 +3194,11 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             {/* Balance Change */}
                             <td style={{ padding: "8px", fontSize: "10px", color: "var(--muted)" }}>
                               <div style={{ fontWeight: 600, color: isWon ? "var(--green)" : isLost ? "var(--red)" : "var(--text)", fontSize: "11px" }}>{balanceChange}</div>
+                              {bet.balanceBefore !== null && (
+                                <div style={{ fontSize: "9px", marginTop: "2px" }}>
+                                  Before: <strong style={{ color: "#fff" }}>{bet.balanceBefore.toLocaleString()}</strong> → After: <strong style={{ color: bet.finalBalanceAfter !== null && bet.finalBalanceAfter > bet.balanceBefore ? "var(--green)" : "var(--red)" }}>{bet.finalBalanceAfter?.toLocaleString() ?? "--"}</strong>
+                                </div>
+                              )}
                             </td>
                             
                             {/* Time */}
