@@ -14,7 +14,7 @@ export async function GET() {
     
     supabase
       .from('btc_quick_predictions')
-      .select('id, user_id, direction, stake_amount as amount, entry_price, status, created_at')
+      .select('id, user_id, direction, stake_amount, entry_price, status, created_at')
       .order('created_at', { ascending: false })
       .limit(10),
   ]);
@@ -49,7 +49,7 @@ export async function GET() {
       
       const retry = await supabase
         .from('btc_quick_predictions')
-        .select('id, user_id, direction, stake_amount as amount, entry_price, status, created_at')
+        .select('id, user_id, direction, stake_amount, entry_price, status, created_at')
         .order('created_at', { ascending: false })
         .limit(10);
       
@@ -132,7 +132,7 @@ export async function GET() {
       rawEmailPrefix: btcUserMap.get(entry.user_id)?.email?.split('@')[0],
       direction: entry.direction,
       entryPrice: entry.entry_price,
-      amount: entry.amount,
+      amount: entry.stake_amount,
       status: entry.status,
       createdAt: entry.created_at,
     }));
