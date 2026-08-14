@@ -1854,7 +1854,6 @@ export default function SuperWinPrototype() {
                     const date = new Date(bet.createdAt);
                     const timeStr = date.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
                     const isBigBet = bet.amount >= 1000;
-                    const isBTC = bet.type === 'btc';
                     return (
                       <div 
                         key={bet.id || bet.userId + bet.createdAt}
@@ -1892,23 +1891,9 @@ export default function SuperWinPrototype() {
                           fontWeight: "600",
                           whiteSpace: "nowrap",
                           overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "2px"
+                          textOverflow: "ellipsis"
                         }}>
-                          {isBTC ? (
-                            <>
-                              <span style={{ color: bet.direction === 'UP' ? '#00ff88' : '#ff4757', fontWeight: '700', fontSize: '11px' }}>
-                                {bet.direction === 'UP' ? '🔼' : '🔽'} BTC
-                              </span>
-                              <span style={{ fontSize: '9px', color: 'var(--muted)' }}>
-                                ${bet.entryPrice?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || '-'}
-                              </span>
-                            </>
-                          ) : (
-                            bet.displayName || maskName(bet.rawEmailPrefix || bet.userId?.slice(0, 8) || 'User')
-                          )}
+                          {bet.displayName || maskName(bet.rawEmailPrefix || bet.userId?.slice(0, 8) || 'User')}
                         </span>
                         
                         <span style={{ 
