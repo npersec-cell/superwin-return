@@ -674,15 +674,6 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
     return () => clearInterval(timer);
   }, [activeTab]);
 
-  // ── Auto-refresh BTC predictions when tab is active ──
-  useEffect(() => {
-    if (activeTab !== "btc") return;
-    loadBtcPredictions().catch(() => undefined);
-    const timer = setInterval(() => {
-      loadBtcPredictions().catch(() => undefined);
-    }, 15000);
-    return () => clearInterval(timer);
-  }, [activeTab]);
 
   async function loadUsers() {
     setUsersLoading(true);
@@ -3202,17 +3193,7 @@ export default function AdminPanel({ adminEmail }: { adminEmail: string }) {
                             
                             {/* Balance Change */}
                             <td style={{ padding: "8px", fontSize: "10px", color: "var(--muted)" }}>
-                              <div>{balanceChange}</div>
-                              {bet.balanceBefore !== null && (
-                                <div style={{ fontSize: "9px", color: "var(--muted)" }}>
-                                  Before: <strong style={{ color: "#fff" }}>{bet.balanceBefore.toLocaleString()}</strong>
-                                </div>
-                              )}
-                              {bet.finalBalanceAfter !== null && (
-                                <div style={{ fontSize: "9px", color: "var(--muted)" }}>
-                                  After: <strong style={{ color: "#fff" }}>{bet.finalBalanceAfter.toLocaleString()}</strong>
-                                </div>
-                              )}
+                              <div style={{ fontWeight: 600, color: isWon ? "var(--green)" : isLost ? "var(--red)" : "var(--text)", fontSize: "11px" }}>{balanceChange}</div>
                             </td>
                             
                             {/* Time */}
