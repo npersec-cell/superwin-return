@@ -1588,7 +1588,8 @@ export default function SuperWinPrototype() {
         </nav>
 
         <section className="content">
-          {activeTab === "prediction" && (<>
+          {/* ── Main Content Area (changes by tab) ── */}
+          {activeTab === "prediction" && (
           <section className="panel">
             <div className="panel-head"><h2>Open Tournaments</h2><span className="micro">Select a question</span></div>
             <div className="questions">
@@ -1814,7 +1815,27 @@ export default function SuperWinPrototype() {
               )}
             </div>
           </section>
+          )}
 
+          {/* ── BTC Tab Content (replaces prediction panel) ── */}
+          {activeTab === "btc" && (
+          <section className="panel" style={{ maxWidth: "600px", margin: "0 auto", width: "100%" }}>
+            {isSignedIn ? (
+              <QuickPredictBTC
+                userCoins={coins}
+                onBalanceUpdate={(newBalance) => setCoins(newBalance)}
+                onBetPlaced={() => refreshLiveBets()}
+                isSignedIn={isSignedIn}
+              />
+            ) : (
+              <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-weak)" }}>
+                <p style={{ fontSize: "14px", marginBottom: "8px" }}>🔐 Sign in to play BTC Quick Predict</p>
+              </div>
+            )}
+          </section>
+          )}
+
+          {/* ── Sidebar (always visible on right) ── */}
           <aside className="side">
             <section className="panel">
               <div className="panel-head"><h3>All time Top 5</h3><span className="micro" style={{ display: "flex", alignItems: "center", gap: "4px" }}>Average Score</span></div>
@@ -2093,25 +2114,6 @@ export default function SuperWinPrototype() {
               </div>
             )}
           </aside>
-          </>)}
-
-          {/* ── BTC Tab Content ── */}
-          {activeTab === "btc" && (
-          <section className="panel" style={{ maxWidth: "600px", margin: "0 auto", width: "100%", gridColumn: "1 / -1" }}>
-            {isSignedIn ? (
-              <QuickPredictBTC
-                userCoins={coins}
-                onBalanceUpdate={(newBalance) => setCoins(newBalance)}
-                onBetPlaced={() => refreshLiveBets()}
-                isSignedIn={isSignedIn}
-              />
-            ) : (
-              <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-weak)" }}>
-                <p style={{ fontSize: "14px", marginBottom: "8px" }}>🔐 Sign in to play BTC Quick Predict</p>
-              </div>
-            )}
-          </section>
-          )}
         </section>
       </div>
 
