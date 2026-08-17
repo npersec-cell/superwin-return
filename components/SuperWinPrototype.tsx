@@ -2097,7 +2097,7 @@ export default function SuperWinPrototype() {
 
           {/* ── BTC Tab Content ── */}
           {activeTab === "btc" && (
-          <section className="panel" style={{ maxWidth: "600px", margin: "0 auto", width: "100%" }}>
+          <section className="panel" style={{ maxWidth: "600px", margin: "0 auto", width: "100%", gridColumn: "1 / -1" }}>
             {isSignedIn ? (
               <QuickPredictBTC
                 userCoins={coins}
